@@ -1,0 +1,65 @@
+<project name="wycs" default="build">
+  <import file="../../config.xml"/>
+
+  <target name="compile-wycs">
+    <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="../wybs/src/:../../${WYRL_JAR}"/>
+    <wyrl srcdir="src/" debug="false" source="wycs/core/Types.wyrl" output="wycs/core/Types.java"/>
+    <wyrl srcdir="src/" debug="false" source="wycs/solver/Solver.wyrl" output="wycs/solver/Solver.java"/>
+    <javac memoryMaximumSize="2048m" fork="true" debug="true" debuglevel="vars,lines,source" source="1.7" target="1.7" includeantruntime="true" classpath="../wybs/src/:../../${WYRL_JAR}">
+      <src path="src"/>
+      <include name="*/**"/>
+      <exclude name="*/**/package-info.java"/>
+      <exclude name="wycs/testing/**"/>
+    </javac>
+    <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:../wybs/src/:../../${WYRL_JAR}"/>
+    <wycs wyaldir="stdlib/" includes="*/**.wycs"/>
+  </target>
+
+  <target name="build" depends="compile-wycs">
+    <mkdir dir="tmp"/>
+    <manifest file="tmp/MANIFEST.MF">
+      <attribute name="Built-By" value="${user.name}"/>
+      <attribute name="Main-Class" value="wycs.WycsMain"/>
+      <attribute name="Implementation-Version" value="${version}"/>
+      <attribute name="Implementation-Title" value="wycs-v${version}.jar"/>
+    </manifest>
+    <jar destfile="../../lib/wycs-v${version}.jar" manifest="tmp/MANIFEST.MF">
+      <fileset dir="src" includes="*/**/*.class"/>
+      <fileset dir="stdlib" includes="*/**/*.wycs"/>
+    </jar>
+    <delete dir="tmp"/>
+    <echo message="============================================="/>
+    <echo message="BUILT: lib/${ant.project.name}-v${version}.jar"/>
+    <echo message="============================================="/>
+  </target>
+
+  <target name="test"/>
+
+  <target name="dist">
+    <mkdir dir="tmp"/>
+    <manifest file="tmp/MANIFEST.MF">
+      <attribute name="Built-By" value="${user.name}"/>
+      <attribute name="Main-Class" value="wycs.WycsMain"/>
+      <attribute name="Implementation-Version" value="${version}"/>
+      <attribute name="Implementation-Title" value="wycs-v${version}.jar"/>
+    </manifest>
+    <jar destfile="../../dist/wycs-all-v${version}.jar" manifest="tmp/MANIFEST.MF">
+      <fileset dir="src" includes="wycs/**/*.class"/>
+      <fileset dir="stdlib" includes="wycs/**/*.wycs"/>
+    </jar>
+    <delete dir="tmp"/>
+    <echo message="============================================="/>
+    <echo message="BUILT: dist/${ant.project.name}-all-v${version}.jar"/>
+    <echo message="============================================="/>
+  </target>
+
+ <target name="clean">
+   <delete includeEmptyDirs="true" failonerror="false">
+     <fileset dir="." includes="**/*.class,**/*.wyil,**/*.wyasm"/>
+   </delete>
+    <echo message="============================================="/>
+    <echo message="CLEANED: ${ant.project.name}"/>
+    <echo message="============================================="/>
+ </target>
+
+</project>

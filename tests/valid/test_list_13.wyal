@@ -1,0 +1,8 @@
+assert:
+    forall([int] xs):
+        if:
+            forall(int i2):
+                   xs[i2] >= 0
+        then:
+            xs[0] >= 0
+
