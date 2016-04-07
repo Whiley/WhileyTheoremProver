@@ -1,5 +1,32 @@
-======================================================================
-Package Summary
+Whiley Theorem Prover (WyTP)
 ======================================================================
 
-src/wycs/ --- The Whiley Constraint Solver (Wycs).
+The Whiley Theorem Prover provides an automatic and interactive
+theorem prover designed specifically for use with the Whiley Compiler.
+The prover accepts assertions written in the Whiley Assertion Language
+(WyAL) and attempts to prove they are correct (or not).  In many
+cases, such assertions can be discharged automatically.  However, in
+some cases, manual intervention is required through the use of an
+interactive proof.  The theorem prover provides a simple interface for
+performing such proofs.
+
+An example assertion accepted and discharged automatically by WyTP is:
+
+> assert:
+>   forall(int[] xs):
+>      if:
+>         forall(int i):
+> 	    xs[i] >= 0
+>      then:
+>         |xs| == 0 || xs[0] >= 0
+
+Notes
+======================================================================
+
+History
+======================================================================
+The Whiley Theorem Prover was developed by David Pearce, starting
+around 2010.
+
+
+
