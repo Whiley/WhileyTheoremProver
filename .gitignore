@@ -1,0 +1,7 @@
+*.class
+*.wycs
+*~
+*.jar
+*.wyal
+src/wycs/core/Types.java
+src/wycs/solver/Solver.java

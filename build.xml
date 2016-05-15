@@ -1,21 +1,24 @@
-<project name="wycs" default="build">
-  <import file="../../config.xml"/>
+<project name="wytp" default="build">
+  <import file="config.xml"/>
 
-  <target name="compile-wycs">
-    <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="../wybs/src/:../../${WYRL_JAR}"/>
+  <target name="compile">
+    <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="${WYBS_JAR}:${WYRL_JAR}"/>
     <wyrl srcdir="src/" debug="false" source="wycs/core/Types.wyrl" output="wycs/core/Types.java"/>
     <wyrl srcdir="src/" debug="false" source="wycs/solver/Solver.wyrl" output="wycs/solver/Solver.java"/>
-    <javac memoryMaximumSize="2048m" fork="true" debug="true" debuglevel="vars,lines,source" source="1.7" target="1.7" includeantruntime="true" classpath="../wybs/src/:../../${WYRL_JAR}">
+    <javac memoryMaximumSize="2048m" fork="true" debug="true" debuglevel="vars,lines,source" source="1.7" target="1.7" includeantruntime="true">
       <src path="src"/>
       <include name="*/**"/>
       <exclude name="*/**/package-info.java"/>
-      <exclude name="wycs/testing/**"/>
+      <classpath>
+        <pathelement path="${WYBS_JAR}:${WYRL_JAR}"/>
+        <path refid="junit.classpath"/>
+      </classpath>
     </javac>
-    <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:../wybs/src/:../../${WYRL_JAR}"/>
+    <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:${WYBS_JAR}:${WYRL_JAR}"/>
     <wycs wyaldir="stdlib/" includes="*/**.wycs"/>
   </target>
 
-  <target name="build" depends="compile-wycs">
+  <target name="build" depends="compile">
     <mkdir dir="tmp"/>
     <manifest file="tmp/MANIFEST.MF">
       <attribute name="Built-By" value="${user.name}"/>
@@ -23,7 +26,7 @@
       <attribute name="Implementation-Version" value="${version}"/>
       <attribute name="Implementation-Title" value="wycs-v${version}.jar"/>
     </manifest>
-    <jar destfile="../../lib/wycs-v${version}.jar" manifest="tmp/MANIFEST.MF">
+    <jar destfile="lib/wycs-v${version}.jar" manifest="tmp/MANIFEST.MF">
       <fileset dir="src" includes="*/**/*.class"/>
       <fileset dir="stdlib" includes="*/**/*.wycs"/>
     </jar>
@@ -33,7 +36,19 @@
     <echo message="============================================="/>
   </target>
 
-  <target name="test"/>
+  <target name="test" depends="compile">
+    <junit fork="true" dir="${rootdir}" failureProperty="tests.failed" printsummary="yes" showoutput="yes" outputtoformatters="no">
+      <classpath>
+        <pathelement path="src:${WYBS_JAR}:${WYRL_JAR}"/>
+        <path refid="junit.classpath"/>
+      </classpath>
+      <batchtest>
+        <fileset dir="src" includes="wycs/testing/tests/*Tests.java"/>
+      </batchtest>
+      <formatter type="plain" usefile="false"/>
+    </junit>
+    <fail message="Test failure detected, stopping build." if="tests.failed"/>
+  </target>
 
   <target name="dist">
     <mkdir dir="tmp"/>
@@ -43,7 +58,7 @@
       <attribute name="Implementation-Version" value="${version}"/>
       <attribute name="Implementation-Title" value="wycs-v${version}.jar"/>
     </manifest>
-    <jar destfile="../../dist/wycs-all-v${version}.jar" manifest="tmp/MANIFEST.MF">
+    <jar destfile="dist/wycs-all-v${version}.jar" manifest="tmp/MANIFEST.MF">
       <fileset dir="src" includes="wycs/**/*.class"/>
       <fileset dir="stdlib" includes="wycs/**/*.wycs"/>
     </jar>
