@@ -41,10 +41,10 @@ public class TestHarness {
 		// The purpose of this is to figure out what the proper name for the
 		// wyrt file is.
 
-		File file = new File("lib/");
+		File file = new File("../../lib/");
 		for(String f : file.list()) {
 			if(f.startsWith("wyrt-v")) {
-				WYRT_PATH="lib/" + f;
+				WYRT_PATH="../../lib/" + f;
 			}
 		}
 	}
