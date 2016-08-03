@@ -10,11 +10,11 @@
 
   <!-- Paths to common JARs -->
   <property name="WYRL_JAR" value="lib/wyrl-v0.4.4.jar"/>
-  <property name="WYBS_JAR" value="lib/wybs-v0.3.39.jar"/>
-  
+  <property name="WYBS_JAR" value="lib/wybs-v0.4.0.jar"/>
+
   <!-- Set the classpath for Junit and its dependencies -->
   <maven:dependencies pathId="junit.classpath">
     <dependency groupId="junit" artifactId="junit" version="4.12"/>
   </maven:dependencies>
-  
+
 </project>
