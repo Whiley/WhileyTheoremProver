@@ -1,10 +1,20 @@
 <project name="wytp" default="build">
+  <!-- ============================================== -->
+  <!-- Configuration -->
+  <!-- ============================================== -->
+
   <import file="config.xml"/>
+
+  <!-- ============================================== -->
+  <!-- Compile -->
+  <!-- ============================================== -->
 
   <target name="compile">
     <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="${WYBS_JAR}:${WYRL_JAR}"/>
+    <!-- Generate type system and solver code -->
     <wyrl srcdir="src/" debug="false" source="wycs/core/Types.wyrl" output="wycs/core/Types.java"/>
     <wyrl srcdir="src/" debug="false" source="wycs/solver/Solver.wyrl" output="wycs/solver/Solver.java"/>
+    <!-- Compile the theorem prover itself -->
     <javac memoryMaximumSize="2048m" fork="true" debug="true" debuglevel="vars,lines,source" source="1.7" target="1.7" includeantruntime="true">
       <src path="src"/>
       <include name="*/**"/>
@@ -14,9 +24,32 @@
         <path refid="junit.classpath"/>
       </classpath>
     </javac>
+    <!-- Build the standard library -->
     <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:${WYBS_JAR}:${WYRL_JAR}"/>
     <wycs wyaldir="stdlib/" includes="*/**.wycs"/>
   </target>
+
+  <!-- ============================================== -->
+  <!-- Test -->
+  <!-- ============================================== -->
+
+  <target name="test" depends="compile">
+    <junit fork="true" dir="${rootdir}" failureProperty="tests.failed" printsummary="yes" showoutput="yes" outputtoformatters="no">
+      <classpath>
+        <pathelement path="src:${WYBS_JAR}:${WYRL_JAR}"/>
+        <path refid="junit.classpath"/>
+      </classpath>
+      <batchtest>
+        <fileset dir="src" includes="wycs/testing/tests/*Tests.java"/>
+      </batchtest>
+      <formatter type="plain" usefile="false"/>
+    </junit>
+    <fail message="Test failure detected, stopping build." if="tests.failed"/>
+  </target>
+
+  <!-- ============================================== -->
+  <!-- Compile -->
+  <!-- ============================================== -->
 
   <target name="build" depends="compile">
     <mkdir dir="tmp"/>
@@ -36,19 +69,9 @@
     <echo message="============================================="/>
   </target>
 
-  <target name="test" depends="compile">
-    <junit fork="true" dir="${rootdir}" failureProperty="tests.failed" printsummary="yes" showoutput="yes" outputtoformatters="no">
-      <classpath>
-        <pathelement path="src:${WYBS_JAR}:${WYRL_JAR}"/>
-        <path refid="junit.classpath"/>
-      </classpath>
-      <batchtest>
-        <fileset dir="src" includes="wycs/testing/tests/*Tests.java"/>
-      </batchtest>
-      <formatter type="plain" usefile="false"/>
-    </junit>
-    <fail message="Test failure detected, stopping build." if="tests.failed"/>
-  </target>
+  <!-- ============================================== -->
+  <!-- Dist -->
+  <!-- ============================================== -->
 
   <target name="dist">
     <mkdir dir="tmp"/>
@@ -67,6 +90,10 @@
     <echo message="BUILT: dist/${ant.project.name}-all-v${version}.jar"/>
     <echo message="============================================="/>
   </target>
+
+  <!-- ============================================== -->
+  <!-- Clean -->
+  <!-- ============================================== -->
 
  <target name="clean">
    <delete includeEmptyDirs="true" failonerror="false">

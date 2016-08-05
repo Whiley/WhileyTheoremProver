@@ -1,5 +1,6 @@
 language: java
 
+
 #
 jdk:
     - openjdk7
@@ -7,4 +8,4 @@ jdk:
 #
 script:
     - touch running_on_travis
-    - ant test
+    - ant build
