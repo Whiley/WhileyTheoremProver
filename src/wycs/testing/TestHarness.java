@@ -34,20 +34,7 @@ import wycs.util.WycsBuildTask;
 
 public class TestHarness {
 	private String sourcepath;    // path to source files
-	private static String WYRT_PATH;
-
-	static {
-
-		// The purpose of this is to figure out what the proper name for the
-		// wyrt file is.
-
-		File file = new File("../../lib/");
-		for(String f : file.list()) {
-			if(f.startsWith("wyrt-v")) {
-				WYRT_PATH="../../lib/" + f;
-			}
-		}
-	}
+	private static String STDLIB_PATH = "stdlib";
 
 	/**
 	 * Construct a test harness object.
@@ -64,7 +51,7 @@ public class TestHarness {
 		name = sourcepath + File.separatorChar + name + ".wyal";
 
 		try {
-			if (compile("-bp", WYRT_PATH,
+			if (compile("-bp", STDLIB_PATH,
 						"-wyaldir", sourcepath,
 						"-wycsdir", sourcepath,
 						name) != WycsMain.SUCCESS) {
@@ -80,7 +67,7 @@ public class TestHarness {
 		name = sourcepath + File.separatorChar + name + ".wyal";
 
 		try {
-			if (compile("-bp", WYRT_PATH, "-wyaldir", sourcepath, "-wycsdir",
+			if (compile("-bp", STDLIB_PATH, "-wyaldir", sourcepath, "-wycsdir",
 					sourcepath, name) != WycsMain.SYNTAX_ERROR) {
 				fail("Test verified when it shouldn't have!");
 			}
