@@ -3,18 +3,19 @@ package wycs.builders;
 import java.math.BigInteger;
 import java.util.*;
 
-import wycc.lang.Attribute;
-import wycc.lang.NameID;
-import wycc.lang.SyntacticElement;
-import wycc.lang.SyntaxError;
-import wycc.util.Pair;
-import wycc.util.ResolveError;
-import wycc.util.Triple;
+import wybs.lang.Attribute;
+import wybs.lang.NameID;
+import wybs.lang.SyntacticElement;
+import wybs.lang.SyntaxError;
+import wybs.util.ResolveError;
+import wyps.util.Pair;
+import wyps.util.Triple;
 import wycs.core.*;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
-import static wycc.lang.SyntaxError.*;
+
+import static wybs.lang.SyntaxError.*;
 import static wycs.transforms.TypePropagation.returnType;
 
 /**

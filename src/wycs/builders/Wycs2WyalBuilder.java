@@ -1,31 +1,18 @@
 package wycs.builders;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import static wycc.lang.SyntaxError.*;
-import static wycs.solver.Solver.SCHEMA;
-import wyautl.io.PrettyAutomataWriter;
 import wybs.lang.*;
-import wycc.util.Logger;
-import wycc.util.Pair;
-import wycc.util.ResolveError;
+import wyps.util.Logger;
+import wyps.util.Pair;
 import wycs.core.WycsFile;
-import wycs.io.WyalFilePrinter;
 import wycs.io.WycsFilePrinter;
-import wycs.solver.Solver;
 import wycs.syntax.WyalFile;
-import wycs.transforms.TypePropagation;
-import wycs.transforms.VerificationCheck;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
-import wyfs.util.Trie;
 
 public class Wycs2WyalBuilder implements Builder {
 

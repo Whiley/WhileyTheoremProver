@@ -10,8 +10,8 @@ import java.util.List;
 
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataReader;
-import wycc.lang.NameID;
-import wycc.util.Pair;
+import wybs.lang.NameID;
+import wyps.util.Pair;
 import wycs.core.*;
 import wyfs.io.BinaryInputStream;
 import wyfs.lang.Path;

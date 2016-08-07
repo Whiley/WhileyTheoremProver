@@ -2,16 +2,12 @@ package wycs.syntax;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import wycc.lang.Attribute;
-import wycc.lang.SyntacticElement;
-import wycc.util.Pair;
-import wycs.core.SemanticType;
-import wycs.syntax.SyntacticType.Tuple;
-import wycs.syntax.SyntacticType.Util;
+import wybs.lang.Attribute;
+import wybs.lang.SyntacticElement;
+import wyps.util.Pair;
 
 /**
  * Represents a type pattern which is used for pattern matching.

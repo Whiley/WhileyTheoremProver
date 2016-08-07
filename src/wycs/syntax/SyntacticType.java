@@ -6,9 +6,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import wycc.lang.Attribute;
-import wycc.lang.SyntacticElement;
-import wycc.util.Pair;
+import wybs.lang.Attribute;
+import wybs.lang.SyntacticElement;
+import wyps.util.Pair;
 import wycs.core.SemanticType;
 
 public interface SyntacticType extends SyntacticElement {

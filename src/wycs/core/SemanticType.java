@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import wyautl.core.*;
+import wybs.lang.NameID;
 import wyrw.core.*;
 import wyrw.util.*;
-import wycc.lang.NameID;
+
 import static wycs.core.Types.*;
 
 public abstract class SemanticType {

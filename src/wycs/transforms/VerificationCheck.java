@@ -1,6 +1,6 @@
 package wycs.transforms;
 
-import static wycc.lang.SyntaxError.*;
+import static wybs.lang.SyntaxError.*;
 import static wycs.solver.Solver.*;
 
 import java.io.IOException;
@@ -13,11 +13,11 @@ import wyrw.core.*;
 import wyrw.util.*;
 import wyautl.util.BigRational;
 import wybs.lang.Builder;
-import wycc.lang.SyntacticElement;
-import wycc.lang.Transform;
-import wycc.util.Logger;
-import wycc.util.Pair;
-import wycc.util.Triple;
+import wybs.lang.SyntacticElement;
+import wybs.lang.Transform;
+import wyps.util.Logger;
+import wyps.util.Pair;
+import wyps.util.Triple;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;
 import wycs.core.NormalForms;

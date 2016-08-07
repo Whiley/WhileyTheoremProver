@@ -1,8 +1,9 @@
 package wycs.io;
 
+import static wybs.lang.SyntaxError.*;
+
 import java.io.*;
 
-import static wycc.lang.SyntaxError.*;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;

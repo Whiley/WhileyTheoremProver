@@ -1,15 +1,16 @@
 package wycs.transforms;
 
+import static wybs.lang.SyntaxError.*;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import static wycc.lang.SyntaxError.*;
 import wybs.lang.Builder;
-import wycc.lang.Transform;
-import wycc.util.Pair;
+import wybs.lang.Transform;
+import wyps.util.Pair;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;
 import wycs.core.SemanticType;

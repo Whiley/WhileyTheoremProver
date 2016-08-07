@@ -5,10 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
 
-import wycc.lang.Attribute;
-import wycc.lang.CompilationUnit;
-import wycc.lang.SyntacticElement;
-import wycc.util.AbstractCompilationUnit;
+import wybs.lang.Attribute;
+import wybs.lang.SyntacticElement;
+import wybs.util.AbstractCompilationUnit;
 import wycs.io.*;
 import wyfs.lang.Content;
 import wyfs.lang.Path;

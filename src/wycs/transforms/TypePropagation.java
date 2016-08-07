@@ -1,16 +1,17 @@
 package wycs.transforms;
 
+import static wybs.lang.SyntaxError.*;
+
 import java.util.*;
 
-import static wycc.lang.SyntaxError.*;
 import wybs.lang.Builder;
-import wycc.lang.NameID;
-import wycc.lang.SyntacticElement;
-import wycc.lang.SyntaxError;
-import wycc.lang.Transform;
-import wycc.util.Pair;
-import wycc.util.ResolveError;
-import wycc.util.Triple;
+import wybs.lang.NameID;
+import wybs.lang.SyntacticElement;
+import wybs.lang.SyntaxError;
+import wybs.lang.Transform;
+import wybs.util.ResolveError;
+import wyps.util.Pair;
+import wyps.util.Triple;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.SemanticType;
 import wycs.core.Value;

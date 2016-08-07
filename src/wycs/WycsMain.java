@@ -25,18 +25,18 @@
 
 package wycs;
 
+import static wybs.lang.SyntaxError.*;
+
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
 import wyautl.io.PrettyAutomataReader;
-
-import static wycc.lang.SyntaxError.*;
-import wycc.lang.Pipeline;
-import wycc.lang.SyntaxError;
-import wycc.lang.Transform;
-import wycc.util.OptArg;
+import wybs.lang.Pipeline;
+import wybs.lang.SyntaxError;
+import wybs.lang.Transform;
+import wyps.util.OptArg;
 import wycs.solver.Solver;
 import wycs.transforms.VerificationCheck;
 import wycs.util.WycsBuildTask;

@@ -29,9 +29,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
-import wycc.util.Pair;
-import wyautl.util.BigRational;
-
 public abstract class Value implements Comparable<Value> {
 
 	public abstract SemanticType type();

@@ -10,16 +10,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import wybs.lang.Attribute;
+import wybs.lang.SyntacticElement;
+import wybs.lang.SyntaxError;
+import wybs.lang.SyntaxError.*;
+
 import static wycs.io.WyalFileLexer.Token.Kind.*;
 import wycs.core.Value;
 import wycs.io.WyalFileLexer.Token;
 import wycs.syntax.*;
 import wycs.syntax.Expr.Is;
-import wycc.lang.SyntaxError;
-import wycc.lang.SyntaxError.*;
-import wycc.lang.SyntacticElement;
-import wycc.lang.Attribute;
-import wycc.util.Pair;
+import wyps.util.Pair;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 

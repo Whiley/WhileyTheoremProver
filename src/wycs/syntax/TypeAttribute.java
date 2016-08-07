@@ -1,6 +1,6 @@
 package wycs.syntax;
 
-import wycc.lang.Attribute;
+import wybs.lang.Attribute;
 import wycs.core.SemanticType;
 
 public class TypeAttribute implements Attribute {

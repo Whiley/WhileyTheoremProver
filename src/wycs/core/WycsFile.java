@@ -7,10 +7,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import wycc.lang.Attribute;
-import wycc.lang.CompilationUnit;
-import wycc.lang.SyntacticElement;
-import wycc.util.AbstractCompilationUnit;
+import wybs.lang.Attribute;
+import wybs.lang.CompilationUnit;
+import wybs.lang.SyntacticElement;
+import wybs.util.AbstractCompilationUnit;
 import wycs.io.WyalFilePrinter;
 import wycs.io.WycsFileReader;
 import wycs.io.WycsFileWriter;

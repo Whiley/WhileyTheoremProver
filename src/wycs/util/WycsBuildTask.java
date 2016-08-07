@@ -8,10 +8,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import wybs.lang.Pipeline;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
-import wycc.lang.Pipeline;
-import wycc.util.Logger;
+import wyps.util.Logger;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.builders.Wycs2WyalBuilder;
 import wycs.core.WycsFile;

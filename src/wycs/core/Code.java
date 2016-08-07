@@ -7,10 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import wycc.lang.Attribute;
-import wycc.lang.NameID;
-import wycc.lang.SyntacticElement;
-import wycc.util.Pair;
+import wybs.lang.Attribute;
+import wybs.lang.NameID;
+import wybs.lang.SyntacticElement;
+import wyps.util.Pair;
 
 /**
  * Represents a "bytecode" in the language of the Wycs theorem prover. Bytecodes

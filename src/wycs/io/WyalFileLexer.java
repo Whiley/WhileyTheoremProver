@@ -35,9 +35,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import wycc.lang.Attribute;
-import wycc.lang.SyntacticElement;
-import wycc.lang.SyntaxError;
+import wybs.lang.Attribute;
+import wybs.lang.SyntacticElement;
+import wybs.lang.SyntaxError;
 import wycs.syntax.WyalFile;
 import wyfs.lang.Path;
 
