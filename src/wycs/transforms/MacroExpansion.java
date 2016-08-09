@@ -8,9 +8,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import wybs.lang.Builder;
-import wybs.lang.Transform;
-import wyps.util.Pair;
+import wycommon.util.Pair;
+import wybs.lang.Build;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;
 import wycs.core.SemanticType;
@@ -46,7 +45,7 @@ import wycs.core.WycsFile;
  * @author David J. Pearce
  *
  */
-public class MacroExpansion implements Transform<WycsFile> {
+public class MacroExpansion {
 
 	/**
 	 * Determines whether macro inlining is enabled or not.
@@ -61,7 +60,7 @@ public class MacroExpansion implements Transform<WycsFile> {
 	// Constructor(s)
 	// ======================================================================
 
-	public MacroExpansion(Builder builder) {
+	public MacroExpansion(Build.Task builder) {
 		this.builder = (Wyal2WycsBuilder) builder;
 	}
 

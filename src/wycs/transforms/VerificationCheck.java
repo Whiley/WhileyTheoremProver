@@ -7,17 +7,16 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+import wycommon.util.Logger;
+import wycommon.util.Pair;
+import wycommon.util.Triple;
 import wyautl.core.*;
 import wyautl.io.PrettyAutomataWriter;
 import wyrw.core.*;
 import wyrw.util.*;
 import wyautl.util.BigRational;
-import wybs.lang.Builder;
+import wybs.lang.Build;
 import wybs.lang.SyntacticElement;
-import wybs.lang.Transform;
-import wyps.util.Logger;
-import wyps.util.Pair;
-import wyps.util.Triple;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;
 import wycs.core.NormalForms;
@@ -40,7 +39,7 @@ import wyfs.util.Trie;
  * @author David J. Pearce
  *
  */
-public class VerificationCheck implements Transform<WycsFile> {
+public class VerificationCheck {
 	public enum RewriteMode {
 		UNFAIR, FAIR, EXHAUSTIVE
 	};
@@ -77,7 +76,7 @@ public class VerificationCheck implements Transform<WycsFile> {
 	// Constructor(s)
 	// ======================================================================
 
-	public VerificationCheck(Builder builder) {
+	public VerificationCheck(Build.Task builder) {
 		this.builder = (Wyal2WycsBuilder) builder;
 	}
 

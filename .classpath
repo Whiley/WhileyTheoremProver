@@ -7,6 +7,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/WyRL"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/WhileyBuildSystem"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/WhileyFileSystem"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/WhileyPluginSystem"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/WhileyCommon"/>
 	<classpathentry kind="output" path="src"/>
 </classpath>

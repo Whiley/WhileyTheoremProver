@@ -31,18 +31,24 @@ public class WyalFile extends AbstractCompilationUnit {
 			WyalFileLexer lexer = new WyalFileLexer(e);
 			List<WyalFileLexer.Token> tokens;
 			tokens = lexer.scan();
-			WyalFileParser parser = new WyalFileParser(e,tokens);
+			WyalFileParser parser = new WyalFileParser(e, tokens);
 			return parser.read();
 		}
 
 		public void write(OutputStream output, WyalFile module) throws IOException {
-			//WycsFileClassicalPrinter writer = new WycsFileClassicalPrinter(output);
+			// WycsFileClassicalPrinter writer = new
+			// WycsFileClassicalPrinter(output);
 			WyalFilePrinter writer = new WyalFilePrinter(output);
 			writer.write(module);
 		}
 
 		public String toString() {
 			return "Content-Type: wyal";
+		}
+
+		@Override
+		public String getSuffix() {
+			return "wyal";
 		}
 	};
 

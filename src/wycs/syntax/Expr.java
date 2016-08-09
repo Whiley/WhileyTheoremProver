@@ -2,9 +2,9 @@ package wycs.syntax;
 
 import java.util.*;
 
+import wycommon.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
-import wyps.util.Pair;
 import wycs.core.Value;
 import wyfs.lang.Path;
 

@@ -5,9 +5,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import wycommon.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
-import wyps.util.Pair;
 
 /**
  * Represents a type pattern which is used for pattern matching.

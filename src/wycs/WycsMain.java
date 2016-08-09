@@ -32,11 +32,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
+import wycommon.util.OptArg;
 import wyautl.io.PrettyAutomataReader;
-import wybs.lang.Pipeline;
 import wybs.lang.SyntaxError;
-import wybs.lang.Transform;
-import wyps.util.OptArg;
 import wycs.solver.Solver;
 import wycs.transforms.VerificationCheck;
 import wycs.util.WycsBuildTask;
@@ -78,10 +76,6 @@ public class WycsMain {
 					"Specify where to find wyal source files", new File(".")),
 			new OptArg("wycsdir", OptArg.FILEDIR,
 					"Specify where to find wycs binaryfiles", new File(".")),
-			new OptArg("X", OptArg.PIPELINECONFIGURE,
-					"Configure existing pipeline stage"),
-			new OptArg("A", OptArg.PIPELINEAPPEND, "append new pipeline stage"),
-			new OptArg("R", OptArg.PIPELINEREMOVE,
 					"Remove existing pipeline stage"),
 			new OptArg("wyone", "Debug wyone files") };
 

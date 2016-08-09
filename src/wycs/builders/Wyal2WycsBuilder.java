@@ -9,15 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import wycommon.util.Logger;
+import wycommon.util.Pair;
+import wycommon.util.Triple;
 import static wybs.lang.SyntaxError.*;
 import static wycs.solver.Solver.SCHEMA;
 import wyautl.io.PrettyAutomataWriter;
 import wyrw.core.Rewriter;
 import wybs.lang.*;
 import wybs.util.ResolveError;
-import wyps.util.Logger;
-import wyps.util.Pair;
-import wyps.util.Triple;
 import wycs.core.Code;
 import wycs.core.SemanticType;
 import wycs.core.Value;
@@ -32,7 +32,7 @@ import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
 import wyfs.util.Trie;
 
-public class Wyal2WycsBuilder implements Builder, Logger {
+public class Wyal2WycsBuilder implements Build.Task, Logger {
 
 	/**
 	 * The master project for identifying all resources available to the
@@ -40,11 +40,6 @@ public class Wyal2WycsBuilder implements Builder, Logger {
 	 * and/or defined in external resources (e.g. jar files).
 	 */
 	protected final Build.Project project;
-
-	/**
-	 * The list of stages which must be applied to a Wycs file.
-	 */
-	protected final List<Transform<WycsFile>> pipeline;
 
 	/**
 	 * The import cache caches specific import queries to their result sets.
@@ -63,9 +58,8 @@ public class Wyal2WycsBuilder implements Builder, Logger {
 
 	protected boolean debug = false;
 
-	public Wyal2WycsBuilder(Build.Project project, Pipeline<WycsFile> pipeline) {
+	public Wyal2WycsBuilder(Build.Project project) {
 		this.project = project;
-		this.pipeline = pipeline.instantiate(this);
 	}
 
 	public Build.Project project() {

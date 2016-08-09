@@ -4,21 +4,20 @@ import static wybs.lang.SyntaxError.*;
 
 import java.util.*;
 
-import wybs.lang.Builder;
+import wycommon.util.Pair;
+import wycommon.util.Triple;
+import wybs.lang.Build;
 import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
-import wybs.lang.Transform;
 import wybs.util.ResolveError;
-import wyps.util.Pair;
-import wyps.util.Triple;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.SemanticType;
 import wycs.core.Value;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 
-public class TypePropagation implements Transform<WyalFile> {
+public class TypePropagation {
 
 	/**
 	 * Determines whether type propagation is enabled or not.
@@ -33,7 +32,7 @@ public class TypePropagation implements Transform<WyalFile> {
 	// Constructor(s)
 	// ======================================================================
 
-	public TypePropagation(Builder builder) {
+	public TypePropagation(Build.Task builder) {
 		this.builder = (Wyal2WycsBuilder) builder;
 	}
 

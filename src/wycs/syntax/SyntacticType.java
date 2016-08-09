@@ -1,15 +1,11 @@
 package wycs.syntax;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
+import wycommon.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
-import wyps.util.Pair;
-import wycs.core.SemanticType;
 
 public interface SyntacticType extends SyntacticElement {
 
