@@ -8,10 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import wybs.lang.Pipeline;
+import wycommon.util.Logger;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
-import wyps.util.Logger;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.builders.Wycs2WyalBuilder;
 import wycs.core.WycsFile;
@@ -89,27 +88,6 @@ public class WycsBuildTask {
 		}
 	}
 
-	public static final List<Pipeline.Template> defaultPipeline = Collections
-			.unmodifiableList(new ArrayList<Pipeline.Template>() {
-				{
-					add(new Pipeline.Template(MacroExpansion.class,
-							Collections.EMPTY_MAP));
-					add(new Pipeline.Template(VerificationCheck.class,
-							Collections.EMPTY_MAP));
-				}
-			});
-
-	/**
-	 * Register default transforms. This is necessary so they can be referred to
-	 * from the command-line using abbreviated names, rather than their full
-	 * names.
-	 */
-	static {
-		Pipeline.register(TypePropagation.class);
-		Pipeline.register(MacroExpansion.class);
-		Pipeline.register(VerificationCheck.class);
-	}
-
 	/**
 	 * The master project content type registry. This is needed for the build
 	 * system to determine the content type of files it finds on the file
@@ -145,11 +123,6 @@ public class WycsBuildTask {
 	 * files will be placed.
 	 */
 	protected Path.Root wycsDir;
-
-	/**
-	 * The pipeline modifiers which will be applied to the default pipeline.
-	 */
-	protected ArrayList<Pipeline.Modifier> pipelineModifiers;
 
 	/**
 	 * Identifies which wyal source files should be considered for verification.
@@ -266,11 +239,7 @@ public class WycsBuildTask {
 			}
 		}
 	}
-
-	public void setPipelineModifiers(List<Pipeline.Modifier> modifiers) {
-		this.pipelineModifiers = new ArrayList<Pipeline.Modifier>(modifiers);
-	}
-
+	
 	public void setIncludes(String includes) {
 		String[] split = includes.split(",");
 		Content.Filter<WyalFile> wyalFilter = null;
@@ -407,16 +376,10 @@ public class WycsBuildTask {
 	 * @param project
 	 */
 	protected void addCompileBuildRules(StdProject project) {
-		if (wyalDir != null) {
-			Pipeline pipeline = initialisePipeline();
-
-			if (pipelineModifiers != null) {
-				pipeline.apply(pipelineModifiers);
-			}
-
+		if (wyalDir != null) {			
 			// whileydir can be null if a subclass of this task doesn't
 			// necessarily require it.
-			Wyal2WycsBuilder builder = new Wyal2WycsBuilder(project, pipeline);
+			Wyal2WycsBuilder builder = new Wyal2WycsBuilder(project);
 
 			if (verbose) {
 				builder.setLogger(new Logger.Default(System.err));
@@ -442,17 +405,6 @@ public class WycsBuildTask {
 			project.add(new StdBuildRule(builder, wycsDir, Content.filter("**",
 					WycsFile.ContentType), null, wyalDir));
 		}
-	}
-
-	/**
-	 * Initialise the Wyil pipeline to be used for compiling Whiley files. The
-	 * default implementation just returns <code>Pipeline.defaultPipeline</code>
-	 * .
-	 *
-	 * @return
-	 */
-	protected Pipeline initialisePipeline() {
-		return new Pipeline(defaultPipeline);
 	}
 
 	/**

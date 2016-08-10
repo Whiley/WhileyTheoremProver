@@ -5,8 +5,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Ant"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/WyRL"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/WhileyBuildSystem"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/WhileyFileSystem"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/WhileyCommon"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/WhileyCompilerCollection"/>
 	<classpathentry kind="output" path="src"/>
 </classpath>

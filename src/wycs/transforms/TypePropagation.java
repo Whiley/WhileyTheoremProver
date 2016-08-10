@@ -7,6 +7,7 @@ import java.util.*;
 import wycommon.util.Pair;
 import wycommon.util.Triple;
 import wybs.lang.Build;
+import wybs.lang.Build.Stage;
 import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
@@ -17,7 +18,7 @@ import wycs.core.Value;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 
-public class TypePropagation {
+public class TypePropagation implements Build.Stage<WyalFile> {
 
 	/**
 	 * Determines whether type propagation is enabled or not.

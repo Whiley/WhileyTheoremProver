@@ -6,11 +6,9 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
+import wycommon.util.Pair;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError.*;
-import wybs.io.Token;
-import wyps.util.Pair;
-import wyps.util.Triple;
 import wycs.core.Code;
 import wycs.core.SemanticType;
 import wycs.core.WycsFile;

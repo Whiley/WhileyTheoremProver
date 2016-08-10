@@ -59,24 +59,17 @@ public class WycsMain {
 	public static final int SYNTAX_ERROR=1;
 	public static final int INTERNAL_FAILURE=2;
 
-	public static final OptArg[] DEFAULT_OPTIONS = new OptArg[] {
-			new OptArg("help", "Print this help information"),
+	public static final OptArg[] DEFAULT_OPTIONS = new OptArg[] { new OptArg("help", "Print this help information"),
 			new OptArg("version", "Print version information"),
-			new OptArg("verbose",
-					"Print detailed information on what the compiler is doing"),
+			new OptArg("verbose", "Print detailed information on what the compiler is doing"),
 			new OptArg("debug", "Print detailed debugging information"),
 			new OptArg("decompile", "d", "Decompile a give wycs binary file"),
-			new OptArg("wycspath", "wp", OptArg.FILELIST,
-					"Specify where to find wycs (binary) files",
+			new OptArg("wycspath", "wp", OptArg.FILELIST, "Specify where to find wycs (binary) files",
 					new ArrayList<String>()),
-			new OptArg("bootpath", "bp", OptArg.FILELIST,
-					"Specify where to find wycs standard library files",
+			new OptArg("bootpath", "bp", OptArg.FILELIST, "Specify where to find wycs standard library files",
 					new ArrayList<String>()),
-			new OptArg("wyaldir", "wd", OptArg.FILEDIR,
-					"Specify where to find wyal source files", new File(".")),
-			new OptArg("wycsdir", OptArg.FILEDIR,
-					"Specify where to find wycs binaryfiles", new File(".")),
-					"Remove existing pipeline stage"),
+			new OptArg("wyaldir", "wd", OptArg.FILEDIR, "Specify where to find wyal source files", new File(".")),
+			new OptArg("wycsdir", OptArg.FILEDIR, "Specify where to find wycs binaryfiles", new File(".")),
 			new OptArg("wyone", "Debug wyone files") };
 
 	/**
@@ -165,7 +158,6 @@ public class WycsMain {
 			if (args.isEmpty() || values.containsKey("help")) {
 				System.out.println("usage: wycs <options> <source-files>");
 				OptArg.usage(System.out, options);
-				usage(System.out, WycsBuildTask.defaultPipeline);
 				return SUCCESS;
 			}
 
@@ -185,12 +177,6 @@ public class WycsMain {
 			builder.setVerbose(verbose);
 			builder.setDebug(values.containsKey("debug"));
 			builder.setDecompile(values.containsKey("decompile"));
-
-			ArrayList<Pipeline.Modifier> pipelineModifiers = (ArrayList) values
-					.get("pipeline");
-			if (pipelineModifiers != null) {
-				builder.setPipelineModifiers(pipelineModifiers);
-			}
 
 			File wyalDir = (File) values.get("wyaldir");
 			builder.setWyalDir(wyalDir);
@@ -245,56 +231,9 @@ public class WycsMain {
 		return SUCCESS;
 	}
 
- // =========================================================================
+	// =========================================================================
 	// Helper Methods
 	// =========================================================================
-
-	/**
-	 * Print out the available list of options for the given pipeline
-	 */
-	protected void usage(PrintStream out, List<Pipeline.Template> stages) {
-		out.println("\nPipeline configuration:");
-		for(Pipeline.Template template : stages) {
-			Class<? extends Transform> t = template.clazz;
-			out.println("  -X " + t.getSimpleName().toLowerCase() + ":\t");
-			for(Method m : t.getDeclaredMethods()) {
-				String name = m.getName();
-				if(name.startsWith("set")) {
-					String shortName = name.substring(3).toLowerCase();
-					out.print("    " + shortName + "(" + argValues(m) + ")");
-					// print default value
-					try {
-						Method getter = t.getDeclaredMethod(name.replace("set", "get"));
-						Object v = getter.invoke(null);
-						out.print("[default=" + v + "]");
-					} catch(NoSuchMethodException e) {
-						// just ignore
-					} catch (IllegalArgumentException e) {
-						// just ignore
-					} catch (IllegalAccessException e) {
-						// just ignore
-					} catch (InvocationTargetException e) {
-						// just ignore
-					}
-					// print description
-					try {
-						Method desc = t.getDeclaredMethod(name.replace("set", "describe"));
-						Object v = desc.invoke(null);
-						out.print("\t" + v);
-					} catch(NoSuchMethodException e) {
-						// just ignore
-					} catch (IllegalArgumentException e) {
-						// just ignore
-					} catch (IllegalAccessException e) {
-						// just ignore
-					} catch (InvocationTargetException e) {
-						// just ignore
-					}
-					out.println();
-				}
-			}
-		}
-	}
 
 	protected static String argValues(Method m) {
 		String r = "";

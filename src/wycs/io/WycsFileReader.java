@@ -8,10 +8,10 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
+import wycommon.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataReader;
 import wybs.lang.NameID;
-import wyps.util.Pair;
 import wycs.core.*;
 import wyfs.io.BinaryInputStream;
 import wyfs.lang.Path;

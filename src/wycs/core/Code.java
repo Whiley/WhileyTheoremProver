@@ -1,16 +1,15 @@
 package wycs.core;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import wycommon.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
-import wyps.util.Pair;
+
 
 /**
  * Represents a "bytecode" in the language of the Wycs theorem prover. Bytecodes

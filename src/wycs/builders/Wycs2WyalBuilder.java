@@ -5,16 +5,16 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import wycommon.util.Pair;
+import wycommon.util.Logger;
 import wybs.lang.*;
-import wyps.util.Logger;
-import wyps.util.Pair;
 import wycs.core.WycsFile;
 import wycs.io.WycsFilePrinter;
 import wycs.syntax.WyalFile;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
 
-public class Wycs2WyalBuilder implements Builder {
+public class Wycs2WyalBuilder implements Build.Task {
 
 	/**
 	 * The master namespace for identifying all resources available to the

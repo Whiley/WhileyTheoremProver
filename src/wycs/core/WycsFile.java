@@ -48,6 +48,11 @@ public class WycsFile extends AbstractCompilationUnit {
 		public String toString() {
 			return "Content-Type: wycs";
 		}
+
+		@Override
+		public String getSuffix() {
+			return "wycs";
+		}
 	};
 
 	// =========================================================================

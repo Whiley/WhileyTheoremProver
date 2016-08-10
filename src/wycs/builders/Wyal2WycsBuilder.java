@@ -25,6 +25,7 @@ import wycs.core.WycsFile;
 import wycs.syntax.SyntacticType;
 import wycs.syntax.TypePattern;
 import wycs.syntax.WyalFile;
+import wycs.transforms.MacroExpansion;
 import wycs.transforms.TypePropagation;
 import wycs.transforms.VerificationCheck;
 import wyfs.lang.Content;
@@ -183,30 +184,29 @@ public class Wyal2WycsBuilder implements Build.Task, Logger {
 		// ========================================================================
 		// Pipeline Stages
 		// ========================================================================
-
-		for (Transform<WycsFile> stage : pipeline) {
-			for (Pair<Path.Entry<?>, Path.Root> p : delta) {
-				Path.Root dst = p.second();
-				Path.Entry<WycsFile> df = dst.get(p.first().id(),WycsFile.ContentType);
-				WycsFile module = df.read();
-				try {
-					process(module, stage);
-				} catch (VerificationCheck.AssertionFailure ex) {
-					// FIXME: this feels a bit like a hack.
-					if(debug && ex.original() != null) {
-						Rewriter rw = ex.rewriter();
-						PrettyAutomataWriter writer = new PrettyAutomataWriter(System.out,SCHEMA,"Or","And");
-						writer.write(ex.original());
-						writer.flush();
-						System.err.println("\n\n=>\n");
-						writer.write(ex.reduction());
-						writer.flush();
-					}
-					// Determine the original source file, since we want to
-					// report the error on this file.
-					Path.Entry<?> source = determineSource(p.first(),graph);
-					throw new SyntaxError(ex.getMessage(), source, ex.assertion(), ex);
-				} 
+		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
+			Path.Root dst = p.second();
+			Path.Entry<WycsFile> df = dst.get(p.first().id(), WycsFile.ContentType);
+			WycsFile module = df.read();
+			try {
+				// apply pipeline stages
+				process(module, new MacroExpansion(this));
+				process(module, new VerificationCheck(this));
+			} catch (VerificationCheck.AssertionFailure ex) {
+				// FIXME: this feels a bit like a hack.
+				if (debug && ex.original() != null) {
+					Rewriter rw = ex.rewriter();
+					PrettyAutomataWriter writer = new PrettyAutomataWriter(System.out, SCHEMA, "Or", "And");
+					writer.write(ex.original());
+					writer.flush();
+					System.err.println("\n\n=>\n");
+					writer.write(ex.reduction());
+					writer.flush();
+				}
+				// Determine the original source file, since we want to
+				// report the error on this file.
+				Path.Entry<?> source = determineSource(p.first(), graph);
+				throw new SyntaxError(ex.getMessage(), source, ex.assertion(), ex);
 			}
 		}
 
@@ -778,7 +778,7 @@ public class Wyal2WycsBuilder implements Build.Task, Logger {
 	// Private Implementation
 	// ======================================================================
 
-	protected void process(WycsFile module, Transform<WycsFile> stage)
+	protected void process(WycsFile module, Build.Stage<WycsFile> stage)
 			throws IOException {
 		Runtime runtime = Runtime.getRuntime();
 		long start = System.currentTimeMillis();

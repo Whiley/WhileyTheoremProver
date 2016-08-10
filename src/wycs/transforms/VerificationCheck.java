@@ -27,6 +27,7 @@ import wycs.core.WycsFile;
 import wycs.io.WycsFilePrinter;
 import wycs.solver.Solver;
 import wycs.solver.SolverUtil;
+import wycs.syntax.WyalFile;
 import wyfs.util.Trie;
 
 /**
@@ -39,7 +40,7 @@ import wyfs.util.Trie;
  * @author David J. Pearce
  *
  */
-public class VerificationCheck {
+public class VerificationCheck implements Build.Stage<WycsFile> {
 	public enum RewriteMode {
 		UNFAIR, FAIR, EXHAUSTIVE
 	};

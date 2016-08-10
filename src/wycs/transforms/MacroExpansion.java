@@ -14,6 +14,7 @@ import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;
 import wycs.core.SemanticType;
 import wycs.core.WycsFile;
+import wycs.syntax.WyalFile;
 
 /**
  * Responsible for inlining <i>macros</i> (i.e. named expressions or types
@@ -45,7 +46,7 @@ import wycs.core.WycsFile;
  * @author David J. Pearce
  *
  */
-public class MacroExpansion {
+public class MacroExpansion implements Build.Stage<WycsFile>{
 
 	/**
 	 * Determines whether macro inlining is enabled or not.

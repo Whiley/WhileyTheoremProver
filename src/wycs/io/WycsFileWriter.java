@@ -4,14 +4,12 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
+import wycommon.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataWriter;
-import wyautl.util.BigRational;
 import wybs.lang.NameID;
-import wyps.util.Pair;
-import wyps.util.Triple;
+
 import wycs.core.*;
 import wyfs.io.BinaryOutputStream;
 import wyfs.lang.Path;

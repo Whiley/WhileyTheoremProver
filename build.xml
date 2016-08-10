@@ -10,7 +10,7 @@
   <!-- ============================================== -->
 
   <target name="compile">
-    <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="${WYBS_JAR}:${WYRL_JAR}"/>
+    <taskdef name="wyrl" classname="wyrl.util.WyrlAntTask" classpath="${WYCC_JAR}:${WYRL_JAR}"/>
     <!-- Generate type system and solver code -->
     <wyrl srcdir="src/" debug="false" source="wycs/core/Types.wyrl" output="wycs/core/Types.java"/>
     <wyrl srcdir="src/" debug="false" source="wycs/solver/Solver.wyrl" output="wycs/solver/Solver.java"/>
@@ -20,12 +20,12 @@
       <include name="*/**"/>
       <exclude name="*/**/package-info.java"/>
       <classpath>
-        <pathelement path="${WYBS_JAR}:${WYRL_JAR}"/>
+        <pathelement path="${WYCC_JAR}:${WYRL_JAR}"/>
         <path refid="junit.classpath"/>
       </classpath>
     </javac>
     <!-- Build the standard library -->
-    <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:${WYBS_JAR}:${WYRL_JAR}"/>
+    <taskdef name="wycs" classname="wycs.util.WycsAntTask" classpath="src/:${WYCC_JAR}:${WYRL_JAR}"/>
     <wycs wyaldir="stdlib/" includes="*/**.wycs"/>
   </target>
 
@@ -36,7 +36,7 @@
   <target name="test" depends="compile">
     <junit fork="true" dir="${rootdir}" failureProperty="tests.failed" printsummary="yes" showoutput="yes" outputtoformatters="no">
       <classpath>
-        <pathelement path="src:${WYBS_JAR}:${WYRL_JAR}"/>
+        <pathelement path="src:${WYCC_JAR}:${WYRL_JAR}"/>
         <path refid="junit.classpath"/>
       </classpath>
       <batchtest>

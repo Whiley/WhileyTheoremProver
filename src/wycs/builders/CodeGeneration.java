@@ -3,13 +3,13 @@ package wycs.builders;
 import java.math.BigInteger;
 import java.util.*;
 
+import wycommon.util.Pair;
+import wycommon.util.Triple;
 import wybs.lang.Attribute;
 import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.util.ResolveError;
-import wyps.util.Pair;
-import wyps.util.Triple;
 import wycs.core.*;
 import wycs.syntax.*;
 import wyfs.lang.Path;
