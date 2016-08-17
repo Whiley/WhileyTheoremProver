@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import wycommon.util.Pair;
+import wycc.util.Pair;
 import wybs.lang.Build;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.core.Code;

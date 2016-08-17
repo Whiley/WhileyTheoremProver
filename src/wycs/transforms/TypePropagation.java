@@ -4,8 +4,8 @@ import static wybs.lang.SyntaxError.*;
 
 import java.util.*;
 
-import wycommon.util.Pair;
-import wycommon.util.Triple;
+import wycc.util.Pair;
+import wycc.util.Triple;
 import wybs.lang.Build;
 import wybs.lang.Build.Stage;
 import wybs.lang.NameID;

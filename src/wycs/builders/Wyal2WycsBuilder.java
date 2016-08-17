@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import wycommon.util.Logger;
-import wycommon.util.Pair;
-import wycommon.util.Triple;
+import wycc.util.Logger;
+import wycc.util.Pair;
+import wycc.util.Triple;
 import static wybs.lang.SyntaxError.*;
 import static wycs.solver.Solver.SCHEMA;
 import wyautl.io.PrettyAutomataWriter;

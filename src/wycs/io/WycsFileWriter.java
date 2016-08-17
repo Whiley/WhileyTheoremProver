@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import wycommon.util.Pair;
+import wycc.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataWriter;
 import wybs.lang.NameID;

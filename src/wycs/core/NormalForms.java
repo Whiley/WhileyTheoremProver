@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import wycommon.util.Pair;
+import wycc.util.Pair;
 
 /**
  * Provides a number of encodings for many of the standard data types found in a

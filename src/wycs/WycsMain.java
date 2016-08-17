@@ -32,7 +32,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import wycommon.util.OptArg;
+import wycc.util.OptArg;
 import wyautl.io.PrettyAutomataReader;
 import wybs.lang.SyntaxError;
 import wycs.solver.Solver;

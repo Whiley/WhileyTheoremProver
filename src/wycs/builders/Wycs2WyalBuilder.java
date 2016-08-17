@@ -5,8 +5,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import wycommon.util.Pair;
-import wycommon.util.Logger;
+import wycc.util.Pair;
+import wycc.util.Logger;
 import wybs.lang.*;
 import wycs.core.WycsFile;
 import wycs.io.WycsFilePrinter;

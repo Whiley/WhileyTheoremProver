@@ -3,7 +3,7 @@ package wycs.syntax;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import wycommon.util.Pair;
+import wycc.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 

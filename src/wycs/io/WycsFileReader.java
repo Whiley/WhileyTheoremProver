@@ -8,7 +8,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import wycommon.util.Pair;
+import wycc.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataReader;
 import wybs.lang.NameID;

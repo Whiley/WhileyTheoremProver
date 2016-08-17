@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
-import wycommon.util.Pair;
+import wycc.util.Pair;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError.*;
 import wycs.core.Code;

@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
-import wycommon.util.Logger;
-import wycommon.util.Pair;
-import wycommon.util.Triple;
+import wycc.util.Logger;
+import wycc.util.Pair;
+import wycc.util.Triple;
 import wyautl.core.*;
 import wyautl.io.PrettyAutomataWriter;
 import wyrw.core.*;

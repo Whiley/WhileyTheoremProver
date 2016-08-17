@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import wycommon.util.Logger;
+import wycc.util.Logger;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
 import wycs.builders.Wyal2WycsBuilder;
