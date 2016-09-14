@@ -5,8 +5,8 @@ import org.junit.Test;
 
 import wycs.testing.TestHarness;
 
-public class InvalidTests extends TestHarness {
-	public InvalidTests() {
+public class InvalidTest extends TestHarness {
+	public InvalidTest() {
 		 super("tests/invalid");
 	 }
 
