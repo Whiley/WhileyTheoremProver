@@ -41,13 +41,20 @@ public interface Proof {
 		 *
 		 * @return
 		 */
-		int numberOfBranches();
+		int numberOfSteps();
 
 		/**
 		 * Get the ith step currently being explored from this state. If this
 		 * uncovers a contradiction, then we have a contradiction overall.
 		 */
-		Branch getBranch(int ith);
+		Step getStep(int ith);
+
+		/**
+		 * Get the index in the enclosing proof of this state.
+		 *
+		 * @return
+		 */
+		int getIndex();
 	}
 
 	/**
@@ -57,20 +64,20 @@ public interface Proof {
 	 * @author David J. Peare
 	 *
 	 */
-	public interface Branch {
+	public interface Step {
 		/**
-		 * Determine the number of cases arising from this proof step. Every
-		 * case has to be shown in order for this branch to be considered shown
+		 * Get the parent (i.e. before) state for this step.
 		 *
 		 * @return
 		 */
-		int numberOfCases();
+		State getParentState();
 
 		/**
-		 * Get the ith case needing to be considered from this proof step. This
-		 * identifies a state in the enclosing proof.
+		 * Get the child (i.e. after) state resulting from this step
+		 *
+		 * @return
 		 */
-		int getCase(int i);
+		State getChildState();
 
 		/**
 		 * Get the rule used to generate this step.

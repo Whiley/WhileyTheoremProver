@@ -65,7 +65,7 @@ public class WycsMain {
 		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
 		WycsFile file = parser.read();
 		// Finally, print it out
-		new WycsFilePrinter(System.out).write(file);
+		proveAll(file);
 	}
 
 }
