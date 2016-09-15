@@ -1,4 +1,6 @@
-package wycs.core;
+package wycs.lang;
+
+import static wycs.lang.Types.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -8,8 +10,6 @@ import wyautl.core.*;
 import wybs.lang.NameID;
 import wyrw.core.*;
 import wyrw.util.*;
-
-import static wycs.core.Types.*;
 
 public abstract class SemanticType {
 

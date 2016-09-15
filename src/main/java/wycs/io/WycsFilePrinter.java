@@ -1,23 +1,45 @@
 package wycs.io;
 
+import static wycs.io.WyalFileLexer.Token.Kind.EqualsEquals;
+import static wycs.io.WyalFileLexer.Token.Kind.GreaterEquals;
+import static wycs.io.WyalFileLexer.Token.Kind.Is;
+import static wycs.io.WyalFileLexer.Token.Kind.LeftAngle;
+import static wycs.io.WyalFileLexer.Token.Kind.LessEquals;
+import static wycs.io.WyalFileLexer.Token.Kind.LogicalAnd;
+import static wycs.io.WyalFileLexer.Token.Kind.LogicalIff;
+import static wycs.io.WyalFileLexer.Token.Kind.LogicalImplication;
+import static wycs.io.WyalFileLexer.Token.Kind.LogicalOr;
+import static wycs.io.WyalFileLexer.Token.Kind.Minus;
+import static wycs.io.WyalFileLexer.Token.Kind.NotEquals;
+import static wycs.io.WyalFileLexer.Token.Kind.Plus;
+import static wycs.io.WyalFileLexer.Token.Kind.RightAngle;
+import static wycs.io.WyalFileLexer.Token.Kind.RightSlash;
+import static wycs.io.WyalFileLexer.Token.Kind.Star;
+
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.HashMap;
+import java.util.List;
 
 import wycc.util.Pair;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError.*;
-import wycs.core.Code;
-import wycs.core.SemanticType;
-import wycs.core.WycsFile;
+import wycs.io.WyalFileLexer.Token;
+import wycs.lang.Bytecode;
+import wycs.lang.SemanticType;
+import wycs.lang.SyntaxTree;
+import wycs.lang.WycsFile;
+import wycs.lang.Bytecode.*;
+import wycs.lang.SyntaxTree.Location;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
 public class WycsFilePrinter {
-	private PrintWriter out;
-	private boolean raw=false;
+	private final PrintWriter out;
+	private boolean raw=true;
 
 	public WycsFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
 		this(new OutputStreamWriter(writer,"UTF-8"));
@@ -25,6 +47,10 @@ public class WycsFilePrinter {
 
 	public WycsFilePrinter(Writer writer) {
 		this.out = new PrintWriter(writer);
+	}
+
+	public WycsFilePrinter(PrintWriter writer) {
+		this.out = writer;
 	}
 
 	public void write(WycsFile wf) {
@@ -35,7 +61,7 @@ public class WycsFilePrinter {
 			out.println();
 		}
 		// Second, write all declarations
-		for(WycsFile.Declaration d : wf.declarations()) {
+		for(WycsFile.Declaration d : wf.getDeclarations()) {
 			write(wf, d);
 			out.println();
 		}
@@ -43,25 +69,35 @@ public class WycsFilePrinter {
 	}
 
 	private void write(WycsFile wf, WycsFile.Declaration s) {
+		writeRawBytecodes(s);
 		if(s instanceof WycsFile.Function) {
-			write(wf,(WycsFile.Function)s);
+			write(wf,(WycsFile.Function) s);
 		} else if(s instanceof WycsFile.Macro) {
-			write(wf,(WycsFile.Macro)s);
+			write(wf,(WycsFile.Macro) s);
 		} else if(s instanceof WycsFile.Type) {
-			write(wf,(WycsFile.Type)s);
+			write(wf,(WycsFile.Type) s);
 		} else if(s instanceof WycsFile.Assert) {
-			write(wf,(WycsFile.Assert)s);
+			write(wf,(WycsFile.Assert) s);
 		} else {
 			throw new InternalFailure("unknown statement encountered " + s,
-					wf.getEntry(), (SyntacticElement) s);
+					wf.getEntry(), s);
 		}
 		out.println();
 	}
 
+	public void writeRawBytecodes(WycsFile.Declaration d) {
+		if(raw) {
+			SyntaxTree tree = d.getTree();
+			for(int i=0;i!=tree.size();++i) {
+				out.println("// #" + i + " " + tree.getLocation(i).getCode());
+			}
+		}
+	}
+
 	public void write(WycsFile wf, WycsFile.Function s) {
 		out.print("function ");
-		out.print(s.name);
-		SemanticType[] generics = s.type.generics();
+		out.print(s.getName());
+		SemanticType[] generics = s.getType().generics();
 		if(generics.length > 0) {
 			out.print("<");
 			boolean firstTime=true;
@@ -74,19 +110,14 @@ public class WycsFilePrinter {
 			}
 			out.print(">");
 		}
-		out.print("(" + s.type.element(0) + ") => " + s.type.element(1));
-		if(s.constraint != null) {
-			out.println(" where:");
-			indent(1);
-			write(wf,s.constraint);
-		}
+		out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
 	}
 
 	public void write(WycsFile wf, WycsFile.Macro s) {
 		out.print("define ");
 
-		out.print(s.name);
-		SemanticType[] generics = s.type.generics();
+		out.print(s.getName());
+		SemanticType[] generics = s.getType().generics();
 		if(generics.length > 0) {
 			out.print("<");
 			boolean firstTime=true;
@@ -99,270 +130,267 @@ public class WycsFilePrinter {
 			}
 			out.print(">");
 		}
-		out.print("(" + s.type.from() + ") => " + s.type.to());
-		if(s.condition != null) {
+		out.print("(" + s.getType().from() + ") => " + s.getType().to());
+		if(s.getBody() != null) {
 			out.println(" as:");
-			write(wf,s.condition);
+			writeStatement(s.getBody(),1);
 		}
 	}
 
 	public void write(WycsFile wf, WycsFile.Type s) {
 		out.print("type ");
 
-		out.print(s.name);
-		out.print(" is " + s.type);
-		if(s.invariant != null) {
-			out.println(" where:");
-			write(wf,s.invariant);
+		out.print(s.getName());
+		out.print(" is " + s.getType());
+		if(s.getInvariant().size() > 0) {
+			for(Location<?> stmt : s.getInvariant()) {
+				out.println(" where");
+				writeStatement(stmt,1);
+			}
 		}
 	}
-	
+
 	public void write(WycsFile wf, WycsFile.Assert s) {
-		out.print("assert ");
-		if(s.message != null) {
-			out.print("\"" + s.message + "\"");
-		}
+		out.print("assertion ");
+		out.print(s.getName());
+		writeParameters(s.getParameters());
 		out.println(":");
-		write(wf,s.condition);
+		writeStatement(s.getBody(),1);
 		out.println();
 	}
 
-	public void write(WycsFile wf, Code<?> code) {
-		if(raw) {
-			writeRaw(wf,code,0);
-		} else {
-			indent(1);
-			writeStructured(wf,code,1);
-		}
-	}
-
-	public void writeStructured(WycsFile wf, Code<?> code, int indent) {
-		if(code instanceof Code.Variable) {
-			writeStructured(wf, (Code.Variable) code, indent);
-		} else if(code instanceof Code.Constant) {
-			writeStructured(wf, (Code.Constant) code, indent);
-		} else if(code instanceof Code.Unary) {
-			writeStructured(wf, (Code.Unary) code, indent);
-		} else if(code instanceof Code.Binary) {
-			writeStructured(wf, (Code.Binary) code, indent);
-		} else if(code instanceof Code.Nary) {
-			writeStructured(wf, (Code.Nary) code, indent);
-		} else if(code instanceof Code.Load) {
-			writeStructured(wf, (Code.Load) code, indent);
-		} else if(code instanceof Code.IndexOf) {
-			writeStructured(wf, (Code.IndexOf) code, indent);
-		} else if(code instanceof Code.Is) {
-			writeStructured(wf, (Code.Is) code, indent);
-		} else if(code instanceof Code.Cast) {
-			writeStructured(wf, (Code.Cast) code, indent);
-		} else if(code instanceof Code.FunCall) {
-			writeStructured(wf, (Code.FunCall) code, indent);
-		} else if(code instanceof Code.Quantifier) {
-			writeStructured(wf, (Code.Quantifier) code, indent);
-		} else {
-			throw new InternalFailure("unknown bytecode encountered", wf.getEntry(), code);
-		}
-	}
-
-	public void writeStructured(WycsFile wf, Code.Variable code, int indent) {
-		out.print("r" + code.index);
-	}
-
-	public void writeStructured(WycsFile wf, Code.Constant code, int indent) {
-		out.print(code.value);
-	}
-
-	public void writeStructured(WycsFile wf, Code.Unary code, int indent) {
-		switch(code.opcode) {
-		case NEG:
-			out.print("-");
-			writeStructured(wf,code.operands[0],indent);
-			break;
-		case NOT:
-			out.println("not:");
-			indent(indent+1);
-			writeStructured(wf,code.operands[0],indent+1);
-			break;
-		case LENGTH:
-			out.print("|");
-			writeStructured(wf,code.operands[0],indent);
-			out.print("|");
-			break;
-		default:
-			throw new InternalFailure("unknown bytecode encountered", wf.getEntry(), code);
-		}
-	}
-
-	public void writeStructured(WycsFile wf, Code.Binary code, int indent) {
-		String op;
-		switch(code.opcode) {
-		case ADD:
-			op = " + ";
-			break;
-		case SUB:
-			op = " - ";
-			break;
-		case MUL:
-			op = " * ";
-			break;
-		case DIV:
-			op = " / ";
-			break;
-		case REM:
-			op = " % ";
-			break;
-		case EQ:
-			op = " == ";
-			break;
-		case NEQ:
-			op = " != ";
-			break;
-		case LT:
-			op = " < ";
-			break;
-		case LTEQ:
-			op = " <= ";
-			break;		
-		case ARRAYGEN:
-			out.print("[");
-			writeStructured(wf,code.operands[0],indent);
-			out.print(";");
-			writeStructured(wf,code.operands[1],indent);
-			out.print("]");
-			return;
-		default:
-			throw new InternalFailure("unknown bytecode encountered", wf.getEntry(), code);
-		}
-
-		writeStructured(wf,code.operands[0],indent);
-		out.print(op);
-		writeStructured(wf,code.operands[1],indent);
-	}
-
-	public void writeStructured(WycsFile wf, Code.Nary code, int indent) {
-		switch(code.opcode) {
-		case AND:
-			for(int i=0;i!=code.operands.length;++i) {
-				if(i!=0) {
-					out.println();
-					indent(indent);
-				}
-				writeStructured(wf,code.operands[i],indent);
+	private void writeParameters(List<Location<VariableDeclaration>> parameters) {
+		out.print("(");
+		for (int i = 0; i != parameters.size(); ++i) {
+			if (i != 0) {
+				out.print(", ");
 			}
-			break;
-		case OR:
-			for(int i=0;i!=code.operands.length;++i) {
-				if(i!=0) {
-					out.println();
-					indent(indent);
-				}
-				out.println("case:");
-				indent(indent+1);
-				writeStructured(wf,code.operands[i],indent+1);
-			}
-			break;
-		case TUPLE:
-			out.print("(");
-			for(int i=0;i!=code.operands.length;++i) {
-				if(i!=0) {
-					out.print(", ");
-				}
-				writeStructured(wf,code.operands[i],indent);
-			}
-			out.print(")");
-			break;
-		case ARRAY:
-			out.print("[");
-			for(int i=0;i!=code.operands.length;++i) {
-				if(i!=0) {
-					out.print(", ");
-				}
-				writeStructured(wf,code.operands[i],indent);
-			}
-			out.print("]");
-			break;
-		default:
-			throw new InternalFailure("unknown bytecode encountered", wf.getEntry(), code);
+			Location<VariableDeclaration> parameter = parameters.get(i);
+			writeType(parameter.getOperand(0));
+			out.print(" ");
+			out.print(parameter.getCode().getName());
 		}
-	}
-
-	public void writeStructured(WycsFile wf, Code.Load code, int indent) {
-		writeStructured(wf,code.operands[0],indent);
-		out.print("[" + code.index + "]");
-	}
-
-	public void writeStructured(WycsFile wf, Code.IndexOf code, int indent) {
-		writeStructured(wf,code.operands[0],indent);
-		out.print("[");
-		writeStructured(wf,code.operands[1],indent);
-		out.print("]");
-	}
-	
-	public void writeStructured(WycsFile wf, Code.Is code, int indent) {
-		writeStructured(wf,code.operands[0],indent);
-		out.print(" is " + code.test);
-	}
-	
-	public void writeStructured(WycsFile wf, Code.Cast code, int indent) {
-		out.print("(" + code.type + ")");
-		writeStructured(wf,code.operands[0],indent);		
-	}
-	
-	public void writeStructured(WycsFile wf, Code.FunCall code, int indent) {
-		out.print(code.nid + "(");
-		writeStructured(wf,code.operands[0],indent);
 		out.print(")");
 	}
 
-	public void writeStructured(WycsFile wf, Code.Quantifier code, int indent) {
-		if(code.opcode == Code.Op.FORALL) {
-			out.print("forall(");
-		} else {
-			out.print("some(");
+	public void writeStatement(Location<?> loc, int indent) {
+		switch(loc.getOpcode()) {
+		case BLOCK:
+			writeBlock((Location<Block>) loc, indent);
+			break;
+		case IFTHEN:
+			writeIfThen((Location<IfThen>)loc,indent);
+			break;
+		default:
+			writeExpressionAsStatement(loc,indent);
 		}
-		boolean firstTime=true;
-		for(Pair<SemanticType,Integer> p : code.types) {
-			if(!firstTime) {
-				out.print(", ");
-			}
-			firstTime=false;
-			out.print(p.first() + " r" + p.second());
-		}
-		out.println("):");
-		indent(indent+1);
-		writeStructured(wf,code.operands[0],indent+1);
 	}
 
-	public int writeRaw(WycsFile wf, Code<?> code, int index) {
-		int[] operands = new int[code.operands.length];
-		int next = index;
-		for(int i=0;i!=operands.length;++i) {
-			next = writeRaw(wf,code.operands[i],next);
-			operands[i] = next;
+	private void writeExpressionAsStatement(Location<?> loc, int indent) {
+		indent(indent);
+		writeExpression(loc);
+		out.println();
+	}
+
+	private void writeBlock(Location<Block> block, int indent) {
+		for (int i = 0; i != block.numberOfOperands(); ++i) {
+			writeStatement(block.getOperand(i), indent);
 		}
-		indent(1);
-		next = next + 1;
-		out.print("#" + next + " = ");
-		out.print(code.opcode.toString());
-		if(operands.length > 0) {
+	}
+
+	private void writeIfThen(Location<IfThen> block, int indent) {
+		indent(indent);
+		out.println("if:");
+		writeStatement(block.getOperand(0),indent+1);
+		indent(indent);
+		out.println("then:");
+		writeStatement(block.getOperand(1),indent+1);
+	}
+
+	/**
+	 * Write an expression with brackets (if necessary). For some expressiones,
+	 * brackets are never required.
+	 *
+	 * @param loc
+	 */
+	public void writeExpressionWithBrackets(Location<?> loc) {
+		switch(loc.getOpcode()) {
+		case AND:
+		case OR:
+		case IMPLIES:
+		case IFF:
+		case EQ:
+		case NEQ:
+		case LT:
+		case LTEQ:
+		case GT:
+		case GTEQ:
+		case IS:
+		case ADD:
+		case SUB:
+		case MUL:
+		case DIV:
+		case REM:
+			// Brackets always required
 			out.print("(");
-			for(int i=0;i!=operands.length;++i) {
-				if(i != 0) {
-					out.print(", ");
-				}
-				out.print("#" + operands[i]);
-			}
+			writeExpression(loc);
 			out.print(")");
+			break;
+		default:
+			// Brackets never required
+			writeExpression(loc);
 		}
-		if(code instanceof Code.Constant) {
-			Code.Constant c = (Code.Constant) code;
-			out.print(" " + c.value);
-		} else if(code instanceof Code.Variable) {
-			Code.Variable c = (Code.Variable) code;
-			out.print(" " + c.index);
+	}
+
+	public void writeExpression(Location<?> loc) {
+		switch (loc.getOpcode()) {
+		case CAST:
+			writeCast((Location<Cast>) loc);
+			break;
+		case CONST:
+			writeConstant((Location<Constant>) loc);
+			break;
+		case NOT:
+		case NEG:
+		case ARRAYLENGTH:
+			writeUnaryOperator((Location<Operator>) loc);
+			break;
+		case AND:
+		case OR:
+		case IMPLIES:
+		case IFF:
+		case EQ:
+		case NEQ:
+		case LT:
+		case LTEQ:
+		case GT:
+		case GTEQ:
+		case IS:
+		case ADD:
+		case SUB:
+		case MUL:
+		case DIV:
+		case REM:
+			writeInfixOperator((Location<Operator>) loc);
+			break;
+		case VARACCESS:
+			writeVariableAccess((Location<VariableAccess>) loc);
+			break;
+		default:
+			throw new RuntimeException("unknown bytecode encountered:" + loc.getOpcode());
 		}
-		out.println(" : " + code.type);
-		return next;
+	}
+
+	public void writeVariableAccess(Location<VariableAccess> loc) {
+		// Determine variable declaration to which this access refers
+		Location<VariableDeclaration> decl = (Location<VariableDeclaration>) loc.getOperand(0);
+		// Print out the declared variable name
+		out.print(decl.getCode().getName());
+	}
+
+	public void writeCast(Location<Cast> loc) {
+		out.print("(");
+		writeType(loc.getOperand(0));
+		out.print(")");
+		writeExpression(loc.getOperand(0));
+	}
+
+	public void writeConstant(Location<Constant> loc) {
+		Bytecode.Constant bytecode = loc.getCode();
+		out.print(bytecode.getValue());
+	}
+
+	public void writeUnaryOperator(Location<Operator> loc) {
+
+	}
+
+	public void writeInfixOperator(Location<Operator> loc) {
+		for(int i=0;i!=loc.numberOfOperands();++i) {
+			if(i != 0) {
+				out.print(" ");
+				out.print(OPERATOR_MAP.get(loc.getOpcode()));
+				out.print(" ");
+			}
+			writeExpressionWithBrackets(loc.getOperand(i));
+		}
+	}
+
+	private void writeType(Location<?> loc) {
+		switch(loc.getOpcode()) {
+		case T_ANY:
+			out.print("any");
+			break;
+		case T_VOID:
+			out.print("void");
+			break;
+		case T_NULL:
+			out.print("null");
+			break;
+		case T_BOOL:
+			out.print("bool");
+			break;
+		case T_INT:
+			out.print("int");
+			break;
+		case T_NOMINAL: {
+			NominalType t = (NominalType) loc.getCode();
+			String[] elements = t.getElements();
+			for(int i=0;i!=elements.length;++i) {
+				if(i != 0) {
+					out.print(".");
+				}
+				out.print(elements[i]);
+			}
+			break;
+		}
+		case T_ARRAY: {
+			writeTypeWithBraces(loc.getOperand(0));
+			out.print("[]");
+			break;
+		}
+		case T_REF: {
+			out.print("&");
+			writeTypeWithBraces(loc.getOperand(0));
+			break;
+		}
+		case T_NEGATION: {
+			out.print("!");
+			writeTypeWithBraces(loc.getOperand(0));
+			break;
+		}
+		case T_UNION: {
+			for(int i=0;i!=loc.numberOfOperands();++i) {
+				if(i != 0) {
+					out.print(" | ");
+				}
+				writeTypeWithBraces(loc.getOperand(i));
+			}
+			break;
+		}
+		case T_INTERSECTION: {
+			for(int i=0;i!=loc.numberOfOperands();++i) {
+				if(i != 0) {
+					out.print(" & ");
+				}
+				writeTypeWithBraces(loc.getOperand(i));
+			}
+			break;
+		}
+		}
+	}
+
+	private void writeTypeWithBraces(Location<?> loc) {
+		switch(loc.getOpcode()) {
+		case T_UNION:
+		case T_INTERSECTION:
+			out.print("(");
+			writeType(loc);
+			out.print(")");
+			break;
+		default:
+			writeType(loc);
+		}
+
 	}
 
 	private void indent(int indent) {
@@ -370,5 +398,28 @@ public class WycsFilePrinter {
 		for(int i=0;i<indent;++i) {
 			out.print(" ");
 		}
+	}
+
+	/**
+	 * A fixed map from token kinds to their correspond bytecode opcodes.
+	 */
+	private static final HashMap<Bytecode.Opcode,String> OPERATOR_MAP = new HashMap<>();
+
+	static {
+		OPERATOR_MAP.put(Bytecode.Opcode.AND,"&&");
+		OPERATOR_MAP.put(Bytecode.Opcode.OR,"||");
+		OPERATOR_MAP.put(Bytecode.Opcode.IMPLIES,"==>");
+		OPERATOR_MAP.put(Bytecode.Opcode.IFF,"<==>");
+		OPERATOR_MAP.put(Bytecode.Opcode.LTEQ,"<=");
+		OPERATOR_MAP.put(Bytecode.Opcode.LT,"<");
+		OPERATOR_MAP.put(Bytecode.Opcode.GTEQ,">=");
+		OPERATOR_MAP.put(Bytecode.Opcode.GT,">");
+		OPERATOR_MAP.put(Bytecode.Opcode.EQ,"==");
+		OPERATOR_MAP.put(Bytecode.Opcode.NEQ,"!=");
+		OPERATOR_MAP.put(Bytecode.Opcode.IS,"is");
+		OPERATOR_MAP.put(Bytecode.Opcode.ADD,"+");
+		OPERATOR_MAP.put(Bytecode.Opcode.SUB,"-");
+		OPERATOR_MAP.put(Bytecode.Opcode.MUL,"*");
+		OPERATOR_MAP.put(Bytecode.Opcode.DIV,"/");
 	}
 }

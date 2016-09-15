@@ -4,15 +4,16 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
-import wycc.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataWriter;
 import wybs.lang.NameID;
-
-import wycs.core.*;
 import wyfs.io.BinaryOutputStream;
 import wyfs.lang.Path;
+import wycs.lang.*;
+import wycs.lang.SyntaxTree.Location;
+import wycs.util.AbstractBytecode;
 
 public class WycsFileWriter {
 	private static final int MAJOR_VERSION = 0;
@@ -80,12 +81,9 @@ public class WycsFileWriter {
 				break;
 			case BLOCK_Type:
 				bytes = generateTypeBlock((WycsFile.Type) data);
-				break;			
+				break;
 			case BLOCK_Assert:
 				bytes = generateAssertBlock((WycsFile.Assert) data);
-				break;
-			case BLOCK_Code:
-				bytes = generateCodeBlock((Code) data);
 				break;
 		}
 
@@ -120,7 +118,7 @@ public class WycsFileWriter {
 		output.write_uv(constantPool.size());
 
 		// finally, write the number of remaining blocks
-		output.write_uv(module.declarations().size());
+		output.write_uv(module.getDeclarations().size());
 
 		writeStringPool(output);
 		writePathPool(output);
@@ -138,9 +136,9 @@ public class WycsFileWriter {
 		BinaryOutputStream output = new BinaryOutputStream(bytes);
 
 		output.write_uv(pathCache.get(module.getEntry().id())); // FIXME: BROKEN!
-		output.write_uv(module.declarations().size());
+		output.write_uv(module.getDeclarations().size());
 
-		for (WycsFile.Declaration d : module.declarations()) {
+		for (WycsFile.Declaration d : module.getDeclarations()) {
 			writeModuleBlock(d, output);
 		}
 
@@ -278,10 +276,10 @@ public class WycsFileWriter {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		BinaryOutputStream output = new BinaryOutputStream(bytes);
 
-		output.write_uv(stringCache.get(md.name()));
-		output.write_uv(typeCache.get(md.type));
-		output.write_uv(1);
-		writeBlock(BLOCK_Code,md.condition,output);
+		output.write_uv(stringCache.get(md.getName()));
+		output.write_uv(typeCache.get(md.getType()));
+		output.write_uv(md.getBody().getIndex());
+		writeSyntaxTree(md.getTree(),output);
 
 		output.close();
 		return bytes.toByteArray();
@@ -290,32 +288,28 @@ public class WycsFileWriter {
 	private byte[] generateTypeBlock(WycsFile.Type md) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		BinaryOutputStream output = new BinaryOutputStream(bytes);
-
-		output.write_uv(stringCache.get(md.name()));
-		output.write_uv(typeCache.get(md.type));
-		if(md.invariant == null) {
-			output.write_uv(0);			
-		} else {
-			output.write_uv(1);
-			writeBlock(BLOCK_Code,md.invariant,output);
+		List<Location<?>> invariant = md.getInvariant();
+		//
+		output.write_uv(stringCache.get(md.getName()));
+		output.write_uv(typeCache.get(md.getType()));
+		output.write_uv(invariant.size());
+		//
+		for(int i=0;i!=invariant.size();++i) {
+			output.write_uv(invariant.get(i).getIndex());
 		}
-
+		//
+		writeSyntaxTree(md.getTree(),output);
+		//
 		output.close();
 		return bytes.toByteArray();
 	}
-	
+
 	private byte[] generateFunctionBlock(WycsFile.Function fd) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		BinaryOutputStream output = new BinaryOutputStream(bytes);
 
-		output.write_uv(stringCache.get(fd.name()));
-		output.write_uv(typeCache.get(fd.type));
-		if(fd.constraint == null) {
-			output.write_uv(0); // no sub-blocks
-		} else {
-			output.write_uv(1); // one sub-block
-			writeBlock(BLOCK_Code,fd.constraint,output);
-		}
+		output.write_uv(stringCache.get(fd.getName()));
+		output.write_uv(typeCache.get(fd.getType()));
 
 		output.close();
 		return bytes.toByteArray();
@@ -324,131 +318,182 @@ public class WycsFileWriter {
 	private byte[] generateAssertBlock(WycsFile.Assert td) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		BinaryOutputStream output = new BinaryOutputStream(bytes);
-
-		output.write_uv(stringCache.get(td.name()));
-		output.write_uv(1); // one sub-block
-		writeBlock(BLOCK_Code,td.condition,output);
-
+		//
+		output.write_uv(stringCache.get(td.getName()));
+		output.write_uv(td.getBody().getIndex());
+		writeSyntaxTree(td.getTree(),output);
+		//
 		output.close();
 		return bytes.toByteArray();
 	}
 
 	/**
-	 * Flatten a Wycs bytecode into a byte stream. Each Wycs bytecode represents
-	 * a tree of operations and, hence, this function recursively traverses the
-	 * tree.
+	 * Write a syntax tree to the output stream. The format
+	 * of a syntax tree is one of the following:
 	 *
-	 * @param code
-	 * @return
-	 * @throws IOException
+	 * <pre>
+	 * +-------------------+
+	 * | uv : nLocs        |
+	 * +-------------------+
+	 * | Locations[nLocs]  |
+	 * +-------------------+
+	 * </pre>
+	 *
+	 *
+	 *
+	 * @param register
+	 *            Register to be written out
+	 * @param output
+	 * @throws
 	 */
-	private byte[] generateCodeBlock(Code<?> code) throws IOException {
-		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-		BinaryOutputStream output = new BinaryOutputStream(bytes);
+	private void writeSyntaxTree(SyntaxTree tree, BinaryOutputStream output) throws IOException {
+		List<wycs.lang.SyntaxTree.Location<?>> locations = tree.getLocations();
+		output.write_uv(locations.size());
+		for(int i=0;i!=locations.size();++i) {
+			Location<?> location = locations.get(i);
+			writeLocation(location,output);
+		}
+	}
 
-		writeCode(code,output);
-
-		output.close();
-		return bytes.toByteArray();
+	/**
+	 * Write details of a Location to the output stream. The format
+	 * of a location is:
+	 *
+	 * <pre>
+	 * +-------------------+
+	 * | uv : nTypes       |
+	 * +-------------------+
+	 * | uv[] : typeIdxs   |
+	 * +-------------------+
+	 * | uv : nAttrs       |
+	 * +-------------------+
+	 * | Bytecode          |
+	 * +-------------------+
+	 * | Attribute[nAttrs] |
+	 * +-------------------+
+	 * </pre>
+	 *
+	 */
+	private void writeLocation(SyntaxTree.Location<?> location, BinaryOutputStream output) throws IOException {
+		output.write_uv(typeCache.get(location.getType()));
+		output.write_uv(0); // no attributes for now
+		writeBytecode(location.getCode(), output);
 	}
 
 	/**
 	 * <p>
-	 * Write a given code to a binary output stream. Every bytecode is written
-	 * in the following structure:
+	 * Write out a given bytecode whose format is currently given as follows:
 	 * </p>
 	 *
 	 * <pre>
-	 * +---------------+
-	 * | opcode        |
-	 * +---------------+
-	 * | type index    |
-	 * +---------------+
-	 * | operand count |
-	 * +---------------+
-	 * | 1st operand   |
-	 * +---------------+
-	 * |               |
+	 * +-------------------+
+	 * | u8 : opcode       |
+	 * +-------------------+
+	 * | uv : nAttrs       |
+	 * +-------------------+
+	 * | Attribute[nAttrs] |
+	 * +-------------------+
+	 *        ...
 	 *
-	 * ...
-	 * |               |
-	 * +---------------+
-	 * | Nth operand   |
-	 * +---------------+
-	 * | Payload       |
-	 * +---------------+
 	 * </pre>
 	 *
 	 * <p>
-	 * Each cell here is of varying size and is written using one or more 4-bit
-	 * nibbles. The type index is an index into the type pool which gives the
-	 * type associated with this bytecode. The operand count determines the
-	 * number of operands (if any). The payload is an option field which
-	 * contains bytecode specific data. For example, a constant bytecode will
-	 * contain an index into the constant pool here.
+	 * <b>NOTE:</b> The intention is to support a range of different bytecode
+	 * formats in order to optimise the common cases. For example, when there
+	 * are no targets, no operands, no types, etc. Furthermore, when the size of
+	 * items can be reduced from uv to u4, etc.
 	 * </p>
+	 */
+	private void writeBytecode(Bytecode code, BinaryOutputStream output)
+			throws IOException {
+		output.write_u8(code.getOpcode().ordinal());
+		writeOperands(code,output);
+		if (code instanceof Bytecode.Stmt) {
+			writeBlocks((Bytecode.Stmt) code, output);
+		}
+		writeExtras(code, output);
+	}
+
+	private void writeOperands(Bytecode code, BinaryOutputStream output) throws IOException {
+		Bytecode.Schema schema = AbstractBytecode.schemas[code.getOpcode().ordinal()];
+		switch(schema.getOperands()) {
+		case ZERO:
+			// do nout
+			break;
+		case ONE:
+			output.write_uv(code.getOperand(0));
+			break;
+		case TWO:
+			output.write_uv(code.getOperand(0));
+			output.write_uv(code.getOperand(1));
+			break;
+		case MANY:
+			writeUnboundArray(code.getOperands(),output);
+		}
+	}
+
+	private void writeBlocks(Bytecode.Stmt code, BinaryOutputStream output) throws IOException {
+		Bytecode.Schema schema = AbstractBytecode.schemas[code.getOpcode().ordinal()];
+		switch(schema.getBlocks()) {
+		case ZERO:
+			// do nout
+			break;
+		case ONE:
+			output.write_uv(code.getBlock(0));
+			break;
+		case TWO:
+			output.write_uv(code.getBlock(0));
+			output.write_uv(code.getBlock(1));
+			break;
+		case MANY:
+			writeUnboundArray(code.getBlocks(),output);
+		}
+	}
+	private void writeUnboundArray(int[] values, BinaryOutputStream output) throws IOException {
+		output.write_uv(values.length);
+		// Write operand locations
+		for (int i = 0; i != values.length; ++i) {
+			output.write_uv(values[i]);
+		}
+	}
+
+	/**
+	 * Write the "rest" of a bytecode instruction. This includes additional
+	 * information as specified for the given opcode. For compound bytecodes,
+	 * this includes the block identifier(s) of the nested block(s) in question.
+	 * For branching bytecodes, it will include the branch destination as a
+	 * relative offset. Other bytecodes include indices which identify constants
+	 * in one of the pools.
 	 *
 	 * @param code
+	 *            --- The bytecode to be written.
+	 * @param offset
+	 *            --- The current offset of this bytecode in the bytecode array
+	 *            being generated. This offset is measured in complete
+	 *            bytecodes, not in e.g. bytes. Therefore, the first bytecode
+	 *            has offset zero, the second bytecode has offset 1, etc. The
+	 *            offset is required for calculating jump targets for branching
+	 *            instructions (e.g. goto). Since jump targets (in short form)
+	 *            are encoded as a relative offset, we need to know our current
+	 *            offset to compute the relative target.
 	 * @param output
+	 *            --- The binary output stream to which this bytecode is being
+	 *            written.
 	 * @throws IOException
 	 */
-	private void writeCode(Code<?> code, BinaryOutputStream output) throws IOException {
-		if(code == null) {
-			// this is a special case
-			output.write_u8(Code.Op.NULL.offset);
-		} else {
-			output.write_u8(code.opcode.offset);
-			output.write_uv(typeCache.get(code.type));
-			output.write_uv(code.operands.length);
-			for(int i=0;i!=code.operands.length;++i) {
-				writeCode(code.operands[i],output);
-			}
-			// now, write bytecode specific stuff
-			switch(code.opcode){
-			case VAR: {
-				Code.Variable v = (Code.Variable) code;
-				output.write_uv(v.index);
-				break;
-			}
-			case CAST: {
-				Code.Cast c = (Code.Cast) code;
-				output.write_uv(typeCache.get(c.target));
-				break;
-			}
-			case CONST: {
-				Code.Constant c = (Code.Constant) code;
-				output.write_uv(constantCache.get(c.value));
-				break;
-			}
-			case IS: {
-				Code.Is is = (Code.Is) code; 
-				output.write_uv(typeCache.get(is.test));
-				break;
-			}
-			case LOAD: {
-				Code.Load c = (Code.Load) code;
-				output.write_uv(c.index);
-				break;
-			}			
-			case FORALL:
-			case EXISTS: {
-				Code.Quantifier c = (Code.Quantifier) code;
-				output.write_uv(c.types.length);
-				for (Pair<SemanticType,Integer> t : c.types) {
-					output.write_uv(typeCache.get(t.first()));
-					output.write_uv(t.second());
-				}
-				break;
-			}
-			case FUNCALL: {
-				Code.FunCall c = (Code.FunCall) code;
-				output.write_uv(nameCache.get(c.nid));
-				output.write_uv(c.binding.length);
-				for (SemanticType t : c.binding) {
-					output.write_uv(typeCache.get(t));					
-				}				
-			}
-			}
+	private void writeExtras(Bytecode code, BinaryOutputStream output) throws IOException {
+		//
+		switch (code.getOpcode()) {
+		case CONST: {
+			Bytecode.Constant c = (Bytecode.Constant) code;
+			output.write_uv(constantCache.get(c.getValue()));
+			break;
+		}
+		case VARDECL: {
+			Bytecode.VariableDeclaration d = (Bytecode.VariableDeclaration) code;
+			output.write_uv(stringCache.get(d.getName()));
+			break;
+		}
 		}
 	}
 
@@ -479,7 +524,7 @@ public class WycsFileWriter {
 		typeCache.clear();
 
 		addPathItem(module.getEntry().id());
-		for(WycsFile.Declaration d : module.declarations()) {
+		for(WycsFile.Declaration d : module.getDeclarations()) {
 			buildPools(d);
 		}
 	}
@@ -497,62 +542,49 @@ public class WycsFileWriter {
 	}
 
 	private void buildPools(WycsFile.Macro declaration) {
-		addStringItem(declaration.name());
-		addTypeItem(declaration.type);
-		buildPools(declaration.condition);
+		addStringItem(declaration.getName());
+		addTypeItem(declaration.getType());
+		buildPools(declaration.getTree());
 	}
 
 	private void buildPools(WycsFile.Type declaration) {
-		addStringItem(declaration.name());
-		addTypeItem(declaration.type);
-		if(declaration.invariant != null) {
-			buildPools(declaration.invariant);
-		}
+		addStringItem(declaration.getName());
+		addTypeItem(declaration.getType());
+		buildPools(declaration.getTree());
 	}
 
 	private void buildPools(WycsFile.Function declaration) {
-		addStringItem(declaration.name());
-		addTypeItem(declaration.type);
-		if(declaration.constraint != null) {
-			buildPools(declaration.constraint);
-		}
+		addStringItem(declaration.getName());
+		addTypeItem(declaration.getType());
 	}
 
 	private void buildPools(WycsFile.Assert declaration) {
-		addStringItem(declaration.name());
-		buildPools(declaration.condition);
+		addStringItem(declaration.getName());
+		buildPools(declaration.getTree());
 	}
 
-	private void buildPools(Code code) {
+
+	private void buildPools(SyntaxTree tree) {
+		for(Location<?> e : tree.getLocations()) {
+			buildPools(e);
+		}
+	}
+
+	private void buildPools(SyntaxTree.Location<?> loc) {
+		addTypeItem(loc.getType());
+		buildPools(loc.getCode());
+	}
+
+
+	private void buildPools(Bytecode code) {
 
 		// First, deal with special cases
-		if(code instanceof Code.Constant) {
-			Code.Constant c = (Code.Constant) code;
-			addConstantItem(c.value);
-		} else if(code instanceof Code.Cast) {
-			Code.Cast c = (Code.Cast) code;
-			addTypeItem(c.target);			
-		} else if(code instanceof Code.Quantifier) {
-			Code.Quantifier c = (Code.Quantifier) code;
-			for(Pair<SemanticType,Integer> p : c.types) {
-				addTypeItem(p.first());
-			}
-		} else if(code instanceof Code.FunCall) {
-			Code.FunCall c = (Code.FunCall) code;
-			addNameItem(c.nid);
-			for(SemanticType t : c.binding) {
-				addTypeItem(t);
-			}
-		} else if(code instanceof Code.Is) {
-			Code.Is c = (Code.Is) code;
-			addTypeItem(c.test);
-		} 
-
-		// Second, deal with standard cases
-		addTypeItem(code.type);
-
-		for(Code operand : code.operands) {
-			buildPools(operand);
+		if(code instanceof Bytecode.Constant) {
+			Bytecode.Constant c = (Bytecode.Constant) code;
+			addConstantItem(c.getValue());
+		} else if(code instanceof Bytecode.Cast) {
+			Bytecode.Cast c = (Bytecode.Cast) code;
+			addTypeItem(c.getTarget());
 		}
 	}
 
@@ -728,7 +760,6 @@ public class WycsFileWriter {
 	public final static int BLOCK_Documentation = 2;
 	public final static int BLOCK_License = 3;
 	// ... (anticipating some others here)
-	public final static int BLOCK_Code = 10;
 	public final static int BLOCK_Macro = 11;
 	public final static int BLOCK_Function = 12;
 	public final static int BLOCK_Assert = 13;

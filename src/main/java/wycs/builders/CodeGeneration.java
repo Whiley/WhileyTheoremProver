@@ -10,7 +10,7 @@ import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.util.ResolveError;
-import wycs.core.*;
+import wycs.lang.*;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;

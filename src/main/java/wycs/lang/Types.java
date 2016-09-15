@@ -1,4 +1,4 @@
-package wycs.core;
+package wycs.lang;
 
 import java.io.*;
 import java.util.*;

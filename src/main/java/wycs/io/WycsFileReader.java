@@ -11,11 +11,14 @@ import java.util.List;
 import wycc.util.Pair;
 import wyautl.core.Automaton;
 import wyautl.io.BinaryAutomataReader;
+import wybs.lang.Attribute;
 import wybs.lang.NameID;
-import wycs.core.*;
+import wycs.lang.*;
+import wycs.util.AbstractBytecode;
 import wyfs.io.BinaryInputStream;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
+
 
 public class WycsFileReader {
 	private static final char[] magic = { 'W', 'Y', 'C', 'S', 'F', 'I', 'L',
@@ -218,17 +221,19 @@ public class WycsFileReader {
 		int pathIdx = input.read_uv();
 		int numBlocks = input.read_uv();
 
-		List<WycsFile.Declaration> declarations = new ArrayList<WycsFile.Declaration>();
+		WycsFile wycsFile = new WycsFile(entry);
+
+		List<WycsFile.Declaration> declarations = wycsFile.getDeclarations();
 		for (int i = 0; i != numBlocks; ++i) {
-			declarations.add(readBlock(WycsFile.Declaration.class));
+			declarations.add(readBlock(wycsFile,WycsFile.Declaration.class));
 		}
-		
+
 		Path.ID id = pathPool[pathIdx];
-		
-		return new WycsFile(entry, declarations);
+
+		return wycsFile;
 	}
 
-	private <T> T readBlock(Class<T> expected) throws IOException {
+	private <T> T readBlock(WycsFile parent, Class<T> expected) throws IOException {
 
 		input.pad_u8(); // pad out to next byte boundary
 
@@ -240,19 +245,16 @@ public class WycsFileReader {
 
 		switch (kind) {
 		case WycsFileWriter.BLOCK_Macro:
-			block = readMacroBlockBody();
+			block = readMacroBlockBody(parent);
 			break;
 		case WycsFileWriter.BLOCK_Type:
-			block = readTypeBlockBody();
+			block = readTypeBlockBody(parent);
 			break;
 		case WycsFileWriter.BLOCK_Function:
-			block = readFunctionBlockBody();
+			block = readFunctionBlockBody(parent);
 			break;
 		case WycsFileWriter.BLOCK_Assert:
-			block = readAssertBlockBody();
-			break;
-		case WycsFileWriter.BLOCK_Code:
-			block = readCodeBlockBody();
+			block = readAssertBlockBody(parent);
 			break;
 		default:
 			throw new RuntimeException("unknown block encountered (" + kind
@@ -260,7 +262,7 @@ public class WycsFileReader {
 		}
 
 		input.pad_u8(); // pad out to next byte boundary
-		
+
 		if (expected.isInstance(block)) {
 			return (T) block;
 		} else {
@@ -273,173 +275,241 @@ public class WycsFileReader {
 	// Block body readers
 	// ====================================================================
 
-	private WycsFile.Declaration readMacroBlockBody() throws IOException {
+	private WycsFile.Declaration readMacroBlockBody(WycsFile parent) throws IOException {
 		int nameIdx = input.read_uv();
 		int typeIdx = input.read_uv();
-		int nBlocks = input.read_uv();
-		Code<?> code = readBlock(Code.class);
-
-		return new WycsFile.Macro(stringPool[nameIdx],
-				(SemanticType.Function) typePool[typeIdx], code);
+		int body = input.read_uv();
+		// Create declaration
+		WycsFile.Macro decl = new WycsFile.Macro(parent, stringPool[nameIdx],
+				(SemanticType.Function) typePool[typeIdx]);
+		// Read tree and construct locations
+		SyntaxTree tree = readSyntaxTree(decl);
+		decl.setBody(tree.getLocation(body));
+		// Done
+		return decl;
 	}
 
-	private WycsFile.Declaration readTypeBlockBody() throws IOException {
+	private WycsFile.Declaration readTypeBlockBody(WycsFile parent) throws IOException {
 		int nameIdx = input.read_uv();
 		int typeIdx = input.read_uv();
-		int nBlocks = input.read_uv();
-		Code<?> code = null;
-		if(nBlocks > 0) {
-			code = readBlock(Code.class);
+		int[] invariant = readUnboundArray();
+		//
+		WycsFile.Type decl = new WycsFile.Type(parent, stringPool[nameIdx], typePool[typeIdx]);
+		SyntaxTree tree = readSyntaxTree(decl);
+		//
+		for(int i=0;i!=invariant.length;++i) {
+			decl.getInvariant().add(tree.getLocation(invariant[i]));
 		}
-
-		return new WycsFile.Type(stringPool[nameIdx],
-				(SemanticType) typePool[typeIdx], code);
+		//
+		return decl;
 	}
-	
-	private WycsFile.Declaration readFunctionBlockBody() throws IOException {
+
+	private WycsFile.Declaration readFunctionBlockBody(WycsFile parent) throws IOException {
 		int nameIdx = input.read_uv();
 		int typeIdx = input.read_uv();
-		int nBlocks = input.read_uv();
-		Code<?> code = null;
-		if (nBlocks > 0) {
-			code = readBlock(Code.class);
-		}
-		return new WycsFile.Function(stringPool[nameIdx],
-				(SemanticType.Function) typePool[typeIdx], code);
+		return new WycsFile.Function(parent, stringPool[nameIdx], (SemanticType.Function) typePool[typeIdx]);
 	}
 
-	private WycsFile.Declaration readAssertBlockBody() throws IOException {
+	private WycsFile.Declaration readAssertBlockBody(WycsFile parent) throws IOException {
 		int nameIdx = input.read_uv();
-		int nBlocks = input.read_uv();
-		Code<?> code = readBlock(Code.class);
-		return new WycsFile.Assert(stringPool[nameIdx], code);
+		int body = input.read_uv();
+		WycsFile.Assert decl =  new WycsFile.Assert(parent, stringPool[nameIdx]);
+		// Read tree and construct locations
+		SyntaxTree tree = readSyntaxTree(decl);
+		decl.setBody(tree.getLocation(body));
+		//
+		return decl;
 	}
 
-	private Code readCodeBlockBody() throws IOException {
+	/**
+	 * Read a syntax tree from the output stream. The format
+	 * of a syntax tree is one of the following:
+	 *
+	 * <pre>
+	 * +-------------------+
+	 * | uv : nLocs        |
+	 * +-------------------+
+	 * | Locations[nLocs]  |
+	 * +-------------------+
+	 * </pre>
+	 *
+	 *
+	 * @param parent
+	 * @return
+	 * @throws IOException
+	 */
+	private SyntaxTree readSyntaxTree(WycsFile.Declaration parent) throws IOException {
+		SyntaxTree tree = parent.getTree();
+		int nLocs = input.read_uv();
+		for(int i=0;i!=nLocs;++i) {
+			tree.getLocations().add(readLocation(tree));
+		}
+		return tree;
+	}
+
+	/**
+	 * Read details of a Location from the input stream. The format of a
+	 * location is:
+	 *
+	 * <pre>
+	 * +-------------------+
+	 * | uv : nTypes       |
+	 * +-------------------+
+	 * | uv[] : typeIdxs   |
+	 * +-------------------+
+	 * | uv : nAttrs       |
+	 * +-------------------+
+	 * | Bytecode          |
+	 * +-------------------+
+	 * | Attribute[nAttrs] |
+	 * +-------------------+
+	 * </pre>
+	 *
+	 * @param output
+	 * @throws IOException
+	 */
+	private SyntaxTree.Location<?> readLocation(SyntaxTree tree) throws IOException {
+		int typeIdx = input.read_uv();
+		SemanticType type = typePool[typeIdx];
+		int nAttrs = input.read_uv();
+		Bytecode bytecode = readBytecode();
+		//
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		//
+		return new SyntaxTree.Location<Bytecode>(tree, type, bytecode, attributes);
+	}
+
+	/**
+	 * <p>
+	 * REad a given bytecode whose format is currently given as follows:
+	 * </p>
+	 *
+	 * <pre>
+	 * +-------------------+
+	 * | u8 : opcode       |
+	 * +-------------------+
+	 * | uv : nAttrs       |
+	 * +-------------------+
+	 * | Attribute[nAttrs] |
+	 * +-------------------+
+	 *        ...
+	 * </pre>
+	 *
+	 * <p>
+	 * <b>NOTE:</b> The intention is to support a range of different bytecode
+	 * formats in order to optimise the common cases. For example, when there
+	 * are no targets, no operands, no types, etc. Furthermore, when the size of
+	 * items can be reduced from uv to u4, etc.
+	 * </p>
+	 */
+	private Bytecode readBytecode() throws IOException {
 		int opcode = input.read_u8();
-		if(opcode == Code.Op.NULL.offset) {
-			// special case
+		// FIXME: read attributes!
+		Bytecode.Schema schema = AbstractBytecode.schemas[opcode];
+		// First, read and validate all operands, groups and blocks
+		int[] operands = readOperands(schema);
+		int[] blocks = readBlocks(schema);
+		// Second, read all extras
+		Object[] extras = readExtras(schema);
+		// Finally, create the bytecode
+		return schema.construct(opcode, operands, blocks, extras);
+	}
+
+	private int[] readOperands(Bytecode.Schema schema) throws IOException {
+		switch(schema.getOperands()) {
+		case ZERO:
+			// do nout
 			return null;
-		} else {
-			int typeIdx = input.read_uv();
-			SemanticType type = typePool[typeIdx];
-			int nOperands = input.read_uv();
-			Code[] operands = new Code[nOperands];
-			for (int i = 0; i != nOperands; ++i) {
-				operands[i] = readCodeBlockBody();
-			}
-			Code.Op op = op(opcode);
+		case ONE:
+			int o = input.read_uv();
+			return new int[] { o };
+		case TWO:
+			int o1 = input.read_uv();
+			int o2 = input.read_uv();
+			return new int[] { o1, o2 };
+		case MANY:
+		default:
+			return readUnboundArray();
+		}
+	}
 
-			switch (op) {
-			case VAR: {
-				int varIdx = input.read_uv();
-				return Code.Variable(type, operands, varIdx);
-			}
-			case CAST: {
-				int targetTypeIdx = input.read_uv();
-				if (operands.length != 1) {
-					throw new RuntimeException(
-							"invalid cast bytecode encountered");
-				}
-				return Code.Cast(type,operands[0],typePool[targetTypeIdx]);
-			}
-			case CONST: {
+	private int[] readBlocks(Bytecode.Schema schema) throws IOException {
+		switch(schema.getBlocks()) {
+		case ZERO:
+			// do nout
+			return null;
+		case ONE:
+			int o = input.read_uv();
+			return new int[] { o };
+		case TWO:
+			int o1 = input.read_uv();
+			int o2 = input.read_uv();
+			return new int[] { o1, o2 };
+		case MANY:
+		default:
+			return readUnboundArray();
+		}
+	}
+
+	/**
+	 * Read the list of extra components defined by a given bytecode schema.
+	 * Each extra is interpreted in a slightly different fashion.
+	 *
+	 * @param schema
+	 * @param labels
+	 * @return
+	 * @throws IOException
+	 */
+	private Object[] readExtras(Bytecode.Schema schema)
+			throws IOException {
+		Bytecode.Extras[] extras = schema.extras();
+		Object[] results = new Object[extras.length];
+		for(int i=0;i!=extras.length;++i) {
+			switch(extras[i]) {
+			case CONSTANT: {
 				int constIdx = input.read_uv();
-				if (operands.length != 0) {
-					throw new RuntimeException(
-							"invalid constant bytecode encountered");
-				}
-				return Code.Constant(constantPool[constIdx]);
+				results[i] = constantPool[constIdx];
+				break;
 			}
-			case NOT:
-			case NEG:
-			case LENGTH:
-				if (operands.length != 1) {
-					throw new RuntimeException("invalid unary bytecode encountered");
-				}
-				return Code.Unary(type, op, operands[0]);
-			case ADD:
-			case SUB:
-			case MUL:
-			case DIV:
-			case REM:
-			case EQ:
-			case NEQ:
-			case LT:
-			case LTEQ:
-				if (operands.length != 2) {
-					throw new RuntimeException(
-							"invalid binary bytecode encountered");
-				}
-				return Code.Binary(type, op, operands[0], operands[1]);
-			case IS:
-				if (operands.length != 1) {
-					throw new RuntimeException(
-							"invalid is bytecode encountered");
-				}
-				int testIdx = input.read_uv();
-				return Code.Is(type, operands[0], typePool[testIdx]);
-			case AND:
-			case OR:
-			case TUPLE:
-			case ARRAY:
-				return Code.Nary(type, op, operands);
-			case LOAD: {
-				if (operands.length != 1 || !(type instanceof SemanticType.Tuple)) {
-					throw new RuntimeException("invalid load bytecode encountered");
-				}
-				int index = input.read_uv();
-				return Code.Load((SemanticType.Tuple) type, operands[0], index);
+			case STRING: {
+				int stringIdx = input.read_uv();
+				results[i] = stringPool[stringIdx];
+				break;
 			}
-			case INDEXOF: {
-				if (operands.length != 2 || !(type instanceof SemanticType.Array)) {
-					throw new RuntimeException("invalid indexof bytecode encountered");
-				}
-				return Code.IndexOf((SemanticType.Array) type, operands[0], operands[1]);
+			case NAME: {
+				int nameIdx = input.read_uv();
+				results[i] = namePool[nameIdx];
+				break;
 			}
-			case FORALL:
-			case EXISTS: {
-				if (operands.length != 1) {
-					throw new RuntimeException(
-							"invalid quantifier bytecode encountered");
-				}
-				int length = input.read_uv();
-				Pair<SemanticType,Integer>[] types = new Pair[length];
-				for (int i = 0; i != length; ++i) {
-					int pTypeIdx = input.read_uv();
-					int pVarIdx = input.read_uv();
-					types[i] = new Pair<SemanticType,Integer>(
-							typePool[pTypeIdx], pVarIdx);
-				}
-				return Code.Quantifier(type, op, operands[0], types);
+			case TYPE: {
+				int typeIdx = input.read_uv();
+				results[i] = typePool[typeIdx];
+				break;
 			}
-			case FUNCALL: {
-				if (operands.length != 1
-						|| !(type instanceof SemanticType.Function)) {
-					throw new RuntimeException(
-							"invalid funcall bytecode encountered");
+			case STRING_ARRAY: {
+				int nStrings = input.read_uv();
+				String[] strings = new String[nStrings];
+				for(int j=0;j!=nStrings;++j) {
+					int stringIdx = input.read_uv();
+					strings[j] = stringPool[stringIdx];
 				}
-				int nid = input.read_uv();
-				int length = input.read_uv();
-				SemanticType[] binding = new SemanticType[length];
-				for (int i = 0; i != length; ++i) {
-					int pTypeIdx = input.read_uv();
-					binding[i] = typePool[pTypeIdx];					
-				}
-				return Code.FunCall((SemanticType.Function) type, operands[0], namePool[nid], binding);
+				results[i] = strings;
+				break;
 			}
-			}
-
-			throw new RuntimeException("unknown opcode encountered: " + opcode);
-		}
-	}
-
-	private Code.Op op(int opcode) {
-		for (Code.Op op : Code.Op.values()) {
-			if (op.offset == opcode) {
-				return op;
+			default:
+				throw new RuntimeException("unknown bytecode extra encountered: " + extras[i]);
 			}
 		}
-		throw new RuntimeException("unknown opcode encountered: " + opcode);
+		return results;
 	}
+
+	private int[] readUnboundArray() throws IOException {
+		int size = input.read_uv();
+		int[] array = new int[size];
+		for(int i=0;i!=size;++i) {
+			array[i] = input.read_uv();
+		}
+		return array;
+	}
+
 }

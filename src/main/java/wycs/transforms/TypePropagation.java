@@ -13,8 +13,8 @@ import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.util.ResolveError;
 import wycs.builders.Wyal2WycsBuilder;
-import wycs.core.SemanticType;
-import wycs.core.Value;
+import wycs.lang.SemanticType;
+import wycs.lang.Value;
 import wycs.syntax.*;
 import wyfs.lang.Path;
 
@@ -138,10 +138,10 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 	private HashMap<String, SemanticType> addDeclaredVariables(
 			TypePattern pattern, HashMap<String, SemanticType> environment,
 			HashSet<String> generics, WyalFile.Context context) {
-		if (pattern instanceof TypePattern.Union) {
+		if (pattern instanceof TypePattern.UnionType) {
 			// FIXME: in principle, we can do better here. However, I leave this
 			// unusual case for the future.
-		} else if (pattern instanceof TypePattern.Intersection) {
+		} else if (pattern instanceof TypePattern.IntersectionType) {
 			// FIXME: in principle, we can do better here. However, I leave this
 			// unusual case for the future.
 		} else if (pattern instanceof TypePattern.Rational) {
@@ -233,7 +233,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 	private SemanticType propagate(Expr.Variable e,
 			HashMap<String, SemanticType> environment,
 			HashSet<String> generics, WyalFile.Context context) {
-		SemanticType t = environment.get(e.name);
+		SemanticType t = environment.getVariableDeclaration(e.name);
 		if (t == null) {
 			throw new InternalFailure("undeclared variable encountered (" + e + ")",
 					file.getEntry(), e);
@@ -394,7 +394,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 		SemanticType[] op_types = new SemanticType[e_operands.size()];
 
 		for (int i = 0; i != e_operands.size(); ++i) {
-			op_types[i] = propagate(e_operands.get(i), environment, generics,
+			op_types[i] = propagate(e_operands.getVariableDeclaration(i), environment, generics,
 					context);
 		}
 
@@ -499,7 +499,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 		// Construct concrete types for generic substitution
 		ArrayList<SemanticType> ivkGenerics = new ArrayList<SemanticType>();
 		for (int i = 0; i != e.generics.size(); ++i) {
-			SyntacticType gt = e.generics.get(i);
+			SyntacticType gt = e.generics.getVariableDeclaration(i);
 			try {
 				SemanticType t = builder.convert(gt, generics, context);
 				ivkGenerics.add(t);
@@ -654,7 +654,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 			Expr.Variable v = (Expr.Variable) e;
 			// The new type is the intersection of the existing type and the
 			// asserted type.
-			SemanticType newType = SemanticType.And(environment.get(v.name),
+			SemanticType newType = SemanticType.And(environment.getVariableDeclaration(v.name),
 					type);
 			//
 			environment.put(v.name, newType);

@@ -38,7 +38,7 @@ import java.util.List;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
-import wycs.syntax.WyalFile;
+import wycs.lang.WyalFile;
 import wyfs.lang.Path;
 
 /**
@@ -49,7 +49,6 @@ import wyfs.lang.Path;
  *
  */
 public class WyalFileLexer {
-
 	private final Path.Entry<WyalFile> entry;
 	private final StringBuilder input;
 	private int pos;
@@ -517,7 +516,7 @@ public class WyalFileLexer {
 			put("true", Token.Kind.True);
 			put("false", Token.Kind.False);
 			// statements
-			put("assert", Token.Kind.Assert);
+			put("assertion", Token.Kind.Assertion);
 			put("either", Token.Kind.Either);
 			put("or", Token.Kind.Or);
 			put("if", Token.Kind.If);
@@ -555,11 +554,13 @@ public class WyalFileLexer {
 			Identifier,
 			// Constants
 			True {
+				@Override
 				public String toString() {
 					return "true";
 				}
 			},
 			False {
+				@Override
 				public String toString() {
 					return "true";
 				}
@@ -570,374 +571,448 @@ public class WyalFileLexer {
 			StringValue,
 			// Types
 			Null {
+				@Override
 				public String toString() {
 					return "null";
 				}
 			},
 			Void {
+				@Override
 				public String toString() {
 					return "void";
 				}
 			},
 			Any {
+				@Override
 				public String toString() {
 					return "any";
 				}
 			},
 			Bool {
+				@Override
 				public String toString() {
 					return "bool";
 				}
 			},
 			Int {
+				@Override
 				public String toString() {
 					return "int";
 				}
 			},
 			Real {
+				@Override
 				public String toString() {
 					return "real";
 				}
 			},
 			Char {
+				@Override
 				public String toString() {
 					return "char";
 				}
 			},
 			String {
+				@Override
 				public String toString() {
 					return "string";
 				}
 			},
 			// Statements
-			Assert {
+			Assertion {
+				@Override
 				public String toString() {
-					return "assert";
+					return "assertion";
 				}
 			},
 			Either {
+				@Override
 				public String toString() {
 					return "either";
 				}
 			},
 			Or {
+				@Override
 				public String toString() {
 					return "or";
 				}
 			},
 			If {
+				@Override
 				public String toString() {
 					return "if";
 				}
 			},
 			Then {
+				@Override
 				public String toString() {
 					return "then";
 				}
 			},
 			// Declarations
 			Package {
+				@Override
 				public String toString() {
 					return "package";
 				}
 			},
 			Import {
+				@Override
 				public String toString() {
 					return "import";
 				}
 			},
 			Public {
+				@Override
 				public String toString() {
 					return "public";
 				}
 			},
 			Private {
+				@Override
 				public String toString() {
 					return "private";
 				}
 			},
 			Protected {
+				@Override
 				public String toString() {
 					return "protected";
 				}
 			},
 			Function {
+				@Override
 				public String toString() {
 					return "function";
 				}
 			},
 			Assume {
+				@Override
 				public String toString() {
 					return "assume";
 				}
 			},
 			Constant {
+				@Override
 				public String toString() {
 					return "constant";
 				}
 			},
 			Define {
+				@Override
 				public String toString() {
 					return "define";
 				}
 			},
 			Requires {
+				@Override
 				public String toString() {
 					return "requires";
 				}
 			},
 			Ensures {
+				@Override
 				public String toString() {
 					return "ensures";
 				}
 			},
 			Where {
+				@Override
 				public String toString() {
 					return "where";
 				}
 			},
 			Throws {
+				@Override
 				public String toString() {
 					return "throws";
 				}
 			},
 			// Expressions
 			Forall {
+				@Override
 				public String toString() {
 					return "forall";
 				}
 			},
 			Exists {
+				@Override
 				public String toString() {
 					return "exists";
 				}
 			},
 			Is {
+				@Override
 				public String toString() {
 					return "is";
 				}
 			},
 			In {
+				@Override
 				public String toString() {
 					return "in";
 				}
 			},
 			Comma {
+				@Override
 				public String toString() {
 					return ",";
 				}
 			},
 			Colon {
+				@Override
 				public String toString() {
 					return ":";
 				}
 			},
 			ColonEquals {
+				@Override
 				public String toString() {
 					return ":=";
 				}
 			},
 			SemiColon {
+				@Override
 				public String toString() {
 					return ";";
 				}
 			},
 			Ampersand {
+				@Override
 				public String toString() {
 					return "&";
 				}
 			},
 			VerticalBar {
+				@Override
 				public String toString() {
 					return "|";
 				}
 			},
 			LeftBrace {
+				@Override
 				public String toString() {
 					return "(";
 				}
 			},
 			RightBrace {
+				@Override
 				public String toString() {
 					return ")";
 				}
 			},
 			LeftSquare {
+				@Override
 				public String toString() {
 					return "[";
 				}
 			},
 			RightSquare {
+				@Override
 				public String toString() {
 					return "]";
 				}
 			},
 			LeftAngle {
+				@Override
 				public String toString() {
 					return "<";
 				}
 			},
 			RightAngle {
+				@Override
 				public String toString() {
 					return ">";
 				}
 			},
 			LeftCurly {
+				@Override
 				public String toString() {
 					return "{";
 				}
 			},
 			RightCurly {
+				@Override
 				public String toString() {
 					return "}";
 				}
 			},
 			Plus {
+				@Override
 				public String toString() {
 					return "+";
 				}
 			},
 			PlusPlus {
+				@Override
 				public String toString() {
 					return "++";
 				}
 			},
 			Minus {
+				@Override
 				public String toString() {
 					return "-";
 				}
 			},
 			Star {
+				@Override
 				public String toString() {
 					return "*";
 				}
 			},
 			LeftSlash {
+				@Override
 				public String toString() {
 					return "\\";
 				}
 			},
 			RightSlash {
+				@Override
 				public String toString() {
 					return "//";
 				}
 			},
 			Percent {
+				@Override
 				public String toString() {
 					return "%";
 				}
 			},
 			Shreak {
+				@Override
 				public String toString() {
 					return "!";
 				}
 			},
 			Caret {
+				@Override
 				public String toString() {
 					return "^";
 				}
 			},
 			Dot {
+				@Override
 				public String toString() {
 					return ".";
 				}
 			},
 			DotDot {
+				@Override
 				public String toString() {
 					return "..";
 				}
 			},
 			DotDotDot {
+				@Override
 				public String toString() {
 					return "...";
 				}
 			},
 			EqualsEquals {
+				@Override
 				public String toString() {
 					return "==";
 				}
 			},
 			NotEquals {
+				@Override
 				public String toString() {
 					return "!=";
 				}
 			},
 			LessEquals {
+				@Override
 				public String toString() {
 					return "<=";
 				}
 			},
 			GreaterEquals {
+				@Override
 				public String toString() {
 					return ">=";
 				}
 			},
 			EqualsGreater {
+				@Override
 				public String toString() {
 					return "=>";
 				}
 			},
 			MinusGreater {
+				@Override
 				public String toString() {
 					return "->";
 				}
 			},
 			LogicalAnd {
+				@Override
 				public String toString() {
 					return "&&";
 				}
 			},
 			LogicalOr {
+				@Override
 				public String toString() {
 					return "||";
 				}
 			},
 			LogicalImplication {
+				@Override
 				public String toString() {
 					return "==>";
 				}
 			},
 			LogicalIff {
+				@Override
 				public String toString() {
 					return "<==>";
 				}
 			},
 			SetUnion {
+				@Override
 				public String toString() {
 					return "" + UC_SETUNION;
 				}
 			},
 			SetIntersection {
+				@Override
 				public String toString() {
 					return "" + UC_SETINTERSECTION;
 				}
 			},
 			ElementOf {
+				@Override
 				public String toString() {
 					return "" + UC_ELEMENTOF;
 				}
 			},
 			EmptySet {
+				@Override
 				public String toString() {
 					return "" + UC_EMPTYSET;
 				}
 			},
 			Subset {
+				@Override
 				public String toString() {
 					return "" + UC_SUBSET;
 				}
 			},
 			SubsetEquals {
+				@Override
 				public String toString() {
 					return "" + UC_SUBSETEQ;
 				}
 			},
 			Superset {
+				@Override
 				public String toString() {
 					return "" + UC_SUPSETEQ;
 				}
 			},
 			SupersetEquals {
+				@Override
 				public String toString() {
 					return "" + UC_SUPSETEQ;
 				}

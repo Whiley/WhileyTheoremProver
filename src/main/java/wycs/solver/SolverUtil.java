@@ -4,7 +4,7 @@ import static wycs.solver.Solver.Div;
 import static wycs.solver.Solver.Mul;
 import static wycs.solver.Solver.Sum;
 import wyautl.core.Automaton;
-import wycs.core.SemanticType;
+import wycs.lang.SemanticType;
 
 /**
  * Provides a bunch of utility methods to simplify interfacing with the Solver
