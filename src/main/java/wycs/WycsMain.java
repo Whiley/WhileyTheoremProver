@@ -41,7 +41,7 @@ import wyfs.util.Trie;
 
 public class WycsMain {
 
-	private static Content.Registry registry = new Content.Registry() {
+	public static Content.Registry registry = new Content.Registry() {
 		@Override
 		public void associate(Entry e) {
 			if(e.suffix().equals("wyal")) {
@@ -65,7 +65,7 @@ public class WycsMain {
 		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
 		WycsFile file = parser.read();
 		// Finally, print it out
-		proveAll(file);
+		new WycsFilePrinter(System.out).write(file);
 	}
 
 }

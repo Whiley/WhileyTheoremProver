@@ -1,12 +1,27 @@
 package wycs.util;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
+import wycs.lang.Bytecode;
 import wycs.lang.Proof;
 
-public class AbstractProof implements Proof {
-	private List<State> states = new ArrayList<State>();
+public abstract class AbstractProof implements Proof {
+	/**
+	 * The abstract syntax tree corresponding to all known information.
+	 */
+	protected ArrayList<Bytecode> tree;
+
+	/**
+	 * The set of current proof states. Each state represents a set of known
+	 * truths within the current tree.
+	 */
+	protected ArrayList<State> states = new ArrayList<State>();
+
+	public AbstractProof(List<Bytecode> tree) {
+		this.tree = new ArrayList<Bytecode>(tree);
+	}
 
 	@Override
 	public int numberOfStates() {
@@ -19,12 +34,20 @@ public class AbstractProof implements Proof {
 	}
 
 	public class State implements Proof.State {
+		/**
+		 * The set of items known to be true in this state.
+		 */
+		private final BitSet truths;
+
 		private List<Step> steps = new ArrayList<Step>();
+
+		public State(BitSet truths) {
+			this.truths = truths;
+		}
 
 		@Override
 		public boolean isKnown(int location) {
-			// TODO Auto-generated method stub
-			return false;
+			return truths.get(location);
 		}
 
 		@Override

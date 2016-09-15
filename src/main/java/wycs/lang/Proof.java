@@ -1,6 +1,19 @@
 package wycs.lang;
 
 public interface Proof {
+	enum Status {
+		WAITING,
+		INPROGRESS,
+		COMPLETED
+	}
+
+	/**
+	 * Get the overall status of this proof. In particular, whether or not it is
+	 * completed.
+	 *
+	 * @return
+	 */
+	public Status getStatus();
 
 	/**
 	 * Determine the number of states in this proof.
