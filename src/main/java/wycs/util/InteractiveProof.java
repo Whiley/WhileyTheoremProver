@@ -28,4 +28,12 @@ public class InteractiveProof extends AbstractProof {
 	public Status getStatus() {
 		return Status.INPROGRESS;
 	}
+
+	public Bytecode getBytecode(int index) {
+		return tree.get(index);
+	}
+
+	public int getHEAD() {
+		return HEAD;
+	}
 }

@@ -59,6 +59,10 @@ public class InteractiveProver {
 		this.proofs = new InteractiveProof[count];
 	}
 
+	public InteractiveProof getProof(int proof) {
+		return proofs[proof];
+	}
+
 	/**
 	 * Get the list of interactive proofs being managed by this prover.
 	 *

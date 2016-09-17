@@ -1,5 +1,6 @@
 package wycs;
 
+import java.util.BitSet;
 import java.util.List;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -108,6 +109,18 @@ public class ProofConsole {
 		System.out.println("Proof-by-contradiction");
 		this.cursor = proof;
 		prover.beginByContradiction(proof);
+		printProofState(prover.getProof(proof));
+	}
+	private void printProofState(InteractiveProof proof) {
+		printProofState(proof, proof.getHEAD());
+	}
+
+	private void printProofState(InteractiveProof proof, int stateIndex) {
+		InteractiveProof.State state = proof.getState(stateIndex);
+		BitSet truths = state.getTruths();
+		for (int i = truths.nextSetBit(0); i >= 0; i = truths.nextSetBit(i+1)) {
+			System.out.println(i + ") " + proof.getBytecode(i));
+		}
 	}
 
 	// =========================================================================

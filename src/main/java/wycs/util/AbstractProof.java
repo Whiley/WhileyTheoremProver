@@ -23,6 +23,10 @@ public abstract class AbstractProof implements Proof {
 		this.tree = new ArrayList<Bytecode>(tree);
 	}
 
+	public int numberOfLocations() {
+		return tree.size();
+	}
+
 	@Override
 	public int numberOfStates() {
 		return states.size();
@@ -68,6 +72,15 @@ public abstract class AbstractProof implements Proof {
 				}
 			}
 			throw new IllegalArgumentException("state should not exist?");
+		}
+
+		/**
+		 * Get the truths associated with this state
+		 *
+		 * @return
+		 */
+		public BitSet getTruths() {
+			return truths;
 		}
 	}
 
