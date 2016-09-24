@@ -77,9 +77,9 @@ public class InteractiveProver {
 	 */
 	public void beginByContradiction(int proof) {
 		WycsFile.Assert assertion = getAssertion(proof);
-		List<Bytecode> tree = generateInitialTree(assertion);
-		BitSet truths = getInitialTruths(assertion);
-		proofs[proof] = new InteractiveProof(truths,tree,rules);
+		InteractiveProof p = new InteractiveProof.ByContradiction(assertion,rules);
+		proofs[proof] = p;
+		p.begin();
 	}
 
 	private WycsFile.Assert getAssertion(int index) {
@@ -93,15 +93,6 @@ public class InteractiveProver {
 			}
 		}
 		throw new IllegalArgumentException("invalid assertion: " + index);
-	}
-
-	private List<Bytecode> generateInitialTree(WycsFile.Declaration declaration) {
-		ArrayList<Bytecode> locations = new ArrayList<>();
-		SyntaxTree tree = declaration.getTree();
-		for (int i = 0; i != tree.size(); ++i) {
-			locations.add(tree.getLocation(i).getCode());
-		}
-		return locations;
 	}
 
 	private BitSet getInitialTruths(WycsFile.Assert assertion) {

@@ -53,6 +53,10 @@ public class WycsFilePrinter {
 		this.out = writer;
 	}
 
+	public void flush() {
+		out.flush();
+	}
+
 	public void write(WycsFile wf) {
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
@@ -71,13 +75,13 @@ public class WycsFilePrinter {
 	private void write(WycsFile wf, WycsFile.Declaration s) {
 		writeRawBytecodes(s);
 		if(s instanceof WycsFile.Function) {
-			write(wf,(WycsFile.Function) s);
+			write((WycsFile.Function) s);
 		} else if(s instanceof WycsFile.Macro) {
-			write(wf,(WycsFile.Macro) s);
+			write((WycsFile.Macro) s);
 		} else if(s instanceof WycsFile.Type) {
-			write(wf,(WycsFile.Type) s);
+			write((WycsFile.Type) s);
 		} else if(s instanceof WycsFile.Assert) {
-			write(wf,(WycsFile.Assert) s);
+			write((WycsFile.Assert) s);
 		} else {
 			throw new InternalFailure("unknown statement encountered " + s,
 					wf.getEntry(), s);
@@ -94,7 +98,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Function s) {
+	public void write(WycsFile.Function s) {
 		out.print("function ");
 		out.print(s.getName());
 		SemanticType[] generics = s.getType().generics();
@@ -113,7 +117,7 @@ public class WycsFilePrinter {
 		out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
 	}
 
-	public void write(WycsFile wf, WycsFile.Macro s) {
+	public void write(WycsFile.Macro s) {
 		out.print("define ");
 
 		out.print(s.getName());
@@ -137,7 +141,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Type s) {
+	public void write(WycsFile.Type s) {
 		out.print("type ");
 
 		out.print(s.getName());
@@ -150,7 +154,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Assert s) {
+	public void write(WycsFile.Assert s) {
 		out.print("assertion ");
 		out.print(s.getName());
 		writeParameters(s.getParameters());
@@ -181,6 +185,9 @@ public class WycsFilePrinter {
 		case IFTHEN:
 			writeIfThen((Location<IfThen>)loc,indent);
 			break;
+		case NOT:
+			writeNot((Location<Operator>)loc,indent);
+			break;
 		default:
 			writeExpressionAsStatement(loc,indent);
 		}
@@ -205,6 +212,12 @@ public class WycsFilePrinter {
 		indent(indent);
 		out.println("then:");
 		writeStatement(block.getOperand(1),indent+1);
+	}
+
+	private void writeNot(Location<Operator> block, int indent) {
+		indent(indent);
+		out.println("not:");
+		writeStatement(block.getOperand(0),indent+1);
 	}
 
 	/**

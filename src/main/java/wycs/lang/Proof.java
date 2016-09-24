@@ -1,19 +1,21 @@
 package wycs.lang;
 
 public interface Proof {
-	enum Status {
-		WAITING,
-		INPROGRESS,
-		COMPLETED
-	}
 
 	/**
-	 * Get the overall status of this proof. In particular, whether or not it is
-	 * completed.
+	 * Get the assertion to which this proof applies.
 	 *
 	 * @return
 	 */
-	public Status getStatus();
+	public WycsFile.Assert getAssertion();
+
+	/**
+	 * Determine whether or not the proof is complete. That is, whether or not
+	 * the proof demonstrates that the given assertion is correct.
+	 *
+	 * @return
+	 */
+	public boolean isComplete();
 
 	/**
 	 * Determine the number of states in this proof.

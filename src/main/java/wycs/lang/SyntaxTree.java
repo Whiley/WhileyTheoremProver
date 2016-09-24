@@ -35,6 +35,11 @@ public class SyntaxTree {
 		this.locations = new ArrayList<Location<?>>();
 	}
 
+	public SyntaxTree(SyntaxTree tree) {
+		this.parent = tree.parent;
+		this.locations = new ArrayList<Location<?>>(tree.locations);
+	}
+
 	/**
 	 * Returns the number of locations in this syntax tree.
 	 *

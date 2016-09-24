@@ -6,12 +6,21 @@ import java.util.List;
 
 import wycs.lang.Bytecode;
 import wycs.lang.Proof;
+import wycs.lang.SemanticType;
+import wycs.lang.SyntaxTree;
+import wycs.lang.SyntaxTree.Location;
+import wycs.lang.WycsFile;
 
 public abstract class AbstractProof implements Proof {
 	/**
+	 * The assertion being resolved
+	 */
+	protected WycsFile.Assert assertion;
+
+	/**
 	 * The abstract syntax tree corresponding to all known information.
 	 */
-	protected ArrayList<Bytecode> tree;
+	protected SyntaxTree tree;
 
 	/**
 	 * The set of current proof states. Each state represents a set of known
@@ -19,8 +28,19 @@ public abstract class AbstractProof implements Proof {
 	 */
 	protected ArrayList<State> states = new ArrayList<State>();
 
-	public AbstractProof(List<Bytecode> tree) {
-		this.tree = new ArrayList<Bytecode>(tree);
+	/**
+	 * Represents the current position of the interactive proof.
+	 */
+	private int HEAD;
+
+	public AbstractProof(WycsFile.Assert assertion) {
+		this.assertion = assertion;
+		this.tree = new SyntaxTree(assertion.getTree());
+	}
+
+	@Override
+	public WycsFile.Assert getAssertion() {
+		return assertion;
 	}
 
 	public int numberOfLocations() {
@@ -35,6 +55,37 @@ public abstract class AbstractProof implements Proof {
 	@Override
 	public State getState(int ith) {
 		return states.get(ith);
+	}
+
+
+	public int getHEAD() {
+		return HEAD;
+	}
+
+	/**
+	 * Assume the negation of a given statement holds
+	 *
+	 * @param l
+	 */
+	public void assumeNot(Location<?> stmt) {
+		Bytecode b = new Bytecode.Operator(Bytecode.Opcode.NOT, stmt.getIndex());
+		int idx = addStatement(b);
+		BitSet truths;
+		if (HEAD < states.size()) {
+			State parent = states.get(HEAD);
+			truths = (BitSet) parent.truths.clone();
+		} else {
+			truths = new BitSet();
+		}
+		truths.set(idx);
+		states.add(new State(truths));
+		// Update the HEAD position
+		HEAD = states.size()-1;
+	}
+
+	private int addStatement(Bytecode b) {
+		tree.getLocations().add(new SyntaxTree.Location<Bytecode>(tree, SemanticType.Bool, b));
+		return tree.getLocations().size() - 1;
 	}
 
 	public class State implements Proof.State {

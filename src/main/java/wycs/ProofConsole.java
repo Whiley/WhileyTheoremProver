@@ -5,6 +5,7 @@ import java.util.List;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -83,7 +84,14 @@ public class ProofConsole {
 			InteractiveProof[] proofs = prover.getProofs();
 			for(int i=0;i!=proofs.length;++i) {
 				InteractiveProof p = proofs[i];
-				System.out.println("#" + i + " - " + p.getStatus());
+				System.out.print("#" + i + "\t");
+				if(p == null) {
+					System.out.println("(empty)");
+				} else if(p.isComplete()) {
+					System.out.println("(completed)");
+				} else {
+					System.out.println("(in progress)");
+				}
 			}
 		}
 	}
@@ -105,21 +113,24 @@ public class ProofConsole {
 		System.out.println("Found " + prover.getProofs().length + " assertion(s).");
 	}
 
-	public void begin(int proof) {
+	public void begin(int proof) throws UnsupportedEncodingException {
 		System.out.println("Proof-by-contradiction");
 		this.cursor = proof;
 		prover.beginByContradiction(proof);
 		printProofState(prover.getProof(proof));
 	}
-	private void printProofState(InteractiveProof proof) {
+	private void printProofState(InteractiveProof proof) throws UnsupportedEncodingException {
 		printProofState(proof, proof.getHEAD());
 	}
 
-	private void printProofState(InteractiveProof proof, int stateIndex) {
+	private void printProofState(InteractiveProof proof, int stateIndex) throws UnsupportedEncodingException {
 		InteractiveProof.State state = proof.getState(stateIndex);
 		BitSet truths = state.getTruths();
+		WycsFilePrinter printer = new WycsFilePrinter(System.out);
 		for (int i = truths.nextSetBit(0); i >= 0; i = truths.nextSetBit(i+1)) {
-			System.out.println(i + ") " + proof.getBytecode(i));
+			System.out.print(i + ") ");
+			printer.writeStatement(proof.getLocation(i),1);
+			printer.flush();
 		}
 	}
 
