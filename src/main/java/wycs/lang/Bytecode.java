@@ -166,7 +166,7 @@ public interface Bytecode {
 		private final String[] elements;
 
 		/**
-		 * Thes fully resolved NameID that this nominal type refers to. If this
+		 * The fully resolved NameID that this nominal type refers to. If this
 		 * hasn't been resolved yet, then it will be null.
 		 */
 		private final NameID name;

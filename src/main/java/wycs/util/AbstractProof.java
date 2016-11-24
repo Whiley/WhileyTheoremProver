@@ -35,6 +35,7 @@ public abstract class AbstractProof implements Proof {
 
 	public AbstractProof(WycsFile.Assert assertion) {
 		this.assertion = assertion;
+		// Clone the tree so we can modify it as necessary.
 		this.tree = new SyntaxTree(assertion.getTree());
 	}
 
