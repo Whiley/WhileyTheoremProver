@@ -1,4 +1,4 @@
-package wycs.io;
+package wyal.io;
 
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -18,19 +18,19 @@ import wycs.lang.SyntaxTree.Location;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
-public class WycsFilePrinter {
+public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw=true;
 
-	public WycsFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
+	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
 		this(new OutputStreamWriter(writer,"UTF-8"));
 	}
 
-	public WycsFilePrinter(Writer writer) {
+	public WyalFilePrinter(Writer writer) {
 		this.out = new PrintWriter(writer);
 	}
 
-	public WycsFilePrinter(PrintWriter writer) {
+	public WyalFilePrinter(PrintWriter writer) {
 		this.out = writer;
 	}
 

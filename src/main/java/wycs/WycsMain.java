@@ -29,7 +29,7 @@ import java.io.IOException;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
-import wycs.io.WycsFilePrinter;
+import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wycs.lang.WycsFile;
 import wyfs.lang.Content;
@@ -65,7 +65,7 @@ public class WycsMain {
 		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
 		WycsFile file = parser.read();
 		// Finally, print it out
-		new WycsFilePrinter(System.out).write(file);
+		new WyalFilePrinter(System.out).write(file);
 	}
 
 }

@@ -5,7 +5,7 @@ import java.util.List;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
-import wycs.io.WycsFilePrinter;
+import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 
 import java.io.BufferedReader;
@@ -128,7 +128,7 @@ public class ProofConsole {
 	private void printProofState(InteractiveProof proof, int stateIndex) throws UnsupportedEncodingException {
 		InteractiveProof.State state = proof.getState(stateIndex);
 		BitSet truths = state.getTruths();
-		WycsFilePrinter printer = new WycsFilePrinter(System.out);
+		WyalFilePrinter printer = new WyalFilePrinter(System.out);
 		for (int i = truths.nextSetBit(0); i >= 0; i = truths.nextSetBit(i+1)) {
 			System.out.print(i + ") ");
 			printer.writeStatement(proof.getLocation(i),1);
