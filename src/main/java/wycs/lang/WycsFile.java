@@ -12,8 +12,6 @@ import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticElement;
 import wybs.util.AbstractCompilationUnit;
-import wycs.io.WycsFileReader;
-import wycs.io.WycsFileWriter;
 import wycs.lang.Bytecode.Block;
 import wycs.lang.Bytecode.VariableDeclaration;
 import wycs.lang.SyntaxTree.Location;
@@ -37,16 +35,13 @@ public class WycsFile extends AbstractCompilationUnit {
 		@Override
 		public WycsFile read(Path.Entry<WycsFile> e, InputStream input)
 				throws IOException {
-			WycsFileReader reader = new WycsFileReader(e,input);
-			return reader.read();
+			throw new RuntimeException("Implement me!");
 		}
 
 		@Override
 		public void write(OutputStream output, WycsFile module)
 				throws IOException {
-			WycsFileWriter writer = new WycsFileWriter(
-					output);
-			writer.write(module);
+			throw new RuntimeException("Implement me!");
 		}
 
 		@Override

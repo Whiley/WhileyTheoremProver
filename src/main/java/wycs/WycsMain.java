@@ -27,10 +27,10 @@ package wycs;
 
 import java.io.IOException;
 
-import wycs.io.WyalFileLexer;
-import wycs.io.WyalFileParser;
+import wyal.io.WyalFileLexer;
+import wyal.io.WyalFileParser;
 import wycs.io.WycsFilePrinter;
-import wycs.lang.WyalFile;
+import wyal.lang.WyalFile;
 import wycs.lang.WycsFile;
 import wyfs.lang.Content;
 import wyfs.lang.Content.Type;

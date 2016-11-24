@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-package wycs.io;
+package wyal.io;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -35,10 +35,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import wyal.lang.WyalFile;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
-import wycs.lang.WyalFile;
 import wyfs.lang.Path;
 
 /**

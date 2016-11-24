@@ -2,6 +2,12 @@ package wycs;
 
 import java.util.BitSet;
 import java.util.List;
+
+import wyal.io.WyalFileLexer;
+import wyal.io.WyalFileParser;
+import wycs.io.WycsFilePrinter;
+import wyal.lang.WyalFile;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,11 +15,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import wycs.io.WyalFileLexer;
-import wycs.io.WyalFileParser;
-import wycs.io.WycsFilePrinter;
 import wycs.lang.Bytecode;
-import wycs.lang.WyalFile;
 import wycs.lang.WycsFile;
 import wycs.util.InteractiveProof;
 import wycs.util.InteractiveProver;
@@ -130,7 +132,6 @@ public class ProofConsole {
 		for (int i = truths.nextSetBit(0); i >= 0; i = truths.nextSetBit(i+1)) {
 			System.out.print(i + ") ");
 			printer.writeStatement(proof.getLocation(i),1);
-			printer.flush();
 		}
 	}
 

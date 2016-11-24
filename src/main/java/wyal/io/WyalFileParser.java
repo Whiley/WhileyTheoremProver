@@ -1,4 +1,6 @@
-package wycs.io;
+package wyal.io;
+
+import static wyal.io.WyalFileLexer.Token.Kind.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -9,20 +11,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import wyal.io.WyalFileLexer.Token;
+import wyal.lang.WyalFile;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
-
-import static wycs.io.WyalFileLexer.Token.Kind.*;
-
-import wycs.io.WyalFileLexer.Token;
 import wycs.lang.Bytecode;
 import wycs.lang.SemanticType;
 import wycs.lang.SyntaxTree;
 import wycs.lang.Value;
-import wycs.lang.WyalFile;
 import wycs.lang.WycsFile;
 import wycs.lang.Bytecode.Block;
 import wycs.lang.Bytecode.Opcode;

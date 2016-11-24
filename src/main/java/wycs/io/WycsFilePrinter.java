@@ -1,21 +1,5 @@
 package wycs.io;
 
-import static wycs.io.WyalFileLexer.Token.Kind.EqualsEquals;
-import static wycs.io.WyalFileLexer.Token.Kind.GreaterEquals;
-import static wycs.io.WyalFileLexer.Token.Kind.Is;
-import static wycs.io.WyalFileLexer.Token.Kind.LeftAngle;
-import static wycs.io.WyalFileLexer.Token.Kind.LessEquals;
-import static wycs.io.WyalFileLexer.Token.Kind.LogicalAnd;
-import static wycs.io.WyalFileLexer.Token.Kind.LogicalIff;
-import static wycs.io.WyalFileLexer.Token.Kind.LogicalImplication;
-import static wycs.io.WyalFileLexer.Token.Kind.LogicalOr;
-import static wycs.io.WyalFileLexer.Token.Kind.Minus;
-import static wycs.io.WyalFileLexer.Token.Kind.NotEquals;
-import static wycs.io.WyalFileLexer.Token.Kind.Plus;
-import static wycs.io.WyalFileLexer.Token.Kind.RightAngle;
-import static wycs.io.WyalFileLexer.Token.Kind.RightSlash;
-import static wycs.io.WyalFileLexer.Token.Kind.Star;
-
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -24,10 +8,7 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 
-import wycc.util.Pair;
-import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError.*;
-import wycs.io.WyalFileLexer.Token;
 import wycs.lang.Bytecode;
 import wycs.lang.SemanticType;
 import wycs.lang.SyntaxTree;
@@ -53,10 +34,6 @@ public class WycsFilePrinter {
 		this.out = writer;
 	}
 
-	public void flush() {
-		out.flush();
-	}
-
 	public void write(WycsFile wf) {
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
@@ -75,13 +52,13 @@ public class WycsFilePrinter {
 	private void write(WycsFile wf, WycsFile.Declaration s) {
 		writeRawBytecodes(s);
 		if(s instanceof WycsFile.Function) {
-			write((WycsFile.Function) s);
+			write(wf,(WycsFile.Function) s);
 		} else if(s instanceof WycsFile.Macro) {
-			write((WycsFile.Macro) s);
+			write(wf,(WycsFile.Macro) s);
 		} else if(s instanceof WycsFile.Type) {
-			write((WycsFile.Type) s);
+			write(wf,(WycsFile.Type) s);
 		} else if(s instanceof WycsFile.Assert) {
-			write((WycsFile.Assert) s);
+			write(wf,(WycsFile.Assert) s);
 		} else {
 			throw new InternalFailure("unknown statement encountered " + s,
 					wf.getEntry(), s);
@@ -98,7 +75,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile.Function s) {
+	public void write(WycsFile wf, WycsFile.Function s) {
 		out.print("function ");
 		out.print(s.getName());
 		SemanticType[] generics = s.getType().generics();
@@ -117,7 +94,7 @@ public class WycsFilePrinter {
 		out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
 	}
 
-	public void write(WycsFile.Macro s) {
+	public void write(WycsFile wf, WycsFile.Macro s) {
 		out.print("define ");
 
 		out.print(s.getName());
@@ -141,7 +118,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile.Type s) {
+	public void write(WycsFile wf, WycsFile.Type s) {
 		out.print("type ");
 
 		out.print(s.getName());
@@ -154,7 +131,7 @@ public class WycsFilePrinter {
 		}
 	}
 
-	public void write(WycsFile.Assert s) {
+	public void write(WycsFile wf, WycsFile.Assert s) {
 		out.print("assertion ");
 		out.print(s.getName());
 		writeParameters(s.getParameters());
@@ -185,9 +162,6 @@ public class WycsFilePrinter {
 		case IFTHEN:
 			writeIfThen((Location<IfThen>)loc,indent);
 			break;
-		case NOT:
-			writeNot((Location<Operator>)loc,indent);
-			break;
 		default:
 			writeExpressionAsStatement(loc,indent);
 		}
@@ -212,12 +186,6 @@ public class WycsFilePrinter {
 		indent(indent);
 		out.println("then:");
 		writeStatement(block.getOperand(1),indent+1);
-	}
-
-	private void writeNot(Location<Operator> block, int indent) {
-		indent(indent);
-		out.println("not:");
-		writeStatement(block.getOperand(0),indent+1);
 	}
 
 	/**

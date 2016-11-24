@@ -1,9 +1,10 @@
-package wycs.transforms;
+package wyal.util;
 
 import static wybs.lang.SyntaxError.*;
 
 import java.util.*;
 
+import wyal.lang.WyalFile;
 import wycc.util.Pair;
 import wycc.util.Triple;
 import wybs.lang.Build;
@@ -15,7 +16,7 @@ import wybs.util.ResolveError;
 import wycs.builders.Wyal2WycsBuilder;
 import wycs.lang.SemanticType;
 import wycs.lang.Value;
-import wycs.syntax.*;
+import wyal.lang.*;
 import wyfs.lang.Path;
 
 public class TypePropagation implements Build.Stage<WyalFile> {
@@ -57,6 +58,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 	// Apply method
 	// ======================================================================
 
+	@Override
 	public void apply(WyalFile wf) {
 		if (enabled) {
 			this.file = wf;
@@ -202,7 +204,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 			HashMap<String, SemanticType> environment,
 			HashSet<String> generics, WyalFile.Context context) {
 		SemanticType t;
-		//		
+		//
 		if (e instanceof Expr.Variable) {
 			t = propagate((Expr.Variable) e, environment, generics, context);
 		} else if (e instanceof Expr.Cast) {
@@ -320,7 +322,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 		// First, clone the environment if appropriate. This is necessary to
 		// ensure that any retyping caused within the left or right expressions
 		// propagates out of this condition only when this makes sense.
-		switch(e.op) {		
+		switch(e.op) {
 		case AND:
 			// don't do anything.
 			break;
@@ -329,7 +331,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 			leftEnvironment = (HashMap<String, SemanticType>) environment.clone();
 			rightEnvironment = (HashMap<String, SemanticType>) environment.clone();
 			break;
-		case IFF:					
+		case IFF:
 		case IMPLIES:
 			leftEnvironment = (HashMap<String, SemanticType>) environment.clone();
 			rightEnvironment = leftEnvironment;
@@ -340,7 +342,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 				context);
 		SemanticType rhs_type = propagate(e.rightOperand, rightEnvironment,
 				generics, context);
-		
+
 		if (e.op != Expr.Binary.Op.ARRAYGEN && SemanticType.And(lhs_type, rhs_type) instanceof SemanticType.Void) {
 			// This is useful to sanity check that the operands make sense. For
 			// example, the expression "1.0 == 1" does not yield an automaton
@@ -377,7 +379,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 		case GTEQ:
 			checkIsSubtype(SemanticType.IntOrReal, lhs_type, e.leftOperand, context);
 			checkIsSubtype(SemanticType.IntOrReal, rhs_type, e.rightOperand, context);
-			return SemanticType.Or(lhs_type, rhs_type);	
+			return SemanticType.Or(lhs_type, rhs_type);
 		case ARRAYGEN:
 			checkIsSubtype(SemanticType.Int, rhs_type, e.rightOperand, context);
 			return SemanticType.Array(lhs_type);
@@ -422,16 +424,16 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 		//
 		try {
 			SemanticType lhs = propagate(e.leftOperand, environment, generics,
-					context);			
+					context);
 			SemanticType rhs = builder.convert(e.rightOperand,
-					Collections.EMPTY_SET, context);			 	
+					Collections.EMPTY_SET, context);
 			lhs = builder.expand(lhs,false,context);
-			e.rightOperand.attributes().add(new TypeAttribute(rhs));				
+			e.rightOperand.attributes().add(new TypeAttribute(rhs));
 			// The following is rather strange, but appears to work.
 			// Essentially, it represents the greatest amount of knowledge we
 			// know about the given type.
-			rhs = SemanticType.Or(builder.expand(rhs,true,context),builder.expand(rhs,false,context));			
-			retypeExpression(e.leftOperand, rhs, environment, context);			
+			rhs = SemanticType.Or(builder.expand(rhs,true,context),builder.expand(rhs,false,context));
+			retypeExpression(e.leftOperand, rhs, environment, context);
 			SemanticType intersection = SemanticType.And(lhs, rhs);
 //			if (intersection instanceof SemanticType.Void) {
 //				// These types have no intersection, hence this expression does
@@ -495,7 +497,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 
 		SemanticType argument = propagate(e.operand, environment, generics,
 				context);
-		
+
 		// Construct concrete types for generic substitution
 		ArrayList<SemanticType> ivkGenerics = new ArrayList<SemanticType>();
 		for (int i = 0; i != e.generics.size(); ++i) {
@@ -530,7 +532,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 					// we know the fully name identifier for this function and we
 					// need only to check it exists and access the relevant
 					// information.
-				}				
+				}
 				NameID nid = new NameID(e.qualification, e.name);
 				Pair<SemanticType.Function, Map<String, SemanticType>> p = builder
 						.resolveAsFunctionType(nid, argument, ivkGenerics,
@@ -631,7 +633,7 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 	/**
 	 * Apply constraints imposed by fixing a given expression to be a given
 	 * type. For example, support we have:
-	 * 
+	 *
 	 * <pre>
 	 * assert:
 	 *    forall(int|null x, null y):
@@ -640,9 +642,9 @@ public class TypePropagation implements Build.Stage<WyalFile> {
 	 *        then:
 	 *           x != y
 	 * </pre>
-	 * 
+	 *
 	 * This assertion is true because retyping "x+1" implies that x is an int
-	 * 
+	 *
 	 * @param e
 	 * @param type
 	 * @param environment
