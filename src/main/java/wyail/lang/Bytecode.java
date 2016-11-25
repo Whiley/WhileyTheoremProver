@@ -1,11 +1,11 @@
-package wycs.lang;
+package wyail.lang;
 
 import java.util.Arrays;
 import java.util.List;
 
+import wyail.util.AbstractBytecode;
 import wybs.lang.NameID;
 import wycc.util.ArrayUtils;
-import wycs.util.AbstractBytecode;
 
 /**
  * Represents a "bytecode" in the language of the Whiley Theorem Prover.

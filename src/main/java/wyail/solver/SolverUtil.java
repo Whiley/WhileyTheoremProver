@@ -1,10 +1,11 @@
-package wycs.solver;
+package wyail.solver;
 
-import static wycs.solver.Solver.Div;
-import static wycs.solver.Solver.Mul;
-import static wycs.solver.Solver.Sum;
+import static wyail.solver.Solver.Div;
+import static wyail.solver.Solver.Mul;
+import static wyail.solver.Solver.Sum;
+
+import wyail.lang.SemanticType;
 import wyautl.core.Automaton;
-import wycs.lang.SemanticType;
 
 /**
  * Provides a bunch of utility methods to simplify interfacing with the Solver

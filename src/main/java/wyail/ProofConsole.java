@@ -1,8 +1,12 @@
-package wycs;
+package wyail;
 
 import java.util.BitSet;
 import java.util.List;
 
+import wyail.lang.Bytecode;
+import wyail.lang.WyailFile;
+import wyail.util.InteractiveProof;
+import wyail.util.InteractiveProver;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
@@ -15,10 +19,6 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import wycs.lang.Bytecode;
-import wycs.lang.WycsFile;
-import wycs.util.InteractiveProof;
-import wycs.util.InteractiveProver;
 import wyfs.lang.Path;
 import wyfs.util.DirectoryRoot;
 import wyfs.util.Trie;
@@ -107,7 +107,7 @@ public class ProofConsole {
 		// Lex and parse the source file
 		WyalFileLexer lexer = new WyalFileLexer(e);
 		WyalFileParser parser = new WyalFileParser(e, lexer.scan());
-		WycsFile file = parser.read();
+		WyailFile file = parser.read();
 		System.out.println("OK");
 		// Create the interactive prover
 		prover = new InteractiveProver(file);

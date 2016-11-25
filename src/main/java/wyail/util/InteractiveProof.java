@@ -1,12 +1,12 @@
-package wycs.util;
+package wyail.util;
 
 import java.util.BitSet;
 import java.util.List;
 
-import wycs.lang.Bytecode;
-import wycs.lang.SyntaxTree;
-import wycs.lang.WycsFile;
-import wycs.lang.WycsFile.Assert;
+import wyail.lang.Bytecode;
+import wyail.lang.SyntaxTree;
+import wyail.lang.WyailFile;
+import wyail.lang.WyailFile.Assert;
 
 public abstract class InteractiveProof extends AbstractProof {
 	/**
@@ -15,7 +15,7 @@ public abstract class InteractiveProof extends AbstractProof {
 	 */
 	private final Rule[] rules;
 
-	public InteractiveProof(WycsFile.Assert assertion, Rule...rules) {
+	public InteractiveProof(WyailFile.Assert assertion, Rule...rules) {
 		super(assertion);
 		this.rules = rules;
 	}

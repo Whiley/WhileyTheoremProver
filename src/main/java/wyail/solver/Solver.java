@@ -1,4 +1,4 @@
-package wycs.solver;
+package wyail.solver;
 
 import java.io.*;
 import java.util.*;

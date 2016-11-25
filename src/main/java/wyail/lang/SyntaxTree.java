@@ -1,4 +1,4 @@
-package wycs.lang;
+package wyail.lang;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,7 @@ public class SyntaxTree {
 	/**
 	 * The enclosing declaration for this tree
 	 */
-	private final WycsFile.Declaration parent;
+	private final WyailFile.Declaration parent;
 
 	/**
 	 * The set of locations making up this tree. Each location is some kind of
@@ -30,7 +30,7 @@ public class SyntaxTree {
 	 */
 	private final List<Location<?>> locations;
 
-	public SyntaxTree(WycsFile.Declaration enclosingDeclaration) {
+	public SyntaxTree(WyailFile.Declaration enclosingDeclaration) {
 		this.parent = enclosingDeclaration;
 		this.locations = new ArrayList<Location<?>>();
 	}
@@ -94,7 +94,7 @@ public class SyntaxTree {
 	 *
 	 * @return
 	 */
-	public WycsFile.Declaration getEnclosingDeclaration() {
+	public WyailFile.Declaration getEnclosingDeclaration() {
 		return parent;
 	}
 

@@ -1,13 +1,13 @@
-package wycs.util;
+package wyail.util;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
-import wycs.lang.Bytecode;
-import wycs.lang.SyntaxTree;
-import wycs.lang.WycsFile;
-import wycs.lang.Proof.Rule;
+import wyail.lang.Bytecode;
+import wyail.lang.SyntaxTree;
+import wyail.lang.WyailFile;
+import wyail.lang.Proof.Rule;
 
 /**
  * Provides a general interface for undertaking interactive proofs. Such proofs
@@ -22,7 +22,7 @@ public class InteractiveProver {
 	/**
 	 * The WycsFile for which we are proving theorems.
 	 */
-	private final WycsFile wycsFile;
+	private final WyailFile wycsFile;
 
 	/**
 	 * The set of all possible rules which can be used during any interactive
@@ -47,12 +47,12 @@ public class InteractiveProver {
 	 *            The WyCS file for which we are discharging assertions (i.e.
 	 *            proof obligations).
 	 */
-	public InteractiveProver(WycsFile file, Rule...rules) {
+	public InteractiveProver(WyailFile file, Rule...rules) {
 		this.wycsFile = file;
 		this.rules = rules;
 		int count = 0;
-		for(WycsFile.Declaration d : wycsFile.getDeclarations()) {
-			if(d instanceof WycsFile.Assert) {
+		for(WyailFile.Declaration d : wycsFile.getDeclarations()) {
+			if(d instanceof WyailFile.Assert) {
 				count = count + 1;
 			}
 		}
@@ -76,18 +76,18 @@ public class InteractiveProver {
 	 * Begin a new proof by contradiction.
 	 */
 	public void beginByContradiction(int proof) {
-		WycsFile.Assert assertion = getAssertion(proof);
+		WyailFile.Assert assertion = getAssertion(proof);
 		InteractiveProof p = new InteractiveProof.ByContradiction(assertion,rules);
 		proofs[proof] = p;
 		p.begin();
 	}
 
-	private WycsFile.Assert getAssertion(int index) {
+	private WyailFile.Assert getAssertion(int index) {
 		int count = 0;
-		for(WycsFile.Declaration d : wycsFile.getDeclarations()) {
-			if(d instanceof WycsFile.Assert) {
+		for(WyailFile.Declaration d : wycsFile.getDeclarations()) {
+			if(d instanceof WyailFile.Assert) {
 				if(count == index) {
-					return ((WycsFile.Assert) d);
+					return ((WyailFile.Assert) d);
 				}
 				count = count + 1;
 			}
@@ -95,7 +95,7 @@ public class InteractiveProver {
 		throw new IllegalArgumentException("invalid assertion: " + index);
 	}
 
-	private BitSet getInitialTruths(WycsFile.Assert assertion) {
+	private BitSet getInitialTruths(WyailFile.Assert assertion) {
 		// Create an empty set of truths
 		BitSet truths = new BitSet();
 		// Set the body of the assertion as the only initial truth.

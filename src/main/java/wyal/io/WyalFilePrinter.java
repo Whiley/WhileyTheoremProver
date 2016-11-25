@@ -8,13 +8,13 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 
+import wyail.lang.Bytecode;
+import wyail.lang.SemanticType;
+import wyail.lang.SyntaxTree;
+import wyail.lang.WyailFile;
+import wyail.lang.Bytecode.*;
+import wyail.lang.SyntaxTree.Location;
 import wybs.lang.SyntaxError.*;
-import wycs.lang.Bytecode;
-import wycs.lang.SemanticType;
-import wycs.lang.SyntaxTree;
-import wycs.lang.WycsFile;
-import wycs.lang.Bytecode.*;
-import wycs.lang.SyntaxTree.Location;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
@@ -34,7 +34,7 @@ public class WyalFilePrinter {
 		this.out = writer;
 	}
 
-	public void write(WycsFile wf) {
+	public void write(WyailFile wf) {
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
 		if(pkg != Trie.ROOT) {
@@ -42,23 +42,23 @@ public class WyalFilePrinter {
 			out.println();
 		}
 		// Second, write all declarations
-		for(WycsFile.Declaration d : wf.getDeclarations()) {
+		for(WyailFile.Declaration d : wf.getDeclarations()) {
 			write(wf, d);
 			out.println();
 		}
 		out.flush();
 	}
 
-	private void write(WycsFile wf, WycsFile.Declaration s) {
+	private void write(WyailFile wf, WyailFile.Declaration s) {
 		writeRawBytecodes(s);
-		if(s instanceof WycsFile.Function) {
-			write(wf,(WycsFile.Function) s);
-		} else if(s instanceof WycsFile.Macro) {
-			write(wf,(WycsFile.Macro) s);
-		} else if(s instanceof WycsFile.Type) {
-			write(wf,(WycsFile.Type) s);
-		} else if(s instanceof WycsFile.Assert) {
-			write(wf,(WycsFile.Assert) s);
+		if(s instanceof WyailFile.Function) {
+			write(wf,(WyailFile.Function) s);
+		} else if(s instanceof WyailFile.Macro) {
+			write(wf,(WyailFile.Macro) s);
+		} else if(s instanceof WyailFile.Type) {
+			write(wf,(WyailFile.Type) s);
+		} else if(s instanceof WyailFile.Assert) {
+			write(wf,(WyailFile.Assert) s);
 		} else {
 			throw new InternalFailure("unknown statement encountered " + s,
 					wf.getEntry(), s);
@@ -66,7 +66,7 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	public void writeRawBytecodes(WycsFile.Declaration d) {
+	public void writeRawBytecodes(WyailFile.Declaration d) {
 		if(raw) {
 			SyntaxTree tree = d.getTree();
 			for(int i=0;i!=tree.size();++i) {
@@ -75,7 +75,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Function s) {
+	public void write(WyailFile wf, WyailFile.Function s) {
 		out.print("function ");
 		out.print(s.getName());
 		SemanticType[] generics = s.getType().generics();
@@ -94,7 +94,7 @@ public class WyalFilePrinter {
 		out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
 	}
 
-	public void write(WycsFile wf, WycsFile.Macro s) {
+	public void write(WyailFile wf, WyailFile.Macro s) {
 		out.print("define ");
 
 		out.print(s.getName());
@@ -118,7 +118,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Type s) {
+	public void write(WyailFile wf, WyailFile.Type s) {
 		out.print("type ");
 
 		out.print(s.getName());
@@ -131,7 +131,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void write(WycsFile wf, WycsFile.Assert s) {
+	public void write(WyailFile wf, WyailFile.Assert s) {
 		out.print("assertion ");
 		out.print(s.getName());
 		writeParameters(s.getParameters());

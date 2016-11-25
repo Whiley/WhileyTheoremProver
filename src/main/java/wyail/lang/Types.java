@@ -1,4 +1,4 @@
-package wycs.lang;
+package wyail.lang;
 
 import java.io.*;
 import java.util.*;

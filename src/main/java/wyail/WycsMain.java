@@ -23,15 +23,15 @@
 //(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 //SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-package wycs;
+package wyail;
 
 import java.io.IOException;
 
+import wyail.lang.WyailFile;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
-import wycs.lang.WycsFile;
 import wyfs.lang.Content;
 import wyfs.lang.Content.Type;
 import wyfs.lang.Path;
@@ -63,7 +63,7 @@ public class WycsMain {
 		// Now, lex and parse the source file
 		WyalFileLexer lexer = new WyalFileLexer(e);
 		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
-		WycsFile file = parser.read();
+		WyailFile file = parser.read();
 		// Finally, print it out
 		new WyalFilePrinter(System.out).write(file);
 	}

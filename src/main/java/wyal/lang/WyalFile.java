@@ -5,15 +5,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
 
-import wyal.io.*;
+import wyail.lang.WyailFile;
 import wybs.lang.Attribute;
-import wybs.lang.SyntacticElement;
-import wybs.util.AbstractCompilationUnit;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
-public class WyalFile extends AbstractCompilationUnit {
+public class WyalFile extends WyailFile {
 
 	// =========================================================================
 	// Content Type
@@ -48,119 +46,44 @@ public class WyalFile extends AbstractCompilationUnit {
 		}
 	};
 
-	// =========================================================================
-	// State
-	// =========================================================================
-
-	private final ArrayList<Declaration> declarations;
-
-	// =========================================================================
-	// Constructors
-	// =========================================================================
-
 	public WyalFile(Path.Entry<WyalFile> entry) {
 		super(entry);
-		this.declarations = new ArrayList<Declaration>();
-	}
-
-	// =========================================================================
-	// Accessors
-	// =========================================================================
-
-	public Path.ID id() {
-		return entry.id();
-	}
-
-	public List<Declaration> declarations() {
-		return declarations;
-	}
-
-	public Declaration declaration(String name) {
-		for(Declaration d : declarations) {
-			if(d.name().equals(name)) {
-				return d;
-			}
-		}
-		return null;
-	}
-
-	public <T extends Declaration> T declaration(String name, Class<T> type) {
-		for (Declaration d : declarations) {
-			if (d.name().equals(name) && type.isInstance(d)) {
-				return (T) d;
-			}
-		}
-		return null;
-	}
-
-	// =========================================================================
-	// Mutators
-	// =========================================================================
-
-	public void add(Declaration d) {
-		declarations.add(d);
 	}
 
 	// =========================================================================
 	// Types
 	// =========================================================================
 
-	public interface Context extends SyntacticElement {
-		public WyalFile file();
-		public List<Import> imports();
-	}
+	/**
+	 * Construct an appropriate list of import statements for a declaration in a
+	 * given file. Thus, only import statements up to and including the given
+	 * declaration will be included in the returned list.
+	 *
+	 * @param wf
+	 *            --- Whiley File in question to obtain list of import
+	 *            statements.
+	 * @param decl
+	 *            --- declaration in Whiley File for which the list is desired.
+	 * @return
+	 */
+	public List<Import> imports(Declaration d) {
+		Path.ID id = getEntry().id();
+		// this computation could (should?) be cached.
+		ArrayList<Import> imports = new ArrayList<Import>();
+		imports.add(new WyalFile.Import(this,Trie.fromString(id.parent(), "*"), null));
 
-	public interface Declaration extends Context {
-		public String name();
-	}
-
-	public abstract class AbstractContext extends SyntacticElement.Impl implements Context {
-
-		protected AbstractContext(Attribute... attributes) {
-			super(attributes);
-		}
-
-		protected AbstractContext(Collection<Attribute> attributes) {
-			super(attributes);
-		}
-
-		@Override
-		public WyalFile file() {
-			return WyalFile.this;
-		}
-
-		/**
-		 * Construct an appropriate list of import statements for a declaration in a
-		 * given file. Thus, only import statements up to and including the given
-		 * declaration will be included in the returned list.
-		 *
-		 * @param wf
-		 *            --- Whiley File in question to obtain list of import
-		 *            statements.
-		 * @param decl
-		 *            --- declaration in Whiley File for which the list is desired.
-		 * @return
-		 */
-		@Override
-		public List<Import> imports() {
-			Path.ID id = entry.id();
-			// this computation could (should?) be cached.
-			ArrayList<Import> imports = new ArrayList<Import>();
-			imports.add(new WyalFile.Import(Trie.fromString(id.parent(), "*"), null));
-
-			for(Declaration d : declarations) {
-				if(d == this) {
-					break;
-				} else if(d instanceof Import) {
-					imports.add((Import)d);
-				}
+		for(Declaration pd : this.getDeclarations()) {
+			if(d == pd) {
+				break;
+			} else if(d instanceof Import) {
+				imports.add((Import)pd);
 			}
-			imports.add(new WyalFile.Import(Trie.fromString(id), "*"));
-
-			Collections.reverse(imports);
-
-			return imports;
 		}
+		imports.add(new WyalFile.Import(this,Trie.fromString(id), "*"));
+
+		Collections.reverse(imports);
+
+		return imports;
 	}
 
 	/**
@@ -176,20 +99,14 @@ public class WyalFile extends AbstractCompilationUnit {
 	 * @author David J. Pearce
 	 *
 	 */
-	public class Import extends AbstractContext implements Declaration {
+	public static class Import extends Declaration {
 		public final Trie filter;
 		public final String name;
 
-		public Import(Trie filter, String name, Attribute... attributes) {
-			super(attributes);
+		public Import(WyalFile parent, Trie filter, String name, Attribute... attributes) {
+			super(parent,null,attributes);
 			this.filter = filter;
 			this.name = name;
 		}
-
-		@Override
-		public String name() {
-			return ""; // anonymous
-		}
 	}
-
 }

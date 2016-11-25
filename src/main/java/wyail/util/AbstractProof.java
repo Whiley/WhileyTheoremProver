@@ -1,21 +1,21 @@
-package wycs.util;
+package wyail.util;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
-import wycs.lang.Bytecode;
-import wycs.lang.Proof;
-import wycs.lang.SemanticType;
-import wycs.lang.SyntaxTree;
-import wycs.lang.SyntaxTree.Location;
-import wycs.lang.WycsFile;
+import wyail.lang.Bytecode;
+import wyail.lang.Proof;
+import wyail.lang.SemanticType;
+import wyail.lang.SyntaxTree;
+import wyail.lang.WyailFile;
+import wyail.lang.SyntaxTree.Location;
 
 public abstract class AbstractProof implements Proof {
 	/**
 	 * The assertion being resolved
 	 */
-	protected WycsFile.Assert assertion;
+	protected WyailFile.Assert assertion;
 
 	/**
 	 * The abstract syntax tree corresponding to all known information.
@@ -33,14 +33,14 @@ public abstract class AbstractProof implements Proof {
 	 */
 	private int HEAD;
 
-	public AbstractProof(WycsFile.Assert assertion) {
+	public AbstractProof(WyailFile.Assert assertion) {
 		this.assertion = assertion;
 		// Clone the tree so we can modify it as necessary.
 		this.tree = new SyntaxTree(assertion.getTree());
 	}
 
 	@Override
-	public WycsFile.Assert getAssertion() {
+	public WyailFile.Assert getAssertion() {
 		return assertion;
 	}
 
@@ -148,12 +148,12 @@ public abstract class AbstractProof implements Proof {
 		}
 
 		@Override
-		public wycs.lang.Proof.State getParentState() {
+		public wyail.lang.Proof.State getParentState() {
 			return states.get(parent);
 		}
 
 		@Override
-		public wycs.lang.Proof.State getChildState() {
+		public wyail.lang.Proof.State getChildState() {
 			return states.get(child);
 		}
 

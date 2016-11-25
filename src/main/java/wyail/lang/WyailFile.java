@@ -1,4 +1,4 @@
-package wycs.lang;
+package wyail.lang;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,38 +8,38 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import wyail.lang.Bytecode.Block;
+import wyail.lang.Bytecode.VariableDeclaration;
+import wyail.lang.SyntaxTree.Location;
 import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticElement;
 import wybs.util.AbstractCompilationUnit;
-import wycs.lang.Bytecode.Block;
-import wycs.lang.Bytecode.VariableDeclaration;
-import wycs.lang.SyntaxTree.Location;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 
-public class WycsFile extends AbstractCompilationUnit {
+public class WyailFile extends AbstractCompilationUnit {
 
 	// =========================================================================
 	// Content Type
 	// =========================================================================
 
-	public static final Content.Type<WycsFile> ContentType = new Content.Type<WycsFile>() {
-		public Path.Entry<WycsFile> accept(Path.Entry<?> e) {
+	public static final Content.Type<WyailFile> ContentType = new Content.Type<WyailFile>() {
+		public Path.Entry<WyailFile> accept(Path.Entry<?> e) {
 			if (e.contentType() == this) {
-				return (Path.Entry<WycsFile>) e;
+				return (Path.Entry<WyailFile>) e;
 			}
 			return null;
 		}
 
 		@Override
-		public WycsFile read(Path.Entry<WycsFile> e, InputStream input)
+		public WyailFile read(Path.Entry<WyailFile> e, InputStream input)
 				throws IOException {
 			throw new RuntimeException("Implement me!");
 		}
 
 		@Override
-		public void write(OutputStream output, WycsFile module)
+		public void write(OutputStream output, WyailFile module)
 				throws IOException {
 			throw new RuntimeException("Implement me!");
 		}
@@ -65,7 +65,7 @@ public class WycsFile extends AbstractCompilationUnit {
 	// Constructors
 	// =========================================================================
 
-	public WycsFile(Path.Entry<? extends CompilationUnit> entry) {
+	public WyailFile(Path.Entry<? extends CompilationUnit> entry) {
 		super(entry);
 		this.declarations = new ArrayList<Declaration>();
 	}
@@ -114,18 +114,18 @@ public class WycsFile extends AbstractCompilationUnit {
 	// =========================================================================
 
 	public static class Context extends SyntacticElement.Impl {
-		private final WycsFile parent;
+		private final WyailFile parent;
 
-		public Context(WycsFile parent, Attribute... attributes) {
+		public Context(WyailFile parent, Attribute... attributes) {
 			this(parent,Arrays.asList(attributes));
 		}
 
-		public Context(WycsFile parent, Collection<Attribute> attributes) {
+		public Context(WyailFile parent, Collection<Attribute> attributes) {
 			super(attributes);
 			this.parent = parent;
 		}
 
-		public WycsFile getParent() {
+		public WyailFile getParent() {
 			return parent;
 		}
 	}
@@ -134,11 +134,11 @@ public class WycsFile extends AbstractCompilationUnit {
 		private final String name;
 		private final SyntaxTree tree;
 
-		public Declaration(WycsFile parent, String name, Attribute... attributes) {
+		public Declaration(WyailFile parent, String name, Attribute... attributes) {
 			this(parent,name,Arrays.asList(attributes));
 		}
 
-		public Declaration(WycsFile parent, String name, Collection<Attribute> attributes) {
+		public Declaration(WyailFile parent, String name, Collection<Attribute> attributes) {
 			super(parent,attributes);
 			this.name = name;
 			this.tree = new SyntaxTree(this);
@@ -156,11 +156,11 @@ public class WycsFile extends AbstractCompilationUnit {
 	public static class Function extends Declaration {
 		private final SemanticType.Function type;
 
-		public Function(WycsFile parent, String name, SemanticType.Function type, Attribute... attributes) {
+		public Function(WyailFile parent, String name, SemanticType.Function type, Attribute... attributes) {
 			this(parent,name,type,Arrays.asList(attributes));
 		}
 
-		public Function(WycsFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
+		public Function(WyailFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
 			super(parent,name,attributes);
 			this.type = type;
 		}
@@ -174,11 +174,11 @@ public class WycsFile extends AbstractCompilationUnit {
 		private final SemanticType.Function type;
 		private Location<?> body;
 
-		public Macro(WycsFile parent, String name, SemanticType.Function type, Attribute... attributes) {
+		public Macro(WyailFile parent, String name, SemanticType.Function type, Attribute... attributes) {
 			this(parent, name, type, Arrays.asList(attributes));
 		}
 
-		public Macro(WycsFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
+		public Macro(WyailFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
 			super(parent, name, attributes);
 			this.type = type;
 		}
@@ -200,11 +200,11 @@ public class WycsFile extends AbstractCompilationUnit {
 		private final List<Location<VariableDeclaration>> parameters;
 		private Location<Block> body;
 
-		public Assert(WycsFile parent, String name, Attribute... attributes) {
+		public Assert(WyailFile parent, String name, Attribute... attributes) {
 			this(parent,name,Arrays.asList(attributes));
 		}
 
-		public Assert(WycsFile parent, String name, Collection<Attribute> attributes) {
+		public Assert(WyailFile parent, String name, Collection<Attribute> attributes) {
 			super(parent,name,attributes);
 			this.parameters = new ArrayList<Location<VariableDeclaration>>();
 		}
@@ -226,11 +226,11 @@ public class WycsFile extends AbstractCompilationUnit {
 		private final SemanticType type;
 		private final List<Location<?>> invariant;
 
-		public Type(WycsFile parent, String name, SemanticType type, Attribute... attributes) {
+		public Type(WyailFile parent, String name, SemanticType type, Attribute... attributes) {
 			this(parent,name,type,Arrays.asList(attributes));
 		}
 
-		public Type(WycsFile parent, String name, SemanticType type, Collection<Attribute> attributes) {
+		public Type(WyailFile parent, String name, SemanticType type, Collection<Attribute> attributes) {
 			super(parent, name, attributes);
 			this.type = type;
 			this.invariant = new ArrayList<Location<?>>();

@@ -29,8 +29,8 @@ import static org.junit.Assert.fail;
 
 import java.io.*;
 
-import wycs.WycsMain;
-import wycs.util.WycsBuildTask;
+import wyail.WycsMain;
+import wyail.util.WycsBuildTask;
 
 public class TestHarness {
 	private String sourcepath;    // path to source files

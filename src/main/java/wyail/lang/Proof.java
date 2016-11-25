@@ -1,4 +1,4 @@
-package wycs.lang;
+package wyail.lang;
 
 public interface Proof {
 
@@ -7,7 +7,7 @@ public interface Proof {
 	 *
 	 * @return
 	 */
-	public WycsFile.Assert getAssertion();
+	public WyailFile.Assert getAssertion();
 
 	/**
 	 * Determine whether or not the proof is complete. That is, whether or not

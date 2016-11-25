@@ -1,6 +1,6 @@
-package wycs.lang;
+package wyail.lang;
 
-import static wycs.lang.Types.*;
+import static wyail.lang.Types.*;
 
 import java.io.IOException;
 import java.util.List;

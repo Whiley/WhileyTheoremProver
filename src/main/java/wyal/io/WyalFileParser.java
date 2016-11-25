@@ -11,6 +11,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import wyail.lang.Bytecode;
+import wyail.lang.SemanticType;
+import wyail.lang.SyntaxTree;
+import wyail.lang.Value;
+import wyail.lang.WyailFile;
+import wyail.lang.Bytecode.Block;
+import wyail.lang.Bytecode.Opcode;
+import wyail.lang.Bytecode.VariableAccess;
+import wyail.lang.Bytecode.VariableDeclaration;
+import wyail.lang.SyntaxTree.Location;
 import wyal.io.WyalFileLexer.Token;
 import wyal.lang.WyalFile;
 import wycc.util.ArrayUtils;
@@ -18,16 +28,6 @@ import wycc.util.Pair;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
-import wycs.lang.Bytecode;
-import wycs.lang.SemanticType;
-import wycs.lang.SyntaxTree;
-import wycs.lang.Value;
-import wycs.lang.WycsFile;
-import wycs.lang.Bytecode.Block;
-import wycs.lang.Bytecode.Opcode;
-import wycs.lang.Bytecode.VariableAccess;
-import wycs.lang.Bytecode.VariableDeclaration;
-import wycs.lang.SyntaxTree.Location;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
@@ -48,11 +48,11 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	public WycsFile read() {
+	public WyalFile read() {
 		Path.ID pkg = parsePackage();
 
 		// Construct object representing this WyalFile.
-		WycsFile wf = new WycsFile(entry);
+		WyalFile wf = new WyalFile(entry);
 
 		skipWhiteSpace();
 		while (index < tokens.size()) {
@@ -106,12 +106,12 @@ public class WyalFileParser {
 	 * @param wf
 	 *            The WyAL file in which this declaration is defined.
 	 */
-	protected void parseAssertDeclaration(WycsFile parent) {
+	protected void parseAssertDeclaration(WyailFile parent) {
 		int start = index;
 		match(Assertion);
 		String name = match(Identifier).text;
 		// Create empty declaration
-		WycsFile.Assert declaration = new WycsFile.Assert(parent, name, sourceAttr(start, index - 1));
+		WyailFile.Assert declaration = new WyailFile.Assert(parent, name, sourceAttr(start, index - 1));
 		SyntaxTree tree = declaration.getTree();
 		EnclosingScope scope = new EnclosingScope(tree,declaration);
 		//
@@ -1873,18 +1873,18 @@ public class WyalFileParser {
 		/**
 		 * The enclosing source file scope (needed for error reporting)
 		 */
-		private final WycsFile.Context context;
+		private final WyailFile.Context context;
 
 		/**
 		 * The enclosing syntax tree
 		 */
 		private final SyntaxTree enclosing;
 
-		public EnclosingScope(SyntaxTree enclosing, WycsFile.Context context) {
+		public EnclosingScope(SyntaxTree enclosing, WyailFile.Context context) {
 			this(new HashMap<String, Integer>(), enclosing, context);
 		}
 
-		private EnclosingScope(Map<String, Integer> environment, SyntaxTree enclosing, WycsFile.Context context) {
+		private EnclosingScope(Map<String, Integer> environment, SyntaxTree enclosing, WyailFile.Context context) {
 			this.environment = new HashMap<String, Integer>(environment);
 			this.generics = new HashMap<String,Integer>();
 			this.enclosing = enclosing;
@@ -1895,7 +1895,7 @@ public class WyalFileParser {
 			return enclosing;
 		}
 
-		public WycsFile.Context getContext() {
+		public WyailFile.Context getContext() {
 			return context;
 		}
 

@@ -1,8 +1,8 @@
-package wycs.util;
+package wyail.util;
 
 import java.util.Arrays;
 
-import wycs.lang.*;
+import wyail.lang.*;
 
 public abstract class AbstractBytecode implements Bytecode {
 	private final int[] operands;
