@@ -62,7 +62,7 @@ public class WyalFileParser {
 			} else {
 				checkNotEof();
 				lookahead = tokens.get(index);
-				if (lookahead.kind == Assertion) {
+				if (lookahead.kind == Assert) {
 					parseAssertDeclaration(wf);
 				}
 //				else if (lookahead.text.equals("type")) {
@@ -108,7 +108,7 @@ public class WyalFileParser {
 	 */
 	protected void parseAssertDeclaration(WyailFile parent) {
 		int start = index;
-		match(Assertion);
+		match(Assert);
 		String name = match(Identifier).text;
 		// Create empty declaration
 		WyailFile.Assert declaration = new WyailFile.Assert(parent, name, sourceAttr(start, index - 1));

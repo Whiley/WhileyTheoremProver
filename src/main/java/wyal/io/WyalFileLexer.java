@@ -516,7 +516,7 @@ public class WyalFileLexer {
 			put("true", Token.Kind.True);
 			put("false", Token.Kind.False);
 			// statements
-			put("assertion", Token.Kind.Assertion);
+			put("assert", Token.Kind.Assert);
 			put("either", Token.Kind.Either);
 			put("or", Token.Kind.Or);
 			put("if", Token.Kind.If);
@@ -619,10 +619,10 @@ public class WyalFileLexer {
 				}
 			},
 			// Statements
-			Assertion {
+			Assert {
 				@Override
 				public String toString() {
-					return "assertion";
+					return "assert";
 				}
 			},
 			Either {

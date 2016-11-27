@@ -30,32 +30,37 @@ import static org.junit.Assert.fail;
 import java.io.*;
 
 import wyail.WycsMain;
-import wyail.util.WycsBuildTask;
+import wyal.commands.CompileCommand;
+import wycc.util.Logger;
+import wycc.util.Pair;
+import wyfs.lang.Content;
 
 public class TestHarness {
-	private String sourcepath;    // path to source files
-	private static String STDLIB_PATH = "stdlib";
-
 	/**
-	 * Construct a test harness object.
-	 *
-	 * @param srcPath
-	 *            The path to the source files to be tested
+	 * The directory containing the source files for each test case. Every test
+	 * corresponds to a file in this directory.
 	 */
-	public TestHarness(String srcPath) {
-		this.sourcepath = srcPath.replace('/', File.separatorChar);
-	}
+	public final static String WYAL_SRC_DIR = "tests/valid".replace('/', File.separatorChar);
 
-	protected void verifyPassTest(String name) {
-		// this will need to turn on verification at some point.
-		name = sourcepath + File.separatorChar + name + ".wyal";
-
+	protected void verifyPassTest(String testName) {
 		try {
-			if (compile("-bp", STDLIB_PATH,
-						"-wyaldir", sourcepath,
-						"-wycsdir", sourcepath,
-						name) != WycsMain.SUCCESS) {
-				fail("Test failed to verify!");
+			// this will need to turn on verification at some point.
+			String whileyFilename = WYAL_SRC_DIR + File.separatorChar + testName
+					+ ".wyal";
+
+			Pair<CompileCommand.Result,String> p = compile(
+					WYAL_SRC_DIR,      // location of source directory
+					false,               // no verification
+					whileyFilename);     // name of test to compile
+
+			CompileCommand.Result r = p.first();
+
+			System.out.print(p.second());
+
+			if (r != CompileCommand.Result.SUCCESS) {
+				fail("Test failed to compile!");
+			} else if (r == CompileCommand.Result.INTERNAL_FAILURE) {
+				fail("Test caused internal failure!");
 			}
 		} catch(IOException e) {
 			fail("Test threw IOException");
@@ -63,22 +68,22 @@ public class TestHarness {
 	}
 
 	protected void verifyFailTest(String name) {
-		// this will need to turn on verification at some point.
-		name = sourcepath + File.separatorChar + name + ".wyal";
 
-		try {
-			if (compile("-bp", STDLIB_PATH, "-wyaldir", sourcepath, "-wycsdir",
-					sourcepath, name) != WycsMain.SYNTAX_ERROR) {
-				fail("Test verified when it shouldn't have!");
-			}
-		} catch(IOException e) {
-			fail("Test threw IOException");
-		}
 	}
 
-
-	private static int compile(String... args) throws IOException {
-		return new WycsMain(new WycsBuildTask(), WycsMain.DEFAULT_OPTIONS)
-				.run(args);
+	public static Pair<CompileCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
+		ByteArrayOutputStream syserr = new ByteArrayOutputStream();
+		ByteArrayOutputStream sysout = new ByteArrayOutputStream();
+		Content.Registry registry = new wyal.Activator.Registry();
+		CompileCommand cmd = new CompileCommand(registry,Logger.NULL,sysout,syserr);
+		cmd.setWyaldir(wyaldir);
+		if(verify) {
+			cmd.setVerify();
+		}
+		CompileCommand.Result result = cmd.execute(args);
+		byte[] errBytes = syserr.toByteArray();
+		byte[] outBytes = sysout.toByteArray();
+		String output = new String(errBytes) + new String(outBytes);
+		return new Pair<CompileCommand.Result,String>(result,output);
 	}
 }

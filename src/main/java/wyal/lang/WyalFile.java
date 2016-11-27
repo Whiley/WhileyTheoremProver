@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.util.*;
 
 import wyail.lang.WyailFile;
+import wyal.io.*;
 import wybs.lang.Attribute;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
@@ -27,7 +28,9 @@ public class WyalFile extends WyailFile {
 
 		@Override
 		public WyalFile read(Path.Entry<WyalFile> e, InputStream input) throws IOException {
-			throw new RuntimeException("Implement me");
+			WyalFileLexer wlexer = new WyalFileLexer(e);
+			WyalFileParser wfr = new WyalFileParser(e, wlexer.scan());
+			return wfr.read();
 		}
 
 		@Override
