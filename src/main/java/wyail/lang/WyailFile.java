@@ -197,20 +197,14 @@ public class WyailFile extends AbstractCompilationUnit {
 	}
 
 	public static class Assert extends Declaration {
-		private final List<Location<VariableDeclaration>> parameters;
 		private Location<Block> body;
 
-		public Assert(WyailFile parent, String name, Attribute... attributes) {
-			this(parent,name,Arrays.asList(attributes));
+		public Assert(WyailFile parent, Attribute... attributes) {
+			this(parent,Arrays.asList(attributes));
 		}
 
-		public Assert(WyailFile parent, String name, Collection<Attribute> attributes) {
-			super(parent,name,attributes);
-			this.parameters = new ArrayList<Location<VariableDeclaration>>();
-		}
-
-		public List<Location<VariableDeclaration>> getParameters() {
-			return parameters;
+		public Assert(WyailFile parent, Collection<Attribute> attributes) {
+			super(parent,"",attributes);
 		}
 
 		public Location<Block> getBody() {

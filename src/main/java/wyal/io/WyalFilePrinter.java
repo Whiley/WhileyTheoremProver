@@ -133,8 +133,6 @@ public class WyalFilePrinter {
 
 	public void write(WyailFile wf, WyailFile.Assert s) {
 		out.print("assertion ");
-		out.print(s.getName());
-		writeParameters(s.getParameters());
 		out.println(":");
 		writeStatement(s.getBody(),1);
 		out.println();

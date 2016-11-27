@@ -418,6 +418,24 @@ public interface Bytecode {
 		}
 	}
 
+	public static final class Quantifier extends AbstractBytecode implements Stmt {
+		private final boolean isUniversal;
+
+		public Quantifier(boolean isUniversal, int[] parameters, int body) {
+			super(ArrayUtils.append(parameters, new int[] { body }));
+			this.isUniversal = isUniversal;
+		}
+
+		@Override
+		public Opcode getOpcode() {
+			if (isUniversal) {
+				return Opcode.FORALL;
+			} else {
+				return Opcode.EXISTS;
+			}
+		}
+	}
+
 	// ===============================================================
 	// Bytecode Block & Index
 	// ===============================================================

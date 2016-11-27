@@ -6,21 +6,17 @@ import wyail.lang.*;
 
 public abstract class AbstractBytecode implements Bytecode {
 	private final int[] operands;
-	private final int[] blocks;
 
 	public AbstractBytecode() {
 		this.operands = null;
-		this.blocks = null;
 	}
 
 	public AbstractBytecode(int operand) {
 		this.operands = new int[] { operand };
-		this.blocks = null;
 	}
 
 	public AbstractBytecode(int... operands) {
 		this.operands = operands;
-		this.blocks = null;
 	}
 
 	@Override
@@ -32,8 +28,7 @@ public abstract class AbstractBytecode implements Bytecode {
 	public boolean equals(Object o) {
 		if (o instanceof AbstractBytecode) {
 			AbstractBytecode bo = (AbstractBytecode) o;
-			return getOpcode() == bo.getOpcode() && Arrays.equals(getOperands(), bo.getOperands())
-					&& Arrays.equals(blocks, bo.blocks);
+			return getOpcode() == bo.getOpcode() && Arrays.equals(getOperands(), bo.getOperands());
 		}
 		return false;
 	}

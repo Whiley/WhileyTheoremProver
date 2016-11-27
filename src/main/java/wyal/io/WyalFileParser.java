@@ -109,31 +109,16 @@ public class WyalFileParser {
 	protected void parseAssertDeclaration(WyailFile parent) {
 		int start = index;
 		match(Assert);
-		String name = match(Identifier).text;
 		// Create empty declaration
-		WyailFile.Assert declaration = new WyailFile.Assert(parent, name, sourceAttr(start, index - 1));
+		WyailFile.Assert declaration = new WyailFile.Assert(parent, sourceAttr(start, index - 1));
 		SyntaxTree tree = declaration.getTree();
 		EnclosingScope scope = new EnclosingScope(tree,declaration);
-		//
-		parseParameterDeclarations(declaration.getParameters(),scope);
 		//
 		match(Colon);
 		matchEndLine();
 		int body = parseBlock(scope, ROOT_INDENT);
 		declaration.setBody((Location<Block>) tree.getLocation(body));
 		parent.getDeclarations().add(declaration);
-	}
-
-	private void parseParameterDeclarations(List<Location<VariableDeclaration>> parameters, EnclosingScope scope) {
-		SyntaxTree tree = scope.getSyntaxTree();
-		match(LeftBrace);
-		while(eventuallyMatch(RightBrace) == null) {
-			int start = index;
-			int type = parseType(scope);
-			String name = match(Identifier).text;
-			int parameter = scope.declare(type, name, sourceAttr(start,index-1));
-			parameters.add((Location<VariableDeclaration>) tree.getLocation(parameter));
-		}
 	}
 
 	/**
@@ -303,32 +288,37 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private int parseExistsForallStatement(Token lookahead, EnclosingScope scope, Indent indent) {
-//		int start = index - 1;
-//
-//		// Clone the environment here, since the following type pattern may
-//		// updated this and such updates should only be visible to the
-//		// conditions contained within the quantified statement.
-//		environment = new HashSet<String>(environment);
-//
-//		TypePattern pattern = parseTypePattern(generics, environment, true);
-//		Expr condition;
-//
-//		if (tryAndMatch(true, Colon) != null) {
-//			matchEndLine();
-//			condition = parseBlock(wf, generics, environment, ROOT_INDENT);
-//		} else {
-//			match(SemiColon);
-//			condition = parseLogicalExpression(wf, generics, environment, false);
-//		}
-//
-//		if (lookahead.kind == Exists) {
-//			return new Expr.Exists(pattern, condition, sourceAttr(start,
-//					index - 1));
-//		} else {
-//			return new Expr.ForAll(pattern, condition, sourceAttr(start,
-//					index - 1));
-//		}
-		throw new IllegalArgumentException("IMPLEMENT ME!");
+		boolean isUniversal = lookahead.kind == Forall;
+		int start = index - 1;
+		// Clone the environment here, since the following type pattern may
+		// updated this and such updates should only be visible to the
+		// conditions contained within the quantified statement.
+		scope = scope.clone();
+
+		int[] parameters = parseParameterDeclarations(scope);
+		int body;
+
+		if (tryAndMatch(true, Colon) != null) {
+			matchEndLine();
+			body = parseBlock(scope, indent);
+		} else {
+			match(SemiColon);
+			body = parseUnitExpression(scope,false);
+		}
+
+		Bytecode bytecode = new Bytecode.Quantifier(isUniversal, parameters, body);
+		return scope.add(bytecode, sourceAttr(start, index - 1));
+	}
+
+	private int[] parseParameterDeclarations(EnclosingScope scope) {
+		SyntaxTree tree = scope.getSyntaxTree();
+		match(LeftBrace);
+		while(eventuallyMatch(RightBrace) == null) {
+			int start = index;
+			int type = parseType(scope);
+			String name = match(Identifier).text;
+			int parameter = scope.declare(type, name, sourceAttr(start,index-1));
+		}
 	}
 
 	/**
