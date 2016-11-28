@@ -1,8 +1,8 @@
 define f(int x) is:
     x >= 0
 
-define f(real x) is:
-    x >= 0.0
+define f(bool x) is:
+    x == true
 
 assert:
     forall(int x):
@@ -12,9 +12,9 @@ assert:
             f(x)
 
 assert:
-    forall(real x):
+    forall(bool x):
         if:
-            x >= 0.0
+            x != false
         then:
             f(x)
 

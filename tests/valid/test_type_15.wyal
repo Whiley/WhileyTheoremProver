@@ -1,9 +1,9 @@
 assert:
-    1.0 is real
+    1 is int
 
 assert:
-    -1.0 is real
+    true is bool
 
 assert:
-    123.45 is real
+    [1,2] is int[]
 

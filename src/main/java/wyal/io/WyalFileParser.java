@@ -65,9 +65,10 @@ public class WyalFileParser {
 				if (lookahead.kind == Assert) {
 					parseAssertDeclaration(wf);
 				}
-//				else if (lookahead.text.equals("type")) {
-//					parseTypeDeclaration(wf);
-//				} else if (lookahead.text.equals("define")) {
+				else if (lookahead.text.equals("type")) {
+					parseTypeDeclaration(wf);
+				}
+				//else if (lookahead.text.equals("define")) {
 //					parseMacroDeclaration(wf);
 //				} else if (lookahead.kind == Function) {
 //					parseFunctionDeclaration(wf);
@@ -118,6 +119,40 @@ public class WyalFileParser {
 		matchEndLine();
 		int body = parseBlock(scope, ROOT_INDENT);
 		declaration.setBody((Location<Block>) tree.getLocation(body));
+		parent.getDeclarations().add(declaration);
+	}
+
+	/**
+	 * Parse a <code>type</code> declaration in a WyAL source file.
+	 *
+	 * @param wf
+	 *            The WyAL file in which this declaration is defined.
+	 */
+	protected void parseTypeDeclaration(WyailFile parent) {
+		int start = index;
+		match(Type);
+		String name = match(Identifier).text;
+		match(Is);
+		// Create empty declaration
+		WyailFile.Type declaration = new WyailFile.Type(parent, name, sourceAttr(start, index - 1));
+		SyntaxTree tree = declaration.getTree();
+		EnclosingScope scope = new EnclosingScope(tree,declaration);
+		// Now, parse parameter declaration and invariant (if applicable)
+		match(LeftBrace);
+		parseParameterDeclaration(scope);
+		match(RightBrace);
+		//
+		while ((tryAndMatch(false, Where)) != null) {
+			int invariant;
+			if(tryAndMatch(true,Colon) != null) {
+				invariant = parseBlock(scope,ROOT_INDENT);
+			} else {
+				invariant = parseUnitExpression(scope, false);
+				matchEndLine();
+			}
+			declaration.getInvariant().add((Location<?>) tree.getLocation(invariant));
+		}
+		//
 		parent.getDeclarations().add(declaration);
 	}
 
@@ -320,12 +355,16 @@ public class WyalFileParser {
 			} else {
 				firstTime=false;
 			}
-			int start = index;
-			int type = parseType(scope);
-			String name = match(Identifier).text;
-			parameters.add(scope.declare(type, name, sourceAttr(start,index-1)));
+			parameters.add(parseParameterDeclaration(scope));
 		}
 		return parameters;
+	}
+
+	private int parseParameterDeclaration(EnclosingScope scope) {
+		int start = index;
+		int type = parseType(scope);
+		String name = match(Identifier).text;
+		return scope.declare(type, name, sourceAttr(start,index-1));
 	}
 
 	/**
@@ -479,7 +518,7 @@ public class WyalFileParser {
 		case VerticalBar:
 			return parseLengthOfExpression(scope, terminated);
 		case LeftSquare:
-			return parseArrayExpression(scope, terminated);
+			return parseArrayInitialiserExpression(scope, terminated);
 		case LeftCurly:
 			return parseRecordExpression(scope, terminated);
 		case Shreak:
@@ -684,7 +723,7 @@ public class WyalFileParser {
 	}
 
 	/**
-	 * Parse a list constructor expression, which is of the form:
+	 * Parse an array initialiser expression, which is of the form:
 	 *
 	 * <pre>
 	 * ListExpr ::= '[' [ Expr (',' Expr)* ] ']'
@@ -708,7 +747,7 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private int parseArrayExpression(EnclosingScope scope, boolean terminated) {
+	private int parseArrayInitialiserExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(LeftSquare);
 		ArrayList<Integer> operands = new ArrayList<Integer>();
@@ -1134,7 +1173,12 @@ public class WyalFileParser {
 	 */
 	private int parseType(EnclosingScope scope) {
 		int start = index;
-		return parseBaseType(scope);
+		int type = parseBaseType(scope);
+		while(tryAndMatch(false,LeftSquare) != null) {
+			match(RightSquare);
+			type = scope.add(new Bytecode.ArrayType(type), sourceAttr(start, index - 1));
+		}
+		return type;
 	}
 
 	private int parseBaseType(EnclosingScope scope) {
@@ -1153,8 +1197,6 @@ public class WyalFileParser {
 			return parseBracketedType(scope);
 		case LeftCurly:
 			return parseRecordType(scope);
-		case LeftSquare:
-			return parseArrayType(scope);
 		case Shreak:
 			return parseNegationType(scope);
 		case Identifier:
@@ -1231,29 +1273,6 @@ public class WyalFileParser {
 		int type = parseType(scope);
 		match(RightBrace);
 		return type;
-	}
-
-	/**
-	 * Parse a array type, which is of the form:
-	 *
-	 * <pre>
-	 * ArrayType ::= Type '[' ']'
-	 * </pre>
-	 *
-	 * @param scope
-	 *            The enclosing scope for this expression. This identifies any
-	 *            generic arguments which are in scope, and also allocated each
-	 *            variable in scope to its location index.
-	 *
-	 *
-	 * @return
-	 */
-	private int parseArrayType(EnclosingScope scope) {
-		int start = index;
-		int element = parseType(scope);
-		match(LeftSquare);
-		match(RightSquare);
-		return scope.add(new Bytecode.ArrayType(element), sourceAttr(start, index - 1));
 	}
 
 	/**

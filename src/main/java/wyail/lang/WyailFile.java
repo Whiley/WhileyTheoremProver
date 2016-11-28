@@ -217,21 +217,15 @@ public class WyailFile extends AbstractCompilationUnit {
 	}
 
 	public static class Type extends Declaration {
-		private final SemanticType type;
 		private final List<Location<?>> invariant;
 
-		public Type(WyailFile parent, String name, SemanticType type, Attribute... attributes) {
-			this(parent,name,type,Arrays.asList(attributes));
+		public Type(WyailFile parent, String name, Attribute... attributes) {
+			this(parent,name,Arrays.asList(attributes));
 		}
 
-		public Type(WyailFile parent, String name, SemanticType type, Collection<Attribute> attributes) {
+		public Type(WyailFile parent, String name, Collection<Attribute> attributes) {
 			super(parent, name, attributes);
-			this.type = type;
 			this.invariant = new ArrayList<Location<?>>();
-		}
-
-		public SemanticType getType() {
-			return type;
 		}
 
 		public List<Location<?>> getInvariant() {

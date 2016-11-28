@@ -531,7 +531,7 @@ public class WyalFileLexer {
 			put("import", Token.Kind.Import);
 			put("define", Token.Kind.Define);
 			put("constant", Token.Kind.Constant);
-			//put("type", Token.Kind.Type);
+			put("type", Token.Kind.Type);
 			put("where", Token.Kind.Where);
 			put("ensures", Token.Kind.Ensures);
 			put("requires", Token.Kind.Requires);
@@ -684,6 +684,12 @@ public class WyalFileLexer {
 				@Override
 				public String toString() {
 					return "function";
+				}
+			},
+			Type {
+				@Override
+				public String toString() {
+					return "type";
 				}
 			},
 			Assume {

@@ -1,4 +1,4 @@
-assert "constraint not satisfied":
+assert:
     forall (int r0):
         if:
             r0 >= 0
