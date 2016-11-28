@@ -1,6 +1,6 @@
-function test_sum(int[], int) -> int
+function test_sum(int[] x, int y) -> (int z)
 
-assert "postcondition not satisfied":
+assert:
     forall (int[] xs):
         if:
             exists (int i1):

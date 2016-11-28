@@ -1,7 +1,7 @@
 import wycs.core.Array
 
 assert:
-  forall (int[] xs, [int] ys):
+  forall (int[] xs, int[] ys):
     if:
         Array.<int>update(xs,ys,0)
         ys[0] == 0

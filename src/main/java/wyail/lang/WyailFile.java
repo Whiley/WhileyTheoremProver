@@ -154,18 +154,21 @@ public class WyailFile extends AbstractCompilationUnit {
 	}
 
 	public static class Function extends Declaration {
-		private final SemanticType.Function type;
+		private Location<Bytecode.Type> type;
 
-		public Function(WyailFile parent, String name, SemanticType.Function type, Attribute... attributes) {
-			this(parent,name,type,Arrays.asList(attributes));
+		public Function(WyailFile parent, String name, Attribute... attributes) {
+			this(parent,name,Arrays.asList(attributes));
 		}
 
-		public Function(WyailFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
+		public Function(WyailFile parent, String name, Collection<Attribute> attributes) {
 			super(parent,name,attributes);
+		}
+
+		public void setType(Location<Bytecode.Type> type) {
 			this.type = type;
 		}
 
-		public SemanticType.Function getType() {
+		public Location<Bytecode.Type> getType() {
 			return type;
 		}
 	}

@@ -69,9 +69,10 @@ public class WyalFileParser {
 				}
 				//else if (lookahead.text.equals("define")) {
 //					parseMacroDeclaration(wf);
-//				} else if (lookahead.kind == Function) {
-//					parseFunctionDeclaration(wf);
 //				}
+				else if (lookahead.kind == Function) {
+					parseFunctionDeclaration(wf);
+				}
 				else {
 					syntaxError("unrecognised declaration", lookahead);
 				}
@@ -204,6 +205,23 @@ public class WyalFileParser {
 			declaration.getInvariant().add((Location<?>) tree.getLocation(invariant));
 		}
 		//
+		parent.getDeclarations().add(declaration);
+	}
+
+	protected void parseFunctionDeclaration(WyailFile parent) {
+		int start = index;
+		match(Function);
+		String name = match(Identifier).text;
+		// Create empty declaration
+		WyailFile.Function declaration = new WyailFile.Function(parent, name, sourceAttr(start, index - 1));
+		SyntaxTree tree = declaration.getTree();
+		EnclosingScope scope = new EnclosingScope(tree,declaration);
+		//
+		List<Integer> parameters = parseParameterDeclarations(scope);
+		match(MinusGreater);
+		List<Integer> returns = parseParameterDeclarations(scope);
+		// FIXME: need to do something with the parameters and returns!
+		matchEndLine();
 		parent.getDeclarations().add(declaration);
 	}
 
