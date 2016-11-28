@@ -1,130 +1,169 @@
 package wycs.testing.tests;
 
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-import wycs.testing.TestHarness;
+import wyal.commands.CompileCommand;
+import wycc.util.Logger;
+import wycc.util.Pair;
+import wyfs.lang.Content;
 
-public class ValidTest extends TestHarness {
-	@Test public void Test_Arith_1() { verifyPassTest("test_arith_01"); }
-	@Test public void Test_Arith_2() { verifyPassTest("test_arith_02"); }
-	@Test public void Test_Arith_3() { verifyPassTest("test_arith_03"); }
-	@Test public void Test_Arith_4() { verifyPassTest("test_arith_04"); }
-	@Test public void Test_Arith_5() { verifyPassTest("test_arith_05"); }
-	@Test public void Test_Arith_6() { verifyPassTest("test_arith_06"); }
-	@Test public void Test_Arith_7() { verifyPassTest("test_arith_07"); }
-	@Test public void Test_Arith_8() { verifyPassTest("test_arith_08"); }
-	@Test public void Test_Arith_9() { verifyPassTest("test_arith_09"); }
-	@Test public void Test_Arith_10() { verifyPassTest("test_arith_10"); }
-	@Test public void Test_Arith_11() { verifyPassTest("test_arith_11"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_12() { verifyPassTest("test_arith_12"); }
-	@Test public void Test_Arith_13() { verifyPassTest("test_arith_13"); }
-	@Test public void Test_Arith_14() { verifyPassTest("test_arith_14"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_15() { verifyPassTest("test_arith_15"); }
-	@Test public void Test_Arith_16() { verifyPassTest("test_arith_16"); }
-	@Test public void Test_Arith_17() { verifyPassTest("test_arith_17"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_18() { verifyPassTest("test_arith_18"); }
-	@Test public void Test_Arith_19() { verifyPassTest("test_arith_19"); }
-	@Test public void Test_Arith_20() { verifyPassTest("test_arith_20"); }
-	@Test public void Test_Arith_21() { verifyPassTest("test_arith_21"); }
-	@Test public void Test_Arith_22() { verifyPassTest("test_arith_22"); }
-	@Test public void Test_Arith_23() { verifyPassTest("test_arith_23"); }
-	@Test public void Test_Arith_24() { verifyPassTest("test_arith_24"); }
-	@Test public void Test_Arith_25() { verifyPassTest("test_arith_25"); }
-	@Test public void Test_Arith_26() { verifyPassTest("test_arith_26"); }
-	@Test public void Test_Arith_27() { verifyPassTest("test_arith_27"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_28() { verifyPassTest("test_arith_28"); }
-	@Test public void Test_Arith_29() { verifyPassTest("test_arith_29"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_30() { verifyPassTest("test_arith_30"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_31() { verifyPassTest("test_arith_31"); }
-	@Test public void Test_Arith_32() { verifyPassTest("test_arith_32"); }
-	@Test public void Test_Arith_33() { verifyPassTest("test_arith_33"); }
-	@Test public void Test_Arith_34() { verifyPassTest("test_arith_34"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_35() { verifyPassTest("test_arith_35"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_36() { verifyPassTest("test_arith_36"); }
-	@Test public void Test_Arith_37() { verifyPassTest("test_arith_37"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_38() { verifyPassTest("test_arith_38"); }
-	@Ignore("Known Issue") @Test public void Test_Arith_39() { verifyPassTest("test_arith_39"); }
+@RunWith(Parameterized.class)
+public class ValidTest {
+	/**
+	 * The directory containing the source files for each test case. Every test
+	 * corresponds to a file in this directory.
+	 */
+	public final static String WYAL_SRC_DIR = "tests/valid".replace('/', File.separatorChar);
 
-	@Test public void Test_Macro_1() { verifyPassTest("test_macro_01"); }
-	@Test public void Test_Macro_2() { verifyPassTest("test_macro_02"); }
-	@Test public void Test_Macro_3() { verifyPassTest("test_macro_03"); }
+	/**
+	 * Ignored tests and a reason why we ignore them.
+	 */
+	public final static Map<String, String> IGNORED = new HashMap<String, String>();
 
-	@Test public void Test_Bool_1() { verifyPassTest("test_bool_01"); }
+	static {
+		IGNORED.put("Coercion_Valid_8", "#681");
+	}
 
-	@Test public void Test_Fun_1() { verifyPassTest("test_fun_01"); }
-	@Test public void Test_Fun_2() { verifyPassTest("test_fun_02"); }
+	// ======================================================================
+	// Test Harness
+	// ======================================================================
 
+	protected void runTest(String testName) throws IOException {
+		try {
+			// this will need to turn on verification at some point.
+			String whileyFilename = WYAL_SRC_DIR + File.separatorChar + testName
+					+ ".wyal";
 
-	@Ignore("Known Issue") @Test public void Test_List_1() { verifyPassTest("test_list_01"); }
-	@Ignore("Known Issue") @Test public void Test_List_2() { verifyPassTest("test_list_02"); }
-	@Test public void Test_List_5() { verifyPassTest("test_list_05"); }
-	@Ignore("#303") @Test public void Test_List_6() { verifyPassTest("test_list_06"); }
-	@Test public void Test_List_8() { verifyPassTest("test_list_08"); }
-	@Test public void Test_List_13() { verifyPassTest("test_list_13"); }
-	@Ignore("Known Issue") @Test public void Test_List_14() { verifyPassTest("test_list_14"); }
-	@Ignore("#378") @Test public void Test_List_15() { verifyPassTest("test_list_15"); }
-	@Test public void Test_List_16() { verifyPassTest("test_list_16"); }
-	@Test public void Test_List_17() { verifyPassTest("test_list_17"); }
-	@Test public void Test_List_18() { verifyPassTest("test_list_18"); }
-	@Ignore("Unknown") @Test public void Test_List_19() { verifyPassTest("test_list_19"); }
-	@Test public void Test_List_20() { verifyPassTest("test_list_20"); }
-	@Test public void Test_List_21() { verifyPassTest("test_list_21"); }
-	@Ignore("#290") @Test public void Test_List_22() { verifyPassTest("test_list_22"); }
-	@Ignore("#290") @Test public void Test_List_23() { verifyPassTest("test_list_23"); }
-	@Test public void Test_List_24() { verifyPassTest("test_list_24"); }
-	@Test public void Test_List_25() { verifyPassTest("test_list_25"); }
-	@Ignore("Unknown") @Test public void Test_List_26() { verifyPassTest("test_list_26"); }
-	@Test public void Test_List_27() { verifyPassTest("test_list_27"); }
-	@Test public void Test_List_28() { verifyPassTest("test_list_28"); }
-	@Ignore("Known Issue") @Test public void Test_List_29() { verifyPassTest("test_list_29"); }
-	@Test public void Test_List_30() { verifyPassTest("test_list_30"); }
-	@Test public void Test_List_31() { verifyPassTest("test_list_31"); }
-	@Test public void Test_List_32() { verifyPassTest("test_list_32"); }
-	@Test public void Test_List_33() { verifyPassTest("test_list_33"); }
-	@Test public void Test_List_34() { verifyPassTest("test_list_34"); }
-	@Test public void Test_List_35() { verifyPassTest("test_list_35"); }
-	@Test public void Test_List_36() { verifyPassTest("test_list_36"); }
-	@Test public void Test_List_37() { verifyPassTest("test_list_37"); }
-	@Ignore("#508") @Test public void Test_List_38() { verifyPassTest("test_list_38"); }
-	@Test public void Test_List_39() { verifyPassTest("test_list_39"); }
-	@Test public void Test_List_40() { verifyPassTest("test_list_40"); }
-	@Test public void Test_List_41() { verifyPassTest("test_list_41"); }
-	@Test public void Test_List_42() { verifyPassTest("test_list_42"); }
-	@Ignore("Known Issue") @Test public void Test_List_43() { verifyPassTest("test_list_43"); }
-	@Ignore("Known Issue") @Test public void Test_List_44() { verifyPassTest("test_list_44"); }
-	@Ignore("Known Issue") @Test public void Test_List_45() { verifyPassTest("test_list_45"); }
-	@Ignore("Known Issue") @Test public void Test_List_46() { verifyPassTest("test_list_46"); }
-	@Ignore("Known Issue") @Test public void Test_List_47() { verifyPassTest("test_list_47"); }
-	@Ignore("Known Issue") @Test public void Test_List_48() { verifyPassTest("test_list_48"); }
-	@Ignore("Known Issue") @Test public void Test_List_49() { verifyPassTest("test_list_49"); }
-	@Ignore("Known Issue") @Test public void Test_List_50() { verifyPassTest("test_list_50"); }
+			Pair<CompileCommand.Result,String> p = compile(
+					WYAL_SRC_DIR,      // location of source directory
+					false,               // no verification
+					whileyFilename);     // name of test to compile
 
-	@Test public void Test_Type_01() { verifyPassTest("test_type_01"); }
-	@Test public void Test_Type_02() { verifyPassTest("test_type_02"); }
-	@Test public void Test_Type_03() { verifyPassTest("test_type_03"); }
-	@Ignore("#468") @Test public void Test_Type_04() { verifyPassTest("test_type_04"); }
-	@Test public void Test_Type_05() { verifyPassTest("test_type_05"); }
-	@Ignore("#468") @Test public void Test_Type_06() { verifyPassTest("test_type_06"); }
-	@Test public void Test_Type_07() { verifyPassTest("test_type_07"); }
-	@Ignore("#468") @Test public void Test_Type_08() { verifyPassTest("test_type_08"); }
-	@Ignore("#468") @Test public void Test_Type_09() { verifyPassTest("test_type_09"); }
-	@Test public void Test_Type_10() { verifyPassTest("test_type_10"); }
-	@Ignore("#468") @Test public void Test_Type_11() { verifyPassTest("test_type_11"); }
-	@Ignore("#468") @Test public void Test_Type_12() { verifyPassTest("test_type_12"); }
-	@Ignore("#468") @Test public void Test_Type_13() { verifyPassTest("test_type_13"); }
-	@Ignore("#468") @Test public void Test_Type_14() { verifyPassTest("test_type_14"); }
-	@Ignore("#468") @Test public void Test_Type_15() { verifyPassTest("test_type_15"); }
-	@Ignore("#468") @Test public void Test_Type_16() { verifyPassTest("test_type_16"); }
-	@Ignore("#468") @Test public void Test_Type_17() { verifyPassTest("test_type_17"); }
-	@Ignore("#468") @Test public void Test_Type_18() { verifyPassTest("test_type_18"); }
-	@Ignore("#468") @Test public void Test_Type_19() { verifyPassTest("test_type_19"); }
-	@Ignore("#468") @Test public void Test_Type_20() { verifyPassTest("test_type_20"); }
-	@Ignore("#468") @Test public void Test_Type_21() { verifyPassTest("test_type_21"); }
-	@Test public void Test_Type_22() { verifyPassTest("test_type_22"); }
-	@Ignore("Known Issue") @Test public void Test_Type_23() { verifyPassTest("test_type_23"); }
-	@Ignore("Known Issue") @Test public void Test_Type_24() { verifyPassTest("test_type_24"); }
-	@Ignore("Known Issue") @Test public void Test_Type_25() { verifyPassTest("test_type_25"); }
+			CompileCommand.Result r = p.first();
 
-	@Test public void Test_Tuple_1() { verifyPassTest("test_tuple_01"); }
+			System.out.print(p.second());
+
+			if (r != CompileCommand.Result.SUCCESS) {
+				fail("Test failed to compile!");
+			} else if (r == CompileCommand.Result.INTERNAL_FAILURE) {
+				fail("Test caused internal failure!");
+			}
+		} catch(IOException e) {
+			fail("Test threw IOException");
+		}
+	}
+
+	public static Pair<CompileCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
+		ByteArrayOutputStream syserr = new ByteArrayOutputStream();
+		ByteArrayOutputStream sysout = new ByteArrayOutputStream();
+		Content.Registry registry = new wyal.Activator.Registry();
+		CompileCommand cmd = new CompileCommand(registry,Logger.NULL,sysout,syserr);
+		cmd.setWyaldir(wyaldir);
+		if(verify) {
+			cmd.setVerify();
+		}
+		CompileCommand.Result result = cmd.execute(args);
+		byte[] errBytes = syserr.toByteArray();
+		byte[] outBytes = sysout.toByteArray();
+		String output = new String(errBytes) + new String(outBytes);
+		return new Pair<CompileCommand.Result,String>(result,output);
+	}
+
+	// ======================================================================
+	// Tests
+	// ======================================================================
+
+	// Parameter to test case is the name of the current test.
+	// It will be passed to the constructor by JUnit.
+	private final String testName;
+
+	public ValidTest(String testName) {
+		this.testName = testName;
+	}
+
+	// Here we enumerate all available test cases.
+	@Parameters(name = "{0}")
+	public static Collection<Object[]> data() {
+		return findTestNames(WYAL_SRC_DIR);
+	}
+
+	// Skip ignored tests
+	@Before
+	public void beforeMethod() {
+		String ignored = IGNORED.get(this.testName);
+		Assume.assumeTrue("Test " + this.testName + " skipped: " + ignored, ignored == null);
+	}
+
+	@Test
+	public void valid() throws IOException {
+		if (new File("../../running_on_travis").exists()) {
+			System.out.println(".");
+		}
+		runTest(this.testName);
+	}
+
+	/**
+	 * Scan a directory to get the names of all the whiley source files
+	 * in that directory. The list of file names can be used as input
+	 * parameters to a JUnit test.
+	 *
+	 * If the system property <code>test.name.contains</code> is set,
+	 * then the list of files returned will be filtered. Only file
+	 * names that contain the property will be returned. This makes it
+	 * possible to run a subset of tests when testing interactively
+	 * from the command line.
+	 *
+	 * @param srcDir The path of the directory to scan.
+	 */
+	public static Collection<Object[]> findTestNames(String srcDir) {
+		final String suffix = ".wyal";
+		String containsFilter = System.getProperty("test.name.contains");
+
+		ArrayList<Object[]> testcases = new ArrayList<Object[]>();
+		for (File f : new File(srcDir).listFiles()) {
+			// Check it's a file
+			if (!f.isFile()) {
+				continue;
+			}
+			String name = f.getName();
+			// Check it's a whiley source file
+			if (!name.endsWith(suffix)) {
+				continue;
+			}
+			// Get rid of ".whiley" extension
+			String testName = name.substring(0, name.length() - suffix.length());
+			// If there's a filter, check the name matches
+			if (containsFilter != null && !testName.contains(containsFilter)) {
+				continue;
+			}
+			testcases.add(new Object[] { testName });
+		}
+		// Sort the result by filename
+		Collections.sort(testcases, new Comparator<Object[]>() {
+				@Override
+				public int compare(Object[] o1, Object[] o2) {
+					return ((String) o1[0]).compareTo((String) o2[0]);
+				}
+		});
+		return testcases;
+	}
+
 }

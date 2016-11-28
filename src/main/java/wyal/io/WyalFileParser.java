@@ -1,7 +1,6 @@
 package wyal.io;
 
 import static wyal.io.WyalFileLexer.Token.Kind.*;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -58,7 +57,7 @@ public class WyalFileParser {
 		while (index < tokens.size()) {
 			Token lookahead = tokens.get(index);
 			if (lookahead.kind == Import) {
-				//parseImportDeclaration(wf);
+				parseImportDeclaration(wf);
 			} else {
 				checkNotEof();
 				lookahead = tokens.get(index);
@@ -99,6 +98,58 @@ public class WyalFileParser {
 		} else {
 			return pkg; // no package
 		}
+	}
+
+	/**
+	 * Parse an import declaration, which is of the form:
+	 *
+	 * <pre>
+	 * ImportDecl ::= Identifier ["from" ('*' | Identifier)] ( ('.' | '..') ('*' | Identifier) )*
+	 * </pre>
+	 *
+	 * @param parent
+	 *            WyalFile being constructed
+	 */
+	private void parseImportDeclaration(WyalFile parent) {
+		int start = index;
+
+		match(Import);
+
+		// First, parse "from" usage (if applicable)
+		Token token = tryAndMatch(true, Identifier, Star);
+		if (token == null) {
+			syntaxError("expected identifier or '*' here", token);
+		}
+		String name = token.text;
+		// NOTE: we don't specify "from" as a keyword because this prevents it
+		// from being used as a variable identifier.
+		Token lookahead;
+		if ((lookahead = tryAndMatchOnLine(Identifier)) != null) {
+			// Ok, this must be "from"
+			if (!lookahead.text.equals("from")) {
+				syntaxError("expected \"from\" here", lookahead);
+			}
+			token = match(Identifier);
+		}
+
+		// Second, parse package string
+		Trie filter = Trie.ROOT.append(token.text);
+		token = null;
+		while ((token = tryAndMatch(true, Dot, DotDot)) != null) {
+			if (token.kind == DotDot) {
+				filter = filter.append("**");
+			}
+			if (tryAndMatch(true, Star) != null) {
+				filter = filter.append("*");
+			} else {
+				filter = filter.append(match(Identifier).text);
+			}
+		}
+
+		int end = index;
+		matchEndLine();
+
+		parent.getDeclarations().add(new WyalFile.Import(parent,filter, name, sourceAttr(start, end - 1)));
 	}
 
 	/**
@@ -443,7 +494,7 @@ public class WyalFileParser {
 		checkNotEof();
 		int start = index;
 		// Parse term
-		int first = parseTermExpression(scope, terminated);
+		int first = parseAccessExpression(scope, terminated);
 		// See whether there is an infix operator trailing after term
 		Token lookahead = tryAndMatch(terminated, INFIX_OPERATORS);
 		if (lookahead != null) {
@@ -452,7 +503,7 @@ public class WyalFileParser {
 			ArrayList<Integer> terms = new ArrayList<Integer>();
 			terms.add(first);
 			do {
-				terms.add(parseTermExpression(scope, terminated));
+				terms.add(parseAccessExpression(scope, terminated));
 			} while (tryAndMatch(terminated, lookahead.kind) != null);
 			//
 			return scope.add(new Bytecode.Operator(opcode, terms), sourceAttr(start, index - 1));
@@ -461,6 +512,81 @@ public class WyalFileParser {
 		}
 	}
 
+	/**
+	 * Parse an <i>access expression</i>, which has the form:
+	 *
+	 * <pre>
+	 * AccessExpr::= PrimaryExpr
+	 *            | AccessExpr '[' AdditiveExpr ']'
+	 *            | AccessExpr '[' AdditiveExpr ".." AdditiveExpr ']'
+	 *            | AccessExpr '.' Identifier
+	 *            | AccessExpr '.' Identifier '(' [ Expr (',' Expr)* ] ')'
+	 *            | AccessExpr "->" Identifier
+	 * </pre>
+	 *
+	 * <p>
+	 * Access expressions are challenging for several reasons. First, they are
+	 * <i>left-recursive</i>, making them more difficult to parse correctly.
+	 * Secondly, there are several different forms above and, of these, some
+	 * generate multiple AST nodes as well (see below).
+	 * </p>
+	 *
+	 * <p>
+	 * This parser attempts to construct the most accurate AST possible and this
+	 * requires disambiguating otherwise identical forms. For example, an
+	 * expression of the form "aaa.bbb.ccc" can correspond to either a field
+	 * access, or a constant expression (e.g. with a package/module specifier).
+	 * Likewise, an expression of the form "aaa.bbb.ccc()" can correspond to an
+	 * indirect function/method call, or a direct function/method call with a
+	 * package/module specifier. To disambiguate these forms, the parser relies
+	 * on the fact any sequence of field-accesses must begin with a local
+	 * variable.
+	 * </p>
+	 *
+	 * @param wf
+	 *            The enclosing WhileyFile being constructed. This is necessary
+	 *            to construct some nested declarations (e.g. parameters for
+	 *            lambdas)
+	 * @param scope
+	 *            The enclosing scope for this statement, which determines the
+	 *            set of visible (i.e. declared) variables and also the current
+	 *            indentation level.
+	 * @param terminated
+	 *            This indicates that the expression is known to be terminated
+	 *            (or not). An expression that's known to be terminated is one
+	 *            which is guaranteed to be followed by something. This is
+	 *            important because it means that we can ignore any newline
+	 *            characters encountered in parsing this expression, and that
+	 *            we'll never overrun the end of the expression (i.e. because
+	 *            there's guaranteed to be something which terminates this
+	 *            expression). A classic situation where terminated is true is
+	 *            when parsing an expression surrounded in braces. In such case,
+	 *            we know the right-brace will always terminate this expression.
+	 *
+	 * @return
+	 */
+	private int parseAccessExpression(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		int lhs = parseTermExpression(scope, terminated);
+		Token token;
+
+		while ((token = tryAndMatchOnLine(LeftSquare)) != null
+				|| (token = tryAndMatch(terminated, Dot, MinusGreater)) != null) {
+			switch (token.kind) {
+			case LeftSquare:
+				// NOTE: expression guaranteed to be terminated by ']'.
+				int rhs = parseUnitExpression(scope, true);
+				// This is a plain old array access expression
+				match(RightSquare);
+				lhs = scope.add(new Bytecode.Operator(Opcode.INDEXOF, lhs, rhs), sourceAttr(start, index - 1));
+				break;
+			case Dot:
+				// TODO: copy from WhileyFileParser
+			}
+		}
+
+		return lhs;
+	}
 	/**
 	 *
 	 * @param scope
