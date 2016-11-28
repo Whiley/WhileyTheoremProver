@@ -1,4 +1,4 @@
-assert "assertion failed":
+assert:
     forall (int r0, int r1):
         if:
             r0 == (2 * r1)

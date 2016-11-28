@@ -1,8 +1,8 @@
-assert "constraint not satisfied":
+assert:
   forall (int[] xs):
       if:
         forall (int i):
-          0 <= xs[i] && xs[i] <= 2
+          (0 <= xs[i]) && (xs[i] <= 2)
       then:
         forall (int j):
           xs[j] >= 0

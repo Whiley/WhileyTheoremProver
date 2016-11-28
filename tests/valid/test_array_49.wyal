@@ -1,10 +1,10 @@
 import wycs.core.Array
 
 define lastIndexOf_ensures_0(null | int r0, int[] r1, int r2) is:
-    case:
+    either:
         r0 is !(int)
         true
-    case:
+    or:
         r0 is int
         r1[r0] == r2
         true
@@ -13,20 +13,20 @@ define lastIndexOf_ensures_0(null | int r0, int[] r1, int r2) is:
 function lastIndexOf(int[] r0, int r1) -> (null | int)
 
 define invariant(int[] items, int i, int x, int last) is:
-    case:
+    either:
         last != -1
         items[last] == x
-    case:
+    or:
         last == -1
 
 assert "loop invariant not restored":
     forall (int i, int[] xs, int last, int nlast, int x):
         if:
-            case:
+            either:
                 invariant(xs, i, x, last)
                 xs[i] == x
                 nlast == i
-            case:
+            or:
                 invariant(xs, i, x, last)
                 xs[i] != x
                 nlast == last

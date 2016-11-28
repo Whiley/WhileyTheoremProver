@@ -1,4 +1,4 @@
-assert "assertion failure":
+assert:
     forall (int[] r0):
         if:
             |r0| != 0

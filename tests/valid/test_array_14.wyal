@@ -1,15 +1,13 @@
-function test_sum(int[] x, int y) -> (int z)
-
 assert:
     forall (int[] xs):
         if:
             exists (int i1):
                 xs[i1] < 0
-            case:
+            either:
                 false == true
                 exists (int i2):
                     xs[i2] < 0
-            case:
+            or:
                 forall (int i3):
                     xs[i3] >= 0
         then:

@@ -1,4 +1,4 @@
-assert "index out of bounds (not less than length)":
+assert:
     forall(int[] r0):
         if:
             |r0| > 0

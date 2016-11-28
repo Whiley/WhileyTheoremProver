@@ -1,5 +1,5 @@
 assert:
-    forall (int x, [int] xs):
+    forall (int x, int[] xs):
         if:
             (x + 1) >= 0
             ((2 * x) + 2) <= 0

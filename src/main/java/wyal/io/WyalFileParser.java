@@ -647,7 +647,7 @@ public class WyalFileParser {
 				// Observe that, at this point, we cannot determine whether or
 				// not this is a constant-access or a package-access which marks
 				// the beginning of a constant-access.
-				throw new RuntimeException("implement constant access");
+				throw new RuntimeException("implement constant access: " + token.text);
 			}
 		case Null:
 		case True:
@@ -1910,7 +1910,8 @@ public class WyalFileParser {
 			Plus,
 			Minus,
 			Star,
-			RightSlash
+			RightSlash,
+			Percent
 	};
 
 	/**
@@ -1934,6 +1935,7 @@ public class WyalFileParser {
 		OPERATOR_MAP.put(Minus, Bytecode.Opcode.SUB);
 		OPERATOR_MAP.put(Star, Bytecode.Opcode.MUL);
 		OPERATOR_MAP.put(RightSlash, Bytecode.Opcode.DIV);
+		OPERATOR_MAP.put(Percent, Bytecode.Opcode.REM);
 	}
 
 	// =======================================================================

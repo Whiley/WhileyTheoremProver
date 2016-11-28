@@ -1,4 +1,4 @@
-assert "postcondition not satisfied":
+assert:
     forall (int[] xs, int x, int index):
         if:
             forall (int i):

@@ -1,4 +1,4 @@
-function test_sum(int[], int) -> int
+function test_sum(int[] xs, int y) -> (int r)
 
 assert:
     forall (int[] xs, int x):

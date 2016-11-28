@@ -3,4 +3,4 @@ type nat is (int x) where:
 
 assert:
     forall(nat x, nat y):
-        x + y >= 0
+        (x + y) >= 0
