@@ -421,10 +421,15 @@ public interface Bytecode {
 	public static final class Quantifier extends AbstractBytecode implements Stmt {
 		private final boolean isUniversal;
 
+		public Quantifier(boolean isUniversal, List<Integer> parameters, int body) {
+			this(isUniversal,ArrayUtils.toIntArray(parameters),body);
+		}
 		public Quantifier(boolean isUniversal, int[] parameters, int body) {
 			super(ArrayUtils.append(parameters, new int[] { body }));
 			this.isUniversal = isUniversal;
 		}
+
+
 
 		@Override
 		public Opcode getOpcode() {

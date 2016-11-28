@@ -2,7 +2,7 @@ assert:
    forall (int x, int y):
      if:
         // when premise is false...
-        x == 2*y
+        x == (2*y)
         x == 1
      then:
         // ...you can prove anything!

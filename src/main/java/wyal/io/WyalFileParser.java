@@ -294,10 +294,10 @@ public class WyalFileParser {
 		// updated this and such updates should only be visible to the
 		// conditions contained within the quantified statement.
 		scope = scope.clone();
-
-		int[] parameters = parseParameterDeclarations(scope);
+		// Parse the parameter declarations for this block
+		List<Integer> parameters = parseParameterDeclarations(scope);
+		// Parser the body
 		int body;
-
 		if (tryAndMatch(true, Colon) != null) {
 			matchEndLine();
 			body = parseBlock(scope, indent);
@@ -310,15 +310,22 @@ public class WyalFileParser {
 		return scope.add(bytecode, sourceAttr(start, index - 1));
 	}
 
-	private int[] parseParameterDeclarations(EnclosingScope scope) {
-		SyntaxTree tree = scope.getSyntaxTree();
+	private List<Integer> parseParameterDeclarations(EnclosingScope scope) {
+		ArrayList<Integer> parameters = new ArrayList<Integer>();
 		match(LeftBrace);
+		boolean firstTime=true;
 		while(eventuallyMatch(RightBrace) == null) {
+			if(!firstTime) {
+				match(Comma);
+			} else {
+				firstTime=false;
+			}
 			int start = index;
 			int type = parseType(scope);
 			String name = match(Identifier).text;
-			int parameter = scope.declare(type, name, sourceAttr(start,index-1));
+			parameters.add(scope.declare(type, name, sourceAttr(start,index-1)));
 		}
+		return parameters;
 	}
 
 	/**

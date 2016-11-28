@@ -5,8 +5,8 @@ type nat is (int n) where n >= 0
 assert:
     forall (nat k, nat sum, nat item, nat max):
         if:
-            sum <= max * k
+            sum <= (max * k)
             max <= item
         then:
-            sum <= item * k
+            sum <= (item * k)
 

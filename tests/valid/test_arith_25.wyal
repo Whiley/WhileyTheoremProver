@@ -1,7 +1,7 @@
 assert:
    forall (int x,int y,int z):
      if:
-        x == y + z
+        x == (y + z)
         x > y
      then:
         z > 0
