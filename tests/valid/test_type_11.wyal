@@ -7,6 +7,4 @@ assert:
             v is int
             v >= 0
         then:
-            test.f_ensures_0(v + 1, v)
-
-
+            f_ensures_0(v + 1, v)

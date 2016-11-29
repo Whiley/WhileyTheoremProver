@@ -506,6 +506,19 @@ public class WyalFileParser {
 		throw new IllegalArgumentException("IMPLEMENT ME!");
 	}
 
+	private int parseUnitExpression(EnclosingScope scope, boolean terminated) {
+		checkNotEof();
+		int start = index;
+		int lhs = parseInfixExpression(scope, terminated);
+		if (tryAndMatch(terminated, Is) == null) {
+			return lhs;
+		} else {
+			int rhs = parseType(scope);
+			Bytecode.Operator op = new Bytecode.Operator(Opcode.IS, lhs, rhs);
+			return scope.add(op, sourceAttr(start, index - 1));
+		}
+	}
+
 	/**
 	 * Parse an infix expression of the form.
 	 *
@@ -527,7 +540,7 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private int parseUnitExpression(EnclosingScope scope, boolean terminated) {
+	private int parseInfixExpression(EnclosingScope scope, boolean terminated) {
 		checkNotEof();
 		int start = index;
 		// Parse term
@@ -580,10 +593,6 @@ public class WyalFileParser {
 	 * variable.
 	 * </p>
 	 *
-	 * @param wf
-	 *            The enclosing WhileyFile being constructed. This is necessary
-	 *            to construct some nested declarations (e.g. parameters for
-	 *            lambdas)
 	 * @param scope
 	 *            The enclosing scope for this statement, which determines the
 	 *            set of visible (i.e. declared) variables and also the current
@@ -1479,7 +1488,23 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private int parseRecordType(EnclosingScope scope) {
-		throw new RuntimeException("implement me");
+		int start = index;
+		match(LeftCurly);
+		List<Integer> fields = new ArrayList<Integer>();
+		boolean firstTime = true;
+		while(eventuallyMatch(RightCurly) != null) {
+			if(!firstTime) {
+				match(Comma);
+			} else {
+				firstTime = false;
+			}
+			int fieldStart = index;
+			int fieldType = parseType(scope);
+			int fieldName = parseIdentifier(scope);
+			Bytecode.Operator bytecode = new Bytecode.Operator(Opcode.FIELD,fieldType,fieldName);
+			fields.add(scope.add(bytecode,sourceAttr(fieldStart, index - 1)));
+		}
+		return scope.add(new Bytecode.RecordType(fields), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1514,6 +1539,14 @@ public class WyalFileParser {
 			// this is a nominal type
 			return scope.add(new Bytecode.NominalType(names, null), sourceAttr(start, index - 1));
 		}
+	}
+
+	private int parseIdentifier(EnclosingScope scope) {
+		int start = index;
+		String id = match(Identifier).text;
+		// FIXME: this is a hack for now. Should really replace this with a
+		// specific identifier bytecode.
+		return scope.add(new Bytecode.Constant(Value.String(id)), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1944,7 +1977,6 @@ public class WyalFileParser {
 			RightAngle,
 			EqualsEquals,
 			NotEquals,
-			Is,
 			// Arithmetic Operators
 			Plus,
 			Minus,
@@ -1969,7 +2001,6 @@ public class WyalFileParser {
 		OPERATOR_MAP.put(RightAngle, Bytecode.Opcode.GT);
 		OPERATOR_MAP.put(EqualsEquals, Bytecode.Opcode.EQ);
 		OPERATOR_MAP.put(NotEquals, Bytecode.Opcode.NEQ);
-		OPERATOR_MAP.put(Is, Bytecode.Opcode.IS);
 		OPERATOR_MAP.put(Plus, Bytecode.Opcode.ADD);
 		OPERATOR_MAP.put(Minus, Bytecode.Opcode.SUB);
 		OPERATOR_MAP.put(Star, Bytecode.Opcode.MUL);

@@ -194,6 +194,21 @@ public interface Bytecode {
 		}
 	}
 
+	public final static class RecordType extends AbstractBytecode implements Type {
+		public RecordType(List<Integer> operands) {
+			this(ArrayUtils.toIntArray(operands));
+		}
+
+		public RecordType(int... operands) {
+			super(operands);
+		}
+
+		@Override
+		public Opcode getOpcode() {
+			return Opcode.T_RECORD;
+		}
+	}
+
 	public final static class ArrayType extends AbstractBytecode implements Type {
 		public ArrayType(int operand) {
 			super(operand);

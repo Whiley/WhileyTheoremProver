@@ -8,7 +8,7 @@ define lastIndexOf_ensures_0(null | int r0, int[] r1, int r2) is:
         true
     true
 
-function lastIndexOf(int[] r0, int r1) -> (null | int)
+function lastIndexOf(int[] r0, int r1) -> (null|int r)
 
 define invariant(int[] items, int i, int x, int last) is:
     either:
@@ -17,7 +17,7 @@ define invariant(int[] items, int i, int x, int last) is:
     or:
         last == -1
 
-assert "loop invariant not restored":
+assert:
     forall (int i, int[] xs, int last, int nlast, int x):
         if:
             either:
