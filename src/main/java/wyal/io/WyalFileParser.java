@@ -1317,6 +1317,29 @@ public class WyalFileParser {
 	 */
 	private int parseType(EnclosingScope scope) {
 		int start = index;
+		int first = parseUnaryType(scope);
+		Token lookahead = tryAndMatch(false,Ampersand,VerticalBar);
+		if(lookahead == null) {
+			return first;
+		} else {
+			ArrayList<Integer> operands = new ArrayList<Integer>();
+			operands.add(first);
+			do  {
+				operands.add(parseUnaryType(scope));
+			} while(tryAndMatch(false,lookahead.kind) != null);
+			Bytecode.Type rt;
+			if(lookahead.kind == Ampersand) {
+				rt = new Bytecode.IntersectionType(operands);
+			} else {
+				rt = new Bytecode.UnionType(operands);
+			}
+			return scope.add(rt,sourceAttr(start, index - 1));
+		}
+	}
+
+	private int parseUnaryType(EnclosingScope scope) {
+		// Should match negation and reference types here!
+		int start = index;
 		int type = parseBaseType(scope);
 		while(tryAndMatch(false,LeftSquare) != null) {
 			match(RightSquare);

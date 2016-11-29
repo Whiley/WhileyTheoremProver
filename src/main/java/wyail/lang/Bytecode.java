@@ -228,6 +228,11 @@ public interface Bytecode {
 	}
 
 	public final static class UnionType extends AbstractBytecode implements Type {
+
+		public UnionType(List<Integer> operands) {
+			this(ArrayUtils.toIntArray(operands));
+		}
+
 		public UnionType(int... operands) {
 			super(operands);
 		}
@@ -239,6 +244,9 @@ public interface Bytecode {
 	}
 
 	public final static class IntersectionType extends AbstractBytecode implements Type {
+		public IntersectionType(List<Integer> operands) {
+			this(ArrayUtils.toIntArray(operands));
+		}
 		public IntersectionType(int... operands) {
 			super(operands);
 		}
