@@ -568,7 +568,6 @@ public class WyalFileParser {
 	 * <pre>
 	 * AccessExpr::= PrimaryExpr
 	 *            | AccessExpr '[' AdditiveExpr ']'
-	 *            | AccessExpr '[' AdditiveExpr ".." AdditiveExpr ']'
 	 *            | AccessExpr '.' Identifier
 	 *            | AccessExpr '.' Identifier '(' [ Expr (',' Expr)* ] ')'
 	 *            | AccessExpr "->" Identifier
@@ -619,20 +618,25 @@ public class WyalFileParser {
 		while ((token = tryAndMatchOnLine(LeftSquare)) != null
 				|| (token = tryAndMatch(terminated, Dot, MinusGreater)) != null) {
 			switch (token.kind) {
-			case LeftSquare:
+			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
 				int rhs = parseUnitExpression(scope, true);
 				// This is a plain old array access expression
 				match(RightSquare);
 				lhs = scope.add(new Bytecode.Operator(Opcode.INDEXOF, lhs, rhs), sourceAttr(start, index - 1));
 				break;
-			case Dot:
-				// TODO: copy from WhileyFileParser
+			}
+			case Dot: {
+				int rhs = parseIdentifier(scope);
+				lhs = scope.add(new Bytecode.Operator(Opcode.FIELDLOAD, lhs, rhs), sourceAttr(start, index - 1));
+				break;
+			}
 			}
 		}
 
 		return lhs;
 	}
+
 	/**
 	 *
 	 * @param scope
@@ -985,7 +989,7 @@ public class WyalFileParser {
 		int start = index;
 		match(LeftCurly);
 		HashSet<String> keys = new HashSet<String>();
-		ArrayList<Pair<String, Integer>> exprs = new ArrayList<Pair<String, Integer>>();
+		ArrayList<Integer> exprs = new ArrayList<Integer>();
 
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
@@ -994,11 +998,12 @@ public class WyalFileParser {
 			}
 			firstTime = false;
 			// Parse field name being constructed
-			Token n = match(Identifier);
-			// Check field name is unique
-			if (keys.contains(n.text)) {
-				syntaxError("duplicate tuple key", n);
-			}
+			int fieldStart = index;
+			int n = parseIdentifier(scope);
+			// FIXME: Check field name is unique
+//			if (keys.contains(n.text)) {
+//				syntaxError("duplicate tuple key", n);
+//			}
 			match(Colon);
 			// Parse expression being assigned to field
 			// NOTE: we require the following expression be a "non-tuple"
@@ -1008,12 +1013,11 @@ public class WyalFileParser {
 			// Also, expression is guaranteed to be terminated, either by '}' or
 			// ','.
 			int e = parseUnitExpression(scope, true);
-			exprs.add(new Pair<String, Integer>(n.text, e));
-			keys.add(n.text);
+
+			exprs.add(scope.add(new Bytecode.Operator(Opcode.PAIR, n,e), sourceAttr(fieldStart,index-1)));
 		}
 
-		//return scope.add(new Bytecode.Record(exprs), sourceAttr(start, index - 1));
-		throw new RuntimeException("implement me");
+		return scope.add(new Bytecode.Operator(Opcode.RECORD,exprs), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1492,8 +1496,8 @@ public class WyalFileParser {
 		match(LeftCurly);
 		List<Integer> fields = new ArrayList<Integer>();
 		boolean firstTime = true;
-		while(eventuallyMatch(RightCurly) != null) {
-			if(!firstTime) {
+		while (eventuallyMatch(RightCurly) == null) {
+			if (!firstTime) {
 				match(Comma);
 			} else {
 				firstTime = false;
@@ -1501,8 +1505,8 @@ public class WyalFileParser {
 			int fieldStart = index;
 			int fieldType = parseType(scope);
 			int fieldName = parseIdentifier(scope);
-			Bytecode.Operator bytecode = new Bytecode.Operator(Opcode.FIELD,fieldType,fieldName);
-			fields.add(scope.add(bytecode,sourceAttr(fieldStart, index - 1)));
+			Bytecode.Operator bytecode = new Bytecode.Operator(Opcode.PAIR, fieldType, fieldName);
+			fields.add(scope.add(bytecode, sourceAttr(fieldStart, index - 1)));
 		}
 		return scope.add(new Bytecode.RecordType(fields), sourceAttr(start, index - 1));
 	}

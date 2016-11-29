@@ -103,9 +103,12 @@ public interface Bytecode {
 		ARRAYLENGTH(61),
 		ARRAYGEN(62),
 		INDEXOF(63),
-		// Record
-		TUPLE(64),
-		LOAD(65);
+		// RecordS
+		RECORD(64),
+		FIELDLOAD(65),
+		// Misc
+		PAIR(66);
+
 
 		public int offset;
 
