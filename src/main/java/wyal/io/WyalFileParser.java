@@ -25,6 +25,7 @@ import wyal.lang.WyalFile;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
 import wybs.lang.Attribute;
+import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
@@ -66,10 +67,9 @@ public class WyalFileParser {
 				}
 				else if (lookahead.text.equals("type")) {
 					parseTypeDeclaration(wf);
+				} else if (lookahead.text.equals("define")) {
+					parseMacroDeclaration(wf);
 				}
-				//else if (lookahead.text.equals("define")) {
-//					parseMacroDeclaration(wf);
-//				}
 				else if (lookahead.kind == Function) {
 					parseFunctionDeclaration(wf);
 				}
@@ -222,6 +222,25 @@ public class WyalFileParser {
 		List<Integer> returns = parseParameterDeclarations(scope);
 		// FIXME: need to do something with the parameters and returns!
 		matchEndLine();
+		parent.getDeclarations().add(declaration);
+	}
+
+	protected void parseMacroDeclaration(WyailFile parent) {
+		int start = index;
+		match(Define);
+		String name = match(Identifier).text;
+		// Create empty declaration
+		WyailFile.Macro declaration = new WyailFile.Macro(parent, name, sourceAttr(start, index - 1));
+		SyntaxTree tree = declaration.getTree();
+		EnclosingScope scope = new EnclosingScope(tree, declaration);
+		//
+		List<Integer> parameters = parseParameterDeclarations(scope);
+		match(Is);
+		match(Colon);
+		int body = parseBlock(scope, ROOT_INDENT);
+		declaration.setBody((Location<?>) tree.getLocation(body));
+		// FIXME: need to set the parameters for the declaration here!
+		//
 		parent.getDeclarations().add(declaration);
 	}
 
@@ -635,7 +654,7 @@ public class WyalFileParser {
 		case LeftBrace:
 			return parseBracketedExpression(scope, terminated);
 		case Identifier:
-			match(Identifier);
+			Token next = match(Identifier);
 			if (isFunctionCall()) {
 				return parseInvokeExpression(scope, start, token, terminated);
 			} else if (scope.isDeclaredVariable(token.text)) {
@@ -647,8 +666,9 @@ public class WyalFileParser {
 				// Observe that, at this point, we cannot determine whether or
 				// not this is a constant-access or a package-access which marks
 				// the beginning of a constant-access.
-				throw new RuntimeException("implement constant access: " + token.text);
 			}
+			token = next;
+			break;
 		case Null:
 		case True:
 		case False:
@@ -1085,16 +1105,13 @@ public class WyalFileParser {
 	 */
 	private int parseInvokeExpression(EnclosingScope scope, int start, Token name,
 			boolean terminated) {
-		// First, parse the generic arguments (if any) to this invocation.
-		int[] types = parseGenericArguments(scope);
-
-		// Second, parse the arguments to this invocation.
-//		Expr argument = parseInvocationArgument(wf, generics, environment);
-//
-//		// unqualified direct invocation
-//		return new Expr.Invoke(name.text, null, types, argument, sourceAttr(
-//				start, index - 1));
-		throw new IllegalArgumentException("IMPLEMENT ME!");
+		// Create a dummy nameid which will be resolved later on
+		NameID nid = new NameID(Trie.ROOT,name.text);
+		// Parse arguments
+		int[] args = parseInvocationArguments(scope);
+		// Construct relevant bytecode
+		Bytecode.Invoke ivk = new Bytecode.Invoke(nid, args);
+		return scope.add(ivk, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1184,20 +1201,19 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private int[] parseGenericArguments(EnclosingScope scope) {
+	private int[] parseInvocationArguments(EnclosingScope scope) {
 		ArrayList<Integer> arguments = new ArrayList<Integer>();
-		if (tryAndMatch(true, LeftAngle) != null) {
-			// generic arguments...
-			boolean firstTime = true;
-			while (eventuallyMatch(RightAngle) == null) {
-				if (!firstTime) {
-					match(Comma);
-				}
-				firstTime = false;
-				// Note, we have to parse a unit type here since comma's are
-				// already being used to separate the generic argument list.
-				arguments.add(parseType(scope));
+		match(LeftBrace);
+		// generic arguments...
+		boolean firstTime = true;
+		while (eventuallyMatch(RightBrace) == null) {
+			if (!firstTime) {
+				match(Comma);
 			}
+			firstTime = false;
+			// Note, we have to parse a unit expression here since comma's are
+			// already being used to separate the argument list.
+			arguments.add(parseUnitExpression(scope,true));
 		}
 
 		return ArrayUtils.toIntArray(arguments);

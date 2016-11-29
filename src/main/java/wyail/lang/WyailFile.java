@@ -87,19 +87,6 @@ public class WyailFile extends AbstractCompilationUnit {
 		return null;
 	}
 
-	public Declaration getDeclaration(String name, SemanticType type) {
-		for (Declaration d : declarations) {
-			if (d.name.equals(name)) {
-				if (d instanceof Function && ((Function) d).getType().equals(type)) {
-					return d;
-				} else if (d instanceof Macro && ((Macro) d).getType().equals(type)) {
-					return d;
-				}
-			}
-		}
-		return null;
-	}
-
 	public <T extends Declaration> T getDeclaration(String name, Class<T> type) {
 		for (Declaration d : declarations) {
 			if (d.name.equals(name) && type.isInstance(d)) {
@@ -174,20 +161,14 @@ public class WyailFile extends AbstractCompilationUnit {
 	}
 
 	public static class Macro extends Declaration {
-		private final SemanticType.Function type;
 		private Location<?> body;
 
-		public Macro(WyailFile parent, String name, SemanticType.Function type, Attribute... attributes) {
-			this(parent, name, type, Arrays.asList(attributes));
+		public Macro(WyailFile parent, String name, Attribute... attributes) {
+			this(parent, name, Arrays.asList(attributes));
 		}
 
-		public Macro(WyailFile parent, String name, SemanticType.Function type, Collection<Attribute> attributes) {
+		public Macro(WyailFile parent, String name, Collection<Attribute> attributes) {
 			super(parent, name, attributes);
-			this.type = type;
-		}
-
-		public SemanticType.Function getType() {
-			return type;
 		}
 
 		public Location<?> getBody() {

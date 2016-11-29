@@ -1,9 +1,12 @@
-import wycs.core.Array
-            
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
+
 assert:
     forall (int[] items, int[] nitems, int n):
         if:
-            Array.<int>update(items,nitems,n)
+            update(items,nitems,n)
             nitems[n] == 0
         then:
             nitems[n] == 0

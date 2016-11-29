@@ -437,8 +437,6 @@ public interface Bytecode {
 			this.isUniversal = isUniversal;
 		}
 
-
-
 		@Override
 		public Opcode getOpcode() {
 			if (isUniversal) {
@@ -446,6 +444,28 @@ public interface Bytecode {
 			} else {
 				return Opcode.EXISTS;
 			}
+		}
+	}
+
+	public final static class Invoke extends AbstractBytecode implements Stmt,Expr {
+		private final NameID name;
+
+		public Invoke(NameID name, List<Integer> operands) {
+			this(name, ArrayUtils.toIntArray(operands));
+		}
+
+		public Invoke(NameID name, int... operands) {
+			super(operands);
+			this.name = name;
+		}
+
+		public NameID getName() {
+			return name;
+		}
+
+		@Override
+		public Opcode getOpcode() {
+			return Opcode.FUNCALL;
 		}
 	}
 

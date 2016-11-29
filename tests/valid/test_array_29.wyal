@@ -1,6 +1,6 @@
-define In<T>(T x, [T] xs) is:
+define In(int x, int[] xs) is:
   exists(int i):
      xs[i] == x
 
 assert:
-  In<int>(1,[1,2])
+  In(1,[1,2])

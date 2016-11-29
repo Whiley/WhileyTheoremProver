@@ -1,10 +1,18 @@
-import wycs.core.Array
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
+
+define generate(int[] items, int element, int count) is:
+    |items| == count
+    forall(int j):
+        items[j] == element
 
 assert:
     forall (int[] xs, int[] ys, int[] zs, int i):
         if:
-            Array.<int>generate(ys, 0, |xs|)
-            Array.<int>update(ys, zs, i)
+            generate(ys, 0, |xs|)
+            update(ys, zs, i)
         then:
             |xs| == |zs|
 

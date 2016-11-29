@@ -1,4 +1,7 @@
-import wycs.core.Array
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
 
 define invariant(int[] items, int n) is:
     forall (int i):
@@ -7,11 +10,11 @@ define invariant(int[] items, int n) is:
         then:
             items[i] == 0
             
-assert "loop invariant not restored":
-    forall (int[] items, [int] nitems, int n):
+assert:
+    forall (int[] items, int[] nitems, int n):
         if:
             invariant(items,n)
-            Array.<int>update(items,nitems,n)
+            update(items,nitems,n)
             nitems[n] == 0
         then:
             invariant(nitems,n+1)
