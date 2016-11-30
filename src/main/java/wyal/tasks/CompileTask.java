@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import wyail.lang.WyailFile;
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;
@@ -92,7 +92,7 @@ public class CompileTask implements Build.Task {
 				// source file which is easily translated into a temporary
 				// WyilFile. This is needed for resolution.
 				Path.Root dst = p.second();
-				Path.Entry<WyailFile> target = dst.create(entry.id(), WyailFile.ContentType);
+				Path.Entry<WyalFile> target = dst.create(entry.id(), WyalFile.ContentType);
 				target.write(createSkeleton(wf,target));
 				// Register the derivation in the build graph. This is important
 				// to understand what a particular intermediate file was
@@ -121,7 +121,7 @@ public class CompileTask implements Build.Task {
 			Path.Root dst = p.second();
 			if (src.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) src;
-				Path.Entry<WyailFile> target = dst.get(src.id(), WyailFile.ContentType);
+				Path.Entry<WyalFile> target = dst.get(src.id(), WyalFile.ContentType);
 				generatedFiles.add(target);
 				// FIXME: need to actually generate code here
 			}
@@ -145,7 +145,7 @@ public class CompileTask implements Build.Task {
 	// Private Implementation
 	// ======================================================================
 
-	private WyailFile createSkeleton(WyalFile whileyFile, Path.Entry<WyailFile> target) {
+	private WyalFile createSkeleton(WyalFile whileyFile, Path.Entry<WyalFile> target) {
 		// FIXME: this is a temporary hack
 		return null;
 	}

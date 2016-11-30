@@ -3,10 +3,10 @@ package wyail.util;
 import java.util.BitSet;
 import java.util.List;
 
-import wyail.lang.Bytecode;
 import wyail.lang.SyntaxTree;
-import wyail.lang.WyailFile;
-import wyail.lang.WyailFile.Assert;
+import wyal.lang.Bytecode;
+import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Assert;
 
 public abstract class InteractiveProof extends AbstractProof {
 	/**
@@ -15,12 +15,12 @@ public abstract class InteractiveProof extends AbstractProof {
 	 */
 	private final Rule[] rules;
 
-	public InteractiveProof(WyailFile.Assert assertion, Rule...rules) {
+	public InteractiveProof(WyalFile.Assert assertion, Rule...rules) {
 		super(assertion);
 		this.rules = rules;
 	}
 
-	public SyntaxTree.Location<?> getLocation(int index) {
+	public SyntaxTree.Location getLocation(int index) {
 		return tree.getLocation(index);
 	}
 

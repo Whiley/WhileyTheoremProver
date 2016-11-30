@@ -3,13 +3,13 @@ package wyail;
 import java.util.BitSet;
 import java.util.List;
 
-import wyail.lang.Bytecode;
-import wyail.lang.WyailFile;
 import wyail.util.InteractiveProof;
 import wyail.util.InteractiveProver;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
+import wyal.lang.Bytecode;
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 
 import java.io.BufferedReader;
@@ -107,7 +107,7 @@ public class ProofConsole {
 		// Lex and parse the source file
 		WyalFileLexer lexer = new WyalFileLexer(e);
 		WyalFileParser parser = new WyalFileParser(e, lexer.scan());
-		WyailFile file = parser.read();
+		WyalFile file = parser.read();
 		System.out.println("OK");
 		// Create the interactive prover
 		prover = new InteractiveProver(file);

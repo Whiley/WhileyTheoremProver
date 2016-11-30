@@ -4,7 +4,7 @@ import static wyail.solver.Solver.Div;
 import static wyail.solver.Solver.Mul;
 import static wyail.solver.Solver.Sum;
 
-import wyail.lang.SemanticType;
+import wyal.lang.SemanticType;
 import wyautl.core.Automaton;
 
 /**

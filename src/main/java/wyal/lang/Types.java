@@ -1,4 +1,4 @@
-package wyail.lang;
+package wyal.lang;
 
 import java.io.*;
 import java.util.*;

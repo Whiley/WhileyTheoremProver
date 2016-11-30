@@ -6,8 +6,8 @@
 
 package wyal;
 
-import wyail.lang.WyailFile;
 import wyal.commands.CompileCommand;
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wycc.lang.Command;
 import wycc.lang.Module;
@@ -31,7 +31,7 @@ public class Activator implements Module.Activator {
 			if (suffix.equals("wyal")) {
 				e.associate(WyalFile.ContentType, null);
 			} else if (suffix.equals("wycs")) {
-				e.associate(WyailFile.ContentType, null);
+				e.associate(WyalFile.ContentType, null);
 			}
 		}
 

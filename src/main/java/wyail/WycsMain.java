@@ -27,10 +27,10 @@ package wyail;
 
 import java.io.IOException;
 
-import wyail.lang.WyailFile;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wyfs.lang.Content;
 import wyfs.lang.Content.Type;
@@ -63,7 +63,7 @@ public class WycsMain {
 		// Now, lex and parse the source file
 		WyalFileLexer lexer = new WyalFileLexer(e);
 		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
-		WyailFile file = parser.read();
+		WyalFile file = parser.read();
 		// Finally, print it out
 		new WyalFilePrinter(System.out).write(file);
 	}

@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
-import wyail.lang.Bytecode;
-import wyail.lang.Proof;
-import wyail.lang.SemanticType;
 import wyail.lang.SyntaxTree;
-import wyail.lang.WyailFile;
 import wyail.lang.SyntaxTree.Location;
+import wyal.lang.Bytecode;
+import wyal.lang.Proof;
+import wyal.lang.SemanticType;
+import wyal.lang.WyalFile;
 
 public abstract class AbstractProof implements Proof {
 	/**
 	 * The assertion being resolved
 	 */
-	protected WyailFile.Assert assertion;
+	protected WyalFile.Assert assertion;
 
 	/**
 	 * The abstract syntax tree corresponding to all known information.
@@ -33,14 +33,14 @@ public abstract class AbstractProof implements Proof {
 	 */
 	private int HEAD;
 
-	public AbstractProof(WyailFile.Assert assertion) {
+	public AbstractProof(WyalFile.Assert assertion) {
 		this.assertion = assertion;
 		// Clone the tree so we can modify it as necessary.
 		this.tree = new SyntaxTree(assertion.getTree());
 	}
 
 	@Override
-	public WyailFile.Assert getAssertion() {
+	public WyalFile.Assert getAssertion() {
 		return assertion;
 	}
 
@@ -68,8 +68,8 @@ public abstract class AbstractProof implements Proof {
 	 *
 	 * @param l
 	 */
-	public void assumeNot(Location<?> stmt) {
-		Bytecode b = new Bytecode.Operator(Bytecode.Opcode.NOT, stmt.getIndex());
+	public void assumeNot(Location stmt) {
+		Bytecode b = new Bytecode(Bytecode.Opcode.NOT, stmt.getIndex());
 		int idx = addStatement(b);
 		BitSet truths;
 		if (HEAD < states.size()) {
@@ -85,7 +85,7 @@ public abstract class AbstractProof implements Proof {
 	}
 
 	private int addStatement(Bytecode b) {
-		tree.getLocations().add(new SyntaxTree.Location<Bytecode>(tree, SemanticType.Bool, b));
+		tree.getLocations().add(new SyntaxTree.Location(tree, SemanticType.Bool, b));
 		return tree.getLocations().size() - 1;
 	}
 
@@ -148,12 +148,12 @@ public abstract class AbstractProof implements Proof {
 		}
 
 		@Override
-		public wyail.lang.Proof.State getParentState() {
+		public wyal.lang.Proof.State getParentState() {
 			return states.get(parent);
 		}
 
 		@Override
-		public wyail.lang.Proof.State getChildState() {
+		public wyal.lang.Proof.State getChildState() {
 			return states.get(child);
 		}
 
