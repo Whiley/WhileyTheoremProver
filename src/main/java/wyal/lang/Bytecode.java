@@ -17,8 +17,7 @@ import wycc.util.ArrayUtils;
  * @param <T>
  */
 public class Bytecode {
-	public final static int UNKNOWN_TYPE = -1;
-
+	// Constants;
 	private final Opcode opcode;
 	private final int[] operands;
 	protected final Object data;

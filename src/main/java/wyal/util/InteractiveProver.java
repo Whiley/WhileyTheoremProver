@@ -1,4 +1,4 @@
-package wyail.util;
+package wyal.util;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -51,7 +51,7 @@ public class InteractiveProver {
 		this.wycsFile = file;
 		this.rules = rules;
 		int count = 0;
-		for(WyalFile.Declaration d : wycsFile.getDeclarations()) {
+		for(WyalFile.NamedDeclaration d : wycsFile.getDeclarations()) {
 			if(d instanceof WyalFile.Assert) {
 				count = count + 1;
 			}
@@ -84,7 +84,7 @@ public class InteractiveProver {
 
 	private WyalFile.Assert getAssertion(int index) {
 		int count = 0;
-		for(WyalFile.Declaration d : wycsFile.getDeclarations()) {
+		for(WyalFile.NamedDeclaration d : wycsFile.getDeclarations()) {
 			if(d instanceof WyalFile.Assert) {
 				if(count == index) {
 					return ((WyalFile.Assert) d);

@@ -58,16 +58,13 @@ public class WyalFileParser {
 				lookahead = tokens.get(index);
 				if (lookahead.kind == Assert) {
 					parseAssertDeclaration(wf);
-				}
-				else if (lookahead.text.equals("type")) {
+				} else if (lookahead.text.equals("type")) {
 					parseTypeDeclaration(wf);
 				} else if (lookahead.text.equals("define")) {
 					parseMacroDeclaration(wf);
-				}
-				else if (lookahead.kind == Function) {
+				} else if (lookahead.kind == Function) {
 					parseFunctionDeclaration(wf);
-				}
-				else {
+				} else {
 					syntaxError("unrecognised declaration", lookahead);
 				}
 			}
@@ -107,44 +104,35 @@ public class WyalFileParser {
 	 */
 	private void parseImportDeclaration(WyalFile parent) {
 		int start = index;
+		EnclosingScope scope = new EnclosingScope(parent);
 
 		match(Import);
-
-		// First, parse "from" usage (if applicable)
-		Token token = tryAndMatch(true, Identifier, Star);
-		if (token == null) {
-			syntaxError("expected identifier or '*' here", token);
-		}
-		String name = token.text;
-		// NOTE: we don't specify "from" as a keyword because this prevents it
-		// from being used as a variable identifier.
-		Token lookahead;
-		if ((lookahead = tryAndMatchOnLine(Identifier)) != null) {
-			// Ok, this must be "from"
-			if (!lookahead.text.equals("from")) {
-				syntaxError("expected \"from\" here", lookahead);
-			}
-			token = match(Identifier);
-		}
-
-		// Second, parse package string
-		Trie filter = Trie.ROOT.append(token.text);
-		token = null;
-		while ((token = tryAndMatch(true, Dot, DotDot)) != null) {
-			if (token.kind == DotDot) {
-				filter = filter.append("**");
-			}
-			if (tryAndMatch(true, Star) != null) {
-				filter = filter.append("*");
-			} else {
-				filter = filter.append(match(Identifier).text);
-			}
-		}
+		int[] filterPath = parseFilterPath(scope);
 
 		int end = index;
 		matchEndLine();
 
-		parent.getItems().add(new WyalFile.Import(parent,filter, name, sourceAttr(start, end - 1)));
+		parent.getItems().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
+	}
+
+	private int[] parseFilterPath(EnclosingScope scope) {
+		// Parse package filter string
+		ArrayList<Integer> components = new ArrayList<Integer>();
+		components.add(parseIdentifier(scope));
+		while (tryAndMatch(true, Dot) != null) {
+			int component = parseStarOrIdentifier(scope);
+			components.add(component);
+		}
+		//
+		return ArrayUtils.toIntArray(components);
+	}
+
+	private int parseStarOrIdentifier(EnclosingScope scope) {
+		if (tryAndMatch(true, Star) != null) {
+			return WyalFile.STAR;
+		} else {
+			return parseIdentifier(scope);
+		}
 	}
 
 	/**
@@ -661,11 +649,11 @@ public class WyalFileParser {
 		case LeftBrace:
 			return parseBracketedExpression(scope, terminated);
 		case Identifier:
-			Token next = match(Identifier);
 			if (isFunctionCall()) {
-				return parseInvokeExpression(scope, start, token, terminated);
+				return parseInvokeExpression(scope, start, terminated);
 			} else if (scope.isDeclaredVariable(token.text)) {
 				// Signals a local variable access
+				match(Identifier);
 				int varidx = scope.getVariableDeclaration(token.text);
 				return scope.add(new Bytecode(Opcode.VARACCESS,varidx), sourceAttr(start, index - 1));
 			} else {
@@ -674,7 +662,6 @@ public class WyalFileParser {
 				// not this is a constant-access or a package-access which marks
 				// the beginning of a constant-access.
 			}
-			token = next;
 			break;
 		case Null:
 		case True:
@@ -1101,8 +1088,7 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private int parseInvokeExpression(EnclosingScope scope, int start, Token name,
-			boolean terminated) {
+	private int parseInvokeExpression(EnclosingScope scope, int start, boolean terminated) {
 		// Create a dummy nameid which will be resolved later on
 		int nid = parseNameID(scope);
 		// Parse arguments
@@ -1131,41 +1117,10 @@ public class WyalFileParser {
 	 */
 	private boolean isFunctionCall() {
 		// First, attempt to parse a generic argument list if one exists.
-		int myIndex = this.index;
+
+		int myIndex = this.index + 1; // skip identifier first
 
 		myIndex = skipLineSpace(myIndex);
-
-		if (myIndex < tokens.size() && tokens.get(myIndex).kind == LeftAngle) {
-			// This signals either an expression involving an inequality, or the
-			// start of a sequence of generic parameters. The goal now is to
-			// determine which it is. The complicating factor is that we must
-			// respect the nesting of generic type lists.
-			int count = 1;
-			myIndex = myIndex + 1;
-
-			while (myIndex < tokens.size() && count > 0) {
-				Token token = tokens.get(myIndex);
-				switch(token.kind) {
-				case LeftAngle:
-					count++;
-					break;
-				case RightAngle:
-					count--;
-					break;
-				case NewLine:
-					// In this case, we've prematurely reached the end of the
-					// line and, hence, this cannot be an invocation.
-					return false;
-				}
-				myIndex = skipLineSpace(myIndex+1);
-			}
-			// Check whether we finished parsing the nested generic arguments or
-			// not.
-			if (count != 0) {
-				// No, we must have reached the end of the file prematurely.
-				return false;
-			}
-		}
 
 		return myIndex < tokens.size() && tokens.get(myIndex).kind == LeftBrace;
 	}
@@ -2146,7 +2101,7 @@ public class WyalFileParser {
 
 		public int add(Bytecode bytecode, List<Attribute> attributes) {
 			List<WyalFile.Item> items = parent.getItems();
-			items.add(new WyalFile.Location(parent, Bytecode.UNKNOWN_TYPE, bytecode, attributes));
+			items.add(new WyalFile.Location(parent, WyalFile.UNKNOWN_TYPE, bytecode, attributes));
 			return items.size() - 1;
 		}
 

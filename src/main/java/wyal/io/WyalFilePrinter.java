@@ -42,14 +42,14 @@ public class WyalFilePrinter {
 			out.println();
 		}
 		// Second, write all declarations
-		for(WyalFile.Declaration d : wf.getDeclarations()) {
+		for(WyalFile.NamedDeclaration d : wf.getDeclarations()) {
 			write(wf, d);
 			out.println();
 		}
 		out.flush();
 	}
 
-	private void write(WyalFile wf, WyalFile.Declaration s) {
+	private void write(WyalFile wf, WyalFile.NamedDeclaration s) {
 		writeRawBytecodes(s);
 		if(s instanceof WyalFile.Function) {
 			write(wf,(WyalFile.Function) s);
@@ -66,7 +66,7 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	public void writeRawBytecodes(WyalFile.Declaration d) {
+	public void writeRawBytecodes(WyalFile.NamedDeclaration d) {
 		if(raw) {
 			SyntaxTree tree = d.getTree();
 			for(int i=0;i!=tree.size();++i) {

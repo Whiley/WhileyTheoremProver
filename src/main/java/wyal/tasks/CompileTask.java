@@ -92,7 +92,7 @@ public class CompileTask implements Build.Task {
 				// source file which is easily translated into a temporary
 				// WyilFile. This is needed for resolution.
 				Path.Root dst = p.second();
-				Path.Entry<WyalFile> target = dst.create(entry.id(), WyalFile.ContentType);
+				Path.Entry<WyalFile> target = dst.create(entry.id(), WyalFile.CompiledContentType);
 				target.write(createSkeleton(wf,target));
 				// Register the derivation in the build graph. This is important
 				// to understand what a particular intermediate file was
@@ -121,7 +121,7 @@ public class CompileTask implements Build.Task {
 			Path.Root dst = p.second();
 			if (src.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) src;
-				Path.Entry<WyalFile> target = dst.get(src.id(), WyalFile.ContentType);
+				Path.Entry<WyalFile> target = dst.get(src.id(), WyalFile.CompiledContentType);
 				generatedFiles.add(target);
 				// FIXME: need to actually generate code here
 			}

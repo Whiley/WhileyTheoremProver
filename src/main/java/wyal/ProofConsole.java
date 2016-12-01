@@ -1,15 +1,15 @@
-package wyail;
+package wyal;
 
 import java.util.BitSet;
 import java.util.List;
 
-import wyail.util.InteractiveProof;
-import wyail.util.InteractiveProver;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.Bytecode;
 import wyal.lang.WyalFile;
+import wyal.util.InteractiveProof;
+import wyal.util.InteractiveProver;
 import wyal.lang.WyalFile;
 
 import java.io.BufferedReader;

@@ -1,4 +1,4 @@
-package wyail.util;
+package wyal.util;
 
 import java.util.BitSet;
 import java.util.List;

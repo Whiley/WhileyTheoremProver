@@ -12,19 +12,14 @@ import java.util.List;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
-import wyal.lang.Bytecode.Opcode;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Import;
 import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.util.AbstractCompilationUnit;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
-import wyfs.util.Trie;
 
-public class WyalFile extends AbstractCompilationUnit {
+public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 	// =========================================================================
 	// Content Type
@@ -102,7 +97,7 @@ public class WyalFile extends AbstractCompilationUnit {
 	// Constructors
 	// =========================================================================
 
-	public WyalFile(Path.Entry<? extends CompilationUnit> entry) {
+	public WyalFile(Path.Entry<WyalFile> entry) {
 		super(entry);
 		this.items = new ArrayList<Item>();
 	}
@@ -113,39 +108,6 @@ public class WyalFile extends AbstractCompilationUnit {
 
 	public List<Item> getItems() {
 		return items;
-	}
-
-
-	/**
-	 * Construct an appropriate list of import statements for a declaration in a
-	 * given file. Thus, only import statements up to and including the given
-	 * declaration will be included in the returned list.
-	 *
-	 * @param wf
-	 *            --- Whiley File in question to obtain list of import
-	 *            statements.
-	 * @param decl
-	 *            --- declaration in Whiley File for which the list is desired.
-	 * @return
-	 */
-	public List<Import> imports(Declaration d) {
-		Path.ID id = getEntry().id();
-		// this computation could (should?) be cached.
-		ArrayList<Import> imports = new ArrayList<Import>();
-		imports.add(new WyalFile.Import(this,Trie.fromString(id.parent(), "*"), null));
-
-		for(Declaration pd : this.getDeclarations()) {
-			if(d == pd) {
-				break;
-			} else if(d instanceof Import) {
-				imports.add((Import)pd);
-			}
-		}
-		imports.add(new WyalFile.Import(this,Trie.fromString(id), "*"));
-
-		Collections.reverse(imports);
-
-		return imports;
 	}
 
 	// ============================================================
@@ -163,33 +125,6 @@ public class WyalFile extends AbstractCompilationUnit {
 		// exist.
 	}
 
-	// ============================================================
-	// Imports
-	// ============================================================
-
-	/**
-	 * Represents an import declaration in a Wycs source file. For example:
-	 *
-	 * <pre>
-	 * import wycs.lang.Map
-	 * </pre>
-	 *
-	 * Here, the package is <code>wycs.lang</code>, and the module is
-	 * <code>Map</code>.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public static class Import extends Declaration {
-		public final Trie filter;
-		public final String name;
-
-		public Import(WyalFile parent, Trie filter, int nameIndex, Attribute... attributes) {
-			super(parent,null,attributes);
-			this.filter = filter;
-			this.name = name;
-		}
-	}
 	// ============================================================
 	// Context
 	// ============================================================
@@ -278,14 +213,27 @@ public class WyalFile extends AbstractCompilationUnit {
 	// Declaration
 	// ============================================================
 	public static class Declaration extends Context implements Item {
-		private final int nameIndex;
-
-		public Declaration(WyalFile parent, int nameIndex, Attribute... attributes) {
-			this(parent,nameIndex,Arrays.asList(attributes));
+		public Declaration(WyalFile parent, Attribute... attributes) {
+			this(parent, Arrays.asList(attributes));
 		}
 
-		public Declaration(WyalFile parent, int nameIndex, Collection<Attribute> attributes) {
-			super(parent,attributes);
+		public Declaration(WyalFile parent, Collection<Attribute> attributes) {
+			super(parent, attributes);
+		}
+	}
+
+	// ============================================================
+	// Declaration
+	// ============================================================
+	public static class NamedDeclaration extends Context implements Item {
+		private final int nameIndex;
+
+		public NamedDeclaration(WyalFile parent, int nameIndex, Attribute... attributes) {
+			this(parent, nameIndex, Arrays.asList(attributes));
+		}
+
+		public NamedDeclaration(WyalFile parent, int nameIndex, Collection<Attribute> attributes) {
+			super(parent, attributes);
 			this.nameIndex = nameIndex;
 		}
 
@@ -297,7 +245,7 @@ public class WyalFile extends AbstractCompilationUnit {
 	// ============================================================
 	// Function Declaration
 	// ============================================================
-	public static class Function extends Declaration {
+	public static class Function extends NamedDeclaration {
 		private final int[] parameterIndices;
 		private final int[] returnIndices;
 
@@ -317,7 +265,7 @@ public class WyalFile extends AbstractCompilationUnit {
 	// ============================================================
 	// Macro Declaration
 	// ============================================================
-	public static class Macro extends Declaration {
+	public static class Macro extends NamedDeclaration {
 		private final int[] parameterIndices;
 		private final int bodyIndex;
 
@@ -339,7 +287,7 @@ public class WyalFile extends AbstractCompilationUnit {
 	// ============================================================
 	// Type Declaration
 	// ============================================================
-	public static class Type extends Declaration {
+	public static class Type extends NamedDeclaration {
 		private final int[] invariantIndices;
 
 		public Type(WyalFile parent, int nameIndex, int[] invariantIndices, Attribute... attributes) {
@@ -367,7 +315,7 @@ public class WyalFile extends AbstractCompilationUnit {
 		}
 
 		public Assert(WyalFile parent, int bodyIndex, Collection<Attribute> attributes) {
-			super(parent,-1,attributes);
+			super(parent,attributes);
 			this.bodyIndex = bodyIndex;
 		}
 
@@ -376,6 +324,31 @@ public class WyalFile extends AbstractCompilationUnit {
 		}
 	}
 
+	// ============================================================
+	// Imports
+	// ============================================================
+
+	/**
+	 * Represents an import declaration in a Wycs source file. For example:
+	 *
+	 * <pre>
+	 * import wycs.lang.Map
+	 * </pre>
+	 *
+	 * Here, the package is <code>wycs.lang</code>, and the module is
+	 * <code>Map</code>.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	public static class Import extends Declaration {
+		public final int[] pathIndices;
+
+		public Import(WyalFile parent, int[] pathIndices, Attribute... attributes) {
+			super(parent,attributes);
+			this.pathIndices = pathIndices;
+		}
+	}
 	// ===========================================================
 	// Helper accessor methods
 	// ===========================================================
@@ -404,4 +377,10 @@ public class WyalFile extends AbstractCompilationUnit {
 		}
 		return locations;
 	}
+
+	// ===========================================================
+	// Constants
+	// ===========================================================
+	public final static int STAR = -2;
+	public final static int UNKNOWN_TYPE = -1;
 }
