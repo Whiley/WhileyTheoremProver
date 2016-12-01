@@ -112,7 +112,7 @@ public class WyalFileParser {
 		int end = index;
 		matchEndLine();
 
-		parent.getConstantPool().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
+		parent.getSyntacticItems().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
 	}
 
 	private int[] parseFilterPath(EnclosingScope scope) {
@@ -150,7 +150,7 @@ public class WyalFileParser {
 		matchEndLine();
 		int body = parseBlock(scope, ROOT_INDENT);
 		WyalFile.Assert declaration = new WyalFile.Assert(parent, body, sourceAttr(start, index - 1));
-		parent.getConstantPool().add(declaration);
+		parent.getSyntacticItems().add(declaration);
 	}
 
 	/**
@@ -175,7 +175,7 @@ public class WyalFileParser {
 		//
 		WyalFile.Type declaration = new WyalFile.Type(parent, nameIndex, invariant, sourceAttr(start, index - 1));
 		//
-		parent.getConstantPool().add(declaration);
+		parent.getSyntacticItems().add(declaration);
 	}
 
 	private int[] parseInvariantClauses(EnclosingScope scope) {
@@ -205,7 +205,7 @@ public class WyalFileParser {
 		//
 		WyalFile.Function declaration = new WyalFile.Function(parent, nameIndex, parameters, returns,
 				sourceAttr(start, index - 1));
-		parent.getConstantPool().add(declaration);
+		parent.getSyntacticItems().add(declaration);
 	}
 
 	protected void parseMacroDeclaration(WyalFile parent) {
@@ -222,7 +222,7 @@ public class WyalFileParser {
 		// Create empty declaration
 		WyalFile.Macro declaration = new WyalFile.Macro(parent, nameIndex, parameters, body,
 				sourceAttr(start, index - 1));
-		parent.getConstantPool().add(declaration);
+		parent.getSyntacticItems().add(declaration);
 	}
 
 	/**
@@ -276,7 +276,7 @@ public class WyalFileParser {
 				// Second, parse the actual statement at this point!
 				statements.add(parseStatement(scope, indent));
 			}
-			return scope.add(new Bytecode(Opcode.BLOCK,statements), sourceAttr(start, index - 1));
+			return scope.add(new Bytecode(Opcode.STMT_block,statements), sourceAttr(start, index - 1));
 		}
 	}
 
@@ -353,7 +353,7 @@ public class WyalFileParser {
 		match(Colon);
 		matchEndLine();
 		int thenBlock = parseBlock(scope, indent);
-		return scope.add(new Bytecode(Opcode.IFTHEN,ifBlock, thenBlock), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.STMT_ifthen,ifBlock, thenBlock), sourceAttr(start, index - 1));
 	}
 
 	private int parseEitherOrStatement(EnclosingScope scope, Indent indent) {
@@ -375,7 +375,7 @@ public class WyalFileParser {
 			}
 		} while (lookahead != null && lookahead.kind == Or);
 
-		return scope.add(new Bytecode(Opcode.CASEOF,blocks), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.STMT_caseof,blocks), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -409,7 +409,7 @@ public class WyalFileParser {
 			match(SemiColon);
 			body = parseUnitExpression(scope, false);
 		}
-		Bytecode bytecode = new Bytecode(isUniversal ? Opcode.FORALL : Opcode.EXISTS, body, parameters);
+		Bytecode bytecode = new Bytecode(isUniversal ? Opcode.STMT_forall : Opcode.STMT_exists, body, parameters);
 		return scope.add(bytecode, sourceAttr(start, index - 1));
 	}
 
@@ -432,7 +432,7 @@ public class WyalFileParser {
 		int start = index;
 		int typeIndex = parseType(scope);
 		int nameIndex = parseIdentifier(scope);
-		int decl = scope.add(new Bytecode(Opcode.VARDECL,typeIndex,nameIndex), sourceAttr(start,index-1));
+		int decl = scope.add(new Bytecode(Opcode.STMT_vardecl,typeIndex,nameIndex), sourceAttr(start,index-1));
 		scope.declareInScope(decl);
 		return decl;
 	}
@@ -496,7 +496,7 @@ public class WyalFileParser {
 			return lhs;
 		} else {
 			int rhs = parseType(scope);
-			Bytecode op = new Bytecode(Opcode.IS, lhs, rhs);
+			Bytecode op = new Bytecode(Opcode.EXPR_is, lhs, rhs);
 			return scope.add(op, sourceAttr(start, index - 1));
 		}
 	}
@@ -605,12 +605,12 @@ public class WyalFileParser {
 				int rhs = parseUnitExpression(scope, true);
 				// This is a plain old array access expression
 				match(RightSquare);
-				lhs = scope.add(new Bytecode(Opcode.ARRAY_ACCESS, lhs, rhs), sourceAttr(start, index - 1));
+				lhs = scope.add(new Bytecode(Opcode.EXPR_arridx, lhs, rhs), sourceAttr(start, index - 1));
 				break;
 			}
 			case Dot: {
 				int rhs = parseIdentifier(scope);
-				lhs = scope.add(new Bytecode(Opcode.RECORD_ACCESS, lhs, rhs), sourceAttr(start, index - 1));
+				lhs = scope.add(new Bytecode(Opcode.EXPR_recfield, lhs, rhs), sourceAttr(start, index - 1));
 				break;
 			}
 			}
@@ -655,7 +655,7 @@ public class WyalFileParser {
 				// Signals a local variable access
 				match(Identifier);
 				int varidx = scope.getVariableDeclaration(token.text);
-				return scope.add(new Bytecode(Opcode.VARACCESS,varidx), sourceAttr(start, index - 1));
+				return scope.add(new Bytecode(Opcode.EXPR_var,varidx), sourceAttr(start, index - 1));
 			} else {
 				// Otherwise, this must be a constant access of some kind.
 				// Observe that, at this point, we cannot determine whether or
@@ -692,7 +692,7 @@ public class WyalFileParser {
 		Bytecode bytecode;
 		switch (token.kind) {
 		case Null:
-			bytecode = new Bytecode(Opcode.NULL);
+			bytecode = new Bytecode(Opcode.CONST_null);
 			break;
 		case True:
 			bytecode = new Bytecode.Bool(true);
@@ -814,7 +814,7 @@ public class WyalFileParser {
 			if (tryAndMatch(true, RightBrace) != null) {
 				// Ok, finally, we are sure that it is definitely a cast.
 				int e = parseMultiExpression(scope, terminated);
-				return scope.add(new Bytecode(Opcode.CAST, t, e), sourceAttr(start, index - 1));
+				return scope.add(new Bytecode(Opcode.EXPR_cast, t, e), sourceAttr(start, index - 1));
 			}
 		}
 		// We still may have either a cast or a bracketed expression, and we
@@ -860,7 +860,7 @@ public class WyalFileParser {
 				int type = parseType(scope);
 				// Now, parse cast expression
 				e = parseUnitExpression(scope, terminated);
-				return scope.add(new Bytecode(Opcode.CAST, type, e), sourceAttr(start, index - 1));
+				return scope.add(new Bytecode(Opcode.EXPR_cast, type, e), sourceAttr(start, index - 1));
 			}
 			default:
 				// default case, fall through and assume bracketed
@@ -925,7 +925,7 @@ public class WyalFileParser {
 			operands.add(parseUnitExpression(scope, true));
 		}
 
-		Bytecode.Opcode opcode = isArray ? Opcode.ARRAY_INITIALISER : Opcode.ARRAY_GENERATOR;
+		Bytecode.Opcode opcode = isArray ? Opcode.EXPR_arrinit : Opcode.EXPR_arrgen;
 		return scope.add(new Bytecode(opcode, operands), sourceAttr(start, index - 1));
 	}
 
@@ -986,10 +986,10 @@ public class WyalFileParser {
 			// ','.
 			int e = parseUnitExpression(scope, true);
 
-			exprs.add(scope.add(new Bytecode(Opcode.PAIR, n,e), sourceAttr(fieldStart,index-1)));
+			exprs.add(scope.add(new Bytecode(Opcode.ITEM_pair, n,e), sourceAttr(fieldStart,index-1)));
 		}
 
-		return scope.add(new Bytecode(Opcode.RECORD_INITIALISER,exprs), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.EXPR_recinit,exprs), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1023,7 +1023,7 @@ public class WyalFileParser {
 		match(VerticalBar);
 		int e = parseUnitExpression(scope, true);
 		match(VerticalBar);
-		return scope.add(new Bytecode(Opcode.ARRAY_LENGTH, e), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.EXPR_arrlen, e), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1057,7 +1057,7 @@ public class WyalFileParser {
 		match(Minus);
 		int e = parseUnitExpression(scope, terminated);
 		//
-		return scope.add(new Bytecode(Opcode.NEG, e), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.EXPR_neg, e), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1094,7 +1094,7 @@ public class WyalFileParser {
 		// Parse arguments
 		int[] args = parseInvocationArguments(scope);
 		// Construct relevant bytecode
-		Bytecode ivk = new Bytecode(Opcode.FUNCALL, nid, args);
+		Bytecode ivk = new Bytecode(Opcode.EXPR_invoke, nid, args);
 		return scope.add(ivk, sourceAttr(start, index - 1));
 	}
 
@@ -1206,7 +1206,7 @@ public class WyalFileParser {
 		// (!result) ==> other, not !(result ==> other).
 		int e = parseUnitExpression(scope, terminated);
 		//
-		return scope.add(new Bytecode(Opcode.NOT, e), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.EXPR_not, e), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1261,9 +1261,9 @@ public class WyalFileParser {
 	private boolean mustParseAsType(int typeIndex, EnclosingScope scope) {
 		WyalFile.Location bytecode = scope.getLocation(typeIndex);
 		switch (bytecode.getOpcode()) {
-		case T_ARRAY:
-		case T_RECORD:
-		case T_FUN:
+		case TYPE_arr:
+		case TYPE_rec:
+		case TYPE_fun:
 			return true;
 		}
 		return false;
@@ -1297,9 +1297,9 @@ public class WyalFileParser {
 			} while(tryAndMatch(false,lookahead.kind) != null);
 			Bytecode rt;
 			if(lookahead.kind == Ampersand) {
-				rt = new Bytecode(Opcode.T_INTERSECTION,operands);
+				rt = new Bytecode(Opcode.TYPE_and,operands);
 			} else {
-				rt = new Bytecode(Opcode.T_UNION,operands);
+				rt = new Bytecode(Opcode.TYPE_or,operands);
 			}
 			return scope.add(rt,sourceAttr(start, index - 1));
 		}
@@ -1311,7 +1311,7 @@ public class WyalFileParser {
 		int type = parseBaseType(scope);
 		while(tryAndMatch(false,LeftSquare) != null) {
 			match(RightSquare);
-			type = scope.add(new Bytecode(Opcode.T_ARRAY,type), sourceAttr(start, index - 1));
+			type = scope.add(new Bytecode(Opcode.TYPE_arr,type), sourceAttr(start, index - 1));
 		}
 		return type;
 	}
@@ -1348,19 +1348,19 @@ public class WyalFileParser {
 		Opcode opcode;
 		switch (token.kind) {
 		case Void:
-			opcode = Opcode.T_VOID;
+			opcode = Opcode.TYPE_void;
 			break;
 		case Any:
-			opcode = Opcode.T_ANY;
+			opcode = Opcode.TYPE_any;
 			break;
 		case Null:
-			opcode = Opcode.T_NULL;
+			opcode = Opcode.TYPE_null;
 			break;
 		case Bool:
-			opcode = Opcode.T_BOOL;
+			opcode = Opcode.TYPE_bool;
 			break;
 		case Int:
-			opcode = Opcode.T_INT;
+			opcode = Opcode.TYPE_int;
 			break;
 		default:
 			syntaxError("unknown primitive type encountered", token);
@@ -1387,7 +1387,7 @@ public class WyalFileParser {
 		int start = index;
 		match(Shreak);
 		int element = parseType(scope);
-		return scope.add(new Bytecode(Opcode.T_NEGATION, element), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.TYPE_not, element), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1444,10 +1444,10 @@ public class WyalFileParser {
 			int fieldStart = index;
 			int fieldType = parseType(scope);
 			int fieldName = parseIdentifier(scope);
-			Bytecode bytecode = new Bytecode(Opcode.PAIR, fieldType, fieldName);
+			Bytecode bytecode = new Bytecode(Opcode.ITEM_pair, fieldType, fieldName);
 			fields.add(scope.add(bytecode, sourceAttr(fieldStart, index - 1)));
 		}
-		return scope.add(new Bytecode(Opcode.T_RECORD, fields), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.TYPE_rec, fields), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1470,7 +1470,7 @@ public class WyalFileParser {
 		//
 		int nameID = parseNameID(scope);
 		// this is a nominal type constructor
-		return scope.add(new Bytecode(Opcode.T_NOMINAL, nameID), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.TYPE_nom, nameID), sourceAttr(start, index - 1));
 	}
 
 	private int parseIdentifier(EnclosingScope scope) {
@@ -1488,7 +1488,7 @@ public class WyalFileParser {
 		while (tryAndMatch(false, Dot) != null) {
 			components.add(parseIdentifier(scope));
 		}
-		return scope.add(new Bytecode(Opcode.NAME_ID, components), sourceAttr(start, index - 1));
+		return scope.add(new Bytecode(Opcode.ITEM_name, components), sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1933,21 +1933,21 @@ public class WyalFileParser {
 	private static final HashMap<Token.Kind,Bytecode.Opcode> OPERATOR_MAP = new HashMap<>();
 
 	static {
-		OPERATOR_MAP.put(LogicalAnd, Bytecode.Opcode.AND);
-		OPERATOR_MAP.put(LogicalOr, Bytecode.Opcode.OR);
-		OPERATOR_MAP.put(LogicalImplication, Bytecode.Opcode.IMPLIES);
-		OPERATOR_MAP.put(LogicalIff, Bytecode.Opcode.IFF);
-		OPERATOR_MAP.put(LessEquals, Bytecode.Opcode.LTEQ);
-		OPERATOR_MAP.put(LeftAngle, Bytecode.Opcode.LT);
-		OPERATOR_MAP.put(GreaterEquals, Bytecode.Opcode.GTEQ);
-		OPERATOR_MAP.put(RightAngle, Bytecode.Opcode.GT);
-		OPERATOR_MAP.put(EqualsEquals, Bytecode.Opcode.EQ);
-		OPERATOR_MAP.put(NotEquals, Bytecode.Opcode.NEQ);
-		OPERATOR_MAP.put(Plus, Bytecode.Opcode.ADD);
-		OPERATOR_MAP.put(Minus, Bytecode.Opcode.SUB);
-		OPERATOR_MAP.put(Star, Bytecode.Opcode.MUL);
-		OPERATOR_MAP.put(RightSlash, Bytecode.Opcode.DIV);
-		OPERATOR_MAP.put(Percent, Bytecode.Opcode.REM);
+		OPERATOR_MAP.put(LogicalAnd, Bytecode.Opcode.EXPR_and);
+		OPERATOR_MAP.put(LogicalOr, Bytecode.Opcode.EXPR_or);
+		OPERATOR_MAP.put(LogicalImplication, Bytecode.Opcode.EXPR_implies);
+		OPERATOR_MAP.put(LogicalIff, Bytecode.Opcode.EXPR_iff);
+		OPERATOR_MAP.put(LessEquals, Bytecode.Opcode.EXPR_lteq);
+		OPERATOR_MAP.put(LeftAngle, Bytecode.Opcode.EXPR_lt);
+		OPERATOR_MAP.put(GreaterEquals, Bytecode.Opcode.EXPR_gteq);
+		OPERATOR_MAP.put(RightAngle, Bytecode.Opcode.EXPR_gt);
+		OPERATOR_MAP.put(EqualsEquals, Bytecode.Opcode.EXPR_eq);
+		OPERATOR_MAP.put(NotEquals, Bytecode.Opcode.EXPR_neq);
+		OPERATOR_MAP.put(Plus, Bytecode.Opcode.EXPR_add);
+		OPERATOR_MAP.put(Minus, Bytecode.Opcode.EXPR_sub);
+		OPERATOR_MAP.put(Star, Bytecode.Opcode.EXPR_mul);
+		OPERATOR_MAP.put(RightSlash, Bytecode.Opcode.EXPR_div);
+		OPERATOR_MAP.put(Percent, Bytecode.Opcode.EXPR_rem);
 	}
 
 	// =======================================================================
@@ -2100,7 +2100,7 @@ public class WyalFileParser {
 		}
 
 		public int add(Bytecode bytecode, List<Attribute> attributes) {
-			List<WyalFile.ConstantPoolItem> items = parent.getConstantPool();
+			List<WyalFile.ConstantPoolItem> items = parent.getSyntacticItems();
 			items.add(new WyalFile.Location(parent, WyalFile.UNKNOWN_TYPE, bytecode, attributes));
 			return items.size() - 1;
 		}

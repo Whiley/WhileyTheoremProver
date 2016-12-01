@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wybs.lang.Build;
@@ -87,6 +88,9 @@ public class CompileTask implements Build.Task {
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
+				// FIXME: temporary
+				new WyalFilePrinter(System.out).write(wf);
+
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary

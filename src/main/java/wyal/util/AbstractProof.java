@@ -69,7 +69,7 @@ public abstract class AbstractProof implements Proof {
 	 * @param l
 	 */
 	public void assumeNot(Location stmt) {
-		Bytecode b = new Bytecode(Bytecode.Opcode.NOT, stmt.getIndex());
+		Bytecode b = new Bytecode(Bytecode.Opcode.EXPR_not, stmt.getIndex());
 		int idx = addStatement(b);
 		BitSet truths;
 		if (HEAD < states.size()) {

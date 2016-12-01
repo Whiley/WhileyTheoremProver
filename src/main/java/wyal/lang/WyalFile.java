@@ -6,16 +6,18 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+
+import static wycc.util.ArrayUtils.*;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
+import wyal.util.AbstractSyntacticItem;
 import wybs.lang.Attribute;
-import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticElement;
 import wybs.util.AbstractCompilationUnit;
+import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 
@@ -24,7 +26,6 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// =========================================================================
 	// Content Type
 	// =========================================================================
-
 
 	public static final Content.Type<WyalFile> ContentType = new Content.Type<WyalFile>() {
 		public Path.Entry<WyalFile> accept(Path.Entry<?> e) {
@@ -91,7 +92,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// =========================================================================
 	// State
 	// =========================================================================
-	private final ArrayList<ConstantPoolItem> contantPool;
+	private final ArrayList<SyntacticItem> syntacticItems;
 
 	// =========================================================================
 	// Constructors
@@ -99,21 +100,21 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 	public WyalFile(Path.Entry<WyalFile> entry) {
 		super(entry);
-		this.contantPool = new ArrayList<ConstantPoolItem>();
+		this.syntacticItems = new ArrayList<SyntacticItem>();
 	}
 
 	// ============================================================
 	// Accessors
 	// ============================================================
 
-	public List<ConstantPoolItem> getConstantPool() {
-		return contantPool;
+	public List<SyntacticItem> getSyntacticItems() {
+		return syntacticItems;
 	}
 
-	public <T extends ConstantPoolItem> List<T> getSyntacticItems(Class<T> kind) {
+	public <T extends SyntacticItem> List<T> getSyntacticItems(Class<T> kind) {
 		ArrayList<T> matches = new ArrayList<T>();
-		for(int i=0;i!=contantPool.size();++i) {
-			ConstantPoolItem item = contantPool.get(i);
+		for(int i=0;i!=syntacticItems.size();++i) {
+			SyntacticItem item = syntacticItems.get(i);
 			if(kind.isInstance(item)) {
 				matches.add((T) item);
 			}
@@ -121,41 +122,35 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		return matches;
 	}
 
-	// ============================================================
-	// Item
-	// ============================================================
-	public static interface ConstantPoolItem {
-
+	public SyntacticItem getSyntacticItem(int index) {
+		return syntacticItems.get(index);
 	}
 
-	// ============================================================
-	// Comments
-	// ============================================================
-	public static class Comment extends SyntacticElement.Impl implements ConstantPoolItem {
-		// This is just here to illustrate another kind of node which could
-		// exist.
+	public String getIdentifier(int index) {
+		Bytecode.Identifier id = (Bytecode.Identifier) syntacticItems.get(index);
+		return id.get();
 	}
 
-	// ============================================================
-	// Context
-	// ============================================================
-
-	public static class Context extends SyntacticElement.Impl {
-		private final WyalFile parent;
-
-		public Context(WyalFile parent, Attribute... attributes) {
-			this(parent,Arrays.asList(attributes));
-		}
-
-		public Context(WyalFile parent, Collection<Attribute> attributes) {
-			super(attributes);
-			this.parent = parent;
-		}
-
-		public WyalFile getParent() {
-			return parent;
-		}
+	public Location getLocation(int index) {
+		return (Location) syntacticItems.get(index);
 	}
+
+	public Location[] getLocations(int... indices) {
+		Location[] locations = new Location[indices.length];
+		for(int i=0;i!=indices.length;++i) {
+			locations[i] = getLocation(indices[i]);
+		}
+		return locations;
+	}
+
+	public Location[] getLocations(List<Integer> indices) {
+		Location[] locations = new Location[indices.size()];
+		for(int i=0;i!=locations.length;++i) {
+			locations[i] = getLocation(indices.get(i));
+		}
+		return locations;
+	}
+
 	// ============================================================
 	// Location
 	// ============================================================
@@ -166,18 +161,18 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 * @author David J. Pearce
 	 *
 	 */
-	public static class Location extends Context implements ConstantPoolItem {
+	public static class Location extends AbstractSyntacticItem {
 		private final int typeIndex;
 		private final Bytecode bytecode;
 
 		public Location(WyalFile parent, int typeIndex, Bytecode bytecode, Attribute...attributes) {
-			super(parent,attributes);
+			super(parent,null,attributes);
 			this.typeIndex = typeIndex;
 			this.bytecode = bytecode;
 		}
 
 		public Location(WyalFile parent, int typeIndex, Bytecode bytecode, List<Attribute> attributes) {
-			super(parent,attributes);
+			super(parent,null,attributes);
 			this.typeIndex = typeIndex;
 			this.bytecode = bytecode;
 		}
@@ -196,6 +191,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		 *
 		 * @return
 		 */
+		@Override
 		public Bytecode.Opcode getOpcode() {
 			return bytecode.getOpcode();
 		}
@@ -205,6 +201,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		 *
 		 * @return
 		 */
+		@Override
 		public int numberOfOperands() {
 			return bytecode.numberOfOperands();
 		}
@@ -215,37 +212,40 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		 * @param i
 		 * @return
 		 */
+		@Override
 		public Location getOperand(int i) {
 			return getParent().getLocation(bytecode.getOperand(i));
 		}
-	}
 
-	// ============================================================
-	// Declaration
-	// ============================================================
-	public static class Declaration extends Context implements ConstantPoolItem {
-		public Declaration(WyalFile parent, Attribute... attributes) {
-			this(parent, Arrays.asList(attributes));
-		}
-
-		public Declaration(WyalFile parent, Collection<Attribute> attributes) {
-			super(parent, attributes);
+		@Override
+		public String toString() {
+			return bytecode.toString();
 		}
 	}
 
 	// ============================================================
 	// Declaration
 	// ============================================================
-	public static class NamedDeclaration extends Declaration implements ConstantPoolItem {
-		private final int nameIndex;
-
-		public NamedDeclaration(WyalFile parent, int nameIndex, Attribute... attributes) {
-			this(parent, nameIndex, Arrays.asList(attributes));
+	public static class Declaration extends AbstractSyntacticItem {
+		public Declaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Attribute... attributes) {
+			this(parent, opcode, children, Arrays.asList(attributes));
 		}
 
-		public NamedDeclaration(WyalFile parent, int nameIndex, Collection<Attribute> attributes) {
-			super(parent, attributes);
-			this.nameIndex = nameIndex;
+		public Declaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Collection<Attribute> attributes) {
+			super(parent, opcode, children, attributes);
+		}
+	}
+
+	// ============================================================
+	// Declaration
+	// ============================================================
+	public static class NamedDeclaration extends Declaration {
+		public NamedDeclaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Attribute... attributes) {
+			this(parent, opcode, children, Arrays.asList(attributes));
+		}
+
+		public NamedDeclaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Collection<Attribute> attributes) {
+			super(parent, opcode, children, attributes);
 		}
 
 		public String getName() {
@@ -267,7 +267,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public Function(WyalFile parent, int nameIndex, int[] parameterIndices, int[] returnIndices,
 				Collection<Attribute> attributes) {
-			super(parent, nameIndex, attributes);
+			super(parent, Bytecode.Opcode.DECL_fun, new int[] { nameIndex }, attributes);
 			this.parameterIndices = parameterIndices;
 			this.returnIndices = returnIndices;
 		}
@@ -284,12 +284,14 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		private final int[] parameterIndices;
 		private final int bodyIndex;
 
-		public Macro(WyalFile parent, int nameIndex, int[] parameterIndices, int bodyIndex, Attribute... attributes) {
-			this(parent, nameIndex, parameterIndices, bodyIndex, Arrays.asList(attributes));
+		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices, Attribute... attributes) {
+			this(parent, nameIndex, bodyIndex, parameterIndices, Arrays.asList(attributes));
 		}
 
-		public Macro(WyalFile parent, int nameIndex, int[] parameterIndices, int bodyIndex, Collection<Attribute> attributes) {
-			super(parent, nameIndex, attributes);
+		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices,
+				Collection<Attribute> attributes) {
+			super(parent, Bytecode.Opcode.DECL_macro,
+					append(nameIndex, bodyIndex, parameterIndices), attributes);
 			this.bodyIndex = bodyIndex;
 			this.parameterIndices = parameterIndices;
 		}
@@ -314,7 +316,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 
 		public Type(WyalFile parent, int nameIndex, int[] invariantIndices, Collection<Attribute> attributes) {
-			super(parent, nameIndex, attributes);
+			super(parent, Bytecode.Opcode.DECL_type, append(nameIndex, invariantIndices), attributes);
 			this.invariantIndices = invariantIndices;
 		}
 
@@ -331,15 +333,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// Assertion
 	// ============================================================
 	public static class Assert extends Declaration {
-		private final int bodyIndex;
-
 		public Assert(WyalFile parent, int bodyIndex, Attribute... attributes) {
 			this(parent,bodyIndex,Arrays.asList(attributes));
 		}
 
 		public Assert(WyalFile parent, int bodyIndex, Collection<Attribute> attributes) {
-			super(parent,attributes);
-			this.bodyIndex = bodyIndex;
+			super(parent,Bytecode.Opcode.DECL_assert,new int[]{bodyIndex},attributes);
 		}
 
 		public Location getBody() {
@@ -365,41 +364,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 *
 	 */
 	public static class Import extends Declaration {
-		public final int[] pathIndices;
-
 		public Import(WyalFile parent, int[] pathIndices, Attribute... attributes) {
-			super(parent,attributes);
-			this.pathIndices = pathIndices;
+			super(parent, Bytecode.Opcode.DECL_import, pathIndices, attributes);
 		}
 	}
 	// ===========================================================
 	// Helper accessor methods
 	// ===========================================================
-
-	public String getIdentifier(int index) {
-		Bytecode.Identifier id = (Bytecode.Identifier) contantPool.get(index);
-		return id.get();
-	}
-
-	public Location getLocation(int index) {
-		return (Location) contantPool.get(index);
-	}
-
-	public Location[] getLocations(int... indices) {
-		Location[] locations = new Location[indices.length];
-		for(int i=0;i!=indices.length;++i) {
-			locations[i] = getLocation(indices[i]);
-		}
-		return locations;
-	}
-
-	public Location[] getLocations(List<Integer> indices) {
-		Location[] locations = new Location[indices.size()];
-		for(int i=0;i!=locations.length;++i) {
-			locations[i] = getLocation(indices.get(i));
-		}
-		return locations;
-	}
 
 	// ===========================================================
 	// Constants

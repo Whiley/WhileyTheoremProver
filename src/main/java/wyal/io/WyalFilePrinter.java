@@ -50,9 +50,9 @@ public class WyalFilePrinter {
 
 	public void writeConstantPool(WyalFile wf) {
 		if(raw) {
-			List<WyalFile.ConstantPoolItem> items = wf.getConstantPool();
+			List<WyalFile.ConstantPoolItem> items = wf.getSyntacticItems();
 			for(int i=0;i!=items.size();++i) {
-				out.println("// #" + i + " " + wf.getLocation(i).getCode());
+				out.println("// #" + i + " " + wf.getConstantPoolItem(i));
 			}
 		}
 	}
@@ -127,11 +127,15 @@ public class WyalFilePrinter {
 
 	public void writeStatement(WyalFile.Location loc, int indent) {
 		switch(loc.getOpcode()) {
-		case BLOCK:
+		case STMT_block:
 			writeBlock(loc, indent);
 			break;
-		case IFTHEN:
+		case STMT_ifthen:
 			writeIfThen(loc,indent);
+			break;
+		case STMT_forall:
+		case STMT_exists:
+			writeQuantifier(loc,indent);
 			break;
 		default:
 			writeExpressionAsStatement(loc,indent);
@@ -159,6 +163,17 @@ public class WyalFilePrinter {
 		writeStatement(block.getOperand(1),indent+1);
 	}
 
+	private void writeQuantifier(WyalFile.Location block, int indent) {
+		indent(indent);
+		if(block.getOpcode() == Opcode.STMT_forall) {
+			out.print("forall");
+		} else {
+			out.print("exists");
+		}
+		out.println("( ... ):");
+		writeStatement(block.getOperand(0),indent+1);
+	}
+
 	/**
 	 * Write an expression with brackets (if necessary). For some expressiones,
 	 * brackets are never required.
@@ -167,22 +182,22 @@ public class WyalFilePrinter {
 	 */
 	public void writeExpressionWithBrackets(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
-		case AND:
-		case OR:
-		case IMPLIES:
-		case IFF:
-		case EQ:
-		case NEQ:
-		case LT:
-		case LTEQ:
-		case GT:
-		case GTEQ:
-		case IS:
-		case ADD:
-		case SUB:
-		case MUL:
-		case DIV:
-		case REM:
+		case EXPR_and:
+		case EXPR_or:
+		case EXPR_implies:
+		case EXPR_iff:
+		case EXPR_eq:
+		case EXPR_neq:
+		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
+		case EXPR_gteq:
+		case EXPR_is:
+		case EXPR_add:
+		case EXPR_sub:
+		case EXPR_mul:
+		case EXPR_div:
+		case EXPR_rem:
 			// Brackets always required
 			out.print("(");
 			writeExpression(loc);
@@ -196,37 +211,39 @@ public class WyalFilePrinter {
 
 	public void writeExpression(WyalFile.Location loc) {
 		switch (loc.getOpcode()) {
-		case CAST:
-			writeCast((Location<Cast>) loc);
+		case EXPR_cast:
+			writeCast(loc);
 			break;
-		case CONST:
-			writeConstant((Location<Constant>) loc);
+		case CONST_null:
+		case CONST_bool:
+		case CONST_int:
+			writeConstant(loc);
 			break;
-		case NOT:
-		case NEG:
-		case ARRAYLENGTH:
-			writeUnaryOperator((Location<Operator>) loc);
+		case EXPR_not:
+		case EXPR_neg:
+		case EXPR_arrlen:
+			writeUnaryOperator(loc);
 			break;
-		case AND:
-		case OR:
-		case IMPLIES:
-		case IFF:
-		case EQ:
-		case NEQ:
-		case LT:
-		case LTEQ:
-		case GT:
-		case GTEQ:
-		case IS:
-		case ADD:
-		case SUB:
-		case MUL:
-		case DIV:
-		case REM:
-			writeInfixOperator((Location<Operator>) loc);
+		case EXPR_and:
+		case EXPR_or:
+		case EXPR_implies:
+		case EXPR_iff:
+		case EXPR_eq:
+		case EXPR_neq:
+		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
+		case EXPR_gteq:
+		case EXPR_is:
+		case EXPR_add:
+		case EXPR_sub:
+		case EXPR_mul:
+		case EXPR_div:
+		case EXPR_rem:
+			writeInfixOperator(loc);
 			break;
-		case VARACCESS:
-			writeVariableAccess((Location<VariableAccess>) loc);
+		case EXPR_var:
+			writeVariableAccess(loc);
 			break;
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + loc.getOpcode());
@@ -235,9 +252,10 @@ public class WyalFilePrinter {
 
 	public void writeVariableAccess(WyalFile.Location loc) {
 		// Determine variable declaration to which this access refers
-		Location<VariableDeclaration> decl = (Location<VariableDeclaration>) loc.getOperand(0);
+		WyalFile.Location decl = loc.getOperand(0);
+		Bytecode.Identifier ident = (Bytecode.Identifier) decl.getOperand(1).getCode();
 		// Print out the declared variable name
-		out.print(decl.getCode().getName());
+		out.print(ident.get());
 	}
 
 	public void writeCast(WyalFile.Location loc) {
@@ -248,8 +266,23 @@ public class WyalFilePrinter {
 	}
 
 	public void writeConstant(WyalFile.Location loc) {
-		Bytecode.Constant bytecode = loc.getCode();
-		out.print(bytecode.getValue());
+		switch (loc.getOpcode()) {
+		case CONST_null:
+			out.print("null");
+			break;
+		case CONST_bool: {
+			Bytecode.Bool bytecode = (Bytecode.Bool) loc.getCode();
+			out.print(bytecode.get());
+			break;
+		}
+		case CONST_int: {
+			Bytecode.Int bytecode = (Bytecode.Int) loc.getCode();
+			out.print(bytecode.get());
+			break;
+		}
+		default:
+			throw new RuntimeException("unknown bytecode encountered:" + loc.getOpcode());
+		}
 	}
 
 	public void writeUnaryOperator(WyalFile.Location loc) {
@@ -269,22 +302,22 @@ public class WyalFilePrinter {
 
 	private void writeType(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
-		case T_ANY:
+		case TYPE_any:
 			out.print("any");
 			break;
-		case T_VOID:
+		case TYPE_void:
 			out.print("void");
 			break;
-		case T_NULL:
+		case TYPE_null:
 			out.print("null");
 			break;
-		case T_BOOL:
+		case TYPE_bool:
 			out.print("bool");
 			break;
-		case T_INT:
+		case TYPE_int:
 			out.print("int");
 			break;
-		case T_NOMINAL: {
+		case TYPE_nom: {
 			NominalType t = (NominalType) loc.getCode();
 			String[] elements = t.getElements();
 			for(int i=0;i!=elements.length;++i) {
@@ -295,22 +328,22 @@ public class WyalFilePrinter {
 			}
 			break;
 		}
-		case T_ARRAY: {
+		case TYPE_arr: {
 			writeTypeWithBraces(loc.getOperand(0));
 			out.print("[]");
 			break;
 		}
-		case T_REF: {
+		case TYPE_ref: {
 			out.print("&");
 			writeTypeWithBraces(loc.getOperand(0));
 			break;
 		}
-		case T_NEGATION: {
+		case TYPE_not: {
 			out.print("!");
 			writeTypeWithBraces(loc.getOperand(0));
 			break;
 		}
-		case T_UNION: {
+		case TYPE_or: {
 			for(int i=0;i!=loc.numberOfOperands();++i) {
 				if(i != 0) {
 					out.print(" | ");
@@ -319,7 +352,7 @@ public class WyalFilePrinter {
 			}
 			break;
 		}
-		case T_INTERSECTION: {
+		case TYPE_and: {
 			for(int i=0;i!=loc.numberOfOperands();++i) {
 				if(i != 0) {
 					out.print(" & ");
@@ -333,8 +366,8 @@ public class WyalFilePrinter {
 
 	private void writeTypeWithBraces(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
-		case T_UNION:
-		case T_INTERSECTION:
+		case TYPE_or:
+		case TYPE_and:
 			out.print("(");
 			writeType(loc);
 			out.print(")");
@@ -358,20 +391,20 @@ public class WyalFilePrinter {
 	private static final HashMap<Bytecode.Opcode,String> OPERATOR_MAP = new HashMap<>();
 
 	static {
-		OPERATOR_MAP.put(Bytecode.Opcode.AND,"&&");
-		OPERATOR_MAP.put(Bytecode.Opcode.OR,"||");
-		OPERATOR_MAP.put(Bytecode.Opcode.IMPLIES,"==>");
-		OPERATOR_MAP.put(Bytecode.Opcode.IFF,"<==>");
-		OPERATOR_MAP.put(Bytecode.Opcode.LTEQ,"<=");
-		OPERATOR_MAP.put(Bytecode.Opcode.LT,"<");
-		OPERATOR_MAP.put(Bytecode.Opcode.GTEQ,">=");
-		OPERATOR_MAP.put(Bytecode.Opcode.GT,">");
-		OPERATOR_MAP.put(Bytecode.Opcode.EQ,"==");
-		OPERATOR_MAP.put(Bytecode.Opcode.NEQ,"!=");
-		OPERATOR_MAP.put(Bytecode.Opcode.IS,"is");
-		OPERATOR_MAP.put(Bytecode.Opcode.ADD,"+");
-		OPERATOR_MAP.put(Bytecode.Opcode.SUB,"-");
-		OPERATOR_MAP.put(Bytecode.Opcode.MUL,"*");
-		OPERATOR_MAP.put(Bytecode.Opcode.DIV,"/");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_and,"&&");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_or,"||");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_implies,"==>");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_iff,"<==>");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_lteq,"<=");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_lt,"<");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_gteq,">=");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_gt,">");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_eq,"==");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_neq,"!=");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_is,"is");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_add,"+");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_sub,"-");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_mul,"*");
+		OPERATOR_MAP.put(Bytecode.Opcode.EXPR_div,"/");
 	}
 }

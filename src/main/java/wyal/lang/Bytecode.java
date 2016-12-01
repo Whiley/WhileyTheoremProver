@@ -132,74 +132,102 @@ public class Bytecode {
 		return operands;
 	}
 
+	@Override
+	public String toString() {
+		String r = opcode.toString();
+		if(operands != null) {
+			r += "(";
+			for(int i=0;i!=operands.length;++i) {
+				if(i != 0) {
+					r += ", ";
+				}
+				r += operands[i];
+			}
+			r += ")";
+		}
+		if(data != null) {
+			r += ":" + data;
+		}
+		return r;
+	}
+
 	// ==================================================================
 	// Classes
 	// ==================================================================
 
 	public static enum Opcode {
+		//
+		ITEM_pair(100),
+		ITEM_ident(101),
+		ITEM_path(102),
+		ITEM_name(103),
+		// DECLARATIONS
+		DECL_linecomment(104),
+		DECL_blkcomment(105),
+		DECL_import(106),
+		DECL_assert(107),
+		DECL_type(108),
+		DECL_fun(109),
+		DECL_macro(110),
 		// TYPES
-		T_VOID(0),
-		T_ANY(1),
-		T_NULL(2),
-		T_BOOL(3),
-		T_INT(4),
-		T_NOMINAL(5),
-		T_REF(6),
-		T_ARRAY(7),
-		T_RECORD(8),
-		T_FUN(9),
-		T_UNION(10),
-		T_INTERSECTION(11),
-		T_NEGATION(12),
+		TYPE_void(0),
+		TYPE_any(1),
+		TYPE_null(2),
+		TYPE_bool(3),
+		TYPE_int(4),
+		TYPE_nom(5),
+		TYPE_ref(6),
+		TYPE_arr(7),
+		TYPE_rec(8),
+		TYPE_fun(9),
+		TYPE_or(10),
+		TYPE_and(11),
+		TYPE_not(12),
 		// STMTS
-		BLOCK(15),
-		VARDECL(16),
-		IFTHEN(17),
-		CASEOF(18),
+		STMT_block(15),
+		STMT_vardecl(16),
+		STMT_ifthen(17),
+		STMT_caseof(18),
+		STMT_exists(35),
+		STMT_forall(36),
 		// EXPRESSIONS
-		VARACCESS(20),
-		CAST(22),
-		FUNCALL(23),
+		EXPR_var(20),
+		EXPR_cast(22),
+		EXPR_invoke(23),
 		// LOGICAL
-		NOT(30),
-		AND(31),
-		OR(32),
-		IMPLIES(33),
-		IFF(34),
-		EXISTS(35),
-		FORALL(36),
+		EXPR_not(30),
+		EXPR_and(31),
+		EXPR_or(32),
+		EXPR_implies(33),
+		EXPR_iff(34),
 		// COMPARATORS
-		EQ(40),
-		NEQ(41),
-		LT(42),
-		LTEQ(43),
-		GT(44),
-		GTEQ(45),
-		IS(46),
+		EXPR_eq(40),
+		EXPR_neq(41),
+		EXPR_lt(42),
+		EXPR_lteq(43),
+		EXPR_gt(44),
+		EXPR_gteq(45),
+		EXPR_is(46),
 		// ARITHMETIC
-		NEG(50),
-		ADD(51),
-		SUB(52),
-		MUL(53),
-		DIV(54),
-		REM(55),
+		EXPR_neg(50),
+		EXPR_add(51),
+		EXPR_sub(52),
+		EXPR_mul(53),
+		EXPR_div(54),
+		EXPR_rem(55),
 		// ARRAY
-		ARRAY_INITIALISER(60),
-		ARRAY_LENGTH(61),
-		ARRAY_GENERATOR(62),
-		ARRAY_ACCESS(63),
+		EXPR_arrinit(60),
+		EXPR_arrlen(61),
+		EXPR_arrgen(62),
+		EXPR_arridx(63),
 		// RECORDS
-		RECORD_INITIALISER(64),
-		RECORD_ACCESS(65),
+		EXPR_recinit(64),
+		EXPR_recfield(65),
 		// BASE
-		NULL(66),
-		BOOL(67),
-		INT(68),
-		UTF8(69),
-		PAIR(100),
-		IDENTIFIER(101),
-		PATH_ID(102),
-		NAME_ID(103);
+		CONST_null(66),
+		CONST_bool(67),
+		CONST_int(68),
+		CONST_utf8(69);
 
 		public int offset;
 
@@ -213,7 +241,7 @@ public class Bytecode {
 	// =========================================================================
 	public static class Bool extends Bytecode {
 		public Bool(boolean value) {
-			super(Opcode.BOOL, value);
+			super(Opcode.CONST_bool, value);
 		}
 
 		public boolean get() {
@@ -223,7 +251,7 @@ public class Bytecode {
 
 	public static class Int extends Bytecode {
 		public Int(BigInteger value) {
-			super(Opcode.INT, value);
+			super(Opcode.CONST_int, value);
 		}
 
 		public BigInteger get() {
@@ -233,7 +261,7 @@ public class Bytecode {
 
 	public static class UTF8 extends Bytecode {
 		public UTF8(byte[] bytes) {
-			super(Opcode.UTF8, bytes);
+			super(Opcode.CONST_utf8, bytes);
 		}
 
 		public byte[] get() {
@@ -243,7 +271,7 @@ public class Bytecode {
 
 	public static class Identifier extends Bytecode {
 		public Identifier(String name) {
-			super(Opcode.IDENTIFIER, name);
+			super(Opcode.ITEM_ident, name);
 		}
 
 		public String get() {
