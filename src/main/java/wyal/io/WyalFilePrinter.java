@@ -8,8 +8,6 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 
-import wyail.lang.SyntaxTree;
-import wyail.lang.SyntaxTree.Location;
 import wyal.lang.Bytecode;
 import wyal.lang.SemanticType;
 import wyal.lang.WyalFile;
@@ -35,6 +33,7 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf) {
+		writeConstantPool(wf);
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
 		if(pkg != Trie.ROOT) {
@@ -42,15 +41,24 @@ public class WyalFilePrinter {
 			out.println();
 		}
 		// Second, write all declarations
-		for(WyalFile.NamedDeclaration d : wf.getDeclarations()) {
+		for(WyalFile.Declaration d : wf.getSyntacticItems(WyalFile.Declaration.class)) {
 			write(wf, d);
 			out.println();
 		}
 		out.flush();
 	}
 
-	private void write(WyalFile wf, WyalFile.NamedDeclaration s) {
-		writeRawBytecodes(s);
+	public void writeConstantPool(WyalFile wf) {
+		if(raw) {
+			List<WyalFile.ConstantPoolItem> items = wf.getConstantPool();
+			for(int i=0;i!=items.size();++i) {
+				out.println("// #" + i + " " + wf.getLocation(i).getCode());
+			}
+		}
+	}
+
+
+	private void write(WyalFile wf, WyalFile.Declaration s) {
 		if(s instanceof WyalFile.Function) {
 			write(wf,(WyalFile.Function) s);
 		} else if(s instanceof WyalFile.Macro) {
@@ -66,31 +74,9 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	public void writeRawBytecodes(WyalFile.NamedDeclaration d) {
-		if(raw) {
-			SyntaxTree tree = d.getTree();
-			for(int i=0;i!=tree.size();++i) {
-				out.println("// #" + i + " " + tree.getLocation(i).getCode());
-			}
-		}
-	}
-
 	public void write(WyalFile wf, WyalFile.Function s) {
 		out.print("function ");
 		out.print(s.getName());
-		SemanticType[] generics = s.getType().generics();
-		if(generics.length > 0) {
-			out.print("<");
-			boolean firstTime=true;
-			for(SemanticType g : generics) {
-				if(!firstTime) {
-					out.print(", ");
-				}
-				firstTime=false;
-				out.print(((SemanticType.Var)g).name());
-			}
-			out.print(">");
-		}
 		out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
 	}
 
@@ -98,19 +84,6 @@ public class WyalFilePrinter {
 		out.print("define ");
 
 		out.print(s.getName());
-		SemanticType[] generics = s.getType().generics();
-		if(generics.length > 0) {
-			out.print("<");
-			boolean firstTime=true;
-			for(SemanticType g : generics) {
-				if(!firstTime) {
-					out.print(", ");
-				}
-				firstTime=false;
-				out.print(((SemanticType.Var)g).name());
-			}
-			out.print(">");
-		}
 		out.print("(" + s.getType().from() + ") => " + s.getType().to());
 		if(s.getBody() != null) {
 			out.println(" as:");
@@ -123,8 +96,8 @@ public class WyalFilePrinter {
 
 		out.print(s.getName());
 		out.print(" is " + s.getType());
-		if(s.getInvariant().size() > 0) {
-			for(Location<?> stmt : s.getInvariant()) {
+		if(s.getInvariant().length > 0) {
+			for(WyalFile.Location stmt : s.getInvariant()) {
 				out.println(" where");
 				writeStatement(stmt,1);
 			}
@@ -138,13 +111,13 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	private void writeParameters(List<Location<VariableDeclaration>> parameters) {
+	private void writeParameters(List<WyalFile.Location> parameters) {
 		out.print("(");
 		for (int i = 0; i != parameters.size(); ++i) {
 			if (i != 0) {
 				out.print(", ");
 			}
-			Location<VariableDeclaration> parameter = parameters.get(i);
+			WyalFile.Location parameter = parameters.get(i);
 			writeType(parameter.getOperand(0));
 			out.print(" ");
 			out.print(parameter.getCode().getName());
@@ -152,32 +125,32 @@ public class WyalFilePrinter {
 		out.print(")");
 	}
 
-	public void writeStatement(Location<?> loc, int indent) {
+	public void writeStatement(WyalFile.Location loc, int indent) {
 		switch(loc.getOpcode()) {
 		case BLOCK:
-			writeBlock((Location<Block>) loc, indent);
+			writeBlock(loc, indent);
 			break;
 		case IFTHEN:
-			writeIfThen((Location<IfThen>)loc,indent);
+			writeIfThen(loc,indent);
 			break;
 		default:
 			writeExpressionAsStatement(loc,indent);
 		}
 	}
 
-	private void writeExpressionAsStatement(Location<?> loc, int indent) {
+	private void writeExpressionAsStatement(WyalFile.Location loc, int indent) {
 		indent(indent);
 		writeExpression(loc);
 		out.println();
 	}
 
-	private void writeBlock(Location<Block> block, int indent) {
+	private void writeBlock(WyalFile.Location block, int indent) {
 		for (int i = 0; i != block.numberOfOperands(); ++i) {
 			writeStatement(block.getOperand(i), indent);
 		}
 	}
 
-	private void writeIfThen(Location<IfThen> block, int indent) {
+	private void writeIfThen(WyalFile.Location block, int indent) {
 		indent(indent);
 		out.println("if:");
 		writeStatement(block.getOperand(0),indent+1);
@@ -192,7 +165,7 @@ public class WyalFilePrinter {
 	 *
 	 * @param loc
 	 */
-	public void writeExpressionWithBrackets(Location<?> loc) {
+	public void writeExpressionWithBrackets(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
 		case AND:
 		case OR:
@@ -221,7 +194,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writeExpression(Location<?> loc) {
+	public void writeExpression(WyalFile.Location loc) {
 		switch (loc.getOpcode()) {
 		case CAST:
 			writeCast((Location<Cast>) loc);
@@ -260,30 +233,30 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writeVariableAccess(Location<VariableAccess> loc) {
+	public void writeVariableAccess(WyalFile.Location loc) {
 		// Determine variable declaration to which this access refers
 		Location<VariableDeclaration> decl = (Location<VariableDeclaration>) loc.getOperand(0);
 		// Print out the declared variable name
 		out.print(decl.getCode().getName());
 	}
 
-	public void writeCast(Location<Cast> loc) {
+	public void writeCast(WyalFile.Location loc) {
 		out.print("(");
 		writeType(loc.getOperand(0));
 		out.print(")");
 		writeExpression(loc.getOperand(0));
 	}
 
-	public void writeConstant(Location<Constant> loc) {
+	public void writeConstant(WyalFile.Location loc) {
 		Bytecode.Constant bytecode = loc.getCode();
 		out.print(bytecode.getValue());
 	}
 
-	public void writeUnaryOperator(Location<Operator> loc) {
+	public void writeUnaryOperator(WyalFile.Location loc) {
 
 	}
 
-	public void writeInfixOperator(Location<Operator> loc) {
+	public void writeInfixOperator(WyalFile.Location loc) {
 		for(int i=0;i!=loc.numberOfOperands();++i) {
 			if(i != 0) {
 				out.print(" ");
@@ -294,7 +267,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeType(Location<?> loc) {
+	private void writeType(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
 		case T_ANY:
 			out.print("any");
@@ -358,7 +331,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeTypeWithBraces(Location<?> loc) {
+	private void writeTypeWithBraces(WyalFile.Location loc) {
 		switch(loc.getOpcode()) {
 		case T_UNION:
 		case T_INTERSECTION:

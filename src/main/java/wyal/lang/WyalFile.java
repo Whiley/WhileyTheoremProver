@@ -91,7 +91,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// =========================================================================
 	// State
 	// =========================================================================
-	private final ArrayList<Item> items;
+	private final ArrayList<ConstantPoolItem> contantPool;
 
 	// =========================================================================
 	// Constructors
@@ -99,28 +99,39 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 	public WyalFile(Path.Entry<WyalFile> entry) {
 		super(entry);
-		this.items = new ArrayList<Item>();
+		this.contantPool = new ArrayList<ConstantPoolItem>();
 	}
 
 	// ============================================================
 	// Accessors
 	// ============================================================
 
-	public List<Item> getItems() {
-		return items;
+	public List<ConstantPoolItem> getConstantPool() {
+		return contantPool;
+	}
+
+	public <T extends ConstantPoolItem> List<T> getSyntacticItems(Class<T> kind) {
+		ArrayList<T> matches = new ArrayList<T>();
+		for(int i=0;i!=contantPool.size();++i) {
+			ConstantPoolItem item = contantPool.get(i);
+			if(kind.isInstance(item)) {
+				matches.add((T) item);
+			}
+		}
+		return matches;
 	}
 
 	// ============================================================
 	// Item
 	// ============================================================
-	public static interface Item {
+	public static interface ConstantPoolItem {
 
 	}
 
 	// ============================================================
 	// Comments
 	// ============================================================
-	public static class Comment extends SyntacticElement.Impl implements Item {
+	public static class Comment extends SyntacticElement.Impl implements ConstantPoolItem {
 		// This is just here to illustrate another kind of node which could
 		// exist.
 	}
@@ -155,7 +166,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 * @author David J. Pearce
 	 *
 	 */
-	public static class Location extends Context implements Item {
+	public static class Location extends Context implements ConstantPoolItem {
 		private final int typeIndex;
 		private final Bytecode bytecode;
 
@@ -212,7 +223,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	// Declaration
 	// ============================================================
-	public static class Declaration extends Context implements Item {
+	public static class Declaration extends Context implements ConstantPoolItem {
 		public Declaration(WyalFile parent, Attribute... attributes) {
 			this(parent, Arrays.asList(attributes));
 		}
@@ -225,7 +236,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	// Declaration
 	// ============================================================
-	public static class NamedDeclaration extends Context implements Item {
+	public static class NamedDeclaration extends Declaration implements ConstantPoolItem {
 		private final int nameIndex;
 
 		public NamedDeclaration(WyalFile parent, int nameIndex, Attribute... attributes) {
@@ -260,6 +271,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			this.parameterIndices = parameterIndices;
 			this.returnIndices = returnIndices;
 		}
+
+		public SemanticType.Function getType() {
+			return null;
+		}
 	}
 
 	// ============================================================
@@ -282,6 +297,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		public Location getBody() {
 			return getParent().getLocation(bodyIndex);
 		}
+
+		public SemanticType.Function getType() {
+			return null;
+		}
 	}
 
 	// ============================================================
@@ -301,6 +320,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public Location[] getInvariant() {
 			return getParent().getLocations(invariantIndices);
+		}
+
+		public SemanticType.Function getType() {
+			return null;
 		}
 	}
 
@@ -354,12 +377,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ===========================================================
 
 	public String getIdentifier(int index) {
-		Bytecode.Identifier id = (Bytecode.Identifier) items.get(index);
+		Bytecode.Identifier id = (Bytecode.Identifier) contantPool.get(index);
 		return id.get();
 	}
 
 	public Location getLocation(int index) {
-		return (Location) items.get(index);
+		return (Location) contantPool.get(index);
 	}
 
 	public Location[] getLocations(int... indices) {

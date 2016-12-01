@@ -112,7 +112,7 @@ public class WyalFileParser {
 		int end = index;
 		matchEndLine();
 
-		parent.getItems().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
+		parent.getConstantPool().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
 	}
 
 	private int[] parseFilterPath(EnclosingScope scope) {
@@ -150,7 +150,7 @@ public class WyalFileParser {
 		matchEndLine();
 		int body = parseBlock(scope, ROOT_INDENT);
 		WyalFile.Assert declaration = new WyalFile.Assert(parent, body, sourceAttr(start, index - 1));
-		parent.getItems().add(declaration);
+		parent.getConstantPool().add(declaration);
 	}
 
 	/**
@@ -175,7 +175,7 @@ public class WyalFileParser {
 		//
 		WyalFile.Type declaration = new WyalFile.Type(parent, nameIndex, invariant, sourceAttr(start, index - 1));
 		//
-		parent.getItems().add(declaration);
+		parent.getConstantPool().add(declaration);
 	}
 
 	private int[] parseInvariantClauses(EnclosingScope scope) {
@@ -205,7 +205,7 @@ public class WyalFileParser {
 		//
 		WyalFile.Function declaration = new WyalFile.Function(parent, nameIndex, parameters, returns,
 				sourceAttr(start, index - 1));
-		parent.getItems().add(declaration);
+		parent.getConstantPool().add(declaration);
 	}
 
 	protected void parseMacroDeclaration(WyalFile parent) {
@@ -222,7 +222,7 @@ public class WyalFileParser {
 		// Create empty declaration
 		WyalFile.Macro declaration = new WyalFile.Macro(parent, nameIndex, parameters, body,
 				sourceAttr(start, index - 1));
-		parent.getItems().add(declaration);
+		parent.getConstantPool().add(declaration);
 	}
 
 	/**
@@ -2100,7 +2100,7 @@ public class WyalFileParser {
 		}
 
 		public int add(Bytecode bytecode, List<Attribute> attributes) {
-			List<WyalFile.Item> items = parent.getItems();
+			List<WyalFile.ConstantPoolItem> items = parent.getConstantPool();
 			items.add(new WyalFile.Location(parent, WyalFile.UNKNOWN_TYPE, bytecode, attributes));
 			return items.size() - 1;
 		}
