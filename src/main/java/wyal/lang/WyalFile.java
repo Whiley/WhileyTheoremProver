@@ -3,6 +3,7 @@ package wyal.lang;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -90,6 +91,91 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	};
 
 	// =========================================================================
+	// Item Kinds
+	// =========================================================================
+	public static enum Opcode {
+		//
+		ITEM_pair(100),
+		ITEM_ident(101),
+		ITEM_path(102),
+		ITEM_name(103),
+		// DECLARATIONS
+		DECL_linecomment(104),
+		DECL_blkcomment(105),
+		DECL_import(106),
+		DECL_assert(107),
+		DECL_type(108),
+		DECL_fun(109),
+		DECL_macro(110),
+		// TYPES
+		TYPE_void(0),
+		TYPE_any(1),
+		TYPE_null(2),
+		TYPE_bool(3),
+		TYPE_int(4),
+		TYPE_nom(5),
+		TYPE_ref(6),
+		TYPE_arr(7),
+		TYPE_rec(8),
+		TYPE_fun(9),
+		TYPE_or(10),
+		TYPE_and(11),
+		TYPE_not(12),
+		// STMTS
+		STMT_block(15),
+		STMT_vardecl(16),
+		STMT_ifthen(17),
+		STMT_caseof(18),
+		STMT_exists(35),
+		STMT_forall(36),
+		// EXPRESSIONS
+		EXPR_var(20),
+		EXPR_const(21),
+		EXPR_cast(22),
+		EXPR_invoke(23),
+		// LOGICAL
+		EXPR_not(30),
+		EXPR_and(31),
+		EXPR_or(32),
+		EXPR_implies(33),
+		EXPR_iff(34),
+		// COMPARATORS
+		EXPR_eq(40),
+		EXPR_neq(41),
+		EXPR_lt(42),
+		EXPR_lteq(43),
+		EXPR_gt(44),
+		EXPR_gteq(45),
+		EXPR_is(46),
+		// ARITHMETIC
+		EXPR_neg(50),
+		EXPR_add(51),
+		EXPR_sub(52),
+		EXPR_mul(53),
+		EXPR_div(54),
+		EXPR_rem(55),
+		// ARRAY
+		EXPR_arrinit(60),
+		EXPR_arrlen(61),
+		EXPR_arrgen(62),
+		EXPR_arridx(63),
+		// RECORDS
+		EXPR_recinit(64),
+		EXPR_recfield(65),
+		// BASE
+		CONST_null(66),
+		CONST_bool(67),
+		CONST_int(68),
+		CONST_utf8(69);
+
+		public int offset;
+
+		private Opcode(int offset) {
+			this.offset = offset;
+		}
+	}
+
+	// =========================================================================
 	// State
 	// =========================================================================
 	private final ArrayList<SyntacticItem> syntacticItems;
@@ -126,223 +212,74 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		return syntacticItems.get(index);
 	}
 
-	public String getIdentifier(int index) {
-		Bytecode.Identifier id = (Bytecode.Identifier) syntacticItems.get(index);
-		return id.get();
-	}
-
-	public Location getLocation(int index) {
-		return (Location) syntacticItems.get(index);
-	}
-
-	public Location[] getLocations(int... indices) {
-		Location[] locations = new Location[indices.length];
+	public <T extends SyntacticItem> void getSyntacticItems(T[] result, int... indices) {
 		for(int i=0;i!=indices.length;++i) {
-			locations[i] = getLocation(indices[i]);
-		}
-		return locations;
-	}
-
-	public Location[] getLocations(List<Integer> indices) {
-		Location[] locations = new Location[indices.size()];
-		for(int i=0;i!=locations.length;++i) {
-			locations[i] = getLocation(indices.get(i));
-		}
-		return locations;
-	}
-
-	// ============================================================
-	// Location
-	// ============================================================
-	/**
-	 * A source-level location represents a syntactic entity which represents
-	 * some kind of operational unit, such as an expression or statement.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public static class Location extends AbstractSyntacticItem {
-		private final int typeIndex;
-		private final Bytecode bytecode;
-
-		public Location(WyalFile parent, int typeIndex, Bytecode bytecode, Attribute...attributes) {
-			super(parent,null,attributes);
-			this.typeIndex = typeIndex;
-			this.bytecode = bytecode;
-		}
-
-		public Location(WyalFile parent, int typeIndex, Bytecode bytecode, List<Attribute> attributes) {
-			super(parent,null,attributes);
-			this.typeIndex = typeIndex;
-			this.bytecode = bytecode;
-		}
-
-		/**
-		 * Get the bytecode associated with this location
-		 *
-		 * @return
-		 */
-		public Bytecode getCode() {
-			return bytecode;
-		}
-
-		/**
-		 * Get the underlying opcode for this location
-		 *
-		 * @return
-		 */
-		@Override
-		public Bytecode.Opcode getOpcode() {
-			return bytecode.getOpcode();
-		}
-
-		/**
-		 * Get the number of operand groups in this location.
-		 *
-		 * @return
-		 */
-		@Override
-		public int numberOfOperands() {
-			return bytecode.numberOfOperands();
-		}
-
-		/**
-		 * Return the ith operand associated with this location.
-		 *
-		 * @param i
-		 * @return
-		 */
-		@Override
-		public Location getOperand(int i) {
-			return getParent().getLocation(bytecode.getOperand(i));
-		}
-
-		@Override
-		public String toString() {
-			return bytecode.toString();
+			result[i] = (T) getSyntacticItem(indices[i]);
 		}
 	}
 
 	// ============================================================
-	// Declaration
+	// Fundamental Items
+	// ============================================================
+	public static class Bool extends AbstractSyntacticItem {
+		public Bool(WyalFile parent, boolean value) {
+			super(parent, Opcode.CONST_bool, value);
+		}
+
+		public boolean get() {
+			return (Boolean) data;
+		}
+	}
+
+	public static class Int extends AbstractSyntacticItem {
+		public Int(WyalFile parent, BigInteger value) {
+			super(parent, Opcode.CONST_int, value);
+		}
+
+		public BigInteger get() {
+			return (BigInteger) data;
+		}
+	}
+
+	public static class UTF8 extends AbstractSyntacticItem {
+		public UTF8(WyalFile parent, byte[] bytes) {
+			super(parent, Opcode.CONST_utf8, bytes);
+		}
+
+		public byte[] get() {
+			return (byte[]) data;
+		}
+	}
+
+	public static class Identifier extends AbstractSyntacticItem {
+		public Identifier(WyalFile parent, String name) {
+			super(parent, Opcode.ITEM_ident, name);
+		}
+
+		public String get() {
+			return (String) data;
+		}
+	}
+
+	// ============================================================
+	// Declarations
 	// ============================================================
 	public static class Declaration extends AbstractSyntacticItem {
-		public Declaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Attribute... attributes) {
-			this(parent, opcode, children, Arrays.asList(attributes));
-		}
-
-		public Declaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Collection<Attribute> attributes) {
-			super(parent, opcode, children, attributes);
+		public Declaration(WyalFile parent, Opcode opcode, int... children) {
+			super(parent, opcode, children);
 		}
 	}
 
-	// ============================================================
-	// Declaration
-	// ============================================================
 	public static class NamedDeclaration extends Declaration {
-		public NamedDeclaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Attribute... attributes) {
-			this(parent, opcode, children, Arrays.asList(attributes));
-		}
 
-		public NamedDeclaration(WyalFile parent, Bytecode.Opcode opcode, int[] children, Collection<Attribute> attributes) {
-			super(parent, opcode, children, attributes);
+		public NamedDeclaration(WyalFile parent, Opcode opcode, int nameIndex, int... children) {
+			super(parent, opcode, append(nameIndex, children));
 		}
 
 		public String getName() {
-			return getParent().getIdentifier(nameIndex);
-		}
-	}
-
-	// ============================================================
-	// Function Declaration
-	// ============================================================
-	public static class Function extends NamedDeclaration {
-		private final int[] parameterIndices;
-		private final int[] returnIndices;
-
-		public Function(WyalFile parent, int nameIndex, int[] parameterIndices, int[] returnIndices,
-				Attribute... attributes) {
-			this(parent, nameIndex, parameterIndices, returnIndices, Arrays.asList(attributes));
-		}
-
-		public Function(WyalFile parent, int nameIndex, int[] parameterIndices, int[] returnIndices,
-				Collection<Attribute> attributes) {
-			super(parent, Bytecode.Opcode.DECL_fun, new int[] { nameIndex }, attributes);
-			this.parameterIndices = parameterIndices;
-			this.returnIndices = returnIndices;
-		}
-
-		public SemanticType.Function getType() {
-			return null;
-		}
-	}
-
-	// ============================================================
-	// Macro Declaration
-	// ============================================================
-	public static class Macro extends NamedDeclaration {
-		private final int[] parameterIndices;
-		private final int bodyIndex;
-
-		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices, Attribute... attributes) {
-			this(parent, nameIndex, bodyIndex, parameterIndices, Arrays.asList(attributes));
-		}
-
-		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices,
-				Collection<Attribute> attributes) {
-			super(parent, Bytecode.Opcode.DECL_macro,
-					append(nameIndex, bodyIndex, parameterIndices), attributes);
-			this.bodyIndex = bodyIndex;
-			this.parameterIndices = parameterIndices;
-		}
-
-		public Location getBody() {
-			return getParent().getLocation(bodyIndex);
-		}
-
-		public SemanticType.Function getType() {
-			return null;
-		}
-	}
-
-	// ============================================================
-	// Type Declaration
-	// ============================================================
-	public static class Type extends NamedDeclaration {
-		private final int[] invariantIndices;
-
-		public Type(WyalFile parent, int nameIndex, int[] invariantIndices, Attribute... attributes) {
-			this(parent,nameIndex,invariantIndices,Arrays.asList(attributes));
-		}
-
-		public Type(WyalFile parent, int nameIndex, int[] invariantIndices, Collection<Attribute> attributes) {
-			super(parent, Bytecode.Opcode.DECL_type, append(nameIndex, invariantIndices), attributes);
-			this.invariantIndices = invariantIndices;
-		}
-
-		public Location[] getInvariant() {
-			return getParent().getLocations(invariantIndices);
-		}
-
-		public SemanticType.Function getType() {
-			return null;
-		}
-	}
-
-	// ============================================================
-	// Assertion
-	// ============================================================
-	public static class Assert extends Declaration {
-		public Assert(WyalFile parent, int bodyIndex, Attribute... attributes) {
-			this(parent,bodyIndex,Arrays.asList(attributes));
-		}
-
-		public Assert(WyalFile parent, int bodyIndex, Collection<Attribute> attributes) {
-			super(parent,Bytecode.Opcode.DECL_assert,new int[]{bodyIndex},attributes);
-		}
-
-		public Location getBody() {
-			return getParent().getLocation(bodyIndex);
+			int nameIndex = getOperand(0);
+			SyntacticItem item = getParent().getSyntacticItem(nameIndex);
+			return ((Identifier) item).get();
 		}
 	}
 
@@ -364,10 +301,118 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 *
 	 */
 	public static class Import extends Declaration {
-		public Import(WyalFile parent, int[] pathIndices, Attribute... attributes) {
-			super(parent, Bytecode.Opcode.DECL_import, pathIndices, attributes);
+		public Import(WyalFile parent, int... pathIndices) {
+			super(parent, Opcode.DECL_import, pathIndices);
 		}
 	}
+
+	// ============================================================
+	// Function Declaration
+	// ============================================================
+	public static class Function extends NamedDeclaration {
+
+		public Function(WyalFile parent, int nameIndex, int[] parameterIndices, int[] returnIndices) {
+			super(parent, Opcode.DECL_fun, nameIndex, parameterIndices);
+		}
+
+		public SemanticType.Function getType() {
+			return null;
+		}
+	}
+
+	// ============================================================
+	// Macro Declaration
+	// ============================================================
+	public static class Macro extends NamedDeclaration {
+
+		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices) {
+			super(parent, Opcode.DECL_macro, nameIndex, append(bodyIndex, parameterIndices));
+		}
+
+		public Term getBody() {
+			int bodyIndex = getOperand(1);
+			return (Term) getParent().getSyntacticItem(bodyIndex);
+		}
+
+		public SemanticType.Function getType() {
+			return null;
+		}
+	}
+
+	// ============================================================
+	// Type Declaration
+	// ============================================================
+	public static class Type extends NamedDeclaration {
+
+		public Type(WyalFile parent, int nameIndex, int... invariantIndices) {
+			super(parent, Opcode.DECL_type, nameIndex, invariantIndices);
+		}
+
+		public Term[] getInvariant() {
+			int[] invariantIndices = getOtherOperands();
+			Term[] invariant = new Term[invariantIndices.length];
+			getParent().getSyntacticItems(invariant, invariantIndices);
+			return invariant;
+		}
+
+		public SemanticType.Function getType() {
+			return null;
+		}
+	}
+
+	// ============================================================
+	// Assertion
+	// ============================================================
+	public static class Assert extends Declaration {
+
+		public Assert(WyalFile parent, int bodyIndex) {
+			super(parent, Opcode.DECL_assert, new int[] { bodyIndex });
+		}
+
+		public Term getBody() {
+			int bodyIndex = getOperand(0);
+			return (Term) getParent().getSyntacticItem(bodyIndex);
+		}
+	}
+
+	// ============================================================
+	// Term
+	// ============================================================
+	/**
+	 * A term represents some kind of operational unit which evaluates to a give
+	 * type, such an expression or statement. Statements already evaluate to the
+	 * type void.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	public static class Term extends AbstractSyntacticItem {
+
+		public Term(WyalFile parent, Opcode opcode, int typeIndex, int... operands) {
+			super(parent, opcode, append(typeIndex, operands));
+		}
+
+		/**
+		 * Get the number of subterms of this term.
+		 *
+		 * @return
+		 */
+		public int numberOfTerms() {
+			return numberOfOperands() - 1;
+		}
+
+		/**
+		 * Return the ith operand associated with this location.
+		 *
+		 * @param i
+		 * @return
+		 */
+		public Term getTerm(int i) {
+			int termIndex = getOperand(i + 1);
+			return (Term) getParent().getSyntacticItem(termIndex);
+		}
+	}
+
 	// ===========================================================
 	// Helper accessor methods
 	// ===========================================================

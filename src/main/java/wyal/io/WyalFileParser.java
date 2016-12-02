@@ -11,11 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 import wyal.io.WyalFileLexer.Token;
-import wyal.lang.Bytecode;
 import wyal.lang.SemanticType;
+import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile;
-import wyal.lang.Bytecode.Opcode;
+import wyal.lang.WyalFile.Opcode;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
 import wybs.lang.Attribute;
@@ -112,7 +111,8 @@ public class WyalFileParser {
 		int end = index;
 		matchEndLine();
 
-		parent.getSyntacticItems().add(new WyalFile.Import(parent,filterPath, sourceAttr(start, end - 1)));
+		WyalFile.Import imprt = new WyalFile.Import(parent,filterPath);
+		imprt.attributes().add(sourceAttr(start, end - 1));
 	}
 
 	private int[] parseFilterPath(EnclosingScope scope) {
@@ -173,9 +173,8 @@ public class WyalFileParser {
 		//
 		int[] invariant = parseInvariantClauses(scope);
 		//
-		WyalFile.Type declaration = new WyalFile.Type(parent, nameIndex, invariant, sourceAttr(start, index - 1));
-		//
-		parent.getSyntacticItems().add(declaration);
+		WyalFile.Type declaration = new WyalFile.Type(parent, nameIndex, invariant);
+		declaration.attributes().add(sourceAttr(start, index - 1));
 	}
 
 	private int[] parseInvariantClauses(EnclosingScope scope) {
@@ -218,9 +217,9 @@ public class WyalFileParser {
 		int[] parameters = parseParameterDeclarations(scope);
 		match(Is);
 		match(Colon);
-		int body = parseBlock(scope, ROOT_INDENT);
+		int bodyIndex = parseBlock(scope, ROOT_INDENT);
 		// Create empty declaration
-		WyalFile.Macro declaration = new WyalFile.Macro(parent, nameIndex, parameters, body,
+		WyalFile.Macro declaration = new WyalFile.Macro(parent, nameIndex, bodyIndex, parameters,
 				sourceAttr(start, index - 1));
 		parent.getSyntacticItems().add(declaration);
 	}
@@ -254,7 +253,7 @@ public class WyalFileParser {
 			// Initial indent either doesn't exist or is not strictly greater
 			// than parent indent and,therefore, signals an empty block.
 			//
-			return scope.add(new Bytecode.Bool(true));
+			return scope.add(new WyalFile.Bool(scope.parent,true));
 		} else {
 			// Initial indent is valid, so we proceed parsing statements with
 			// the appropriate level of indent.
@@ -276,7 +275,7 @@ public class WyalFileParser {
 				// Second, parse the actual statement at this point!
 				statements.add(parseStatement(scope, indent));
 			}
-			return scope.add(new Bytecode(Opcode.STMT_block,statements), sourceAttr(start, index - 1));
+			return scope.add(new WyalFile.Term(scope.parent, Opcode.STMT_block,statements, sourceAttr(start, index - 1));
 		}
 	}
 
@@ -353,7 +352,7 @@ public class WyalFileParser {
 		match(Colon);
 		matchEndLine();
 		int thenBlock = parseBlock(scope, indent);
-		return scope.add(new Bytecode(Opcode.STMT_ifthen,ifBlock, thenBlock), sourceAttr(start, index - 1));
+		return scope.add(new WyalFile.Term(scope.parent,Opcode.STMT_ifthen, WyalFile.UNKNOWN_TYPE, new int[]{ifBlock, thenBlock}, sourceAttr(start, index - 1));
 	}
 
 	private int parseEitherOrStatement(EnclosingScope scope, Indent indent) {
@@ -375,7 +374,7 @@ public class WyalFileParser {
 			}
 		} while (lookahead != null && lookahead.kind == Or);
 
-		return scope.add(new Bytecode(Opcode.STMT_caseof,blocks), sourceAttr(start, index - 1));
+		return scope.add(new WyalFile.Term(scope.parent,Opcode.STMT_caseof,WyalFile.UNKNOWN_TYPE,blocks, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -496,8 +495,9 @@ public class WyalFileParser {
 			return lhs;
 		} else {
 			int rhs = parseType(scope);
-			Bytecode op = new Bytecode(Opcode.EXPR_is, lhs, rhs);
-			return scope.add(op, sourceAttr(start, index - 1));
+			WyalFile.Term term = new WyalFile.Term(scope.parent, Opcode.EXPR_is, WyalFile.UNKNOWN_TYPE, new int[]{lhs, rhs});
+			term.attributes().add(sourceAttr(start, index - 1));
+			return scope.add(term);
 		}
 	}
 
@@ -1259,7 +1259,7 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private boolean mustParseAsType(int typeIndex, EnclosingScope scope) {
-		WyalFile.Location bytecode = scope.getLocation(typeIndex);
+		WyalFile.Term bytecode = scope.getLocation(typeIndex);
 		switch (bytecode.getOpcode()) {
 		case TYPE_arr:
 		case TYPE_rec:
@@ -2074,14 +2074,6 @@ public class WyalFileParser {
 			return environment.get(name);
 		}
 
-		public WyalFile.Location getLocation(String name) {
-			return parent.getLocation(environment.get(name));
-		}
-
-		public WyalFile.Location getLocation(int index) {
-			return parent.getLocation(index);
-		}
-
 		/**
 		 * Declare a new variable in the enclosing scope.
 		 *
@@ -2090,19 +2082,9 @@ public class WyalFileParser {
 		 * @return
 		 */
 		public void declareInScope(int declarationIndex) {
-			WyalFile.Location decl = parent.getLocation(declarationIndex);
+			WyalFile.Term decl = parent.getLocation(declarationIndex);
 			Bytecode.Identifier id = (Bytecode.Identifier) decl.getOperand(1).getCode();
 			environment.put(id.get(), declarationIndex);
-		}
-
-		public int add(Bytecode stmt, Attribute... attributes) {
-			return add(stmt,Arrays.asList(attributes));
-		}
-
-		public int add(Bytecode bytecode, List<Attribute> attributes) {
-			List<WyalFile.ConstantPoolItem> items = parent.getSyntacticItems();
-			items.add(new WyalFile.Location(parent, WyalFile.UNKNOWN_TYPE, bytecode, attributes));
-			return items.size() - 1;
 		}
 
 		/**

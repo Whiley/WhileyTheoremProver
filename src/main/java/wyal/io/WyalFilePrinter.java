@@ -97,7 +97,7 @@ public class WyalFilePrinter {
 		out.print(s.getName());
 		out.print(" is " + s.getType());
 		if(s.getInvariant().length > 0) {
-			for(WyalFile.Location stmt : s.getInvariant()) {
+			for(WyalFile.Term stmt : s.getInvariant()) {
 				out.println(" where");
 				writeStatement(stmt,1);
 			}
@@ -111,13 +111,13 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	private void writeParameters(List<WyalFile.Location> parameters) {
+	private void writeParameters(List<WyalFile.Term> parameters) {
 		out.print("(");
 		for (int i = 0; i != parameters.size(); ++i) {
 			if (i != 0) {
 				out.print(", ");
 			}
-			WyalFile.Location parameter = parameters.get(i);
+			WyalFile.Term parameter = parameters.get(i);
 			writeType(parameter.getOperand(0));
 			out.print(" ");
 			out.print(parameter.getCode().getName());
@@ -125,7 +125,7 @@ public class WyalFilePrinter {
 		out.print(")");
 	}
 
-	public void writeStatement(WyalFile.Location loc, int indent) {
+	public void writeStatement(WyalFile.Term loc, int indent) {
 		switch(loc.getOpcode()) {
 		case STMT_block:
 			writeBlock(loc, indent);
@@ -142,19 +142,19 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeExpressionAsStatement(WyalFile.Location loc, int indent) {
+	private void writeExpressionAsStatement(WyalFile.Term loc, int indent) {
 		indent(indent);
 		writeExpression(loc);
 		out.println();
 	}
 
-	private void writeBlock(WyalFile.Location block, int indent) {
+	private void writeBlock(WyalFile.Term block, int indent) {
 		for (int i = 0; i != block.numberOfOperands(); ++i) {
 			writeStatement(block.getOperand(i), indent);
 		}
 	}
 
-	private void writeIfThen(WyalFile.Location block, int indent) {
+	private void writeIfThen(WyalFile.Term block, int indent) {
 		indent(indent);
 		out.println("if:");
 		writeStatement(block.getOperand(0),indent+1);
@@ -163,7 +163,7 @@ public class WyalFilePrinter {
 		writeStatement(block.getOperand(1),indent+1);
 	}
 
-	private void writeQuantifier(WyalFile.Location block, int indent) {
+	private void writeQuantifier(WyalFile.Term block, int indent) {
 		indent(indent);
 		if(block.getOpcode() == Opcode.STMT_forall) {
 			out.print("forall");
@@ -180,7 +180,7 @@ public class WyalFilePrinter {
 	 *
 	 * @param loc
 	 */
-	public void writeExpressionWithBrackets(WyalFile.Location loc) {
+	public void writeExpressionWithBrackets(WyalFile.Term loc) {
 		switch(loc.getOpcode()) {
 		case EXPR_and:
 		case EXPR_or:
@@ -209,7 +209,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writeExpression(WyalFile.Location loc) {
+	public void writeExpression(WyalFile.Term loc) {
 		switch (loc.getOpcode()) {
 		case EXPR_cast:
 			writeCast(loc);
@@ -250,22 +250,22 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writeVariableAccess(WyalFile.Location loc) {
+	public void writeVariableAccess(WyalFile.Term loc) {
 		// Determine variable declaration to which this access refers
-		WyalFile.Location decl = loc.getOperand(0);
+		WyalFile.Term decl = loc.getOperand(0);
 		Bytecode.Identifier ident = (Bytecode.Identifier) decl.getOperand(1).getCode();
 		// Print out the declared variable name
 		out.print(ident.get());
 	}
 
-	public void writeCast(WyalFile.Location loc) {
+	public void writeCast(WyalFile.Term loc) {
 		out.print("(");
 		writeType(loc.getOperand(0));
 		out.print(")");
 		writeExpression(loc.getOperand(0));
 	}
 
-	public void writeConstant(WyalFile.Location loc) {
+	public void writeConstant(WyalFile.Term loc) {
 		switch (loc.getOpcode()) {
 		case CONST_null:
 			out.print("null");
@@ -285,11 +285,11 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writeUnaryOperator(WyalFile.Location loc) {
+	public void writeUnaryOperator(WyalFile.Term loc) {
 
 	}
 
-	public void writeInfixOperator(WyalFile.Location loc) {
+	public void writeInfixOperator(WyalFile.Term loc) {
 		for(int i=0;i!=loc.numberOfOperands();++i) {
 			if(i != 0) {
 				out.print(" ");
@@ -300,7 +300,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeType(WyalFile.Location loc) {
+	private void writeType(WyalFile.Term loc) {
 		switch(loc.getOpcode()) {
 		case TYPE_any:
 			out.print("any");
@@ -364,7 +364,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeTypeWithBraces(WyalFile.Location loc) {
+	private void writeTypeWithBraces(WyalFile.Term loc) {
 		switch(loc.getOpcode()) {
 		case TYPE_or:
 		case TYPE_and:

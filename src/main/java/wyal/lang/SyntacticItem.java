@@ -1,6 +1,6 @@
 package wyal.lang;
 
-import wyal.lang.Bytecode.Opcode;
+import wyal.lang.WyalFile.Opcode;
 import wybs.lang.SyntacticElement;
 
 public interface SyntacticItem extends SyntacticElement {

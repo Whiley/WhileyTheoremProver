@@ -20,7 +20,7 @@ public abstract class InteractiveProof extends AbstractProof {
 		this.rules = rules;
 	}
 
-	public SyntaxTree.Location getLocation(int index) {
+	public SyntaxTree.Term getLocation(int index) {
 		return tree.getLocation(index);
 	}
 

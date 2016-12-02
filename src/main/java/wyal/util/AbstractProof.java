@@ -68,7 +68,7 @@ public abstract class AbstractProof implements Proof {
 	 *
 	 * @param l
 	 */
-	public void assumeNot(Location stmt) {
+	public void assumeNot(Term stmt) {
 		Bytecode b = new Bytecode(Bytecode.Opcode.EXPR_not, stmt.getIndex());
 		int idx = addStatement(b);
 		BitSet truths;
@@ -85,7 +85,7 @@ public abstract class AbstractProof implements Proof {
 	}
 
 	private int addStatement(Bytecode b) {
-		tree.getLocations().add(new SyntaxTree.Location(tree, SemanticType.Bool, b));
+		tree.getLocations().add(new Term.Location(tree, SemanticType.Bool, b));
 		return tree.getLocations().size() - 1;
 	}
 
