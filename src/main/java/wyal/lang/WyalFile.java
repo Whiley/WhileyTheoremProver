@@ -221,7 +221,29 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	// Fundamental Items
 	// ============================================================
-	public static class Bool extends AbstractSyntacticItem {
+	public static class Item extends AbstractSyntacticItem {
+		public Item(WyalFile parent, Opcode opcode, Item... items) {
+			super(parent, opcode, items);
+		}
+
+		public Item(WyalFile parent, Opcode opcode, Object data) {
+			super(parent, opcode, data);
+		}
+	}
+
+	public static class Pair extends Item {
+		public Pair(WyalFile parent, Item lhs, Item rhs) {
+			super(parent, Opcode.ITEM_pair, lhs, rhs);
+		}
+	}
+
+	public static class Null extends Item {
+		public Null(WyalFile parent) {
+			super(parent, Opcode.CONST_null);
+		}
+	}
+
+	public static class Bool extends Item {
 		public Bool(WyalFile parent, boolean value) {
 			super(parent, Opcode.CONST_bool, value);
 		}
@@ -231,7 +253,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	}
 
-	public static class Int extends AbstractSyntacticItem {
+	public static class Int extends Item {
 		public Int(WyalFile parent, BigInteger value) {
 			super(parent, Opcode.CONST_int, value);
 		}
@@ -241,7 +263,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	}
 
-	public static class UTF8 extends AbstractSyntacticItem {
+	public static class UTF8 extends Item {
 		public UTF8(WyalFile parent, byte[] bytes) {
 			super(parent, Opcode.CONST_utf8, bytes);
 		}
@@ -251,7 +273,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	}
 
-	public static class Identifier extends AbstractSyntacticItem {
+	public static class Identifier extends Item {
 		public Identifier(WyalFile parent, String name) {
 			super(parent, Opcode.ITEM_ident, name);
 		}
@@ -261,19 +283,25 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	}
 
+	public static class Name extends Item {
+		public Name(WyalFile parent, Identifier... components) {
+			super(parent, Opcode.ITEM_ident, components);
+		}
+	}
+
 	// ============================================================
 	// Declarations
 	// ============================================================
-	public static class Declaration extends AbstractSyntacticItem {
-		public Declaration(WyalFile parent, Opcode opcode, int... children) {
+	public static class Declaration extends Item {
+		public Declaration(WyalFile parent, Opcode opcode, Item... children) {
 			super(parent, opcode, children);
 		}
 	}
 
 	public static class NamedDeclaration extends Declaration {
 
-		public NamedDeclaration(WyalFile parent, Opcode opcode, int nameIndex, int... children) {
-			super(parent, opcode, append(nameIndex, children));
+		public NamedDeclaration(WyalFile parent, Opcode opcode, Identifier name, Item... children) {
+			super(parent, opcode, append(name, children));
 		}
 
 		public String getName() {
@@ -301,8 +329,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 *
 	 */
 	public static class Import extends Declaration {
-		public Import(WyalFile parent, int... pathIndices) {
-			super(parent, Opcode.DECL_import, pathIndices);
+		public Import(WyalFile parent, UTF8... components) {
+			super(parent, Opcode.DECL_import, components);
 		}
 	}
 
@@ -311,8 +339,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	public static class Function extends NamedDeclaration {
 
-		public Function(WyalFile parent, int nameIndex, int[] parameterIndices, int[] returnIndices) {
-			super(parent, Opcode.DECL_fun, nameIndex, parameterIndices);
+		public Function(WyalFile parent, Identifier name, VariableDeclaration[] parameters, VariableDeclaration[] returns) {
+			super(parent, Opcode.DECL_fun, name, parameters, returns);
 		}
 
 		public SemanticType.Function getType() {
@@ -325,8 +353,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	public static class Macro extends NamedDeclaration {
 
-		public Macro(WyalFile parent, int nameIndex, int bodyIndex, int[] parameterIndices) {
-			super(parent, Opcode.DECL_macro, nameIndex, append(bodyIndex, parameterIndices));
+		public Macro(WyalFile parent, Identifier name, VariableDeclaration[] parameters, Stmt body) {
+			super(parent, Opcode.DECL_macro, name, append(body, parameters));
 		}
 
 		public Term getBody() {
@@ -344,8 +372,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	public static class Type extends NamedDeclaration {
 
-		public Type(WyalFile parent, int nameIndex, int... invariantIndices) {
-			super(parent, Opcode.DECL_type, nameIndex, invariantIndices);
+		public Type(WyalFile parent, Identifier name, Stmt... invariant) {
+			super(parent, Opcode.DECL_type, name, invariant);
 		}
 
 		public Term[] getInvariant() {
@@ -365,8 +393,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	public static class Assert extends Declaration {
 
-		public Assert(WyalFile parent, int bodyIndex) {
-			super(parent, Opcode.DECL_assert, new int[] { bodyIndex });
+		public Assert(WyalFile parent, Stmt body) {
+			super(parent, Opcode.DECL_assert, body);
 		}
 
 		public Term getBody() {
@@ -376,8 +404,16 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	}
 
 	// ============================================================
+	// Types
+	// ============================================================
+	public static class Type extends Item {
+
+	}
+
+	// ============================================================
 	// Term
 	// ============================================================
+
 	/**
 	 * A term represents some kind of operational unit which evaluates to a give
 	 * type, such an expression or statement. Statements already evaluate to the
@@ -386,9 +422,9 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	 * @author David J. Pearce
 	 *
 	 */
-	public static class Term extends AbstractSyntacticItem {
+	public static class Term extends Item {
 
-		public Term(WyalFile parent, Opcode opcode, int typeIndex, int... operands) {
+		public Term(WyalFile parent, Opcode opcode, Type typeIndex, Item... operands) {
 			super(parent, opcode, append(typeIndex, operands));
 		}
 
@@ -413,9 +449,77 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	}
 
-	// ===========================================================
-	// Helper accessor methods
-	// ===========================================================
+	public static class Stmt extends Term {
+		public Stmt(WyalFile parent, Opcode opcode, Item... operands) {
+			super(parent, opcode, null, operands);
+		}
+		protected Stmt(WyalFile parent, Opcode opcode, Type type, Item... operands) {
+			super(parent, opcode, type, operands);
+		}
+	}
+
+	public static class Block extends Stmt {
+		public Block(WyalFile parent, Stmt... stmts) {
+			super(parent, Opcode.STMT_block, stmts);
+		}
+	}
+
+	public static class VariableDeclaration extends Stmt {
+		public VariableDeclaration(WyalFile parent, Type type, Identifier name) {
+			super(parent, Opcode.STMT_vardecl, null, type, name);
+		}
+		public VariableDeclaration(WyalFile parent, Type type, Identifier name, Expr initialiser) {
+			super(parent, Opcode.STMT_vardecl, null, type, name, initialiser);
+		}
+	}
+
+	public static class Expr extends Stmt {
+		private Expr(WyalFile parent, Opcode opcode, Type type, Item... operands) {
+			super(parent, opcode, type, operands);
+		}
+	}
+
+	public static class Cast extends Expr {
+		public Cast(WyalFile parent, Type type, Expr rhs) {
+			super(parent, Opcode.EXPR_cast, null, type, rhs);
+		}
+	}
+
+	public static class Operator extends Expr {
+		public Operator(WyalFile parent, Opcode opcode, Type type, Expr... operands) {
+			super(parent, opcode, type, operands);
+		}
+	}
+
+	public static class RecordAccess extends Expr {
+		public RecordAccess(WyalFile parent, Type type, Expr lhs, Identifier rhs) {
+			super(parent, Opcode.EXPR_recfield, type, lhs, rhs);
+		}
+	}
+
+	public static class RecordInitialiser extends Expr {
+		public RecordInitialiser(WyalFile parent, Type type, Pair... fields) {
+			super(parent, Opcode.EXPR_recfield, type, fields);
+		}
+	}
+
+	public static class VariableAccess extends Expr {
+		public VariableAccess(WyalFile parent, Type type, VariableDeclaration decl) {
+			super(parent, Opcode.EXPR_recfield, type, decl);
+		}
+	}
+
+	public static class Constant extends Expr {
+		public Constant(WyalFile parent, Item value) {
+			super(parent, Opcode.EXPR_const, null, value);
+		}
+	}
+
+	public static class Is extends Expr {
+		public Is(WyalFile parent, Expr lhs, Type rhs) {
+			super(parent, Opcode.EXPR_is, null, lhs, rhs);
+		}
+	}
 
 	// ===========================================================
 	// Constants
