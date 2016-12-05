@@ -415,6 +415,18 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Array(WyalFile parent,  Type element) {
 				super(parent, Opcode.TYPE_arr, element);
 			}
+			public Type getElement() {
+				return (Type) getOperand(0);
+			}
+		}
+
+		public static class Reference extends Type {
+			public Reference(WyalFile parent,  Type element) {
+				super(parent, Opcode.TYPE_arr, element);
+			}
+			public Type getElement() {
+				return (Type) getOperand(0);
+			}
 		}
 
 		public static class Record extends Type {
@@ -427,11 +439,18 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Nominal(WyalFile parent, Name name) {
 				super(parent, Opcode.TYPE_nom, name);
 			}
+
+			public Name getName() {
+				return (Name) getOperand(0);
+			}
 		}
 
 		public static class Negation extends Type {
 			public Negation(WyalFile parent,  Type element) {
 				super(parent, Opcode.TYPE_not, element);
+			}
+			public Type getElement() {
+				return (Type) getOperand(0);
 			}
 		}
 
@@ -439,11 +458,19 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Union(WyalFile parent,  Type... types) {
 				super(parent, Opcode.TYPE_or, types);
 			}
+			@Override
+			public Type getOperand(int i) {
+				return (Type) super.getOperand(i);
+			}
 		}
 
 		public static class Intersection extends Type {
 			public Intersection(WyalFile parent,  Type... types) {
 				super(parent, Opcode.TYPE_and, types);
+			}
+			@Override
+			public Type getOperand(int i) {
+				return (Type) super.getOperand(i);
 			}
 		}
 	}
@@ -454,15 +481,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 	public static class VariableDeclaration extends Item {
 		public VariableDeclaration(WyalFile parent, Type type, Identifier name) {
-			super(parent, Opcode.STMT_vardecl, null, type, name);
+			super(parent, Opcode.STMT_vardecl, type, name);
 		}
 
 		public Type getType() {
-			return (Type) getOperand(1);
+			return (Type) getOperand(0);
 		}
 
 		public Identifier getVariableName() {
-			return (Identifier) getOperand(2);
+			return (Identifier) getOperand(1);
 		}
 	}
 
@@ -473,6 +500,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	public static class Block extends Item {
 		public Block(WyalFile parent, Stmt... stmts) {
 			super(parent, Opcode.ITEM_block, stmts);
+		}
+
+		@Override
+		public Stmt getOperand(int i) {
+			return (Stmt) super.getOperand(i);
 		}
 	}
 
@@ -489,11 +521,20 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Quantifier(WyalFile parent, Opcode opcode, VariableDeclaration[] parameters, Block body) {
 				super(parent, opcode, append(Item.class,parameters,body));
 			}
+			public Block getBody() {
+				return (Block) getOperand(numberOfOperands()-1);
+			}
 		}
 
 		public static class IfThen extends Stmt {
 			public IfThen(WyalFile parent, Block ifBlock, Block thenBlock) {
 				super(parent, Opcode.STMT_ifthen, ifBlock, thenBlock);
+			}
+			public Block getIfBody() {
+				return (Block) getOperand(0);
+			}
+			public Block getThenBody() {
+				return (Block) getOperand(1);
 			}
 		}
 
@@ -513,11 +554,22 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Cast(WyalFile parent, Type type, Expr rhs) {
 				super(parent, Opcode.EXPR_cast, null, type, rhs);
 			}
+			public Type getCastType() {
+				return (Type) super.getOperand(1);
+			}
+			public Expr getExpr() {
+				return (Expr) super.getOperand(2);
+			}
 		}
 
 		public static class Operator extends Expr {
 			public Operator(WyalFile parent, Opcode opcode, Type type, Expr... operands) {
 				super(parent, opcode, type, operands);
+			}
+
+			@Override
+			public Expr getOperand(int i) {
+				return (Expr) super.getOperand(i);
 			}
 		}
 
@@ -535,13 +587,19 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public static class VariableAccess extends Expr {
 			public VariableAccess(WyalFile parent, Type type, VariableDeclaration decl) {
-				super(parent, Opcode.EXPR_recfield, type, decl);
+				super(parent, Opcode.EXPR_var, type, decl);
+			}
+			public VariableDeclaration getVariableDeclaration() {
+				return (VariableDeclaration) getOperand(1);
 			}
 		}
 
 		public static class Constant extends Expr {
 			public Constant(WyalFile parent, Item value) {
 				super(parent, Opcode.EXPR_const, null, value);
+			}
+			public Item getValue() {
+				return (Item) getOperand(1);
 			}
 		}
 

@@ -24,6 +24,8 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 		this.opcode = opcode;
 		this.operands = null;
 		this.data = null;
+		//
+		parent.getSyntacticItems().add(this);
 	}
 
 	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, List<SyntacticItem> operands) {
@@ -35,20 +37,17 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = null;
+		//
+		parent.getSyntacticItems().add(this);
 	}
-
-//	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, int firstOperand, int[] otherOperands, Attribute... attributes) {
-//		this.parent = parent;
-//		this.opcode = opcode;
-//		this.operands = ArrayUtils.append(new int[] { firstOperand }, otherOperands);
-//		this.data = null;
-//	}
 
 	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data) {
 		this.parent = parent;
 		this.opcode = opcode;
 		this.operands = null;
 		this.data = data;
+		//
+		parent.getSyntacticItems().add(this);
 	}
 
 	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data, SyntacticItem[] operands) {
@@ -56,6 +55,8 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = data;
+		//
+		parent.getSyntacticItems().add(this);
 	}
 
 	@Override
