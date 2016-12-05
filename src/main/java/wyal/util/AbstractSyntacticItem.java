@@ -15,7 +15,7 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 	// Constants;
 	private final WyalFile parent;
 	private final Opcode opcode;
-	private final int[] operands;
+	private final SyntacticItem[] operands;
 	protected final Object data;
 
 	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, Attribute... attributes) {
@@ -26,35 +26,32 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 		this.data = null;
 	}
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, List<Integer> operands, Attribute... attributes) {
-		this(parent, opcode, ArrayUtils.toIntArray(operands));
+	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, List<SyntacticItem> operands) {
+		this(parent, opcode, operands.toArray(new SyntacticItem[operands.size()]));
 	}
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, int[] operands, Collection<Attribute> attributes) {
-		super(attributes);
+	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, SyntacticItem[] operands) {
 		this.parent = parent;
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = null;
 	}
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, int firstOperand, int[] otherOperands, Attribute... attributes) {
-		this.parent = parent;
-		this.opcode = opcode;
-		this.operands = ArrayUtils.append(new int[] { firstOperand }, otherOperands);
-		this.data = null;
-	}
+//	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, int firstOperand, int[] otherOperands, Attribute... attributes) {
+//		this.parent = parent;
+//		this.opcode = opcode;
+//		this.operands = ArrayUtils.append(new int[] { firstOperand }, otherOperands);
+//		this.data = null;
+//	}
 
-	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data, Attribute... attributes) {
-		super(attributes);
+	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data) {
 		this.parent = parent;
 		this.opcode = opcode;
 		this.operands = null;
 		this.data = data;
 	}
 
-	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data, int[] operands, Attribute... attributes) {
-		super(attributes);
+	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data, SyntacticItem[] operands) {
 		this.parent = parent;
 		this.opcode = opcode;
 		this.operands = operands;
@@ -77,22 +74,12 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 	}
 
 	@Override
-	public int getFirstOperand() {
-		return operands[0];
-	}
-
-	@Override
-	public int[] getOtherOperands() {
-		return Arrays.copyOfRange(operands, 1, operands.length);
-	}
-
-	@Override
-	public int getOperand(int i) {
+	public SyntacticItem getOperand(int i) {
 		return operands[i];
 	}
 
 	@Override
-	public int[] getOperands() {
+	public SyntacticItem[] getOperands() {
 		return operands;
 	}
 

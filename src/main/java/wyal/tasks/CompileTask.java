@@ -89,7 +89,7 @@ public class CompileTask implements Build.Task {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
 				// FIXME: temporary
-				new WyalFilePrinter(System.out).write(wf);
+				//new WyalFilePrinter(System.out).write(wf);
 
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the

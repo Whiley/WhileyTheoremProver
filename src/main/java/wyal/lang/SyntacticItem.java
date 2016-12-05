@@ -29,34 +29,18 @@ public interface SyntacticItem extends SyntacticElement {
 	public int numberOfOperands();
 
 	/**
-	 * Get the first operand. For some bytecodes, this is distinguished from the
-	 * remainder
-	 *
-	 * @return
-	 */
-	public int getFirstOperand();
-
-	/**
-	 * Get all operands after first. For some bytecodes, the first is
-	 * distinguished from the remainder.
-	 *
-	 * @return
-	 */
-	public int[] getOtherOperands();
-
-	/**
 	 * Return the ith top-level operand in this bytecode.
 	 *
 	 * @param i
 	 * @return
 	 */
-	public int getOperand(int i);
+	public SyntacticItem getOperand(int i);
 
 	/**
 	 * Return the top-level operands in this bytecode.
 	 *
 	 * @return
 	 */
-	public int[] getOperands();
+	public SyntacticItem[] getOperands();
 
 }
