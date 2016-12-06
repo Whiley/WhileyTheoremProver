@@ -43,4 +43,11 @@ public interface SyntacticItem extends SyntacticElement {
 	 */
 	public SyntacticItem[] getOperands();
 
+	/**
+	 * Get the index of this item in the parent's items table.
+	 *
+	 * @return
+	 */
+	public int getIndex();
+
 }

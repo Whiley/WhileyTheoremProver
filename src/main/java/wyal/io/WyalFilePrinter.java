@@ -18,10 +18,10 @@ import wyfs.util.Trie;
 
 public class WyalFilePrinter {
 	private final PrintWriter out;
-	private boolean raw=true;
+	private boolean raw = true;
 
 	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
-		this(new OutputStreamWriter(writer,"UTF-8"));
+		this(new OutputStreamWriter(writer, "UTF-8"));
 	}
 
 	public WyalFilePrinter(Writer writer) {
@@ -33,117 +33,126 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf) {
-		writeConstantPool(wf);
+		writeSyntacticItems(wf);
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
-		if(pkg != Trie.ROOT) {
+		if (pkg != Trie.ROOT) {
 			out.println("package " + pkg.toString());
 			out.println();
 		}
 		// Second, write all declarations
-		for(WyalFile.Declaration d : wf.getSyntacticItems(WyalFile.Declaration.class)) {
+		for (WyalFile.Declaration d : wf.getSyntacticItems(WyalFile.Declaration.class)) {
 			write(wf, d);
 			out.println();
 		}
 		out.flush();
 	}
 
-	public void writeConstantPool(WyalFile wf) {
-		if(raw) {
+	public void writeSyntacticItems(WyalFile wf) {
+		if (raw) {
 			List<SyntacticItem> items = wf.getSyntacticItems();
-			for(int i=0;i!=items.size();++i) {
-				out.println("// #" + i + " " + items.get(i));
+			String lenStr = Integer.toString(items.size());
+			for (int i = 0; i != items.size(); ++i) {
+				out.print("// ");
+				// Right align the string to ensure that all bytecodes are
+				// displayed on the same column. This just helps reading them.
+				String iStr = Integer.toString(i);
+				for (int j = iStr.length(); j < lenStr.length(); ++j) {
+					out.print(" ");
+				}
+				out.println("#" + i + " " + items.get(i));
 			}
 		}
 	}
 
-
 	private void write(WyalFile wf, Declaration s) {
-		if(s instanceof Declaration.Named.Function) {
-			write(wf,(Declaration.Named.Function) s);
-		} else if(s instanceof Declaration.Named.Macro) {
-			write(wf,(Declaration.Named.Macro) s);
-		} else if(s instanceof Declaration.Named.Type) {
-			write(wf,(Declaration.Named.Type) s);
-		} else if(s instanceof Declaration.Assert) {
-			write(wf,(Declaration.Assert) s);
+		if (s instanceof Declaration.Named.Function) {
+			write(wf, (Declaration.Named.Function) s);
+		} else if (s instanceof Declaration.Named.Macro) {
+			write(wf, (Declaration.Named.Macro) s);
+		} else if (s instanceof Declaration.Named.Type) {
+			write(wf, (Declaration.Named.Type) s);
+		} else if (s instanceof Declaration.Assert) {
+			write(wf, (Declaration.Assert) s);
 		} else {
-			throw new InternalFailure("unknown statement encountered " + s,
-					wf.getEntry(), s);
+			throw new InternalFailure("unknown statement encountered " + s, wf.getEntry(), s);
 		}
 		out.println();
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Function s) {
 		out.print("function ");
-		out.print(s.getName());
-		//out.print("(" + s.getType().element(0) + ") => " + s.getType().element(1));
+		out.print(s.getName().get());
+		// out.print("(" + s.getType().element(0) + ") => " +
+		// s.getType().element(1));
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Macro s) {
 		out.print("define ");
 
-		out.print(s.getName());
-		//out.print("(" + s.getType().from() + ") => " + s.getType().to());
-		if(s.getBody() != null) {
-			out.println(" as:");
-			writeBlock(s.getBody(),1);
+		out.print(s.getName().get());
+		writeVariableDeclarations(s.getParameters());
+		if (s.getBody() != null) {
+			out.println(" is:");
+			writeBlock(s.getBody(), 1);
 		}
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Type s) {
 		out.print("type ");
 
-		out.print(s.getName());
-//		out.print(" is " + s.getType());
-//		if(s.getInvariant().length > 0) {
-//			for(WyalFile.Term stmt : s.getInvariant()) {
-//				out.println(" where");
-//				writeStatement(stmt,1);
-//			}
-//		}
+		out.print(s.getName().get());
+		// out.print(" is " + s.getType());
+		// if(s.getInvariant().length > 0) {
+		// for(WyalFile.Term stmt : s.getInvariant()) {
+		// out.println(" where");
+		// writeStatement(stmt,1);
+		// }
+		// }
 	}
 
 	public void write(WyalFile wf, Declaration.Assert s) {
-		out.print("assertion ");
-		out.println(":");
-		writeBlock(s.getBody(),1);
-		out.println();
+		out.println("assert:");
+		writeBlock(s.getBody(), 1);
 	}
 
-	private void writeParameters(List<VariableDeclaration> parameters) {
+	private void writeVariableDeclarations(VariableDeclaration[] parameters) {
 		out.print("(");
-		for (int i = 0; i != parameters.size(); ++i) {
+		for (int i = 0; i != parameters.length; ++i) {
 			if (i != 0) {
 				out.print(", ");
 			}
-			VariableDeclaration parameter = parameters.get(i);
-			writeType(parameter.getType());
-			out.print(" ");
-			out.print(parameter.getVariableName());
+			writeVariableDeclaration(parameters[i]);
 		}
 		out.print(")");
 	}
 
+	public void writeVariableDeclaration(VariableDeclaration decl) {
+		writeType(decl.getType());
+		out.print(" ");
+		out.print(decl.getVariableName().get());
+	}
+
 	public void writeBlock(Block block, int indent) {
-		System.out.println("WRITING BLOCK");
-		for(int i=0;i!=block.numberOfOperands();i=i+1) {
-			System.out.println("WRITING STATEMENT: " + block.getOperand(i));
-			writeStatement(block.getOperand(i),indent);
+		for (int i = 0; i != block.numberOfOperands(); i = i + 1) {
+			writeStatement(block.getOperand(i), indent);
 		}
 	}
 
 	public void writeStatement(WyalFile.Stmt loc, int indent) {
-		switch(loc.getOpcode()) {
+		switch (loc.getOpcode()) {
 		case STMT_ifthen:
-			writeIfThen((Stmt.IfThen) loc,indent);
+			writeIfThen((Stmt.IfThen) loc, indent);
+			break;
+		case STMT_caseof:
+			writeCaseOf((Stmt.CaseOf) loc, indent);
 			break;
 		case STMT_forall:
 		case STMT_exists:
-			writeQuantifier((Stmt.Quantifier) loc,indent);
+			writeQuantifier((Stmt.Quantifier) loc, indent);
 			break;
 		default:
-			writeExpressionAsStatement((Expr) loc,indent);
+			writeExpressionAsStatement((Expr) loc, indent);
 		}
 	}
 
@@ -156,21 +165,34 @@ public class WyalFilePrinter {
 	private void writeIfThen(Stmt.IfThen stmt, int indent) {
 		indent(indent);
 		out.println("if:");
-		writeBlock(stmt.getIfBody(),indent+1);
+		writeBlock(stmt.getIfBody(), indent + 1);
 		indent(indent);
 		out.println("then:");
-		writeBlock(stmt.getThenBody(),indent+1);
+		writeBlock(stmt.getThenBody(), indent + 1);
+	}
+
+	private void writeCaseOf(Stmt.CaseOf stmt, int indent) {
+		for(int i=0;i!=stmt.numberOfOperands();++i) {
+			indent(indent);
+			if(i == 0) {
+				out.println("either:");
+			} else {
+				out.println("or:");
+			}
+			writeBlock(stmt.getOperand(i), indent + 1);
+		}
 	}
 
 	private void writeQuantifier(Stmt.Quantifier stmt, int indent) {
 		indent(indent);
-		if(stmt.getOpcode() == Opcode.STMT_forall) {
+		if (stmt.getOpcode() == Opcode.STMT_forall) {
 			out.print("forall");
 		} else {
 			out.print("exists");
 		}
-		out.println("( ... ):");
-		writeBlock(stmt.getBody(),indent+1);
+		writeVariableDeclarations(stmt.getParameters());
+		out.println(":");
+		writeBlock(stmt.getBody(), indent + 1);
 	}
 
 	/**
@@ -180,7 +202,7 @@ public class WyalFilePrinter {
 	 * @param expr
 	 */
 	public void writeExpressionWithBrackets(WyalFile.Expr expr) {
-		switch(expr.getOpcode()) {
+		switch (expr.getOpcode()) {
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_implies:
@@ -214,12 +236,12 @@ public class WyalFilePrinter {
 			writeCast((Expr.Cast) expr);
 			break;
 		case EXPR_const:
-			writeConstant((Expr.Constant)expr);
+			writeConstant((Expr.Constant) expr);
 			break;
 		case EXPR_not:
 		case EXPR_neg:
 		case EXPR_arrlen:
-			writeUnaryOperator((Expr.Operator)expr);
+			writeUnaryOperator((Expr.Operator) expr);
 			break;
 		case EXPR_and:
 		case EXPR_or:
@@ -231,16 +253,33 @@ public class WyalFilePrinter {
 		case EXPR_lteq:
 		case EXPR_gt:
 		case EXPR_gteq:
-		case EXPR_is:
 		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
 		case EXPR_rem:
-			writeInfixOperator((Expr.Operator)expr);
+			writeInfixOperator((Expr.Operator) expr);
+			break;
+		case EXPR_is:
+			writeIsOperator((Expr.Is) expr);
 			break;
 		case EXPR_var:
-			writeVariableAccess((Expr.VariableAccess)expr);
+			writeVariableAccess((Expr.VariableAccess) expr);
+			break;
+		case EXPR_invoke:
+			writeInvoke((Expr.Invoke)expr);
+			break;
+		case EXPR_arridx:
+			writeArrayAccess((Expr.Operator)expr);
+			break;
+		case EXPR_arrinit:
+			writeArrayInitialiser((Expr.Operator)expr);
+			break;
+		case EXPR_recfield:
+			writeRecordAccess((Expr.RecordAccess)expr);
+			break;
+		case EXPR_recinit:
+			writeRecordInitialiser((Expr.RecordInitialiser)expr);
 			break;
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());
@@ -283,12 +322,29 @@ public class WyalFilePrinter {
 	}
 
 	public void writeUnaryOperator(Expr.Operator expr) {
+		switch(expr.getOpcode()) {
+		case EXPR_not:
+			out.print("!");
+			writeExpressionWithBrackets(expr.getOperand(1));
+			break;
+		case EXPR_neg:
+			out.print("-");
+			writeExpressionWithBrackets(expr.getOperand(1));
+			break;
+		case EXPR_arrlen:
+			out.print("|");
+			writeExpression(expr.getOperand(1));
+			out.print("|");
+			break;
+		default:
+			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());
+		}
 
 	}
 
 	public void writeInfixOperator(Expr.Operator expr) {
-		for(int i=1;i!=expr.numberOfOperands();++i) {
-			if(i != 1) {
+		for (int i = 1; i != expr.numberOfOperands(); ++i) {
+			if (i != 1) {
 				out.print(" ");
 				out.print(OPERATOR_MAP.get(expr.getOpcode()));
 				out.print(" ");
@@ -297,8 +353,66 @@ public class WyalFilePrinter {
 		}
 	}
 
+	public void writeIsOperator(Expr.Is expr) {
+		writeExpressionWithBrackets(expr.getExpr());
+		out.print(" is ");
+		writeType(expr.getType());
+	}
+
+	public void writeInvoke(Expr.Invoke expr) {
+		writeName(expr.getName());
+		out.print("(");
+		writeArguments(expr.getArguments());
+		out.print(")");
+	}
+
+	public void writeArrayAccess(Expr.Operator expr) {
+		writeExpressionWithBrackets(expr.getOperand(1));
+		out.print("[");
+		writeExpression(expr.getOperand(2));
+		out.print("]");
+	}
+
+	public void writeArrayInitialiser(Expr.Operator expr) {
+		out.print("[");
+		writeArguments(expr.getExprs());
+		out.print("]");
+	}
+
+	public void writeRecordAccess(Expr.RecordAccess expr) {
+		writeExpressionWithBrackets(expr.getSource());
+		out.print(".");
+		out.print(expr.getField().get());
+	}
+
+	public void writeRecordInitialiser(Expr.RecordInitialiser expr) {
+		out.print("{");
+		Pair[] fields = expr.getFields();
+		for(int i=0;i!=fields.length;++i) {
+			if(i != 0) {
+				out.print(", ");
+			}
+			Pair p = fields[i];
+			Identifier f = (Identifier) p.getOperand(0);
+			Expr e = (Expr) p.getOperand(1);
+			out.print(f.get());
+			out.print(": ");
+			writeExpression(e);
+		}
+		out.print("}");
+	}
+
+	public void writeArguments(Expr...exprs) {
+		for(int i=0;i!=exprs.length;++i) {
+			if(i!=0) {
+				out.print(", ");
+			}
+			writeExpression(exprs[i]);
+		}
+	}
+
 	private void writeType(Type loc) {
-		switch(loc.getOpcode()) {
+		switch (loc.getOpcode()) {
 		case TYPE_any:
 			out.print("any");
 			break;
@@ -316,8 +430,7 @@ public class WyalFilePrinter {
 			break;
 		case TYPE_nom: {
 			Type.Nominal t = (Type.Nominal) loc;
-			Name name = t.getName();
-			out.print(name);
+			writeName(t.getName());
 			break;
 		}
 		case TYPE_arr: {
@@ -340,9 +453,9 @@ public class WyalFilePrinter {
 		}
 		case TYPE_or: {
 			Type.Union t = (Type.Union) loc;
-			for(int i=0;i!=loc.numberOfOperands();++i) {
-				if(i != 0) {
-					out.print(" | ");
+			for (int i = 0; i != loc.numberOfOperands(); ++i) {
+				if (i != 0) {
+					out.print("|");
 				}
 				writeTypeWithBraces(t.getOperand(i));
 			}
@@ -350,19 +463,21 @@ public class WyalFilePrinter {
 		}
 		case TYPE_and: {
 			Type.Intersection t = (Type.Intersection) loc;
-			for(int i=0;i!=loc.numberOfOperands();++i) {
-				if(i != 0) {
-					out.print(" & ");
+			for (int i = 0; i != loc.numberOfOperands(); ++i) {
+				if (i != 0) {
+					out.print("&");
 				}
 				writeTypeWithBraces(t.getOperand(i));
 			}
 			break;
 		}
+		default:
+			throw new RuntimeException("Unknown type encountered: " + loc);
 		}
 	}
 
 	private void writeTypeWithBraces(Type type) {
-		switch(type.getOpcode()) {
+		switch (type.getOpcode()) {
 		case TYPE_or:
 		case TYPE_and:
 			out.print("(");
@@ -375,9 +490,19 @@ public class WyalFilePrinter {
 
 	}
 
+	private void writeName(Name n) {
+		Identifier[] components = n.getComponents();
+		for(int i=0;i!=components.length;++i) {
+			if(i!=0) {
+				out.print(".");
+			}
+			out.print(components[i].get());
+		}
+	}
+
 	private void indent(int indent) {
 		indent = indent * 4;
-		for(int i=0;i<indent;++i) {
+		for (int i = 0; i < indent; ++i) {
 			out.print(" ");
 		}
 	}
@@ -385,23 +510,23 @@ public class WyalFilePrinter {
 	/**
 	 * A fixed map from token kinds to their correspond bytecode opcodes.
 	 */
-	private static final HashMap<Opcode,String> OPERATOR_MAP = new HashMap<>();
+	private static final HashMap<Opcode, String> OPERATOR_MAP = new HashMap<>();
 
 	static {
-		OPERATOR_MAP.put(Opcode.EXPR_and,"&&");
-		OPERATOR_MAP.put(Opcode.EXPR_or,"||");
-		OPERATOR_MAP.put(Opcode.EXPR_implies,"==>");
-		OPERATOR_MAP.put(Opcode.EXPR_iff,"<==>");
-		OPERATOR_MAP.put(Opcode.EXPR_lteq,"<=");
-		OPERATOR_MAP.put(Opcode.EXPR_lt,"<");
-		OPERATOR_MAP.put(Opcode.EXPR_gteq,">=");
-		OPERATOR_MAP.put(Opcode.EXPR_gt,">");
-		OPERATOR_MAP.put(Opcode.EXPR_eq,"==");
-		OPERATOR_MAP.put(Opcode.EXPR_neq,"!=");
-		OPERATOR_MAP.put(Opcode.EXPR_is,"is");
-		OPERATOR_MAP.put(Opcode.EXPR_add,"+");
-		OPERATOR_MAP.put(Opcode.EXPR_sub,"-");
-		OPERATOR_MAP.put(Opcode.EXPR_mul,"*");
-		OPERATOR_MAP.put(Opcode.EXPR_div,"/");
+		OPERATOR_MAP.put(Opcode.EXPR_and, "&&");
+		OPERATOR_MAP.put(Opcode.EXPR_or, "||");
+		OPERATOR_MAP.put(Opcode.EXPR_implies, "==>");
+		OPERATOR_MAP.put(Opcode.EXPR_iff, "<==>");
+		OPERATOR_MAP.put(Opcode.EXPR_lteq, "<=");
+		OPERATOR_MAP.put(Opcode.EXPR_lt, "<");
+		OPERATOR_MAP.put(Opcode.EXPR_gteq, ">=");
+		OPERATOR_MAP.put(Opcode.EXPR_gt, ">");
+		OPERATOR_MAP.put(Opcode.EXPR_eq, "==");
+		OPERATOR_MAP.put(Opcode.EXPR_neq, "!=");
+		OPERATOR_MAP.put(Opcode.EXPR_is, "is");
+		OPERATOR_MAP.put(Opcode.EXPR_add, "+");
+		OPERATOR_MAP.put(Opcode.EXPR_sub, "-");
+		OPERATOR_MAP.put(Opcode.EXPR_mul, "*");
+		OPERATOR_MAP.put(Opcode.EXPR_div, "/");
 	}
 }

@@ -85,6 +85,11 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 	}
 
 	@Override
+	public int getIndex() {
+		return parent.getIndex(this);
+	}
+
+	@Override
 	public int hashCode() {
 		int hash = getOpcode().hashCode() ^ Arrays.hashCode(getOperands());
 		if (data != null) {
@@ -112,7 +117,12 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 				if (i != 0) {
 					r += ", ";
 				}
-				r += operands[i];
+				SyntacticItem item = operands[i];
+				if(item != null) {
+					r += item.getIndex();
+				} else {
+					r += "?";
+				}
 			}
 			r += ")";
 		}

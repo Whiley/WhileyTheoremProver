@@ -1387,10 +1387,10 @@ public class WyalFileParser {
 			t = new Type.Null(scope.parent);
 			break;
 		case Bool:
-			t = new Type.Null(scope.parent);
+			t = new Type.Bool(scope.parent);
 			break;
 		case Int:
-			t = new Type.Null(scope.parent);
+			t = new Type.Int(scope.parent);
 			break;
 		default:
 			syntaxError("unknown primitive type encountered", token);
