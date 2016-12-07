@@ -12,6 +12,7 @@ import static wyal.lang.WyalFile.*;
 import wyal.lang.SemanticType;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wybs.lang.Attribute;
 import wybs.lang.SyntaxError.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
@@ -53,6 +54,7 @@ public class WyalFilePrinter {
 			List<SyntacticItem> items = wf.getSyntacticItems();
 			String lenStr = Integer.toString(items.size());
 			for (int i = 0; i != items.size(); ++i) {
+				SyntacticItem item = items.get(i);
 				out.print("// ");
 				// Right align the string to ensure that all bytecodes are
 				// displayed on the same column. This just helps reading them.
@@ -60,7 +62,21 @@ public class WyalFilePrinter {
 				for (int j = iStr.length(); j < lenStr.length(); ++j) {
 					out.print(" ");
 				}
-				out.println("#" + i + " " + items.get(i));
+				out.print("#" + i + " " + item);
+				//
+				List<Attribute> attributes = item.attributes();
+				if(attributes.size() > 0) {
+					out.print(" [");
+					for(int j=0;j!=attributes.size();++j) {
+						if(j != 0) {
+							out.print(", ");
+						}
+						out.print(attributes.get(j));
+					}
+					out.print("]");
+				}
+
+				out.println();
 			}
 		}
 	}

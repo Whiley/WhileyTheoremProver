@@ -1,5 +1,7 @@
 package wyal.lang;
 
+import wyal.lang.WyalFile.Declaration;
+
 public interface Proof {
 
 	/**
@@ -7,7 +9,7 @@ public interface Proof {
 	 *
 	 * @return
 	 */
-	public WyalFile.Assert getAssertion();
+	public Declaration.Assert getAssertion();
 
 	/**
 	 * Determine whether or not the proof is complete. That is, whether or not
