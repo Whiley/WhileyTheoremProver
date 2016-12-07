@@ -449,8 +449,16 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 
 		public static class Record extends Type {
-			public Record(WyalFile parent,  Pair... fields) {
+			public Record(WyalFile parent, VariableDeclaration... fields) {
 				super(parent, Opcode.TYPE_rec, fields);
+			}
+
+			public VariableDeclaration[] getFields() {
+				VariableDeclaration[] vars = new VariableDeclaration[numberOfOperands()];
+				for (int i = 0; i != vars.length; ++i) {
+					vars[i] = (VariableDeclaration) getOperand(i);
+				}
+				return vars;
 			}
 		}
 

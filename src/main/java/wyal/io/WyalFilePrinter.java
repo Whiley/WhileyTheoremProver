@@ -411,8 +411,8 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeType(Type loc) {
-		switch (loc.getOpcode()) {
+	private void writeType(Type type) {
+		switch (type.getOpcode()) {
 		case TYPE_any:
 			out.print("any");
 			break;
@@ -429,31 +429,44 @@ public class WyalFilePrinter {
 			out.print("int");
 			break;
 		case TYPE_nom: {
-			Type.Nominal t = (Type.Nominal) loc;
+			Type.Nominal t = (Type.Nominal) type;
 			writeName(t.getName());
 			break;
 		}
 		case TYPE_arr: {
-			Type.Array t = (Type.Array) loc;
+			Type.Array t = (Type.Array) type;
 			writeTypeWithBraces(t.getElement());
 			out.print("[]");
 			break;
 		}
 		case TYPE_ref: {
 			out.print("&");
-			Type.Reference t = (Type.Reference) loc;
+			Type.Reference t = (Type.Reference) type;
 			writeTypeWithBraces(t.getElement());
+			break;
+		}
+		case TYPE_rec: {
+			Type.Record t = (Type.Record) type;
+			VariableDeclaration[] fields = t.getFields();
+			out.print("{");
+			for (int i = 0; i != fields.length; ++i) {
+				if (i != 0) {
+					out.print(", ");
+				}
+				writeVariableDeclaration(fields[i]);
+			}
+			out.print("}");
 			break;
 		}
 		case TYPE_not: {
 			out.print("!");
-			Type.Negation t = (Type.Negation) loc;
+			Type.Negation t = (Type.Negation) type;
 			writeTypeWithBraces(t.getElement());
 			break;
 		}
 		case TYPE_or: {
-			Type.Union t = (Type.Union) loc;
-			for (int i = 0; i != loc.numberOfOperands(); ++i) {
+			Type.Union t = (Type.Union) type;
+			for (int i = 0; i != type.numberOfOperands(); ++i) {
 				if (i != 0) {
 					out.print("|");
 				}
@@ -462,8 +475,8 @@ public class WyalFilePrinter {
 			break;
 		}
 		case TYPE_and: {
-			Type.Intersection t = (Type.Intersection) loc;
-			for (int i = 0; i != loc.numberOfOperands(); ++i) {
+			Type.Intersection t = (Type.Intersection) type;
+			for (int i = 0; i != type.numberOfOperands(); ++i) {
 				if (i != 0) {
 					out.print("&");
 				}
@@ -472,7 +485,7 @@ public class WyalFilePrinter {
 			break;
 		}
 		default:
-			throw new RuntimeException("Unknown type encountered: " + loc);
+			throw new RuntimeException("Unknown type encountered: " + type);
 		}
 	}
 
