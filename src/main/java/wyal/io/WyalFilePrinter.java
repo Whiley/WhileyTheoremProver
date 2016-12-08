@@ -116,16 +116,20 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Type s) {
+		Identifier name = s.getName();
+		VariableDeclaration vardecl = s.getVariableDeclaration();
+		Block[] invariant = s.getInvariant();
 		out.print("type ");
-
-		out.print(s.getName().get());
-		// out.print(" is " + s.getType());
-		// if(s.getInvariant().length > 0) {
-		// for(WyalFile.Term stmt : s.getInvariant()) {
-		// out.println(" where");
-		// writeStatement(stmt,1);
-		// }
-		// }
+		out.print(name.get());
+		out.print(" is (");
+		writeVariableDeclaration(vardecl);
+		out.println(")");
+		 if(invariant.length > 0) {
+			 for(Block block : invariant) {
+				 out.println("where:");
+				 writeBlock(block,1);
+			 }
+		 }
 	}
 
 	public void write(WyalFile wf, Declaration.Assert s) {

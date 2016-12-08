@@ -5,8 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import static wycc.util.ArrayUtils.*;
@@ -15,10 +13,7 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticItem;
-import wybs.lang.Attribute;
-import wybs.lang.SyntacticElement;
 import wybs.util.AbstractCompilationUnit;
-import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 
@@ -402,14 +397,18 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			// ============================================================
 			public static class Type extends Named {
 
-				public Type(WyalFile parent, Identifier name, Block... invariant) {
-					super(parent, Opcode.DECL_type, name, invariant);
+				public Type(WyalFile parent, Identifier name, VariableDeclaration vardecl, Block... invariant) {
+					super(parent, Opcode.DECL_type, name, append(Item.class, vardecl, invariant));
+				}
+
+				public VariableDeclaration getVariableDeclaration() {
+					return (VariableDeclaration) getOperand(1);
 				}
 
 				public Block[] getInvariant() {
-					Block[] invariant = new Block[numberOfOperands()-1];
+					Block[] invariant = new Block[numberOfOperands()-2];
 					for(int i=0;i!=invariant.length;++i) {
-						invariant[i] = (Block) getOperand(i+1);
+						invariant[i] = (Block) getOperand(i+2);
 					}
 					return invariant;
 				}

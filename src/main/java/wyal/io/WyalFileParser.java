@@ -170,12 +170,12 @@ public class WyalFileParser {
 		match(Is);
 		// Parse parameter declaration and invariant (if applicable)
 		match(LeftBrace);
-		parseParameterDeclaration(scope);
+		VariableDeclaration parameter = parseParameterDeclaration(scope);
 		match(RightBrace);
 		//
 		Block[] invariant = parseInvariantClauses(scope);
 		//
-		Declaration.Named.Type declaration = new Declaration.Named.Type(parent, name, invariant);
+		Declaration.Named.Type declaration = new Declaration.Named.Type(parent, name, parameter, invariant);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 	}
 
@@ -1083,7 +1083,7 @@ public class WyalFileParser {
 	private Expr  parseNegationExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(Minus);
-		Expr expr = parseUnitExpression(scope, terminated);
+		Expr expr = parseTermExpression(scope, terminated);
 		//
 		expr = new Expr.Operator(scope.parent, Opcode.EXPR_neg, null, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
