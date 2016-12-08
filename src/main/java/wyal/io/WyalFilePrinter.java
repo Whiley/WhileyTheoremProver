@@ -12,6 +12,7 @@ import static wyal.lang.WyalFile.*;
 import wyal.lang.SemanticType;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Constant;
 import wybs.lang.Attribute;
 import wybs.lang.SyntaxError.*;
 import wyfs.lang.Path;
@@ -323,12 +324,12 @@ public class WyalFilePrinter {
 			out.print("null");
 			break;
 		case CONST_bool: {
-			Bool item = (Bool) expr.getValue();
+			Constant.Bool item = (Constant.Bool) expr.getValue();
 			out.print(item.get());
 			break;
 		}
 		case CONST_int: {
-			Int item = (Int) expr.getValue();
+			Constant.Int item = (Constant.Int) expr.getValue();
 			out.print(item.get());
 			break;
 		}

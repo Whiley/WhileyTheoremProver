@@ -209,6 +209,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		return matches;
 	}
 
+	public int size() {
+		return syntacticItems.size();
+	}
+
 	public SyntacticItem getSyntacticItem(int index) {
 		return syntacticItems.get(index);
 	}
@@ -250,41 +254,6 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			super(parent, Opcode.ITEM_tuple, stmts);
 		}
 	}
-	public static class Null extends Item {
-		public Null(WyalFile parent) {
-			super(parent, Opcode.CONST_null);
-		}
-	}
-
-	public static class Bool extends Item {
-		public Bool(WyalFile parent, boolean value) {
-			super(parent, Opcode.CONST_bool, value);
-		}
-
-		public boolean get() {
-			return (Boolean) data;
-		}
-	}
-
-	public static class Int extends Item {
-		public Int(WyalFile parent, BigInteger value) {
-			super(parent, Opcode.CONST_int, value);
-		}
-
-		public BigInteger get() {
-			return (BigInteger) data;
-		}
-	}
-
-	public static class UTF8 extends Item {
-		public UTF8(WyalFile parent, byte[] bytes) {
-			super(parent, Opcode.CONST_utf8, bytes);
-		}
-
-		public byte[] get() {
-			return (byte[]) data;
-		}
-	}
 
 	public static class Identifier extends Item {
 		public Identifier(WyalFile parent, String name) {
@@ -303,6 +272,49 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public Identifier[] getComponents() {
 			return (Identifier[]) getOperands();
+		}
+	}
+
+	public abstract static class Constant extends Item {
+
+		public Constant(WyalFile parent, Opcode opcode, Object data) {
+			super(parent,opcode,data);
+		}
+
+		public static class Null extends Constant {
+			public Null(WyalFile parent) {
+				super(parent, Opcode.CONST_null, null);
+			}
+		}
+
+		public static class Bool extends Constant {
+			public Bool(WyalFile parent, boolean value) {
+				super(parent, Opcode.CONST_bool, value);
+			}
+
+			public boolean get() {
+				return (Boolean) data;
+			}
+		}
+
+		public static class Int extends Constant {
+			public Int(WyalFile parent, BigInteger value) {
+				super(parent, Opcode.CONST_int, value);
+			}
+
+			public BigInteger get() {
+				return (BigInteger) data;
+			}
+		}
+
+		public static class UTF8 extends Constant {
+			public UTF8(WyalFile parent, byte[] bytes) {
+				super(parent, Opcode.CONST_utf8, bytes);
+			}
+
+			public byte[] get() {
+				return (byte[]) data;
+			}
 		}
 	}
 
@@ -408,7 +420,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	// Types
 	// ============================================================
-	public static class Type extends Item {
+	public abstract static class Type extends Item {
 
 		public Type(WyalFile parent, Opcode opcode, Item... items) {
 			super(parent, opcode, items);

@@ -8,6 +8,7 @@ import java.util.Set;
 
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
+import wyal.util.TypeChecker;
 import wyal.lang.WyalFile;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;
@@ -90,7 +91,7 @@ public class CompileTask implements Build.Task {
 				WyalFile wf = source.read();
 				// FIXME: temporary
 				new WyalFilePrinter(System.out).write(wf);
-
+				new TypeChecker().check(wf);
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary

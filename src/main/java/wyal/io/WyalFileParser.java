@@ -255,7 +255,7 @@ public class WyalFileParser {
 			// Initial indent either doesn't exist or is not strictly greater
 			// than parent indent and,therefore, signals an empty block.
 			//
-			Expr bool = new Expr.Constant(scope.parent,new Bool(scope.parent,true));
+			Expr bool = new Expr.Constant(scope.parent,new Constant.Bool(scope.parent,true));
 			return new Block(scope.parent,bool);
 		} else {
 			// Initial indent is valid, so we proceed parsing statements with
@@ -708,24 +708,24 @@ public class WyalFileParser {
 		Item item;
 		switch (token.kind) {
 		case Null:
-			item = new Null(scope.parent);
+			item = new Constant.Null(scope.parent);
 			break;
 		case True:
-			item = new Bool(scope.parent,true);
+			item = new Constant.Bool(scope.parent,true);
 			break;
 		case False:
-			item = new Bool(scope.parent,false);
+			item = new Constant.Bool(scope.parent,false);
 			break;
 		case IntValue: {
 			BigInteger val = new BigInteger(token.text);
-			item = new Int(scope.parent,val);
+			item = new Constant.Int(scope.parent,val);
 			break;
 		}
 		case StringValue: {
 			String str = parseString(token.text);
 			// FIXME: following may be broken because of conversion between
 			// UTF16 from java.lang.String.
-			item = new UTF8(scope.parent,str.getBytes());
+			item = new Constant.UTF8(scope.parent,str.getBytes());
 			break;
 		}
 		default:
