@@ -361,31 +361,42 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				return (Identifier) getOperand(0);
 			}
 
+			public static class FunctionOrMacro extends Named {
+				public FunctionOrMacro(WyalFile parent, Identifier name, Tuple parameters, Item body) {
+					super(parent, Opcode.DECL_macro, name, append(Item.class, parameters, body));
+				}
+
+				public FunctionOrMacro(WyalFile parent, Identifier name, Tuple parameters, Tuple returns) {
+					super(parent, Opcode.DECL_fun, name, parameters, returns);
+				}
+
+				public VariableDeclaration[] getParameters() {
+					Tuple params = (Tuple) getOperand(1);
+					VariableDeclaration[] vars = new VariableDeclaration[params.numberOfOperands()];
+					for (int i = 0; i != vars.length; ++i) {
+						vars[i] = (VariableDeclaration) params.getOperand(i);
+					}
+					return vars;
+				}
+			}
+
 			// ============================================================
 			// Function Declaration
 			// ============================================================
-			public static class Function extends Named {
+			public static class Function extends FunctionOrMacro {
 
 				public Function(WyalFile parent, Identifier name, VariableDeclaration[] parameters,
 						VariableDeclaration[] returns) {
-					super(parent, Opcode.DECL_fun, name, new Tuple(parent, parameters), new Tuple(parent, returns));
+					super(parent, name, new Tuple(parent, parameters), new Tuple(parent, returns));
 				}
 			}
 
 			// ============================================================
 			// Macro Declaration
 			// ============================================================
-			public static class Macro extends Named {
+			public static class Macro extends FunctionOrMacro {
 				public Macro(WyalFile parent, Identifier name, VariableDeclaration[] parameters, Block body) {
-					super(parent, Opcode.DECL_macro, name, append(Item.class, new Tuple(parent, parameters), body));
-				}
-				public VariableDeclaration[] getParameters() {
-					Tuple params = (Tuple) getOperand(1);
-					VariableDeclaration[] vars = new VariableDeclaration[params.numberOfOperands()];
-					for(int i=0;i!=vars.length;++i) {
-						vars[i] = (VariableDeclaration) params.getOperand(i);
-					}
-					return vars;
+					super(parent, name, new Tuple(parent, parameters), body);
 				}
 				public Block getBody() {
 					return (Block) getOperand(2);

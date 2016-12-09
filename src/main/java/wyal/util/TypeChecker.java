@@ -6,10 +6,13 @@
 package wyal.util;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
+import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Item;
@@ -127,7 +130,16 @@ public class TypeChecker {
 	}
 
 	private Type checkInvocation(Expr.Invoke expr) {
-		throw new RuntimeException("Need to check invoke bytecodes");
+		// First, determine the argument types
+		Expr[] arguments = expr.getArguments();
+		Type[] types = new Type[arguments.length];
+		for(int i=0;i!=arguments.length;++i) {
+			types[i] = check(arguments[i]);
+		}
+		// Second, attempt to resolve the appropriate function type
+		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(),types);
+		//
+		return sig.getReturns();
 	}
 
 	/**
@@ -210,7 +222,12 @@ public class TypeChecker {
 			return (T) type;
 		} else if (type instanceof Type.Nominal) {
 			Type.Nominal nt = (Type.Nominal) type;
-			return checkIsType(expandAsType(nt.getName()), kind);
+			// Look up the type declaration to which the name refers
+			Declaration.Named.Type td = resolveAsDeclaredType(nt.getName());
+			// Extract the actual type corresponding to this declaration
+			Type declared = td.getVariableDeclaration().getType();
+			// Check it makes sense
+			return checkIsType(declared, kind);
 		} else {
 			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
 		}
@@ -254,7 +271,7 @@ public class TypeChecker {
 	 * @param name
 	 * @return
 	 */
-	private Type expandAsType(Name name) {
+	private Declaration.Named.Type resolveAsDeclaredType(Name name) {
 		Identifier[] components = name.getComponents();
 		if (components.length > 1) {
 			// FIXME: implement this
@@ -267,11 +284,181 @@ public class TypeChecker {
 			if (item instanceof Declaration.Named.Type) {
 				Declaration.Named.Type nd = (Declaration.Named.Type) item;
 				if (nd.getName().equals(components[0])) {
-					return nd.getVariableDeclaration().getType();
+					return nd;
 				}
 			}
 		}
 		// FIXME: consider imported files as well
 		throw new IllegalArgumentException("unable to resolve " + name + " as type");
+	}
+
+	/**
+	 * Attempt to determine the declared function or macro to which a given
+	 * invocation refers. To resolve this requires considering the name, along
+	 * with the argument types as well.
+	 *
+	 * @param name
+	 * @param args
+	 * @return
+	 */
+	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, Type... args) {
+		// Identify all function or macro declarations which should be considered
+		List<Named.FunctionOrMacro> candidates = findCandidateFunctionOrMacroDeclarations(name);
+		// Based on given argument types, select the most precise signature from the candidates.
+		Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates,args);
+		return selected;
+	}
+
+	/**
+	 * Extract all candidate function or macro declarations. This is basically
+	 * just the complete list of function or macro declarations in the given
+	 * file which have the matching name. Many of these will be immediately
+	 * non-applicable because, for example, they have different numbers of
+	 * parameters, etc. We don't worry about this here, we just find and return
+	 * them all.
+	 *
+	 * @param name
+	 * @return
+	 */
+	private List<Named.FunctionOrMacro> findCandidateFunctionOrMacroDeclarations(Name name) {
+		Identifier[] components = name.getComponents();
+		if (components.length > 1) {
+			// FIXME: implement this
+			throw new IllegalArgumentException("Need to handle proper namespaces!");
+		}
+		WyalFile parent = name.getParent();
+		ArrayList<Named.FunctionOrMacro> candidates = new ArrayList<>();
+		for (int i = 0; i != parent.size(); ++i) {
+			SyntacticItem item = parent.getSyntacticItem(i);
+			if (item instanceof Named.FunctionOrMacro) {
+				Named.FunctionOrMacro nd = (Named.FunctionOrMacro) item;
+				if (nd.getName().equals(components[0])) {
+					candidates.add(nd);
+				}
+			}
+		}
+		return candidates;
+	}
+
+	/**
+	 * Given a list of candidate function or macro declarations, determine the
+	 * most precise match for the supplied argument types. The given argument
+	 * types must be applicable to this function or macro declaration, and it
+	 * must be a subtype of all other applicable candidates.
+	 *
+	 * @param candidates
+	 * @param args
+	 * @return
+	 */
+	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(List<Named.FunctionOrMacro> candidates, Type... args) {
+		Named.FunctionOrMacro best = null;
+		for(int i=0;i!=candidates.size();++i) {
+			Named.FunctionOrMacro candidate = candidates.get(i);
+			// Check whether the given candidate is a real candidate or not.  A
+			if(isApplicable(candidate,args)) {
+				// Yes, this candidate is applicable.
+				if(best == null) {
+					// No other candidates are applicable so far. Hence, this
+					// one is automatically promoted to the best seen so far.
+					best = candidate;
+				} else if(isSubtype(candidate,best)) {
+					// This candidate is a subtype of the best seen so far.
+					// Hence, it is now the best seen so far.
+					best = candidate;
+				} else if(isSubtype(best,candidate)) {
+					// This best so far is a subtype of this candidate.
+					// Therefore, we can simply discard this candidate from
+					// consideration.
+				} else {
+					// This is the awkward case. Neither the best so far, nor
+					// the candidate, are subtypes of each other. In this case,
+					// we report an error.
+					throw new IllegalArgumentException("unable to resolve function");
+				}
+			}
+		}
+		// Having considered each candidate in turn, do we now have a winner?
+		if(best != null) {
+			// Yes, we have a winner.
+			return best;
+		} else {
+			// No, there was no winner. In fact, there must have been no
+			// applicable candidates to get here.
+			throw new IllegalArgumentException("unable to resolve function");
+		}
+	}
+
+	/**
+	 * Determine whether a given function or macro declaration is applicable to
+	 * a given set of argument types. If there number of arguments differs, it's
+	 * definitely not applicable. Otherwise, we need every argument type to be a
+	 * subtype of its corresponding parameter type.
+	 *
+	 * @param decl
+	 * @param args
+	 * @return
+	 */
+	private boolean isApplicable(Named.FunctionOrMacro decl, Type... args) {
+		VariableDeclaration[] parameters = decl.getParameters();
+		if(parameters.length != args.length) {
+			// Differing number of parameters / arguments. Since we don't
+			// support variable-length argument lists (yet), there is nothing
+			// more to consider.
+			return false;
+		}
+		// Number of parameters matches number of arguments. Now, check that
+		// each argument is a subtype of its corresponding parameter.
+		for(int i=0;i!=args.length;++i) {
+			Type param = parameters[i].getType();
+			if(!isSubtype(param,args[i])) {
+				return false;
+			}
+		}
+		//
+		return true;
+	}
+
+	/**
+	 * Check whether the type signature for a given function declaration is a
+	 * super type of a given child declaration.
+	 *
+	 * @param parent
+	 * @param child
+	 * @return
+	 */
+	private boolean isSubtype(Named.FunctionOrMacro parent, Named.FunctionOrMacro child) {
+		VariableDeclaration[] parentParams = parent.getParameters();
+		VariableDeclaration[] childParams = child.getParameters();
+		if (parentParams.length != childParams.length) {
+			// Differing number of parameters / arguments. Since we don't
+			// support variable-length argument lists (yet), there is nothing
+			// more to consider.
+			return false;
+		}
+		// Number of parameters matches number of arguments. Now, check that
+		// each argument is a subtype of its corresponding parameter.
+		for (int i = 0; i != parentParams.length; ++i) {
+			Type parentParam = parentParams[i].getType();
+			Type childParam = childParams[i].getType();
+			if (!isSubtype(parentParam, childParam)) {
+				return false;
+			}
+		}
+		//
+		return true;
+	}
+
+	/**
+	 * Check whether a given "parent" type is indeed a supertype of a given
+	 * "child". In the presence of arbitrary recursive types with unions,
+	 * intersections and negations, this is a challenging operation.
+	 *
+	 * @param parent
+	 * @param child
+	 * @return
+	 */
+	private boolean isSubtype(Type parent, Type child) {
+		// TODO: need to do something here.
+		return false;
 	}
 }
