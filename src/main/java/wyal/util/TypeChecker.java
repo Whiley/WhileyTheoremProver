@@ -11,12 +11,14 @@ import java.util.List;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.SemanticType.Bool;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Item;
 import wyal.lang.WyalFile.Name;
+import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 
@@ -130,16 +132,27 @@ public class TypeChecker {
 	}
 
 	private Type checkInvocation(Expr.Invoke expr) {
-		// First, determine the argument types
+		// Determine the argument types
 		Expr[] arguments = expr.getArguments();
 		Type[] types = new Type[arguments.length];
-		for(int i=0;i!=arguments.length;++i) {
+		for (int i = 0; i != arguments.length; ++i) {
 			types[i] = check(arguments[i]);
 		}
-		// Second, attempt to resolve the appropriate function type
-		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(),types);
-		//
-		return sig.getReturns();
+		// Attempt to resolve the appropriate function type
+		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
+		// Finally, return the declared returns
+		if (sig instanceof Named.Function) {
+			Named.Function fn = (Named.Function) sig;
+			// Functions have specific return values
+			VariableDeclaration[] d = fn.getReturns();
+			if (d.length != 1) {
+				throw new RuntimeException("invalid number of returns");
+			} else {
+				return d[0].getType();
+			}
+		} else {
+			return findPrimitiveType(expr.getParent(), Type.Bool.class);
+		}
 	}
 
 	/**
@@ -458,7 +471,60 @@ public class TypeChecker {
 	 * @return
 	 */
 	private boolean isSubtype(Type parent, Type child) {
-		// TODO: need to do something here.
-		return false;
+		WyalFile.Opcode pOpcode = parent.getOpcode();
+		WyalFile.Opcode cOpcode = child.getOpcode();
+		// Handle non-atomic cases
+		// Handle atomic cases
+
+		if(pOpcode == Opcode.TYPE_nom) {
+			Type.Nominal nom = (Type.Nominal) parent;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			// FIXME: this will cause infinite loops
+			return isSubtype(decl.getVariableDeclaration().getType(),child);
+		} else if(cOpcode == Opcode.TYPE_nom) {
+			Type.Nominal nom = (Type.Nominal) child;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			// FIXME: this will cause infinite loops
+			return isSubtype(parent,decl.getVariableDeclaration().getType());
+		} else if(pOpcode == Opcode.TYPE_any || cOpcode == Opcode.TYPE_void) {
+			return true;
+		} else if(pOpcode == Opcode.TYPE_or) {
+			Type.Union pUnion = (Type.Union) parent;
+			for(int i=0;i!=pUnion.numberOfOperands();++i) {
+				Type pChild = pUnion.getOperand(i);
+				if(isSubtype(pChild,child)) {
+					return true;
+				}
+			}
+			return false;
+		} else if(cOpcode == Opcode.TYPE_or) {
+			Type.Union cUnion = (Type.Union) child;
+			for(int i=0;i!=cUnion.numberOfOperands();++i) {
+				Type cChild = cUnion.getOperand(i);
+				if(!isSubtype(parent,cChild)) {
+					return false;
+				}
+			}
+			return true;
+		} else if(pOpcode != cOpcode) {
+			return false;
+		}
+
+		switch(parent.getOpcode()) {
+		case TYPE_any:
+			return true;
+		case TYPE_bool:
+		case TYPE_int:
+		case TYPE_void:
+			return cOpcode == pOpcode || cOpcode == Opcode.TYPE_void;
+		case TYPE_arr: {
+			Type.Array pArray = (Type.Array) parent;
+			Type.Array cArray = (Type.Array) child;
+			return isSubtype(pArray.getElement(),cArray.getElement());
+		}
+		default:
+			throw new RuntimeException("unknown type encountered: " + parent);
+		}
 	}
+
 }

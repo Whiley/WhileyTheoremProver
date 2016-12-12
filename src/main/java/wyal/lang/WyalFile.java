@@ -389,6 +389,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 						VariableDeclaration[] returns) {
 					super(parent, name, new Tuple(parent, parameters), new Tuple(parent, returns));
 				}
+
+				public VariableDeclaration[] getReturns() {
+					Tuple returns = (Tuple) getOperand(2);
+					VariableDeclaration[] vars = new VariableDeclaration[returns.numberOfOperands()];
+					for (int i = 0; i != vars.length; ++i) {
+						vars[i] = (VariableDeclaration) returns.getOperand(i);
+					}
+					return vars;
+				}
 			}
 
 			// ============================================================
