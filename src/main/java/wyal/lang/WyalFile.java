@@ -449,6 +449,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Any(WyalFile parent) { super(parent, Opcode.TYPE_any); }
 		}
 
+		public static class Void extends Type {
+			public Void(WyalFile parent) { super(parent, Opcode.TYPE_void); }
+		}
+
 		public static class Null extends Type {
 			public Null(WyalFile parent) { super(parent, Opcode.TYPE_null); }
 		}

@@ -2,9 +2,9 @@ define f_ensures_0(int r0, null | int r1) is:
     r0 >= 0
 
 assert:
-    forall (null | int v):
+    forall (null | int v, int w):
         if:
-            v is int
-            v >= 0
+            (v is int) && (v == w)
+            w >= 0
         then:
-            f_ensures_0(v + 1, v)
+            f_ensures_0(w + 1, v)

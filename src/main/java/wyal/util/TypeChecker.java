@@ -7,7 +7,10 @@ package wyal.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -19,6 +22,7 @@ import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Item;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 
@@ -79,9 +83,12 @@ public class TypeChecker {
 			return checkArithmeticOperator((Expr.Operator) expr);
 		// Other operators
 		case EXPR_is:
+			return checkIsOperator((Expr.Is) expr);
 			// Record expressions
 		case EXPR_recinit:
+			return checkRecordInitialiser((Expr.RecordInitialiser) expr);
 		case EXPR_recfield:
+			return checkRecordAccess((Expr.RecordAccess) expr);
 			// Array expressions
 		case EXPR_arrlen:
 			return checkArrayLength((Expr.Operator) expr);
@@ -155,6 +162,43 @@ public class TypeChecker {
 		}
 	}
 
+	private Type checkIsOperator(Expr.Is expr) {
+		Type lhs = check(expr.getExpr());
+		Type rhs = expr.getType();
+		// TODO: implement a proper intersection test here to ensure the lhs and
+		// rhs types make sense (i.e. have some intersection).
+		return findPrimitiveType(expr.getParent(), Type.Bool.class);
+	}
+
+	private Type checkRecordAccess(Expr.RecordAccess expr) {
+		Type src = check(expr.getSource());
+		Type.Record record = expandAsEffectiveRecord(src);
+		VariableDeclaration[] fields = record.getFields();
+		String actualFieldName = expr.getField().get();
+		for(int i=0;i!=fields.length;++i) {
+			VariableDeclaration vd = fields[i];
+			String declaredFieldName = vd.getVariableName().get();
+			if(declaredFieldName.equals(actualFieldName)) {
+				return vd.getType();
+			}
+		}
+		//
+		throw new RuntimeException("invalid field access: " + actualFieldName);
+	}
+
+	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
+		WyalFile parent = expr.getParent();
+		Pair[] fields = expr.getFields();
+		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+		for(int i=0;i!=fields.length;++i) {
+			Identifier fieldName = (Identifier) fields[i].getOperand(0);
+			Type fieldType = check((Expr) fields[i].getOperand(1));
+			decls[i] = new VariableDeclaration(parent,fieldType,fieldName);
+		}
+		//
+		return new Type.Record(parent, decls);
+	}
+
 	/**
 	 * Check the type for a given logical operator. Such an operator has the
 	 * type bool, and all children should also produce values of type bool.
@@ -187,7 +231,22 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type checkComparisonOperator(Expr.Operator expr) {
-		checkOperands(expr, Type.Int.class);
+		switch(expr.getOpcode()) {
+		case EXPR_eq:
+		case EXPR_neq:
+			//
+			// TODO: could be more restrictive here
+			break;
+		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
+		case EXPR_gteq:
+			checkOperands(expr, Type.Int.class);
+			break;
+		default:
+			throw new RuntimeException("Unknown bytecode encountered: " + expr);
+		}
+
 		return findPrimitiveType(expr.getParent(), Type.Bool.class);
 	}
 
@@ -203,11 +262,12 @@ public class TypeChecker {
 	}
 
 	private Type checkArrayInitialiser(Expr.Operator expr) {
-		Type[] types = new Type[expr.numberOfOperands()];
-		for (int i = 1; i != types.length; ++i) {
-			types[i] = check(expr.getOperand(i));
+		Type[] types = new Type[expr.numberOfOperands()-1];
+		for (int i = 0; i != types.length; ++i) {
+			types[i] = check(expr.getOperand(i+1));
 		}
-		return new Type.Union(expr.getParent(), types);
+		Type element = union(expr.getParent(),types);
+		return new Type.Array(expr.getParent(),element);
 	}
 
 	private Type checkArrayGenerator(Expr.Operator expr) {
@@ -218,6 +278,8 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type.Array at = checkIsType(check(expr.getOperand(1)), Type.Array.class);
+		Type indexType = check(expr.getOperand(2));
+		checkIsSubtype(findPrimitiveType(expr.getParent(),Type.Int.class),indexType);
 		checkIsType(check(expr.getOperand(2)), Type.Int.class);
 		return at.getElement();
 	}
@@ -431,6 +493,79 @@ public class TypeChecker {
 		return true;
 	}
 
+	private Type.Record expandAsEffectiveRecord(Type type) {
+		if(type instanceof Type.Record) {
+			return (Type.Record) type;
+		} else if(type instanceof Type.Union) {
+			Type.Union union = (Type.Union) type;
+			HashMap<String,Type> fields = null;
+			for(int i=0;i!=union.numberOfOperands();++i) {
+				Type.Record r = expandAsEffectiveRecord(union.getOperand(i));
+				merge(fields,r);
+			}
+			//
+			return constructEffectiveRecord(type.getParent(),fields);
+		} else if(type instanceof Type.Nominal) {
+			Type.Nominal nom = (Type.Nominal) type;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			return expandAsEffectiveRecord(decl.getVariableDeclaration().getType());
+		} else {
+			throw new RuntimeException("expected record type, found: " + type);
+		}
+	}
+
+	private void merge(HashMap<String, Type> fields, Type.Record r) {
+		VariableDeclaration[] vds = r.getFields();
+		for (Map.Entry<String, Type> e : fields.entrySet()) {
+			String fieldName = e.getKey();
+			Type fieldType = null;
+			for (int i = 0; i != vds.length; ++i) {
+				VariableDeclaration fd = vds[i];
+				String name = fd.getVariableName().get();
+				if (fieldName.equals(name)) {
+					fieldType = union(r.getParent(), e.getValue(), fd.getType());
+				}
+			}
+			fields.put(fieldName, fieldType);
+		}
+	}
+
+	private Type.Record constructEffectiveRecord(WyalFile parent, Map<String,Type> fields) {
+		VariableDeclaration[] declarations = new VariableDeclaration[fields.size()];
+		int index = 0;
+		for(Map.Entry<String, Type> e : fields.entrySet()) {
+			Identifier id = new Identifier(parent,e.getKey());
+			declarations[index++] = new VariableDeclaration(parent,e.getValue(),id);
+		}
+		return new Type.Record(parent,declarations);
+	}
+
+	private void checkIsSubtype(Type lhs, Type rhs) {
+		if(!isSubtype(lhs,rhs)) {
+			throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
+		}
+	}
+
+	private Type union(WyalFile parent, Type...types) {
+		if(types.length == 0) {
+			return new Type.Void(parent);
+		} else if(types.length == 1) {
+			return types[0];
+		} else {
+			// Now going to remove duplicates; for now, that's all we can do.
+			Type[] rs = Arrays.copyOf(types, types.length);
+			for(int i=0;i!=rs.length;++i) {
+				for(int j=i+1;j!=rs.length;++j) {
+					// TODO: soooo broken
+					if(rs[i] == rs[j]) {
+						rs[j] = null;
+					}
+				}
+			}
+			return new Type.Union(parent, types);
+		}
+	}
+
 	/**
 	 * Check whether the type signature for a given function declaration is a
 	 * super type of a given child declaration.
@@ -471,6 +606,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private boolean isSubtype(Type parent, Type child) {
+		System.out.println("IS SUBTYPE " + parent + " :> " + child);
 		WyalFile.Opcode pOpcode = parent.getOpcode();
 		WyalFile.Opcode cOpcode = child.getOpcode();
 		// Handle non-atomic cases
@@ -488,15 +624,6 @@ public class TypeChecker {
 			return isSubtype(parent,decl.getVariableDeclaration().getType());
 		} else if(pOpcode == Opcode.TYPE_any || cOpcode == Opcode.TYPE_void) {
 			return true;
-		} else if(pOpcode == Opcode.TYPE_or) {
-			Type.Union pUnion = (Type.Union) parent;
-			for(int i=0;i!=pUnion.numberOfOperands();++i) {
-				Type pChild = pUnion.getOperand(i);
-				if(isSubtype(pChild,child)) {
-					return true;
-				}
-			}
-			return false;
 		} else if(cOpcode == Opcode.TYPE_or) {
 			Type.Union cUnion = (Type.Union) child;
 			for(int i=0;i!=cUnion.numberOfOperands();++i) {
@@ -506,6 +633,19 @@ public class TypeChecker {
 				}
 			}
 			return true;
+		} else if(pOpcode == Opcode.TYPE_or) {
+			Type.Union pUnion = (Type.Union) parent;
+			for(int i=0;i!=pUnion.numberOfOperands();++i) {
+				Type pChild = pUnion.getOperand(i);
+				if(isSubtype(pChild,child)) {
+					return true;
+				}
+			}
+			return false;
+		} else if(pOpcode == Opcode.TYPE_not) {
+			Type.Negation pNot = (Type.Negation) parent;
+			// !x :> y
+			return !isSubtype(pNot.getElement(),child);
 		} else if(pOpcode != cOpcode) {
 			return false;
 		}
@@ -513,6 +653,7 @@ public class TypeChecker {
 		switch(parent.getOpcode()) {
 		case TYPE_any:
 			return true;
+		case TYPE_null:
 		case TYPE_bool:
 		case TYPE_int:
 		case TYPE_void:

@@ -1,13 +1,3 @@
-define lastIndexOf_ensures_0(null | int r0, int[] r1, int r2) is:
-    either:
-        r0 is !(int)
-        true
-    or:
-        r0 is int
-        r1[r0] == r2
-        true
-    true
-
 function lastIndexOf(int[] r0, int r1) -> (null|int r)
 
 define invariant(int[] items, int i, int x, int last) is:
