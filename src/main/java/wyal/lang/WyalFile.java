@@ -372,7 +372,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				public VariableDeclaration[] getParameters() {
 					Tuple params = (Tuple) getOperand(1);
-					VariableDeclaration[] vars = new VariableDeclaration[params.numberOfOperands()];
+					VariableDeclaration[] vars = new VariableDeclaration[params.size()];
 					for (int i = 0; i != vars.length; ++i) {
 						vars[i] = (VariableDeclaration) params.getOperand(i);
 					}
@@ -392,7 +392,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				public VariableDeclaration[] getReturns() {
 					Tuple returns = (Tuple) getOperand(2);
-					VariableDeclaration[] vars = new VariableDeclaration[returns.numberOfOperands()];
+					VariableDeclaration[] vars = new VariableDeclaration[returns.size()];
 					for (int i = 0; i != vars.length; ++i) {
 						vars[i] = (VariableDeclaration) returns.getOperand(i);
 					}
@@ -426,7 +426,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				}
 
 				public Block[] getInvariant() {
-					Block[] invariant = new Block[numberOfOperands()-2];
+					Block[] invariant = new Block[size()-2];
 					for(int i=0;i!=invariant.length;++i) {
 						invariant[i] = (Block) getOperand(i+2);
 					}
@@ -489,7 +489,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public VariableDeclaration[] getFields() {
-				VariableDeclaration[] vars = new VariableDeclaration[numberOfOperands()];
+				VariableDeclaration[] vars = new VariableDeclaration[size()];
 				for (int i = 0; i != vars.length; ++i) {
 					vars[i] = (VariableDeclaration) getOperand(i);
 				}
@@ -584,14 +584,14 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				super(parent, opcode, append(Item.class,parameters,body));
 			}
 			public VariableDeclaration[] getParameters() {
-				VariableDeclaration[] vars = new VariableDeclaration[numberOfOperands()-1];
+				VariableDeclaration[] vars = new VariableDeclaration[size()-1];
 				for(int i=0;i!=vars.length;++i) {
 					vars[i] = (VariableDeclaration) getOperand(i);
 				}
 				return vars;
 			}
 			public Block getBody() {
-				return (Block) getOperand(numberOfOperands()-1);
+				return (Block) getOperand(size()-1);
 			}
 		}
 
@@ -619,25 +619,25 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	}
 
 	public static class Expr extends Stmt {
-		private Expr(WyalFile parent, Opcode opcode, Type type, Item... operands) {
-			super(parent, opcode, type, operands);
+		private Expr(WyalFile parent, Opcode opcode, Item... operands) {
+			super(parent, opcode, operands);
 		}
 
 		public static class Cast extends Expr {
 			public Cast(WyalFile parent, Type type, Expr rhs) {
-				super(parent, Opcode.EXPR_cast, null, type, rhs);
+				super(parent, Opcode.EXPR_cast, type, rhs);
 			}
 			public Type getCastType() {
-				return (Type) super.getOperand(1);
+				return (Type) super.getOperand(0);
 			}
 			public Expr getExpr() {
-				return (Expr) super.getOperand(2);
+				return (Expr) super.getOperand(1);
 			}
 		}
 
 		public static class Operator extends Expr {
-			public Operator(WyalFile parent, Opcode opcode, Type type, Expr... operands) {
-				super(parent, opcode, type, operands);
+			public Operator(WyalFile parent, Opcode opcode, Expr... operands) {
+				super(parent, opcode, operands);
 			}
 
 			@Override
@@ -647,75 +647,75 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			public Expr[] getExprs() {
 				SyntacticItem[] items = getOperands();
-				Expr[] rs = new Expr[items.length-1];
-				System.arraycopy(items, 1, rs, 0, rs.length);
+				Expr[] rs = new Expr[items.length];
+				System.arraycopy(items, 0, rs, 0, rs.length);
 				return rs;
 			}
 		}
 
 		public static class RecordAccess extends Expr {
-			public RecordAccess(WyalFile parent, Type type, Expr lhs, Identifier rhs) {
-				super(parent, Opcode.EXPR_recfield, type, lhs, rhs);
+			public RecordAccess(WyalFile parent, Expr lhs, Identifier rhs) {
+				super(parent, Opcode.EXPR_recfield, lhs, rhs);
 			}
 			public Expr getSource() {
-				return (Expr) getOperand(1);
+				return (Expr) getOperand(0);
 			}
 			public Identifier getField() {
-				return (Identifier) getOperand(2);
+				return (Identifier) getOperand(1);
 			}
 		}
 
 		public static class RecordInitialiser extends Expr {
-			public RecordInitialiser(WyalFile parent, Type type, Pair... fields) {
-				super(parent, Opcode.EXPR_recinit, type, fields);
+			public RecordInitialiser(WyalFile parent, Pair... fields) {
+				super(parent, Opcode.EXPR_recinit, fields);
 			}
 			public Pair[] getFields() {
 				SyntacticItem[] items = getOperands();
-				Pair[] rs = new Pair[items.length-1];
-				System.arraycopy(items, 1, rs, 0, rs.length);
+				Pair[] rs = new Pair[items.length];
+				System.arraycopy(items, 0, rs, 0, rs.length);
 				return rs;
 			}
 		}
 
 		public static class VariableAccess extends Expr {
-			public VariableAccess(WyalFile parent, Type type, VariableDeclaration decl) {
-				super(parent, Opcode.EXPR_var, type, decl);
+			public VariableAccess(WyalFile parent, VariableDeclaration decl) {
+				super(parent, Opcode.EXPR_var, decl);
 			}
 			public VariableDeclaration getVariableDeclaration() {
-				return (VariableDeclaration) getOperand(1);
+				return (VariableDeclaration) getOperand(0);
 			}
 		}
 
 		public static class Constant extends Expr {
 			public Constant(WyalFile parent, Item value) {
-				super(parent, Opcode.EXPR_const, null, value);
+				super(parent, Opcode.EXPR_const, value);
 			}
 			public Item getValue() {
-				return (Item) getOperand(1);
+				return (Item) getOperand(0);
 			}
 		}
 
 		public static class Is extends Expr {
 			public Is(WyalFile parent, Expr lhs, Type rhs) {
-				super(parent, Opcode.EXPR_is, null, lhs, rhs);
+				super(parent, Opcode.EXPR_is, lhs, rhs);
 			}
 			public Expr getExpr() {
-				return (Expr) getOperand(1);
+				return (Expr) getOperand(0);
 			}
 			public Type getType() {
-				return (Type) getOperand(2);
+				return (Type) getOperand(1);
 			}
 		}
 
 		public static class Invoke extends Expr {
 			public Invoke(WyalFile parent, Type type, Name name, Expr... arguments) {
-				super(parent, Opcode.EXPR_invoke, type, append(Item.class, name, arguments));
+				super(parent, Opcode.EXPR_invoke, append(new Item[]{type, name}, arguments));
 			}
 			public Name getName() {
 				return (Name) getOperand(1);
 			}
 			public Expr[] getArguments() {
-				Expr[] rs = new Expr[numberOfOperands()-2];
+				Expr[] rs = new Expr[size()-2];
 				for(int i=0;i!=rs.length;++i) {
 					rs[i] = (Expr) getOperand(i+2);
 				}

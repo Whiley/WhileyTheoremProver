@@ -548,7 +548,7 @@ public class WyalFileParser {
 				operands.add(parseAccessExpression(scope, terminated));
 			} while (tryAndMatch(terminated, lookahead.kind) != null);
 			//
-			Expr expr = new Expr.Operator(scope.parent, opcode, null, toExprArray(operands));
+			Expr expr = new Expr.Operator(scope.parent, opcode, toExprArray(operands));
 			expr.attributes().add(sourceAttr(start, index - 1));
 			return expr;
 		} else {
@@ -617,13 +617,13 @@ public class WyalFileParser {
 				Expr rhs = parseUnitExpression(scope, true);
 				// This is a plain old array access expression
 				match(RightSquare);
-				lhs = new Expr.Operator(scope.parent, Opcode.EXPR_arridx, null, lhs, rhs);
+				lhs = new Expr.Operator(scope.parent, Opcode.EXPR_arridx, lhs, rhs);
 				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
 			case Dot: {
 				Identifier rhs = parseIdentifier(scope);
-				lhs = new Expr.RecordAccess(scope.parent, null, lhs, rhs);
+				lhs = new Expr.RecordAccess(scope.parent, lhs, rhs);
 				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
@@ -669,7 +669,7 @@ public class WyalFileParser {
 				// Signals a local variable access
 				match(Identifier);
 				VariableDeclaration decl = scope.getVariableDeclaration(token.text);
-				Expr expr = new Expr.VariableAccess(scope.parent,null,decl);
+				Expr expr = new Expr.VariableAccess(scope.parent,decl);
 				expr.attributes().add(sourceAttr(start, index - 1));
 				return expr;
 			} else {
@@ -947,7 +947,7 @@ public class WyalFileParser {
 		}
 
 		Opcode kind = isArray ? Opcode.EXPR_arrinit : Opcode.EXPR_arrgen;
-		Expr expr = new Expr.Operator(scope.parent,kind,null,toExprArray(operands));
+		Expr expr = new Expr.Operator(scope.parent,kind,toExprArray(operands));
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1013,7 +1013,7 @@ public class WyalFileParser {
 			exprs.add(pair);
 		}
 
-		Expr expr = new Expr.RecordInitialiser(scope.parent,null,toPairArray(exprs));
+		Expr expr = new Expr.RecordInitialiser(scope.parent,toPairArray(exprs));
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1049,7 +1049,7 @@ public class WyalFileParser {
 		match(VerticalBar);
 		Expr e = parseUnitExpression(scope, true);
 		match(VerticalBar);
-		e = new Expr.Operator(scope.parent, Opcode.EXPR_arrlen, null, e);
+		e = new Expr.Operator(scope.parent, Opcode.EXPR_arrlen, e);
 		e.attributes().add(sourceAttr(start, index - 1));
 		return e;
 	}
@@ -1085,7 +1085,7 @@ public class WyalFileParser {
 		match(Minus);
 		Expr expr = parseTermExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(scope.parent, Opcode.EXPR_neg, null, expr);
+		expr = new Expr.Operator(scope.parent, Opcode.EXPR_neg, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1234,7 +1234,7 @@ public class WyalFileParser {
 		match(Shreak);
 		Expr expr = parseUnitExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(scope.parent, Opcode.EXPR_not, null, expr);
+		expr = new Expr.Operator(scope.parent, Opcode.EXPR_not, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}

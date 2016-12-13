@@ -155,7 +155,7 @@ public class WyalFilePrinter {
 	}
 
 	public void writeBlock(Block block, int indent) {
-		for (int i = 0; i != block.numberOfOperands(); i = i + 1) {
+		for (int i = 0; i != block.size(); i = i + 1) {
 			writeStatement(block.getOperand(i), indent);
 		}
 	}
@@ -193,7 +193,7 @@ public class WyalFilePrinter {
 	}
 
 	private void writeCaseOf(Stmt.CaseOf stmt, int indent) {
-		for(int i=0;i!=stmt.numberOfOperands();++i) {
+		for(int i=0;i!=stmt.size();++i) {
 			indent(indent);
 			if(i == 0) {
 				out.println("either:");
@@ -346,15 +346,15 @@ public class WyalFilePrinter {
 		switch(expr.getOpcode()) {
 		case EXPR_not:
 			out.print("!");
-			writeExpressionWithBrackets(expr.getOperand(1));
+			writeExpressionWithBrackets(expr.getOperand(0));
 			break;
 		case EXPR_neg:
 			out.print("-");
-			writeExpressionWithBrackets(expr.getOperand(1));
+			writeExpressionWithBrackets(expr.getOperand(0));
 			break;
 		case EXPR_arrlen:
 			out.print("|");
-			writeExpression(expr.getOperand(1));
+			writeExpression(expr.getOperand(0));
 			out.print("|");
 			break;
 		default:
@@ -364,8 +364,8 @@ public class WyalFilePrinter {
 	}
 
 	public void writeInfixOperator(Expr.Operator expr) {
-		for (int i = 1; i != expr.numberOfOperands(); ++i) {
-			if (i != 1) {
+		for (int i = 0; i != expr.size(); ++i) {
+			if (i != 0) {
 				out.print(" ");
 				out.print(OPERATOR_MAP.get(expr.getOpcode()));
 				out.print(" ");
@@ -388,9 +388,9 @@ public class WyalFilePrinter {
 	}
 
 	public void writeArrayAccess(Expr.Operator expr) {
-		writeExpressionWithBrackets(expr.getOperand(1));
+		writeExpressionWithBrackets(expr.getOperand(0));
 		out.print("[");
-		writeExpression(expr.getOperand(2));
+		writeExpression(expr.getOperand(1));
 		out.print("]");
 	}
 
@@ -487,7 +487,7 @@ public class WyalFilePrinter {
 		}
 		case TYPE_or: {
 			Type.Union t = (Type.Union) type;
-			for (int i = 0; i != type.numberOfOperands(); ++i) {
+			for (int i = 0; i != type.size(); ++i) {
 				if (i != 0) {
 					out.print("|");
 				}
@@ -497,7 +497,7 @@ public class WyalFilePrinter {
 		}
 		case TYPE_and: {
 			Type.Intersection t = (Type.Intersection) type;
-			for (int i = 0; i != type.numberOfOperands(); ++i) {
+			for (int i = 0; i != type.size(); ++i) {
 				if (i != 0) {
 					out.print("&");
 				}

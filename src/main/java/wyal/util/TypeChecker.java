@@ -251,36 +251,35 @@ public class TypeChecker {
 	}
 
 	private void checkOperands(Expr.Operator expr, Class<? extends Type> kind) {
-		for (int i = 1; i != expr.numberOfOperands(); ++i) {
+		for (int i = 0; i != expr.size(); ++i) {
 			checkIsType(check(expr.getOperand(i)), kind);
 		}
 	}
 
 	private Type checkArrayLength(Expr.Operator expr) {
-		checkIsType(check(expr.getOperand(1)), Type.Array.class);
+		checkIsType(check(expr.getOperand(0)), Type.Array.class);
 		return findPrimitiveType(expr.getParent(), Type.Int.class);
 	}
 
 	private Type checkArrayInitialiser(Expr.Operator expr) {
-		Type[] types = new Type[expr.numberOfOperands()-1];
+		Type[] types = new Type[expr.size()];
 		for (int i = 0; i != types.length; ++i) {
-			types[i] = check(expr.getOperand(i+1));
+			types[i] = check(expr.getOperand(i));
 		}
 		Type element = union(expr.getParent(),types);
 		return new Type.Array(expr.getParent(),element);
 	}
 
 	private Type checkArrayGenerator(Expr.Operator expr) {
-		Type element = check(expr.getOperand(1));
-		checkIsType(check(expr.getOperand(2)), Type.Int.class);
+		Type element = check(expr.getOperand(0));
+		checkIsType(check(expr.getOperand(1)), Type.Int.class);
 		return new Type.Array(expr.getParent(), element);
 	}
 
 	private Type checkArrayAccess(Expr.Operator expr) {
-		Type.Array at = checkIsType(check(expr.getOperand(1)), Type.Array.class);
-		Type indexType = check(expr.getOperand(2));
+		Type.Array at = checkIsType(check(expr.getOperand(0)), Type.Array.class);
+		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(findPrimitiveType(expr.getParent(),Type.Int.class),indexType);
-		checkIsType(check(expr.getOperand(2)), Type.Int.class);
 		return at.getElement();
 	}
 
@@ -499,7 +498,7 @@ public class TypeChecker {
 		} else if(type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
 			HashMap<String,Type> fields = null;
-			for(int i=0;i!=union.numberOfOperands();++i) {
+			for(int i=0;i!=union.size();++i) {
 				Type.Record r = expandAsEffectiveRecord(union.getOperand(i));
 				merge(fields,r);
 			}
@@ -626,7 +625,7 @@ public class TypeChecker {
 			return true;
 		} else if(cOpcode == Opcode.TYPE_or) {
 			Type.Union cUnion = (Type.Union) child;
-			for(int i=0;i!=cUnion.numberOfOperands();++i) {
+			for(int i=0;i!=cUnion.size();++i) {
 				Type cChild = cUnion.getOperand(i);
 				if(!isSubtype(parent,cChild)) {
 					return false;
@@ -635,7 +634,7 @@ public class TypeChecker {
 			return true;
 		} else if(pOpcode == Opcode.TYPE_or) {
 			Type.Union pUnion = (Type.Union) parent;
-			for(int i=0;i!=pUnion.numberOfOperands();++i) {
+			for(int i=0;i!=pUnion.size();++i) {
 				Type pChild = pUnion.getOperand(i);
 				if(isSubtype(pChild,child)) {
 					return true;

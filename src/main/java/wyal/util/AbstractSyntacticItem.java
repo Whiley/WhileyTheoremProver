@@ -70,7 +70,7 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 	}
 
 	@Override
-	public int numberOfOperands() {
+	public int size() {
 		return operands.length;
 	}
 

@@ -26,7 +26,7 @@ public interface SyntacticItem extends SyntacticElement {
 	 *
 	 * @return
 	 */
-	public int numberOfOperands();
+	public int size();
 
 	/**
 	 * Return the ith top-level operand in this bytecode.
