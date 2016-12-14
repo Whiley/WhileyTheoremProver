@@ -1,5 +1,6 @@
 package wyal.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,9 +17,11 @@ import wyal.lang.WyalFile.Declaration.Named;
 
 public class TypeSystem {
 	private final WyalFile parent;
+	private final ArrayList<Type> rewrites;
 
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
+		this.rewrites = new ArrayList<Type>();
 	}
 
 	/**
@@ -238,5 +241,70 @@ public class TypeSystem {
 		}
 		// FIXME: consider imported files as well
 		throw new IllegalArgumentException("unable to resolve " + name + " as type");
+	}
+
+	// ========================================================================
+	// Rewrite Rules
+	// ========================================================================
+	//
+	private static interface RewriteRule {
+		/**
+		 * Attempt to apply this rule to a given item. The rule then returns
+		 * either the item itself (i.e. the rule did not apply); or, it returns
+		 * the index of a different item (i.e. the result of applying the
+		 * rewrite).
+		 *
+		 * @param root
+		 * @return
+		 */
+		public Type apply(Type root);
+	}
+
+	/**
+	 * The classic rule for reducing !!T ==> T
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	private static class Rule_NegNeg implements RewriteRule {
+
+		@Override
+		public Type apply(Type root) {
+			if (root instanceof Type.Negation) {
+				Type.Negation n1 = (Type.Negation) root;
+				Type n1Element = n1.getElement();
+				if (n1Element instanceof Type.Negation) {
+					Type.Negation n2 = (Type.Negation) n1.getElement();
+					return n2.getElement();
+				}
+			}
+			return root;
+		}
+	}
+
+	/**
+	 * The classic rule for applying DeMorgan's law. For example,
+	 * <code>!(int|bool)</code> becomes <code>(!int) & !(bool)</code>.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	private static class Rule_NegUnion implements RewriteRule {
+
+		@Override
+		public Type apply(Type root) {
+			if (root instanceof Type.Negation) {
+				Type.Negation n1 = (Type.Negation) root;
+				Type n1Element = n1.getElement();
+				if (n1Element instanceof Type.Union) {
+					Type.Union n2 = (Type.Union) n1.getElement();
+					// FIXME: is there a problem here with creating new types
+					// which are equivalent to existing ones?
+					return new Type.Intersection(n2.getParent(), n2.getOperands());
+				}
+			}
+			return root;
+		}
+
 	}
 }

@@ -524,6 +524,14 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			public Type getOperand(int i) {
 				return (Type) super.getOperand(i);
 			}
+
+			@Override
+			public Type[] getOperands() {
+				SyntacticItem[] items = getOperands();
+				Type[] rs = new Type[items.length];
+				System.arraycopy(items, 0, rs, 0, rs.length);
+				return rs;
+			}
 		}
 
 		public static class Intersection extends Type {
