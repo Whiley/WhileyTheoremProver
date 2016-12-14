@@ -36,8 +36,23 @@ import wyal.lang.WyalFile.VariableDeclaration;
  *
  */
 public class TypeChecker {
+	/**
+	 * The enclosing WyAL file being checked.
+	 */
+	private final WyalFile parent;
 
-	public void check(final WyalFile parent) {
+	/**
+	 * The type system encapsulates the core algorithms for type simplification
+	 * and subtyping testing.
+	 */
+	private TypeSystem types;
+
+	public TypeChecker(final WyalFile parent) {
+		this.parent = parent;
+		this.types = new TypeSystem(parent);
+	}
+
+	public void check() {
 		for (int i = 0; i != parent.size(); ++i) {
 			check(parent.getSyntacticItem(i));
 		}
@@ -84,12 +99,12 @@ public class TypeChecker {
 		// Other operators
 		case EXPR_is:
 			return checkIsOperator((Expr.Is) expr);
-			// Record expressions
+		// Record expressions
 		case EXPR_recinit:
 			return checkRecordInitialiser((Expr.RecordInitialiser) expr);
 		case EXPR_recfield:
 			return checkRecordAccess((Expr.RecordAccess) expr);
-			// Array expressions
+		// Array expressions
 		case EXPR_arrlen:
 			return checkArrayLength((Expr.Operator) expr);
 		case EXPR_arrinit:
@@ -98,7 +113,7 @@ public class TypeChecker {
 			return checkArrayGenerator((Expr.Operator) expr);
 		case EXPR_arridx:
 			return checkArrayAccess((Expr.Operator) expr);
-			// Reference expressions
+		// Reference expressions
 		default:
 			throw new RuntimeException("unknown bytecode encountered: " + expr);
 		}
@@ -115,11 +130,11 @@ public class TypeChecker {
 		Item item = expr.getValue();
 		switch (item.getOpcode()) {
 		case CONST_null:
-			return findPrimitiveType(expr.getParent(), Type.Null.class);
+			return findPrimitiveType(Type.Null.class);
 		case CONST_bool:
-			return findPrimitiveType(expr.getParent(), Type.Bool.class);
+			return findPrimitiveType(Type.Bool.class);
 		case CONST_int:
-			return findPrimitiveType(expr.getParent(), Type.Int.class);
+			return findPrimitiveType(Type.Int.class);
 		default:
 			throw new RuntimeException("unknown constant encountered: " + expr);
 		}
@@ -158,7 +173,7 @@ public class TypeChecker {
 				return d[0].getType();
 			}
 		} else {
-			return findPrimitiveType(expr.getParent(), Type.Bool.class);
+			return findPrimitiveType(Type.Bool.class);
 		}
 	}
 
@@ -167,18 +182,18 @@ public class TypeChecker {
 		Type rhs = expr.getType();
 		// TODO: implement a proper intersection test here to ensure the lhs and
 		// rhs types make sense (i.e. have some intersection).
-		return findPrimitiveType(expr.getParent(), Type.Bool.class);
+		return findPrimitiveType(Type.Bool.class);
 	}
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record record = expandAsEffectiveRecord(src);
-		VariableDeclaration[] fields = record.getFields();
+		Type.Record effectiveRecord = types.extractReadableRecordType(src);
+		VariableDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
-		for(int i=0;i!=fields.length;++i) {
+		for (int i = 0; i != fields.length; ++i) {
 			VariableDeclaration vd = fields[i];
 			String declaredFieldName = vd.getVariableName().get();
-			if(declaredFieldName.equals(actualFieldName)) {
+			if (declaredFieldName.equals(actualFieldName)) {
 				return vd.getType();
 			}
 		}
@@ -187,13 +202,12 @@ public class TypeChecker {
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
-		WyalFile parent = expr.getParent();
 		Pair[] fields = expr.getFields();
 		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
-		for(int i=0;i!=fields.length;++i) {
+		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = (Identifier) fields[i].getOperand(0);
 			Type fieldType = check((Expr) fields[i].getOperand(1));
-			decls[i] = new VariableDeclaration(parent,fieldType,fieldName);
+			decls[i] = new VariableDeclaration(parent, fieldType, fieldName);
 		}
 		//
 		return new Type.Record(parent, decls);
@@ -208,7 +222,7 @@ public class TypeChecker {
 	 */
 	private Type checkLogicalOperator(Expr.Operator expr) {
 		checkOperands(expr, Type.Bool.class);
-		return findPrimitiveType(expr.getParent(), Type.Bool.class);
+		return findPrimitiveType(Type.Bool.class);
 	}
 
 	/**
@@ -220,7 +234,7 @@ public class TypeChecker {
 	 */
 	private Type checkArithmeticOperator(Expr.Operator expr) {
 		checkOperands(expr, Type.Int.class);
-		return findPrimitiveType(expr.getParent(), Type.Int.class);
+		return findPrimitiveType(Type.Int.class);
 	}
 
 	/**
@@ -231,7 +245,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type checkComparisonOperator(Expr.Operator expr) {
-		switch(expr.getOpcode()) {
+		switch (expr.getOpcode()) {
 		case EXPR_eq:
 		case EXPR_neq:
 			//
@@ -247,7 +261,7 @@ public class TypeChecker {
 			throw new RuntimeException("Unknown bytecode encountered: " + expr);
 		}
 
-		return findPrimitiveType(expr.getParent(), Type.Bool.class);
+		return findPrimitiveType(Type.Bool.class);
 	}
 
 	private void checkOperands(Expr.Operator expr, Class<? extends Type> kind) {
@@ -257,30 +271,32 @@ public class TypeChecker {
 	}
 
 	private Type checkArrayLength(Expr.Operator expr) {
-		checkIsType(check(expr.getOperand(0)), Type.Array.class);
-		return findPrimitiveType(expr.getParent(), Type.Int.class);
+		Type src = check(expr.getOperand(0));
+		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		return findPrimitiveType(Type.Int.class);
 	}
 
 	private Type checkArrayInitialiser(Expr.Operator expr) {
-		Type[] types = new Type[expr.size()];
-		for (int i = 0; i != types.length; ++i) {
-			types[i] = check(expr.getOperand(i));
+		Type[] ts = new Type[expr.size()];
+		for (int i = 0; i != ts.length; ++i) {
+			ts[i] = check(expr.getOperand(i));
 		}
-		Type element = union(expr.getParent(),types);
-		return new Type.Array(expr.getParent(),element);
+		Type element = types.union(ts);
+		return new Type.Array(parent, element);
 	}
 
 	private Type checkArrayGenerator(Expr.Operator expr) {
 		Type element = check(expr.getOperand(0));
 		checkIsType(check(expr.getOperand(1)), Type.Int.class);
-		return new Type.Array(expr.getParent(), element);
+		return new Type.Array(parent, element);
 	}
 
 	private Type checkArrayAccess(Expr.Operator expr) {
-		Type.Array at = checkIsType(check(expr.getOperand(0)), Type.Array.class);
+		Type src = check(expr.getOperand(0));
+		Type.Array effectiveArray = types.extractReadableArrayType(src);
 		Type indexType = check(expr.getOperand(1));
-		checkIsSubtype(findPrimitiveType(expr.getParent(),Type.Int.class),indexType);
-		return at.getElement();
+		checkIsSubtype(findPrimitiveType(Type.Int.class), indexType);
+		return effectiveArray.getElement();
 	}
 
 	/**
@@ -317,7 +333,7 @@ public class TypeChecker {
 	 * @param kind
 	 * @return
 	 */
-	private <T extends Type> T findPrimitiveType(WyalFile parent, Class<T> kind) {
+	private <T extends Type> T findPrimitiveType(Class<T> kind) {
 		// Look through the set of existing objects to see whether any items can
 		// be reused.
 		for (int i = 0; i != parent.size(); ++i) {
@@ -352,7 +368,6 @@ public class TypeChecker {
 			throw new IllegalArgumentException("Need to handle proper namespaces!");
 		}
 		// Look through the enclosing file first!
-		WyalFile parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named.Type) {
@@ -376,10 +391,12 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, Type... args) {
-		// Identify all function or macro declarations which should be considered
+		// Identify all function or macro declarations which should be
+		// considered
 		List<Named.FunctionOrMacro> candidates = findCandidateFunctionOrMacroDeclarations(name);
-		// Based on given argument types, select the most precise signature from the candidates.
-		Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates,args);
+		// Based on given argument types, select the most precise signature from
+		// the candidates.
+		Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates, args);
 		return selected;
 	}
 
@@ -400,7 +417,6 @@ public class TypeChecker {
 			// FIXME: implement this
 			throw new IllegalArgumentException("Need to handle proper namespaces!");
 		}
-		WyalFile parent = name.getParent();
 		ArrayList<Named.FunctionOrMacro> candidates = new ArrayList<>();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
@@ -424,22 +440,23 @@ public class TypeChecker {
 	 * @param args
 	 * @return
 	 */
-	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(List<Named.FunctionOrMacro> candidates, Type... args) {
+	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(List<Named.FunctionOrMacro> candidates,
+			Type... args) {
 		Named.FunctionOrMacro best = null;
-		for(int i=0;i!=candidates.size();++i) {
+		for (int i = 0; i != candidates.size(); ++i) {
 			Named.FunctionOrMacro candidate = candidates.get(i);
-			// Check whether the given candidate is a real candidate or not.  A
-			if(isApplicable(candidate,args)) {
+			// Check whether the given candidate is a real candidate or not. A
+			if (isApplicable(candidate, args)) {
 				// Yes, this candidate is applicable.
-				if(best == null) {
+				if (best == null) {
 					// No other candidates are applicable so far. Hence, this
 					// one is automatically promoted to the best seen so far.
 					best = candidate;
-				} else if(isSubtype(candidate,best)) {
+				} else if (isSubtype(candidate, best)) {
 					// This candidate is a subtype of the best seen so far.
 					// Hence, it is now the best seen so far.
 					best = candidate;
-				} else if(isSubtype(best,candidate)) {
+				} else if (isSubtype(best, candidate)) {
 					// This best so far is a subtype of this candidate.
 					// Therefore, we can simply discard this candidate from
 					// consideration.
@@ -452,7 +469,7 @@ public class TypeChecker {
 			}
 		}
 		// Having considered each candidate in turn, do we now have a winner?
-		if(best != null) {
+		if (best != null) {
 			// Yes, we have a winner.
 			return best;
 		} else {
@@ -474,7 +491,7 @@ public class TypeChecker {
 	 */
 	private boolean isApplicable(Named.FunctionOrMacro decl, Type... args) {
 		VariableDeclaration[] parameters = decl.getParameters();
-		if(parameters.length != args.length) {
+		if (parameters.length != args.length) {
 			// Differing number of parameters / arguments. Since we don't
 			// support variable-length argument lists (yet), there is nothing
 			// more to consider.
@@ -482,9 +499,9 @@ public class TypeChecker {
 		}
 		// Number of parameters matches number of arguments. Now, check that
 		// each argument is a subtype of its corresponding parameter.
-		for(int i=0;i!=args.length;++i) {
+		for (int i = 0; i != args.length; ++i) {
 			Type param = parameters[i].getType();
-			if(!isSubtype(param,args[i])) {
+			if (!types.isSubtype(param, args[i])) {
 				return false;
 			}
 		}
@@ -492,76 +509,9 @@ public class TypeChecker {
 		return true;
 	}
 
-	private Type.Record expandAsEffectiveRecord(Type type) {
-		if(type instanceof Type.Record) {
-			return (Type.Record) type;
-		} else if(type instanceof Type.Union) {
-			Type.Union union = (Type.Union) type;
-			HashMap<String,Type> fields = null;
-			for(int i=0;i!=union.size();++i) {
-				Type.Record r = expandAsEffectiveRecord(union.getOperand(i));
-				merge(fields,r);
-			}
-			//
-			return constructEffectiveRecord(type.getParent(),fields);
-		} else if(type instanceof Type.Nominal) {
-			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return expandAsEffectiveRecord(decl.getVariableDeclaration().getType());
-		} else {
-			throw new RuntimeException("expected record type, found: " + type);
-		}
-	}
-
-	private void merge(HashMap<String, Type> fields, Type.Record r) {
-		VariableDeclaration[] vds = r.getFields();
-		for (Map.Entry<String, Type> e : fields.entrySet()) {
-			String fieldName = e.getKey();
-			Type fieldType = null;
-			for (int i = 0; i != vds.length; ++i) {
-				VariableDeclaration fd = vds[i];
-				String name = fd.getVariableName().get();
-				if (fieldName.equals(name)) {
-					fieldType = union(r.getParent(), e.getValue(), fd.getType());
-				}
-			}
-			fields.put(fieldName, fieldType);
-		}
-	}
-
-	private Type.Record constructEffectiveRecord(WyalFile parent, Map<String,Type> fields) {
-		VariableDeclaration[] declarations = new VariableDeclaration[fields.size()];
-		int index = 0;
-		for(Map.Entry<String, Type> e : fields.entrySet()) {
-			Identifier id = new Identifier(parent,e.getKey());
-			declarations[index++] = new VariableDeclaration(parent,e.getValue(),id);
-		}
-		return new Type.Record(parent,declarations);
-	}
-
 	private void checkIsSubtype(Type lhs, Type rhs) {
-		if(!isSubtype(lhs,rhs)) {
+		if (!types.isSubtype(lhs, rhs)) {
 			throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
-		}
-	}
-
-	private Type union(WyalFile parent, Type...types) {
-		if(types.length == 0) {
-			return new Type.Void(parent);
-		} else if(types.length == 1) {
-			return types[0];
-		} else {
-			// Now going to remove duplicates; for now, that's all we can do.
-			Type[] rs = Arrays.copyOf(types, types.length);
-			for(int i=0;i!=rs.length;++i) {
-				for(int j=i+1;j!=rs.length;++j) {
-					// TODO: soooo broken
-					if(rs[i] == rs[j]) {
-						rs[j] = null;
-					}
-				}
-			}
-			return new Type.Union(parent, types);
 		}
 	}
 
@@ -587,84 +537,11 @@ public class TypeChecker {
 		for (int i = 0; i != parentParams.length; ++i) {
 			Type parentParam = parentParams[i].getType();
 			Type childParam = childParams[i].getType();
-			if (!isSubtype(parentParam, childParam)) {
+			if (!types.isSubtype(parentParam, childParam)) {
 				return false;
 			}
 		}
 		//
 		return true;
 	}
-
-	/**
-	 * Check whether a given "parent" type is indeed a supertype of a given
-	 * "child". In the presence of arbitrary recursive types with unions,
-	 * intersections and negations, this is a challenging operation.
-	 *
-	 * @param parent
-	 * @param child
-	 * @return
-	 */
-	private boolean isSubtype(Type parent, Type child) {
-		System.out.println("IS SUBTYPE " + parent + " :> " + child);
-		WyalFile.Opcode pOpcode = parent.getOpcode();
-		WyalFile.Opcode cOpcode = child.getOpcode();
-		// Handle non-atomic cases
-		// Handle atomic cases
-
-		if(pOpcode == Opcode.TYPE_nom) {
-			Type.Nominal nom = (Type.Nominal) parent;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			// FIXME: this will cause infinite loops
-			return isSubtype(decl.getVariableDeclaration().getType(),child);
-		} else if(cOpcode == Opcode.TYPE_nom) {
-			Type.Nominal nom = (Type.Nominal) child;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			// FIXME: this will cause infinite loops
-			return isSubtype(parent,decl.getVariableDeclaration().getType());
-		} else if(pOpcode == Opcode.TYPE_any || cOpcode == Opcode.TYPE_void) {
-			return true;
-		} else if(cOpcode == Opcode.TYPE_or) {
-			Type.Union cUnion = (Type.Union) child;
-			for(int i=0;i!=cUnion.size();++i) {
-				Type cChild = cUnion.getOperand(i);
-				if(!isSubtype(parent,cChild)) {
-					return false;
-				}
-			}
-			return true;
-		} else if(pOpcode == Opcode.TYPE_or) {
-			Type.Union pUnion = (Type.Union) parent;
-			for(int i=0;i!=pUnion.size();++i) {
-				Type pChild = pUnion.getOperand(i);
-				if(isSubtype(pChild,child)) {
-					return true;
-				}
-			}
-			return false;
-		} else if(pOpcode == Opcode.TYPE_not) {
-			Type.Negation pNot = (Type.Negation) parent;
-			// !x :> y
-			return !isSubtype(pNot.getElement(),child);
-		} else if(pOpcode != cOpcode) {
-			return false;
-		}
-
-		switch(parent.getOpcode()) {
-		case TYPE_any:
-			return true;
-		case TYPE_null:
-		case TYPE_bool:
-		case TYPE_int:
-		case TYPE_void:
-			return cOpcode == pOpcode || cOpcode == Opcode.TYPE_void;
-		case TYPE_arr: {
-			Type.Array pArray = (Type.Array) parent;
-			Type.Array cArray = (Type.Array) child;
-			return isSubtype(pArray.getElement(),cArray.getElement());
-		}
-		default:
-			throw new RuntimeException("unknown type encountered: " + parent);
-		}
-	}
-
 }
