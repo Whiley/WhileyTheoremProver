@@ -14,6 +14,7 @@ import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticItem;
 import wybs.util.AbstractCompilationUnit;
+import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 
@@ -445,27 +446,33 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			super(parent, opcode, items);
 		}
 
-		public static class Any extends Type {
+		public static class Atom extends Type {
+			public Atom(WyalFile parent, Opcode opcode, Item... items) {
+				super(parent, opcode, items);
+			}
+		}
+
+		public static class Any extends Atom {
 			public Any(WyalFile parent) { super(parent, Opcode.TYPE_any); }
 		}
 
-		public static class Void extends Type {
+		public static class Void extends Atom {
 			public Void(WyalFile parent) { super(parent, Opcode.TYPE_void); }
 		}
 
-		public static class Null extends Type {
+		public static class Null extends Atom {
 			public Null(WyalFile parent) { super(parent, Opcode.TYPE_null); }
 		}
 
-		public static class Bool extends Type {
+		public static class Bool extends Atom {
 			public Bool(WyalFile parent) { super(parent, Opcode.TYPE_bool); }
 		}
 
-		public static class Int extends Type {
+		public static class Int extends Atom {
 			public Int(WyalFile parent) { super(parent, Opcode.TYPE_int); }
 		}
 
-		public static class Array extends Type {
+		public static class Array extends Atom {
 			public Array(WyalFile parent,  Type element) {
 				super(parent, Opcode.TYPE_arr, element);
 			}
@@ -474,7 +481,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 		}
 
-		public static class Reference extends Type {
+		public static class Reference extends Atom {
 			public Reference(WyalFile parent,  Type element) {
 				super(parent, Opcode.TYPE_arr, element);
 			}
@@ -483,7 +490,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 		}
 
-		public static class Record extends Type {
+		public static class Record extends Atom {
 			public Record(WyalFile parent, VariableDeclaration... fields) {
 				super(parent, Opcode.TYPE_rec, fields);
 			}
@@ -516,9 +523,9 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 		}
 
-		public static class Union extends Type {
-			public Union(WyalFile parent,  Type... types) {
-				super(parent, Opcode.TYPE_or, types);
+		public abstract static class UnionOrIntersection extends Type {
+			public UnionOrIntersection(WyalFile parent,  Opcode kind, Type... types) {
+				super(parent, kind, types);
 			}
 			@Override
 			public Type getOperand(int i) {
@@ -527,20 +534,19 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public Type[] getOperands() {
-				SyntacticItem[] items = getOperands();
-				Type[] rs = new Type[items.length];
-				System.arraycopy(items, 0, rs, 0, rs.length);
-				return rs;
+				return ArrayUtils.toArray(Type.class, super.getOperands());
 			}
 		}
 
-		public static class Intersection extends Type {
+		public static class Union extends UnionOrIntersection {
+			public Union(WyalFile parent,  Type... types) {
+				super(parent, Opcode.TYPE_or, types);
+			}
+		}
+
+		public static class Intersection extends UnionOrIntersection {
 			public Intersection(WyalFile parent,  Type... types) {
 				super(parent, Opcode.TYPE_and, types);
-			}
-			@Override
-			public Type getOperand(int i) {
-				return (Type) super.getOperand(i);
 			}
 		}
 	}
@@ -654,10 +660,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr[] getExprs() {
-				SyntacticItem[] items = getOperands();
-				Expr[] rs = new Expr[items.length];
-				System.arraycopy(items, 0, rs, 0, rs.length);
-				return rs;
+				return ArrayUtils.toArray(Expr.class, getOperands());
 			}
 		}
 
@@ -678,10 +681,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				super(parent, Opcode.EXPR_recinit, fields);
 			}
 			public Pair[] getFields() {
-				SyntacticItem[] items = getOperands();
-				Pair[] rs = new Pair[items.length];
-				System.arraycopy(items, 0, rs, 0, rs.length);
-				return rs;
+				return ArrayUtils.toArray(Pair.class, getOperands());
 			}
 		}
 

@@ -2,7 +2,9 @@ package wyal.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import wyal.lang.SyntacticItem;
@@ -153,6 +155,14 @@ public class TypeSystem {
 	 * @return
 	 */
 	public boolean isSubtype(Type parent, Type child) {
+		System.out.print("CHECKING: " + parent + " :> " + child + " ... ");
+		// return isOldSubtype(parent,child);
+		boolean r = isNewSubtype(parent, child);
+		System.out.println(r);
+		return r;
+	}
+
+	private boolean isOldSubtype(Type parent, Type child) {
 		WyalFile.Opcode pOpcode = parent.getOpcode();
 		WyalFile.Opcode cOpcode = child.getOpcode();
 		// Handle non-atomic cases
@@ -162,19 +172,19 @@ public class TypeSystem {
 			Type.Nominal nom = (Type.Nominal) parent;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
 			// FIXME: this will cause infinite loops
-			return isSubtype(decl.getVariableDeclaration().getType(), child);
+			return isOldSubtype(decl.getVariableDeclaration().getType(), child);
 		} else if (cOpcode == Opcode.TYPE_nom) {
 			Type.Nominal nom = (Type.Nominal) child;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
 			// FIXME: this will cause infinite loops
-			return isSubtype(parent, decl.getVariableDeclaration().getType());
+			return isOldSubtype(parent, decl.getVariableDeclaration().getType());
 		} else if (pOpcode == Opcode.TYPE_any || cOpcode == Opcode.TYPE_void) {
 			return true;
 		} else if (cOpcode == Opcode.TYPE_or) {
 			Type.Union cUnion = (Type.Union) child;
 			for (int i = 0; i != cUnion.size(); ++i) {
 				Type cChild = cUnion.getOperand(i);
-				if (!isSubtype(parent, cChild)) {
+				if (!isOldSubtype(parent, cChild)) {
 					return false;
 				}
 			}
@@ -183,7 +193,7 @@ public class TypeSystem {
 			Type.Union pUnion = (Type.Union) parent;
 			for (int i = 0; i != pUnion.size(); ++i) {
 				Type pChild = pUnion.getOperand(i);
-				if (isSubtype(pChild, child)) {
+				if (isOldSubtype(pChild, child)) {
 					return true;
 				}
 			}
@@ -191,7 +201,7 @@ public class TypeSystem {
 		} else if (pOpcode == Opcode.TYPE_not) {
 			Type.Negation pNot = (Type.Negation) parent;
 			// !x :> y
-			return !isSubtype(pNot.getElement(), child);
+			return !isOldSubtype(pNot.getElement(), child);
 		} else if (pOpcode != cOpcode) {
 			return false;
 		}
@@ -207,10 +217,230 @@ public class TypeSystem {
 		case TYPE_arr: {
 			Type.Array pArray = (Type.Array) parent;
 			Type.Array cArray = (Type.Array) child;
-			return isSubtype(pArray.getElement(), cArray.getElement());
+			return isOldSubtype(pArray.getElement(), cArray.getElement());
 		}
 		default:
 			throw new RuntimeException("unknown type encountered: " + parent);
+		}
+	}
+
+	private boolean isNewSubtype(Type parent, Type child) {
+		// A :> B iff (!A & B) == void
+		return isVoid(false, parent, true, child);
+	}
+
+	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2) {
+		ArrayList<Atom> truths = new ArrayList<Atom>();
+		Worklist worklist = new Worklist();
+		worklist.push(t1sign, t1);
+		worklist.push(t2sign, t2);
+		return isVoid(truths, worklist);
+	}
+
+	/**
+	 * Determine whether or not the intersection of a given list of types (the
+	 * worklist) reduces to void or not. This is performed in the context of a
+	 * number of ground "atoms" which are known to hold. In essence, this
+	 * algorithm exhaustively expands all items on the worklist to form atoms.
+	 * The expanded atoms are then checked for consistency.
+	 *
+	 * is type is equivalent to void. This is a relatively complex operation
+	 * which builds up a list of clauses known to hold.
+	 *
+	 * @param truths
+	 *            The set of truths which have been established.
+	 * @param worklist
+	 *            The set of types currently being expanded
+	 * @return
+	 */
+	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist) {
+		if (worklist.size() == 0) {
+			return isVoid(truths);
+		} else {
+			Worklist.Item<Type> item = worklist.pop();
+			Type t = item.type;
+			boolean conjunct = item.sign;
+			//
+			switch (t.getOpcode()) {
+			case TYPE_or:
+				conjunct = !conjunct;
+			case TYPE_and: {
+				Type.UnionOrIntersection ut = (Type.UnionOrIntersection) t;
+				Type[] operands = ut.getOperands();
+				if (conjunct) {
+					// Conjunction
+					worklist.push(item.sign, operands);
+				} else {
+					// Disjunction
+					for (int i = 0; i != operands.length; ++i) {
+						Worklist tmp = (Worklist) worklist.clone();
+						tmp.push(item.sign, operands[i]);
+						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp)) {
+							return false;
+						}
+					}
+					return true;
+				}
+				break;
+			}
+			case TYPE_not: {
+				Type.Negation nt = (Type.Negation) t;
+				worklist.push(!conjunct, nt.getElement());
+				break;
+			}
+			case TYPE_nom: {
+				Type.Nominal nom = (Type.Nominal) t;
+				Named.Type decl = resolveAsDeclaredType(nom.getName());
+				// FIXME: this will cause infinite loops!!!
+				worklist.push(conjunct, decl.getVariableDeclaration().getType());
+				break;
+			}
+			default:
+				truths.add(new Atom(item.sign, (Type.Atom) item.type));
+			}
+			return isVoid(truths, worklist);
+		}
+	}
+
+	/**
+	 * Check whether a sequence of one or more atoms are inconsistent. Two atoms
+	 * are inconsistent if they have no intersection; likewise, a single atom is
+	 * inconsistent if it is equivalent to void.
+	 *
+	 * @param truths
+	 * @return
+	 */
+	private boolean isVoid(ArrayList<Atom> truths) {
+		for (int i = 0; i != truths.size(); ++i) {
+			for (int j = i + 1; j != truths.size(); ++j) {
+				if (isVoid(truths.get(i), truths.get(j))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean isVoid(Atom a, Atom b) {
+		System.out.print("CHECKING " + a + " & " + b + " == void");
+		if (isVoid(a) || isVoid(b)) {
+			System.out.println(" TRUE(1)");
+			return true;
+		} else if (isAny(a) || isAny(b)) {
+			System.out.println(" FALSE(2)");
+			return false;
+		}
+		// At this point, we have several cases left to consider.
+		boolean aSign = a.sign;
+		boolean bSign = b.sign;
+		WyalFile.Opcode aOpcode = a.type.getOpcode();
+		WyalFile.Opcode bOpcode = b.type.getOpcode();
+		//
+		if (aSign == bSign) {
+			if (aSign) {
+				if (aOpcode != bOpcode) {
+					// In this case, we are intersecting two positive atoms of
+					// different kind. For example, an int and a record. This
+					// always reduces to void.
+					System.out.println(" TRUE(3)");
+					return true;
+				} else {
+					// In this case, we are intersecting two positive atoms of
+					// the same kind. For primitive types, this never reduces to
+					// void.
+					switch (aOpcode) {
+					case TYPE_arr:
+						return isVoidPosPos((Type.Array) a.type, (Type.Array) b.type);
+					case TYPE_rec:
+						throw new RuntimeException("Implement me!");
+					case TYPE_ref:
+						throw new RuntimeException("Implement me!");
+					case TYPE_fun:
+						throw new RuntimeException("Implement me!");
+					default:
+						// Intersecting two positive atoms of the same kind
+						// always yields an atom of that kind.
+						System.out.println(" FALSE(4)");
+						return false;
+					}
+				}
+			} else {
+				// In this case, there is actually nothing to do. Two negative
+				// atoms being intersected never reduce to void, unless one of
+				// them is any (which we already know is not true).
+				System.out.println(" FALSE(5)");
+				return false;
+			}
+		} else {
+			// In this case, we have one negative and one positive type. In the
+			// case that they have different kinds, then the type will never
+			// reduce to void. Otherwise, it might (though not necessarily).
+			if (aOpcode != bOpcode) {
+				System.out.println(" FALSE(6)");
+				return false;
+			} else {
+				// The two atoms have the same kind. Now extract the positive
+				// one and the negative one.
+				Type pos = aSign ? a.type : b.type;
+				Type neg = aSign ? b.type : a.type;
+				//
+				switch (aOpcode) {
+				case TYPE_arr:
+					System.out.println(" ...");
+					return isVoidPosNeg((Type.Array) pos, (Type.Array) neg);
+				case TYPE_rec:
+					throw new RuntimeException("Implement me!");
+				case TYPE_ref:
+					throw new RuntimeException("Implement me!");
+				case TYPE_fun:
+					throw new RuntimeException("Implement me!");
+				default:
+					// A primitive being intersected with its negation is always
+					// void. For example, (int & !int) is void.
+					System.out.println(" TRUE(7)");
+					return true;
+				}
+			}
+		}
+	}
+
+	private boolean isVoidPosPos(Type.Array t1, Type.Array t2) {
+		return isVoid(true, t1.getElement(), true, t2.getElement());
+	}
+
+	private boolean isVoidPosNeg(Type.Array pos, Type.Array neg) {
+		System.out.println("GOT HERE: " + pos.getElement() + " & neg " + neg.getElement());
+		return isVoid(true, pos.getElement(), false, neg.getElement());
+	}
+
+	private boolean isVoid(Atom atom) {
+		WyalFile.Opcode opcode = atom.type.getOpcode();
+		boolean sign = atom.sign;
+		switch (opcode) {
+		case TYPE_void:
+			return sign;
+		case TYPE_any:
+			return !sign;
+		default:
+			// At this point, it may seem that we should do more work. For
+			// example, a record with a void field is equivalent to void.
+			// However, I don't believe this is the case since we can assume
+			// that such types must be inconsistent at the source level and,
+			// hence, would be caught earlier.
+			return false;
+		}
+	}
+
+	private boolean isAny(Atom atom) {
+		WyalFile.Opcode opcode = atom.type.getOpcode();
+		boolean sign = atom.sign;
+		switch (opcode) {
+		case TYPE_void:
+			return !sign;
+		case TYPE_any:
+			return sign;
+		default:
+			return false;
 		}
 	}
 
@@ -244,67 +474,56 @@ public class TypeSystem {
 	}
 
 	// ========================================================================
-	// Rewrite Rules
+	// Helpers
 	// ========================================================================
-	//
-	private static interface RewriteRule {
-		/**
-		 * Attempt to apply this rule to a given item. The rule then returns
-		 * either the item itself (i.e. the rule did not apply); or, it returns
-		 * the index of a different item (i.e. the result of applying the
-		 * rewrite).
-		 *
-		 * @param root
-		 * @return
-		 */
-		public Type apply(Type root);
-	}
 
-	/**
-	 * The classic rule for reducing !!T ==> T
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	private static class Rule_NegNeg implements RewriteRule {
+	private static class Worklist extends ArrayList<Worklist.Item<Type>> {
+
+		private static class Item<T extends Type> {
+			public final boolean sign;
+			public final T type;
+
+			public Item(boolean sign, T type) {
+				this.type = type;
+				this.sign = sign;
+			}
+		}
+
+		public void push(boolean sign, Type type) {
+			add(new Item(sign, type));
+		}
+
+		public void push(boolean sign, Type[] types) {
+			for (int i = 0; i != types.length; ++i) {
+				add(new Item(sign, types[i]));
+			}
+		}
+
+		public Item<Type> pop() {
+			Item<Type> i = get(size() - 1);
+			remove(size() - 1);
+			return i;
+		}
 
 		@Override
-		public Type apply(Type root) {
-			if (root instanceof Type.Negation) {
-				Type.Negation n1 = (Type.Negation) root;
-				Type n1Element = n1.getElement();
-				if (n1Element instanceof Type.Negation) {
-					Type.Negation n2 = (Type.Negation) n1.getElement();
-					return n2.getElement();
-				}
-			}
-			return root;
+		public Worklist clone() {
+			Worklist wl = new Worklist();
+			wl.addAll(this);
+			return wl;
 		}
 	}
 
-	/**
-	 * The classic rule for applying DeMorgan's law. For example,
-	 * <code>!(int|bool)</code> becomes <code>(!int) & !(bool)</code>.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	private static class Rule_NegUnion implements RewriteRule {
-
-		@Override
-		public Type apply(Type root) {
-			if (root instanceof Type.Negation) {
-				Type.Negation n1 = (Type.Negation) root;
-				Type n1Element = n1.getElement();
-				if (n1Element instanceof Type.Union) {
-					Type.Union n2 = (Type.Union) n1.getElement();
-					// FIXME: is there a problem here with creating new types
-					// which are equivalent to existing ones?
-					return new Type.Intersection(n2.getParent(), n2.getOperands());
-				}
-			}
-			return root;
+	private static class Atom extends Worklist.Item<Type.Atom> {
+		public Atom(boolean sign, Type.Atom type) {
+			super(sign, type);
 		}
-
+		@Override
+		public String toString() {
+			if(sign) {
+				return type.toString();
+			} else {
+				return "!" + type;
+			}
+		}
 	}
 }
