@@ -1,13 +1,13 @@
-define Bijection({int,int} pairs) is:
-  forall(int i1, int i2, int v1, int v2):
-    if:
-      (i1, v1) in pairs
-      (i2, v2) in pairs
-      (i1,v1) != (i2,v2)
-    then:
-      i1 != i2
-      v1 != v2
+type Entry is ({int key, int value} r)
 
-assert Bijection({(1,2),(2,2),(3,4)})
+define Bijection(Entry[] es) is:
+    forall(int i1, int i2):
+        if:
+            (es[i1].key == es[i2].key) || (es[i1].value == es[i2].value)
+        then:
+            i1 == i2
 
-
+assert:
+    Bijection([{key: 2, value: 3},
+               {key: 3, value: 4},
+               {key: 4, value: 4}])

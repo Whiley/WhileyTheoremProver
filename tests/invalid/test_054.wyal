@@ -1,7 +1,7 @@
 assert:
-  forall ({int} xs, {int} ys, {int} zs):
+  forall (int[] xs, int[] ys, int[] zs):
     if:
-       xs ⊆ ys
-       zs ⊆ ys
+       |xs| <= |ys|
+       |ys| <= |zs|
     then:
-       xs ⊆ zs
+       |xs| < |ys|

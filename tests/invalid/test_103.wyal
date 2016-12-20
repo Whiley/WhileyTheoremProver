@@ -1,24 +1,19 @@
-define Map<K,V> ({K,V} pairs) is:
-  forall(K k1, V v1, K k2, V v2):
-    if:
-      (k1,v1) in pairs
-      (k2,v2) in pairs
-      k1 == k2
-    then:
-      v1 == v2
+type Entry is ({int key, int value} r)
 
-define Bijection({int,int} pairs) is:
-  forall(int i1, int i2, int v1, int v2):
-    if:
-      (i1, v1) in pairs
-      (i2, v2) in pairs
-      (i1,v1) != (i2,v2)
-    then:
-      i1 != i2
-      v1 != v2
+define Map(Entry[] entries) is:
+    forall(int i1, int i2):
+        if:
+            entries[i1].key == entries[i2].key
+        then:
+            i1 == i2
+
+define Bijection(Entry[] es) is:
+    forall(int i1, int i2):
+        if:
+            (es[i1].key == es[i2].key) || (es[i1].value == es[i2].value)
+        then:
+            i1 == i2
 
 assert:
-  forall({int,int} pairs):
-    Map<int,int>(pairs) ==> Bijection(pairs)
-
-
+  forall(Entry[] xs):
+    Map(xs) ==> Bijection(xs)

@@ -1,11 +1,11 @@
-define NatSet({int} xs) is:
-  forall(int x):
-    x in xs ==> x >= 0
+define NatArray(int[] xs) is:
+   forall (int i):
+     xs[i] >= 0
 
-define PosSet({int} xs) is:
-  forall(int x):
-    x in xs ==> x > 0
+define PosArray(int[] xs) is:
+   forall (int i):
+     xs[i] > 0
 
 assert:
-   forall ({int} xs):
-       NatSet(xs) ==> PosSet(xs)
+   forall (int[] xs):
+       NatArray(xs) ==> PosArray(xs)

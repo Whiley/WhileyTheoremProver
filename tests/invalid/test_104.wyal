@@ -1,11 +1,20 @@
-define Closure({int,int} pairs) is:
+type Edge is ({int from, int to} r)
+
+define contains(Edge[] es, int from, int to) is:
+    exists(int i):
+        i >= 0
+        i < |es|
+        es[i].from == from
+        es[i].to == to
+
+define Closed(Edge[] es) is:
   forall(int x, int y, int z):
     if:
-      (x, y) in pairs
-      (y, z) in pairs
+      contains(es,x,y)
+      contains(es,y,z)
     then:
-      (x,z) in pairs
+      contains(es,x,z)
 
-assert Closure({(1,2),(2,3)})
-
-
+assert:
+    Closed([{from: 1, to: 2},
+            {from: 2, to: 3}])
