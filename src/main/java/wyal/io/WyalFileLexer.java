@@ -68,6 +68,11 @@ public class WyalFileLexer {
         input = text;
 	}
 
+	public WyalFileLexer(String input) {
+		this.entry = null;
+		this.input = new StringBuilder(input);
+	}
+
 	/**
 	 * Scan all characters from the input stream and generate a corresponding
 	 * list of tokens, whilst discarding all whitespace and comments.

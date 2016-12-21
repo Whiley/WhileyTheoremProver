@@ -1,0 +1,8 @@
+assert:
+  forall({int f,int g} x):
+    if:
+        x.f > x.g
+        x.f >= 0
+    then:
+        x.g > 0
+

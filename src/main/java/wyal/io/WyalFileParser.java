@@ -1312,7 +1312,7 @@ public class WyalFileParser {
 	 * @see wyc.lang.SyntacticType.Tuple
 	 * @return
 	 */
-	private Type parseType(EnclosingScope scope) {
+	public Type parseType(EnclosingScope scope) {
 		int start = index;
 		Type first = parseUnaryType(scope);
 		Token lookahead = tryAndMatch(false,Ampersand,VerticalBar);
@@ -2103,7 +2103,7 @@ public class WyalFileParser {
 	 * @author David J. Pearce
 	 *
 	 */
-	private static final class EnclosingScope {
+	public static final class EnclosingScope {
 		/**
 		 * Maps variables to their WyIL location.
 		 */
