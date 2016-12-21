@@ -155,76 +155,6 @@ public class TypeSystem {
 	 * @return
 	 */
 	public boolean isSubtype(Type parent, Type child) {
-		System.out.print("CHECKING: " + parent + " :> " + child + " ... ");
-		// return isOldSubtype(parent,child);
-		boolean r = isNewSubtype(parent, child);
-		System.out.println(r);
-		return r;
-	}
-
-	private boolean isOldSubtype(Type parent, Type child) {
-		WyalFile.Opcode pOpcode = parent.getOpcode();
-		WyalFile.Opcode cOpcode = child.getOpcode();
-		// Handle non-atomic cases
-		// Handle atomic cases
-
-		if (pOpcode == Opcode.TYPE_nom) {
-			Type.Nominal nom = (Type.Nominal) parent;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			// FIXME: this will cause infinite loops
-			return isOldSubtype(decl.getVariableDeclaration().getType(), child);
-		} else if (cOpcode == Opcode.TYPE_nom) {
-			Type.Nominal nom = (Type.Nominal) child;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			// FIXME: this will cause infinite loops
-			return isOldSubtype(parent, decl.getVariableDeclaration().getType());
-		} else if (pOpcode == Opcode.TYPE_any || cOpcode == Opcode.TYPE_void) {
-			return true;
-		} else if (cOpcode == Opcode.TYPE_or) {
-			Type.Union cUnion = (Type.Union) child;
-			for (int i = 0; i != cUnion.size(); ++i) {
-				Type cChild = cUnion.getOperand(i);
-				if (!isOldSubtype(parent, cChild)) {
-					return false;
-				}
-			}
-			return true;
-		} else if (pOpcode == Opcode.TYPE_or) {
-			Type.Union pUnion = (Type.Union) parent;
-			for (int i = 0; i != pUnion.size(); ++i) {
-				Type pChild = pUnion.getOperand(i);
-				if (isOldSubtype(pChild, child)) {
-					return true;
-				}
-			}
-			return false;
-		} else if (pOpcode == Opcode.TYPE_not) {
-			Type.Negation pNot = (Type.Negation) parent;
-			// !x :> y
-			return !isOldSubtype(pNot.getElement(), child);
-		} else if (pOpcode != cOpcode) {
-			return false;
-		}
-
-		switch (parent.getOpcode()) {
-		case TYPE_any:
-			return true;
-		case TYPE_null:
-		case TYPE_bool:
-		case TYPE_int:
-		case TYPE_void:
-			return cOpcode == pOpcode || cOpcode == Opcode.TYPE_void;
-		case TYPE_arr: {
-			Type.Array pArray = (Type.Array) parent;
-			Type.Array cArray = (Type.Array) child;
-			return isOldSubtype(pArray.getElement(), cArray.getElement());
-		}
-		default:
-			throw new RuntimeException("unknown type encountered: " + parent);
-		}
-	}
-
-	private boolean isNewSubtype(Type parent, Type child) {
 		// A :> B iff (!A & B) == void
 		return isVoid(false, parent, true, child);
 	}
@@ -322,124 +252,153 @@ public class TypeSystem {
 	}
 
 	private boolean isVoid(Atom a, Atom b) {
-		System.out.print("CHECKING " + a + " & " + b + " == void");
-		if (isVoid(a) || isVoid(b)) {
-			System.out.println(" TRUE(1)");
-			return true;
-		} else if (isAny(a) || isAny(b)) {
-			System.out.println(" FALSE(2)");
-			return false;
-		}
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
 		WyalFile.Opcode aOpcode = a.type.getOpcode();
 		WyalFile.Opcode bOpcode = b.type.getOpcode();
 		//
-		if (aSign == bSign) {
-			if (aSign) {
-				if (aOpcode != bOpcode) {
-					// In this case, we are intersecting two positive atoms of
-					// different kind. For example, an int and a record. This
-					// always reduces to void.
-					System.out.println(" TRUE(3)");
-					return true;
-				} else {
-					// In this case, we are intersecting two positive atoms of
-					// the same kind. For primitive types, this never reduces to
-					// void.
-					switch (aOpcode) {
-					case TYPE_arr:
-						return isVoidPosPos((Type.Array) a.type, (Type.Array) b.type);
-					case TYPE_rec:
-						throw new RuntimeException("Implement me!");
-					case TYPE_ref:
-						throw new RuntimeException("Implement me!");
-					case TYPE_fun:
-						throw new RuntimeException("Implement me!");
-					default:
-						// Intersecting two positive atoms of the same kind
-						// always yields an atom of that kind.
-						System.out.println(" FALSE(4)");
-						return false;
-					}
-				}
-			} else {
-				// In this case, there is actually nothing to do. Two negative
-				// atoms being intersected never reduce to void, unless one of
-				// them is any (which we already know is not true).
-				System.out.println(" FALSE(5)");
-				return false;
+		if (aOpcode == bOpcode) {
+			// In this case, we are intersecting two atoms of the same kind, of
+			// which at least one is positive. For primitive types, this reduces
+			// to void is one of them is negative. For non-primitive types, it
+			// requires further investigation.
+			switch (aOpcode) {
+			case TYPE_void:
+				// void & void => void
+				// !void & void => void
+				return true;
+			case TYPE_any:
+			case TYPE_null:
+			case TYPE_bool:
+			case TYPE_int:
+				// any & !any => void
+				// int & !int => void
+				return aSign != bSign;
+			case TYPE_arr:
+				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type);
+			case TYPE_rec:
+				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type);
+			case TYPE_ref:
+				throw new RuntimeException("Implement me!");
+			case TYPE_fun:
+				throw new RuntimeException("Implement me!");
+			default:
+				throw new RuntimeException("invalid type encountered: " + aOpcode);
 			}
+		} else if (aSign && bSign) {
+			// We have two positive atoms of different kind. For example, int
+			// and {int f}, or int and !bool. This always reduces to void,
+			// unless one of them is any.
+			return aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any;
+		} else if(aSign) {
+			// We have a positive atom and a negative atom of different kinds.
+			// For example, int and !bool or int and !(bool[]). This only
+			// reduces to void in the case that one of them is equivalent to
+			// void (i.e. is void or !any).
+			return aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any;
+		} else if (bSign) {
+			// We have a negative atom and a positive atom of different kinds.
+			// For example, !int and bool or !(int[]) and bool[]. This only
+			// reduces to void in the case that one of them is equivalent to
+			// void (i.e. is void or !any).
+			return aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void;
 		} else {
-			// In this case, we have one negative and one positive type. In the
-			// case that they have different kinds, then the type will never
-			// reduce to void. Otherwise, it might (though not necessarily).
-			if (aOpcode != bOpcode) {
-				System.out.println(" FALSE(6)");
-				return false;
-			} else {
-				// The two atoms have the same kind. Now extract the positive
-				// one and the negative one.
-				Type pos = aSign ? a.type : b.type;
-				Type neg = aSign ? b.type : a.type;
-				//
-				switch (aOpcode) {
-				case TYPE_arr:
-					System.out.println(" ...");
-					return isVoidPosNeg((Type.Array) pos, (Type.Array) neg);
-				case TYPE_rec:
-					throw new RuntimeException("Implement me!");
-				case TYPE_ref:
-					throw new RuntimeException("Implement me!");
-				case TYPE_fun:
-					throw new RuntimeException("Implement me!");
-				default:
-					// A primitive being intersected with its negation is always
-					// void. For example, (int & !int) is void.
-					System.out.println(" TRUE(7)");
-					return true;
-				}
-			}
+			// We have two negative atoms of different kinds. For example, !int
+			// and !bool or !int[] and !bool. This only reduces to void in the
+			// case that one of them is equivalent to void (i.e. is !any).
+			return aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any;
 		}
 	}
 
-	private boolean isVoidPosPos(Type.Array t1, Type.Array t2) {
-		return isVoid(true, t1.getElement(), true, t2.getElement());
-	}
-
-	private boolean isVoidPosNeg(Type.Array pos, Type.Array neg) {
-		System.out.println("GOT HERE: " + pos.getElement() + " & neg " + neg.getElement());
-		return isVoid(true, pos.getElement(), false, neg.getElement());
-	}
-
-	private boolean isVoid(Atom atom) {
-		WyalFile.Opcode opcode = atom.type.getOpcode();
-		boolean sign = atom.sign;
-		switch (opcode) {
-		case TYPE_void:
-			return sign;
-		case TYPE_any:
-			return !sign;
-		default:
-			// At this point, it may seem that we should do more work. For
-			// example, a record with a void field is equivalent to void.
-			// However, I don't believe this is the case since we can assume
-			// that such types must be inconsistent at the source level and,
-			// hence, would be caught earlier.
+	/**
+	 * <p>
+	 * Determine whether the intersection of two array types is void or not. For
+	 * example, <code>int[]</code> intersecting with <code>bool[]</code> gives
+	 * void. In contrast, intersecting <code>(int|null)[]</code> with
+	 * <code>int[]</code> does not give void. Likewise, <code>int[]</code>
+	 * intersecting with <code>!(int[])</code> gives void, whilst intersecting
+	 * <code>int[]</code> with <code>!(bool[])</code> does not give void.
+	 * </p>
+	 *
+	 * @param lhsSign
+	 *            The sign of the first type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param lhs.
+	 *            The first type being intersected, referred to as the
+	 *            "left-hand side".
+	 * @param rhsSign
+	 *            The sign of the second type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param rhs
+	 *            The second type being intersected, referred to as the
+	 *            "right-hand side".
+	 * @return
+	 */
+	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs) {
+		if(lhsSign || rhsSign) {
+			// In this case, we are intersecting two array types, of which at
+			// least one is positive. This is void only if there is no
+			// intersection of the underlying element types. For example, int[]
+			// and bool[] is void, whilst (int|null)[] and int[] is not.
+			return isVoid(lhsSign,lhs.getElement(),rhsSign,rhs.getElement());
+		} else {
+			// In this case, we are intersecting two negative array types. For
+			// example, !(int[]) and !(bool[]). This never reduces to void.
 			return false;
 		}
 	}
 
-	private boolean isAny(Atom atom) {
-		WyalFile.Opcode opcode = atom.type.getOpcode();
-		boolean sign = atom.sign;
-		switch (opcode) {
-		case TYPE_void:
-			return !sign;
-		case TYPE_any:
-			return sign;
-		default:
+	/**
+	 * <p>
+	 * Determine whether the intersection of two record types is void or not.
+	 * For example, <code>{int f}</code> intersecting with <code>{int g}</code>
+	 * gives void. In contrast, intersecting <code>{int|null f}</code> with
+	 * <code>{int f}</code> does not give void. Likewise, <code>{int f}</code>
+	 * intersecting with <code>!{int f}</code> gives void, whilst intersecting
+	 * <code>{int f}</code> with <code>!{int g}</code> does not give void.
+	 * </p>
+	 *
+	 * @param lhsSign
+	 *            The sign of the first type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param lhs.
+	 *            The first type being intersected, referred to as the
+	 *            "left-hand side".
+	 * @param rhsSign
+	 *            The sign of the second type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param rhs
+	 *            The second type being intersected, referred to as the
+	 *            "right-hand side".
+	 * @return
+	 */
+	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs) {
+		if (lhsSign && rhsSign) {
+			// In this case, we are intersecting two positive record types. This
+			// reduces to void if the fields in either of these differ (e.g.
+			// {int f} and {int g}), or if there is no intersection between the
+			// same field in either (e.g. {int f} and {bool f}).
+			VariableDeclaration[] lhsFields = lhs.getFields();
+			VariableDeclaration[] rhsFields = rhs.getFields();
+			if (lhsFields.length != rhsFields.length) {
+				return true;
+			} else {
+				for (int i = 0; i != lhsFields.length; ++i) {
+					VariableDeclaration lhsField = lhsFields[i];
+					VariableDeclaration rhsField = rhsFields[i];
+					if (isVoid(true, lhsField.getType(), true, rhsField.getType())) {
+						return true;
+					}
+				}
+				return false;
+			}
+		} else if (lhsSign != rhsSign) {
+			// In this case, we are intersecting a positive and a negative
+			// record type.  This is a trickier case to handle.  If the negative
+		} else {
+			// In this case, we are intersecting two negative record types. For
+			// example, !({int f}) and !({int g}). This never reduces to void.
 			return false;
 		}
 	}
@@ -517,9 +476,10 @@ public class TypeSystem {
 		public Atom(boolean sign, Type.Atom type) {
 			super(sign, type);
 		}
+
 		@Override
 		public String toString() {
-			if(sign) {
+			if (sign) {
 				return type.toString();
 			} else {
 				return "!" + type;
