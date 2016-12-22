@@ -12,7 +12,6 @@ import java.util.Map;
 
 import wyal.io.WyalFileLexer.Token;
 import static wyal.lang.WyalFile.*;
-import wyal.lang.SemanticType;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Opcode;

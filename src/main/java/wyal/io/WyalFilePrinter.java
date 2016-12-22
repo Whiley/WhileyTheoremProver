@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import static wyal.lang.WyalFile.*;
-import wyal.lang.SemanticType;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Constant;

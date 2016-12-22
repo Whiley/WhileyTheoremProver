@@ -14,7 +14,6 @@ import java.util.Map;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.SemanticType.Bool;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
