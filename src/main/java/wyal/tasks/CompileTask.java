@@ -8,6 +8,7 @@ import java.util.Set;
 
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
+import wyal.util.AutomatedTheoremProver;
 import wyal.util.TypeChecker;
 import wyal.lang.WyalFile;
 import wybs.lang.Build;
@@ -92,6 +93,7 @@ public class CompileTask implements Build.Task {
 				// FIXME: temporary
 				new WyalFilePrinter(System.out).write(wf);
 				new TypeChecker(wf).check();
+				new AutomatedTheoremProver(wf).check();
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary
