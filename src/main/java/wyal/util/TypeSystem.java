@@ -184,9 +184,40 @@ public class TypeSystem {
 	 * @return
 	 */
 	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist) {
+
+		// FIXME: there is a bug in the following case which needs to be
+		// addressed:
+		//
+		// {int|null f} & !{int f} & !{null f}
+		//
+		// The problem is that we need the "pairwise consistency property" in
+		// order for this algorithm to be complete. To get that, we must expand
+		// records containing union types.  Thus, the above should be expanded to:
+		//
+		// ({int f} & !{int f} & !{null f}) || ({null f} & !{int f} & !{null f})
+		//
+		// This will now produce the correct result.
+
 		if (worklist.size() == 0) {
-			return isVoid(truths);
+			// At this point, we have run out of terms to expand further.
+			// Therefore, we have accumulated the complete list of "truths" and
+			// we must now attempt to establish whether or not this is
+			// consistent. For example, "int & !bool & !int" is not consistent
+			// because "int & !int" is not consistent.
+			//
+			// Therefore, we consider each possible pair of truths looking for
+			// consistency.
+			for (int i = 0; i != truths.size(); ++i) {
+				for (int j = i + 1; j != truths.size(); ++j) {
+					if (isVoid(truths.get(i), truths.get(j))) {
+						return true;
+					}
+				}
+			}
+			return false;
 		} else {
+			// In this case, we still have items on the worklist which need to
+			// be processed. That is, broken down into "atomic" terms.
 			Worklist.Item<Type> item = worklist.pop();
 			Type t = item.type;
 			boolean conjunct = item.sign;
@@ -233,24 +264,14 @@ public class TypeSystem {
 	}
 
 	/**
-	 * Check whether a sequence of one or more atoms are inconsistent. Two atoms
-	 * are inconsistent if they have no intersection; likewise, a single atom is
-	 * inconsistent if it is equivalent to void.
+	 * Determine whether the intersection of two arbitrary atoms results in void
+	 * or not. Each atom is either a "positive" or "negative" term. The latter
+	 * corresponds to negated terms, such as !int or !{int f}.
 	 *
-	 * @param truths
+	 * @param a
+	 * @param b
 	 * @return
 	 */
-	private boolean isVoid(ArrayList<Atom> truths) {
-		for (int i = 0; i != truths.size(); ++i) {
-			for (int j = i + 1; j != truths.size(); ++j) {
-				if (isVoid(truths.get(i), truths.get(j))) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
 	private boolean isVoid(Atom a, Atom b) {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
@@ -291,7 +312,7 @@ public class TypeSystem {
 			// and {int f}, or int and !bool. This always reduces to void,
 			// unless one of them is any.
 			return aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any;
-		} else if(aSign) {
+		} else if (aSign) {
 			// We have a positive atom and a negative atom of different kinds.
 			// For example, int and !bool or int and !(bool[]). This only
 			// reduces to void in the case that one of them is equivalent to
@@ -328,20 +349,20 @@ public class TypeSystem {
 	 *            The first type being intersected, referred to as the
 	 *            "left-hand side".
 	 * @param rhsSign
-	 *            The sign of the second type being intersected. If true, we have
-	 *            a positive atom. Otherwise, we have a negative atom.
+	 *            The sign of the second type being intersected. If true, we
+	 *            have a positive atom. Otherwise, we have a negative atom.
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
 	 * @return
 	 */
 	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs) {
-		if(lhsSign || rhsSign) {
+		if (lhsSign != rhsSign) {
 			// In this case, we are intersecting two array types, of which at
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
 			// and bool[] is void, whilst (int|null)[] and int[] is not.
-			return isVoid(lhsSign,lhs.getElement(),rhsSign,rhs.getElement());
+			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement());
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
@@ -366,36 +387,62 @@ public class TypeSystem {
 	 *            The first type being intersected, referred to as the
 	 *            "left-hand side".
 	 * @param rhsSign
-	 *            The sign of the second type being intersected. If true, we have
-	 *            a positive atom. Otherwise, we have a negative atom.
+	 *            The sign of the second type being intersected. If true, we
+	 *            have a positive atom. Otherwise, we have a negative atom.
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
 	 * @return
 	 */
 	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs) {
-		if (lhsSign && rhsSign) {
+		VariableDeclaration[] lhsFields = lhs.getFields();
+		VariableDeclaration[] rhsFields = rhs.getFields();
+		// FIXME: We need to sort fields above by their name in order to
+		// eliminate the order in which they are written as being relevant.
+		if (lhsSign || rhsSign) {
+			// The sign indicates whether were in the pos-pos case, or in the
+			// pos-neg case.
+			boolean sign = lhsSign == rhsSign;
 			// In this case, we are intersecting two positive record types. This
 			// reduces to void if the fields in either of these differ (e.g.
 			// {int f} and {int g}), or if there is no intersection between the
 			// same field in either (e.g. {int f} and {bool f}).
-			VariableDeclaration[] lhsFields = lhs.getFields();
-			VariableDeclaration[] rhsFields = rhs.getFields();
 			if (lhsFields.length != rhsFields.length) {
-				return true;
+				// We have a differing number of fields and, hence, no
+				// intersection of underlying types is possible. In the pos-pos
+				// case, this indicates no intersection is possible overall. In
+				// the pos-neg case, then intersection exists.
+				return sign;
 			} else {
+				// We have the same number of fields. Now, we need to check that
+				// each field as the same name, and that their types intersect.
 				for (int i = 0; i != lhsFields.length; ++i) {
 					VariableDeclaration lhsField = lhsFields[i];
 					VariableDeclaration rhsField = rhsFields[i];
-					if (isVoid(true, lhsField.getType(), true, rhsField.getType())) {
-						return true;
+					if(!lhsField.getVariableName().equals(rhsField.getVariableName())) {
+						// The fields have different names. In the pos-pos
+						// case, this indicates no intersection is possible. For
+						// pos-neg case, intersection exists.
+						return sign;
+					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType()) == sign) {
+						// For pos-pos case, there is no intersection between
+						// these fields and, hence, no intersection overall; for
+						// pos-neg case, there is some intersection between
+						// these fields which means that some intersections
+						// exists overall.  For example, consider the case
+						// {int f, int|null g} & !{int f, int g}. There is no
+						// intersection for field f (i.e. since int & !int =
+						// void), whilst there is an intersection for field g
+						// (i.e. since int|null & !int = null). Hence, we can
+						// conclude that there is an intersection between them
+						// with {int f, null g}.
+						return sign;
 					}
 				}
-				return false;
+				// If we get here, then: for pos-pos case, all fields have
+				// intersection; for pos-neg case, no fields have intersection.
+				return !sign;
 			}
-		} else if (lhsSign != rhsSign) {
-			// In this case, we are intersecting a positive and a negative
-			// record type.  This is a trickier case to handle.  If the negative
 		} else {
 			// In this case, we are intersecting two negative record types. For
 			// example, !({int f}) and !({int g}). This never reduces to void.
