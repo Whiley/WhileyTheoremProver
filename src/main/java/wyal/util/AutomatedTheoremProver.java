@@ -1,7 +1,9 @@
 package wyal.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -27,15 +29,17 @@ public class AutomatedTheoremProver {
 	}
 
 	private void check(WyalFile.Declaration.Assert decl) {
+		Environment environment = new Environment();
 		Heap heap = new Heap();
-		Formula result = translate(false, decl.getBody(), heap);
+		Formula result = translate(false, decl.getBody(), heap, environment);
+		System.out.println("MICROCODE:");
 		print(0,result);
 	}
 
-	private Formula translate(boolean sign, Block blk, Heap heap) {
+	private Formula translate(boolean sign, Block blk, Heap heap, Environment environment) {
 		Formula[] fs = new Formula[blk.size()];
 		for (int i = 0; i != blk.size(); ++i) {
-			fs[i] = translate(sign, blk.getOperand(i), heap);
+			fs[i] = translate(sign, blk.getOperand(i), heap, environment);
 		}
 		if (sign) {
 			return new Conjunct(fs);
@@ -44,32 +48,80 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private Formula translate(boolean sign, Stmt stmt, Heap heap) {
+	private Formula translate(boolean sign, Stmt stmt, Heap heap, Environment environment) {
 		switch (stmt.getOpcode()) {
 		case STMT_ifthen:
 			// TODO: fix me!
+		case STMT_forall:
+		case STMT_exists:
+			return translate(sign,(Stmt.Quantifier) stmt, heap, environment);
+		case EXPR_eq:
+		case EXPR_neq:
+		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
+		case EXPR_gteq:
+			return translate(sign,(Expr.Operator) stmt,heap,environment);
 		default:
 			// An expression of some kind which cannot be represented directly
 			// as a formula. Therefore, we need to convert it into an equality.
-			Term t = translate((Expr) stmt, heap);
-			if (sign) {
-				return heap.add(new Equality(t, heap.TRUE));
-			} else {
-				return heap.add(new Equality(t, heap.FALSE));
-			}
+			Term t = translate((Expr) stmt, heap, environment);
+			return heap.add(new Equality(sign,t, heap.TRUE));
 		}
 	}
 
-	private Term translate(Expr expr, Heap heap) {
-		switch (expr.getOpcode()) {
-		case EXPR_const:
-			return translate((Expr.Constant) expr,heap);
+	private Formula translate(boolean sign, Stmt.Quantifier stmt, Heap heap, Environment environment) {
+		boolean isUniversal;
+		if (sign) {
+			isUniversal = stmt.getOpcode() == WyalFile.Opcode.STMT_forall;
+		} else {
+			isUniversal = stmt.getOpcode() != WyalFile.Opcode.STMT_forall;
+		}
+		Opcode opcode = isUniversal ? Opcode.UNIVERSAL_VARDECL : Opcode.EXISTENTIAL_VARDECL;
+		WyalFile.VariableDeclaration[] parameters = stmt.getParameters();
+		for (int i = 0; i != parameters.length; ++i) {
+			WyalFile.VariableDeclaration param = parameters[i];
+			// FIXME: need to handle quantifier scope properly!!
+			VariableDeclaration decl = new VariableDeclaration(opcode, param.getType(), param.getVariableName());
+			environment = environment.add(decl);
+		}
+		//
+		return translate(sign, stmt.getBody(), heap, environment);
+	}
+
+	private Formula translate(boolean sign, Expr.Operator expr, Heap heap, Environment environment) {
+		Expr[] exprs = expr.getExprs();
+		Term[] children = new Term[exprs.length];
+		for(int i=0;i!=children.length;++i) {
+			children[i] = translate(exprs[i],heap,environment);
+		}
+		//
+		switch(expr.getOpcode()) {
+		case EXPR_eq:
+			return heap.add(new Equality(sign,children[0],children[1]));
+		case EXPR_neq:
+			return heap.add(new Equality(!sign,children[0],children[1]));
+		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
+		case EXPR_gteq:
 		default:
 			throw new RuntimeException("Unknown bytecode encountered: " + expr.getOpcode());
 		}
 	}
 
-	private Term translate(Expr.Constant expr, Heap heap) {
+	private Term translate(Expr expr, Heap heap, Environment environment) {
+		switch (expr.getOpcode()) {
+		case EXPR_const:
+			return translate((Expr.Constant) expr, heap, environment);
+		case EXPR_var:
+			return translate((Expr.VariableAccess) expr, heap, environment);
+		default:
+			throw new RuntimeException("Unknown bytecode encountered: " + expr.getOpcode());
+		}
+	}
+
+	private Term translate(Expr.Constant expr, Heap heap, Environment environment) {
 		Constant val = (Constant) expr.getOperand(0);
 		Object data = val.data;
 		switch(val.getOpcode()) {
@@ -85,15 +137,63 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	private Term translate(Expr.VariableAccess expr, Heap heap, Environment environment) {
+		return environment.get(expr.getVariableDeclaration().getVariableName());
+	}
+
+	private Term translate(Expr.Operator expr, Heap heap, Environment environment) {
+		Expr[] exprs = expr.getExprs();
+		Term[] children = new Term[exprs.length];
+		for(int i=0;i!=children.length;++i) {
+			children[i] = translate(exprs[i],heap,environment);
+		}
+		//
+		return null;
+	}
+
 	private enum Opcode {
 		TRUE,
 		FALSE,
+		UNIVERSAL_VARDECL,
+		EXISTENTIAL_VARDECL,
+		VAR,
 		CONJUNCT,
 		DISJUNCT,
 		EQUALITY,
 		INEQUALITY,
 		POLYNOMIAL
 	};
+
+	private static class Environment {
+		private final Environment parent;
+		private final VariableDeclaration declaration;
+
+		public Environment() {
+			this.parent = null;
+			this.declaration = null;
+		}
+
+		private Environment(Environment parent, VariableDeclaration declaration) {
+			this.parent = parent;
+			this.declaration = declaration;
+		}
+
+		public VariableDeclaration get(Identifier name) {
+			if (parent != null) {
+				if (name.equals(declaration.getName())) {
+					return declaration;
+				} else {
+					return parent.get(name);
+				}
+			} else {
+				throw new IllegalArgumentException("undeclared variable encountered: " + name);
+			}
+		}
+
+		public Environment add(VariableDeclaration decl) {
+			return new Environment(this,decl);
+		}
+	}
 
 	/**
 	 * A heap is a container for items which make up the state(s) required for
@@ -102,7 +202,7 @@ public class AutomatedTheoremProver {
 	 * @author David J. Pearce
 	 *
 	 */
-	private class Heap {
+	private static class Heap {
 		/**
 		 * Represents the constant value true. This is always the first item in
 		 * the heap.
@@ -114,11 +214,9 @@ public class AutomatedTheoremProver {
 		 */
 		public final TruthValue FALSE;
 		/**
-		 * The list of declared variables over which terms of the heap are
-		 * defined.
+		 * The number of declared variables
 		 */
-		private VariableDeclaration[] environment;
-
+		private int declared;
 		/**
 		 * The array of all items in the heap. Some of these may not be
 		 * reachable from any given state and could, in principle, be garbage
@@ -202,62 +300,6 @@ public class AutomatedTheoremProver {
 		 * contradiction.
 		 */
 		private BitSet groundTruths;
-
-	}
-
-	private class VariableDeclaration {
-		/**
-		 * Indicates whether this variable is universally or existentially
-		 * quantified.
-		 */
-		private final boolean universal;
-		/**
-		 * The given type of this variable.
-		 */
-		private final Type type;
-		/**
-		 * The given name of this variable, which is primarily used for
-		 * error-reporting and debugging purposes.
-		 */
-		private final Identifier name;
-		/**
-		 * Indicates the scope in which this variable is declared. That is, the
-		 * set of universal variables in whose scope this variable is declated.
-		 */
-		private final VariableDeclaration[] scope;
-
-		public VariableDeclaration(boolean universal, Type type, Identifier name, VariableDeclaration... scope) {
-			this.universal = universal;
-			this.type = type;
-			this.name = name;
-			this.scope = scope;
-		}
-
-		public VariableDeclaration[] getScope() {
-			return scope;
-		}
-
-		public boolean isUniveral() {
-			return universal;
-		}
-
-		public Type getType() {
-			return type;
-		}
-
-		public Identifier getName() {
-			return name;
-		}
-
-		/**
-		 * Determine whether or not this corresponds to a ground variable
-		 * declaration. That is, in effect, a named constant.
-		 *
-		 * @return
-		 */
-		public boolean isGround() {
-			return !universal && scope.length == 0;
-		}
 	}
 
 	private static abstract class Item {
@@ -337,6 +379,51 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	private class VariableDeclaration extends Term {
+
+		/**
+		 * The given type of this variable.
+		 */
+		private final Type type;
+		/**
+		 * The given name of this variable, which is primarily used for
+		 * error-reporting and debugging purposes.
+		 */
+		private final Identifier name;
+
+		public VariableDeclaration(Opcode opcode, Type type, Identifier name, VariableDeclaration... scope) {
+			super(opcode,scope);
+			this.type = type;
+			this.name = name;
+		}
+
+		@Override
+		public Type[] getTypes() {
+			return new Type[] {type};
+		}
+
+		public Identifier getName() {
+			return name;
+		}
+
+		@Override
+		public boolean equivalent(Item item) {
+			return item == this;
+		}
+
+		/**
+		 * Determine whether or not this corresponds to a ground variable
+		 * declaration. That is, in effect, a named constant.
+		 *
+		 * @return
+		 */
+		@Override
+		public boolean isGround() {
+			return getOpcode() == Opcode.UNIVERSAL_VARDECL && size() == 0;
+		}
+	}
+
+
 	private static abstract class Formula extends Item {
 
 		public Formula(Opcode opcode, Item... components) {
@@ -384,11 +471,12 @@ public class AutomatedTheoremProver {
 	}
 
 	private static class Equality extends Formula {
+		private boolean sign;
 
-		public Equality(Term lhs, Term rhs) {
-			super(Opcode.EQUALITY,lhs, rhs);
+		public Equality(boolean sign, Term lhs, Term rhs) {
+			super(Opcode.EQUALITY, lhs, rhs);
+			this.sign = sign;
 		}
-
 	}
 
 	/**
@@ -440,6 +528,8 @@ public class AutomatedTheoremProver {
 			return true;
 		}
 	}
+
+
 
 	private static class Polynomial extends Term {
 		private final Type.Int type;
