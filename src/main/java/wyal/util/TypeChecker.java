@@ -206,10 +206,10 @@ public class TypeChecker {
 		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = (Identifier) fields[i].getOperand(0);
 			Type fieldType = check((Expr) fields[i].getOperand(1));
-			decls[i] = new VariableDeclaration(parent, fieldType, fieldName);
+			decls[i] = new VariableDeclaration(fieldType, fieldName);
 		}
 		//
-		return new Type.Record(parent, decls);
+		return new Type.Record(decls);
 	}
 
 	/**
@@ -281,13 +281,13 @@ public class TypeChecker {
 			ts[i] = check(expr.getOperand(i));
 		}
 		Type element = types.union(ts);
-		return new Type.Array(parent, element);
+		return new Type.Array(element);
 	}
 
 	private Type checkArrayGenerator(Expr.Operator expr) {
 		Type element = check(expr.getOperand(0));
 		checkIsType(check(expr.getOperand(1)), Type.Int.class);
-		return new Type.Array(parent, element);
+		return new Type.Array(element);
 	}
 
 	private Type checkArrayAccess(Expr.Operator expr) {

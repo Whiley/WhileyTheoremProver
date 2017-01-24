@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
@@ -23,7 +24,7 @@ public class TypeSystem {
 
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
-		this.rewrites = new ArrayList<Type>();
+		this.rewrites = new ArrayList<>();
 	}
 
 	/**
@@ -83,10 +84,10 @@ public class TypeSystem {
 		VariableDeclaration[] declarations = new VariableDeclaration[fields.size()];
 		int index = 0;
 		for (Map.Entry<String, Type> e : fields.entrySet()) {
-			Identifier id = new Identifier(parent, e.getKey());
-			declarations[index++] = new VariableDeclaration(parent, e.getValue(), id);
+			Identifier id = new Identifier(e.getKey());
+			declarations[index++] = new VariableDeclaration(e.getValue(), id);
 		}
-		return new Type.Record(parent, declarations);
+		return new Type.Record(declarations);
 	}
 
 	/**
@@ -108,7 +109,7 @@ public class TypeSystem {
 				elements[i] = r.getElement();
 			}
 			//
-			return new Type.Array(parent, union(elements));
+			return new Type.Array(union(elements));
 		} else if (type instanceof Type.Nominal) {
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
@@ -141,7 +142,7 @@ public class TypeSystem {
 					}
 				}
 			}
-			return new Type.Union(parent, types);
+			return new Type.Union(types);
 		}
 	}
 
@@ -160,7 +161,7 @@ public class TypeSystem {
 	}
 
 	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2) {
-		ArrayList<Atom> truths = new ArrayList<Atom>();
+		ArrayList<Atom> truths = new ArrayList<>();
 		Worklist worklist = new Worklist();
 		worklist.push(t1sign, t1);
 		worklist.push(t2sign, t2);
@@ -465,7 +466,7 @@ public class TypeSystem {
 			throw new IllegalArgumentException("Need to handle proper namespaces!");
 		}
 		// Look through the enclosing file first!
-		WyalFile parent = name.getParent();
+		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named.Type) {

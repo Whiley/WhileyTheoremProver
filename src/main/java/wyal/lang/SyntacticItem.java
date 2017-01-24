@@ -7,11 +7,20 @@ public interface SyntacticItem extends SyntacticElement {
 
 	/**
 	 * Get the enclosing compilation unit in which this syntactic item is
-	 * contained.
+	 * contained. This maybe null if the item is not yet allocate to a heap.
 	 *
 	 * @return
 	 */
-	public WyalFile getParent();
+	public SyntacticHeap getParent();
+
+	/**
+	 * Allocated the given item to a syntactic heap. Note that an item can only
+	 * be allocated to one heap at a time. Therefore, an exception will be
+	 * raised if this item is already allocated to another heap.
+	 *
+	 * @param heap
+	 */
+	public void setParent(SyntacticHeap heap);
 
 	/**
 	 * The opcode which defines what this bytecode does. Observe that certain
@@ -49,5 +58,4 @@ public interface SyntacticItem extends SyntacticElement {
 	 * @return
 	 */
 	public int getIndex();
-
 }

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wycc.util.ArrayUtils;
@@ -13,55 +14,51 @@ import wybs.lang.SyntacticElement;
 
 public class AbstractSyntacticItem extends SyntacticElement.Impl implements SyntacticItem {
 	// Constants;
-	private final WyalFile parent;
+	private SyntacticHeap parent;
 	private final Opcode opcode;
 	private final SyntacticItem[] operands;
 	protected final Object data;
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, Attribute... attributes) {
+	public AbstractSyntacticItem(Opcode opcode, Attribute... attributes) {
 		super(attributes);
-		this.parent = parent;
 		this.opcode = opcode;
 		this.operands = null;
 		this.data = null;
-		//
-		parent.getSyntacticItems().add(this);
 	}
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, List<SyntacticItem> operands) {
-		this(parent, opcode, operands.toArray(new SyntacticItem[operands.size()]));
+	public AbstractSyntacticItem(Opcode opcode, List<SyntacticItem> operands) {
+		this(opcode, operands.toArray(new SyntacticItem[operands.size()]));
 	}
 
-	public AbstractSyntacticItem(WyalFile parent, Opcode opcode, SyntacticItem[] operands) {
-		this.parent = parent;
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem[] operands) {
 		this.opcode = opcode;
 		this.operands = operands;
-		this.data = null;
-		//
-		parent.getSyntacticItems().add(this);
+		this.data = null;;
 	}
 
-	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data) {
-		this.parent = parent;
+	protected AbstractSyntacticItem(Opcode opcode, Object data) {
 		this.opcode = opcode;
 		this.operands = null;
 		this.data = data;
-		//
-		parent.getSyntacticItems().add(this);
 	}
 
-	protected AbstractSyntacticItem(WyalFile parent, Opcode opcode, Object data, SyntacticItem[] operands) {
-		this.parent = parent;
+	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = data;
-		//
-		parent.getSyntacticItems().add(this);
 	}
 
 	@Override
-	public WyalFile getParent() {
+	public SyntacticHeap getParent() {
 		return parent;
+	}
+
+	@Override
+	public void setParent(SyntacticHeap heap) {
+		if(parent != null) {
+			throw new IllegalArgumentException("item already allocated to heap");
+		}
+		this.parent = heap;
 	}
 
 	@Override
@@ -71,7 +68,11 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 
 	@Override
 	public int size() {
-		return operands.length;
+		if(operands != null) {
+			return operands.length;
+		} else {
+			return 0;
+		}
 	}
 
 	@Override
@@ -86,7 +87,7 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 
 	@Override
 	public int getIndex() {
-		return parent.getIndex(this);
+		return parent.getIndexOf(this);
 	}
 
 	@Override

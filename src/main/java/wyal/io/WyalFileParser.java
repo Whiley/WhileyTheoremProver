@@ -31,7 +31,7 @@ public class WyalFileParser {
 
 	public WyalFileParser(Path.Entry<WyalFile> entry, List<Token> tokens) {
 		this.entry = entry;
-		this.tokens = new ArrayList<Token>(tokens);
+		this.tokens = new ArrayList<>(tokens);
 	}
 
 	/**
@@ -50,23 +50,27 @@ public class WyalFileParser {
 		skipWhiteSpace();
 		while (index < tokens.size()) {
 			Token lookahead = tokens.get(index);
+			Declaration declaration;
 			if (lookahead.kind == Import) {
-				parseImportDeclaration(wf);
+				declaration = parseImportDeclaration(wf);
 			} else {
 				checkNotEof();
 				lookahead = tokens.get(index);
 				if (lookahead.kind == Assert) {
-					parseAssertDeclaration(wf);
+					declaration = parseAssertDeclaration(wf);
 				} else if (lookahead.text.equals("type")) {
-					parseTypeDeclaration(wf);
+					declaration = parseTypeDeclaration(wf);
 				} else if (lookahead.text.equals("define")) {
-					parseMacroDeclaration(wf);
+					declaration = parseMacroDeclaration(wf);
 				} else if (lookahead.kind == Function) {
-					parseFunctionDeclaration(wf);
+					declaration = parseFunctionDeclaration(wf);
 				} else {
 					syntaxError("unrecognised declaration", lookahead);
+					return null; // dead-code
 				}
 			}
+			wf.allocate(declaration);
+			System.out.println("GOT: " + declaration.getClass().getName());
 			skipWhiteSpace();
 		}
 
@@ -101,7 +105,7 @@ public class WyalFileParser {
 	 * @param parent
 	 *            WyalFile being constructed
 	 */
-	private void parseImportDeclaration(WyalFile parent) {
+	private Declaration parseImportDeclaration(WyalFile parent) {
 		int start = index;
 		EnclosingScope scope = new EnclosingScope(parent);
 
@@ -111,13 +115,14 @@ public class WyalFileParser {
 		int end = index;
 		matchEndLine();
 
-		Declaration.Import imprt = new Declaration.Import(parent,filterPath);
+		Declaration.Import imprt = new Declaration.Import(filterPath);
 		imprt.attributes().add(sourceAttr(start, end - 1));
+		return imprt;
 	}
 
 	private Identifier[] parseFilterPath(EnclosingScope scope) {
 		// Parse package filter string
-		ArrayList<Identifier> components = new ArrayList<Identifier>();
+		ArrayList<Identifier> components = new ArrayList<>();
 		components.add(parseIdentifier(scope));
 		while (tryAndMatch(true, Dot) != null) {
 			Identifier component = parseStarOrIdentifier(scope);
@@ -142,7 +147,7 @@ public class WyalFileParser {
 	 * @param wf
 	 *            The WyAL file in which this declaration is defined.
 	 */
-	protected void parseAssertDeclaration(WyalFile parent) {
+	protected Declaration parseAssertDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
@@ -150,8 +155,9 @@ public class WyalFileParser {
 		match(Colon);
 		matchEndLine();
 		Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(parent, body);
+		Declaration.Assert declaration = new Declaration.Assert(body);
 		declaration.attributes().add(sourceAttr(start, index - 1));
+		return declaration;
 	}
 
 	/**
@@ -160,7 +166,7 @@ public class WyalFileParser {
 	 * @param wf
 	 *            The WyAL file in which this declaration is defined.
 	 */
-	protected void parseTypeDeclaration(WyalFile parent) {
+	protected Declaration parseTypeDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
@@ -174,19 +180,20 @@ public class WyalFileParser {
 		//
 		Block[] invariant = parseInvariantClauses(scope);
 		//
-		Declaration.Named.Type declaration = new Declaration.Named.Type(parent, name, parameter, invariant);
+		Declaration.Named.Type declaration = new Declaration.Named.Type(name, parameter, invariant);
 		declaration.attributes().add(sourceAttr(start, index - 1));
+		return declaration;
 	}
 
 	private Block[] parseInvariantClauses(EnclosingScope scope) {
-		List<Block> invariant = new ArrayList<Block>();
+		List<Block> invariant = new ArrayList<>();
 		while ((tryAndMatch(false, Where)) != null) {
 			Block block;
 			if (tryAndMatch(true, Colon) != null) {
 				block = parseStatementBlock(scope, ROOT_INDENT);
 			} else {
 				Stmt stmt = parseUnitExpression(scope, false);
-				block = new Block(scope.parent,stmt);
+				block = new Block(stmt);
 				matchEndLine();
 			}
 			invariant.add(block);
@@ -194,7 +201,7 @@ public class WyalFileParser {
 		return invariant.toArray(new Block[invariant.size()]);
 	}
 
-	protected void parseFunctionDeclaration(WyalFile parent) {
+	protected Declaration parseFunctionDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
@@ -206,11 +213,12 @@ public class WyalFileParser {
 		VariableDeclaration[] returns = parseParameterDeclarations(scope);
 		matchEndLine();
 		//
-		Declaration.Named.Function declaration = new Declaration.Named.Function(parent, name, parameters, returns);
+		Declaration.Named.Function declaration = new Declaration.Named.Function(name, parameters, returns);
 		declaration.attributes().add(sourceAttr(start, index - 1));
+		return declaration;
 	}
 
-	protected void parseMacroDeclaration(WyalFile parent) {
+	protected Declaration parseMacroDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
@@ -222,8 +230,9 @@ public class WyalFileParser {
 		match(Colon);
 		Block body = parseStatementBlock(scope, ROOT_INDENT);
 		// Create empty declaration
-		Declaration.Named.Macro declaration = new Declaration.Named.Macro(parent, name, parameters, body);
+		Declaration.Named.Macro declaration = new Declaration.Named.Macro(name, parameters, body);
 		declaration.attributes().add(sourceAttr(start, index - 1));
+		return declaration;
 	}
 
 	/**
@@ -254,13 +263,13 @@ public class WyalFileParser {
 			// Initial indent either doesn't exist or is not strictly greater
 			// than parent indent and,therefore, signals an empty block.
 			//
-			Expr bool = new Expr.Constant(scope.parent,new Constant.Bool(scope.parent,true));
-			return new Block(scope.parent,bool);
+			Expr bool = new Expr.Constant(new Constant.Bool(true));
+			return new Block(bool);
 		} else {
 			// Initial indent is valid, so we proceed parsing statements with
 			// the appropriate level of indent.
 			//
-			ArrayList<Stmt> statements = new ArrayList<Stmt>();
+			ArrayList<Stmt> statements = new ArrayList<>();
 			Indent nextIndent;
 			while ((nextIndent = getIndent()) != null && indent.lessThanEq(nextIndent)) {
 				// At this point, nextIndent contains the indent of the current
@@ -275,7 +284,7 @@ public class WyalFileParser {
 				// Second, parse the actual statement at this point!
 				statements.add(parseStatement(scope, indent));
 			}
-			return new Block(scope.parent,toStmtArray(statements));
+			return new Block(toStmtArray(statements));
 		}
 	}
 
@@ -352,7 +361,7 @@ public class WyalFileParser {
 		match(Colon);
 		matchEndLine();
 		Block thenBlock = parseStatementBlock(scope, indent);
-		Stmt stmt = new Stmt.IfThen(scope.parent,ifBlock, thenBlock);
+		Stmt stmt = new Stmt.IfThen(ifBlock, thenBlock);
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
@@ -360,7 +369,7 @@ public class WyalFileParser {
 	private Stmt parseEitherOrStatement(EnclosingScope scope, Indent indent) {
 		int start = index;
 
-		ArrayList<Block> blocks = new ArrayList<Block>();
+		ArrayList<Block> blocks = new ArrayList<>();
 		Indent nextIndent;
 		Token lookahead;
 
@@ -377,7 +386,7 @@ public class WyalFileParser {
 		} while (lookahead != null && lookahead.kind == Or);
 
 		Block[] arr = blocks.toArray(new Block[blocks.size()]);
-		Stmt stmt = new Stmt.CaseOf(scope.parent, arr);
+		Stmt stmt = new Stmt.CaseOf(arr);
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
@@ -411,17 +420,17 @@ public class WyalFileParser {
 		} else {
 			match(SemiColon);
 			Stmt unit = parseUnitExpression(scope, false);
-			body = new Block(scope.parent,unit);
+			body = new Block(unit);
 		}
 		//
 		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.STMT_forall : Opcode.STMT_exists;
-		Stmt stmt = new Stmt.Quantifier(scope.parent, kind, parameters, body);
+		Stmt stmt = new Stmt.Quantifier(kind, parameters, body);
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
 
 	private VariableDeclaration[] parseParameterDeclarations(EnclosingScope scope) {
-		ArrayList<VariableDeclaration> parameters = new ArrayList<VariableDeclaration>();
+		ArrayList<VariableDeclaration> parameters = new ArrayList<>();
 		match(LeftBrace);
 		boolean firstTime = true;
 		while (eventuallyMatch(RightBrace) == null) {
@@ -439,7 +448,7 @@ public class WyalFileParser {
 		int start = index;
 		Type type = parseType(scope);
 		Identifier name = parseIdentifier(scope);
-		VariableDeclaration stmt = new VariableDeclaration(scope.parent,type,name);
+		VariableDeclaration stmt = new VariableDeclaration(type,name);
 		stmt.attributes().add(sourceAttr(start,index-1));
 		scope.declareInScope(stmt);
 		return stmt;
@@ -504,7 +513,7 @@ public class WyalFileParser {
 			return lhs;
 		} else {
 			Type rhs = parseType(scope);
-			WyalFile.Expr expr = new Expr.Is(scope.parent, lhs, rhs);
+			WyalFile.Expr expr = new Expr.Is(lhs, rhs);
 			expr.attributes().add(sourceAttr(start, index - 1));
 			return expr;
 		}
@@ -541,13 +550,13 @@ public class WyalFileParser {
 		if (lookahead != null) {
 			// Yes, there is so try and parse operator sequence.
 			Opcode opcode = OPERATOR_MAP.get(lookahead.kind);
-			ArrayList<Expr> operands = new ArrayList<Expr>();
+			ArrayList<Expr> operands = new ArrayList<>();
 			operands.add(first);
 			do {
 				operands.add(parseAccessExpression(scope, terminated));
 			} while (tryAndMatch(terminated, lookahead.kind) != null);
 			//
-			Expr expr = new Expr.Operator(scope.parent, opcode, toExprArray(operands));
+			Expr expr = new Expr.Operator(opcode, toExprArray(operands));
 			expr.attributes().add(sourceAttr(start, index - 1));
 			return expr;
 		} else {
@@ -616,13 +625,13 @@ public class WyalFileParser {
 				Expr rhs = parseUnitExpression(scope, true);
 				// This is a plain old array access expression
 				match(RightSquare);
-				lhs = new Expr.Operator(scope.parent, Opcode.EXPR_arridx, lhs, rhs);
+				lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
 				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
 			case Dot: {
 				Identifier rhs = parseIdentifier(scope);
-				lhs = new Expr.RecordAccess(scope.parent, lhs, rhs);
+				lhs = new Expr.RecordAccess(lhs, rhs);
 				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
@@ -668,7 +677,7 @@ public class WyalFileParser {
 				// Signals a local variable access
 				match(Identifier);
 				VariableDeclaration decl = scope.getVariableDeclaration(token.text);
-				Expr expr = new Expr.VariableAccess(scope.parent,decl);
+				Expr expr = new Expr.VariableAccess(decl);
 				expr.attributes().add(sourceAttr(start, index - 1));
 				return expr;
 			} else {
@@ -710,21 +719,21 @@ public class WyalFileParser {
 			item = new Constant.Null(scope.parent);
 			break;
 		case True:
-			item = new Constant.Bool(scope.parent,true);
+			item = new Constant.Bool(true);
 			break;
 		case False:
-			item = new Constant.Bool(scope.parent,false);
+			item = new Constant.Bool(false);
 			break;
 		case IntValue: {
 			BigInteger val = new BigInteger(token.text);
-			item = new Constant.Int(scope.parent,val);
+			item = new Constant.Int(val);
 			break;
 		}
 		case StringValue: {
 			String str = parseString(token.text);
 			// FIXME: following may be broken because of conversion between
 			// UTF16 from java.lang.String.
-			item = new Constant.UTF8(scope.parent,str.getBytes());
+			item = new Constant.UTF8(str.getBytes());
 			break;
 		}
 		default:
@@ -732,7 +741,7 @@ public class WyalFileParser {
 			return null; // deadcode
 		}
 
-		Expr expr = new Expr.Constant(scope.parent,item);
+		Expr expr = new Expr.Constant(item);
 		expr.attributes().add(new Attribute.Source(token.start, token.end(), 0));
 		return expr;
 	}
@@ -830,7 +839,7 @@ public class WyalFileParser {
 			if (tryAndMatch(true, RightBrace) != null) {
 				// Ok, finally, we are sure that it is definitely a cast.
 				Expr e = parseMultiExpression(scope, terminated);
-				Expr expr = new Expr.Cast(scope.parent, t, e);
+				Expr expr = new Expr.Cast(t, e);
 				expr.attributes().add(sourceAttr(start, index - 1));
 				return expr;
 			}
@@ -878,7 +887,7 @@ public class WyalFileParser {
 				Type type = parseType(scope);
 				// Now, parse cast expression
 				e = parseUnitExpression(scope, terminated);
-				e = new Expr.Cast(scope.parent,type, e);
+				e = new Expr.Cast(type, e);
 				e.attributes().add(sourceAttr(start, index - 1));
 				return e;
 			}
@@ -919,7 +928,7 @@ public class WyalFileParser {
 	private Expr parseArrayInitialiserExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(LeftSquare);
-		ArrayList<Expr> operands = new ArrayList<Expr>();
+		ArrayList<Expr> operands = new ArrayList<>();
 
 		boolean firstTime = true;
 		boolean isArray = true;
@@ -946,7 +955,7 @@ public class WyalFileParser {
 		}
 
 		Opcode kind = isArray ? Opcode.EXPR_arrinit : Opcode.EXPR_arrgen;
-		Expr expr = new Expr.Operator(scope.parent,kind,toExprArray(operands));
+		Expr expr = new Expr.Operator(kind,toExprArray(operands));
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -982,8 +991,8 @@ public class WyalFileParser {
 	private Expr parseRecordExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(LeftCurly);
-		HashSet<String> keys = new HashSet<String>();
-		ArrayList<WyalFile.Pair> exprs = new ArrayList<WyalFile.Pair>();
+		HashSet<String> keys = new HashSet<>();
+		ArrayList<WyalFile.Pair> exprs = new ArrayList<>();
 
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
@@ -1007,12 +1016,12 @@ public class WyalFileParser {
 			// Also, expression is guaranteed to be terminated, either by '}' or
 			// ','.
 			Expr fieldValue = parseUnitExpression(scope, true);
-			WyalFile.Pair pair = new WyalFile.Pair(scope.parent,fieldName,fieldValue);
+			WyalFile.Pair pair = new WyalFile.Pair(fieldName,fieldValue);
 			pair.attributes().add(sourceAttr(fieldStart,index-1));
 			exprs.add(pair);
 		}
 
-		Expr expr = new Expr.RecordInitialiser(scope.parent,toPairArray(exprs));
+		Expr expr = new Expr.RecordInitialiser(toPairArray(exprs));
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1048,7 +1057,7 @@ public class WyalFileParser {
 		match(VerticalBar);
 		Expr e = parseUnitExpression(scope, true);
 		match(VerticalBar);
-		e = new Expr.Operator(scope.parent, Opcode.EXPR_arrlen, e);
+		e = new Expr.Operator(Opcode.EXPR_arrlen, e);
 		e.attributes().add(sourceAttr(start, index - 1));
 		return e;
 	}
@@ -1084,7 +1093,7 @@ public class WyalFileParser {
 		match(Minus);
 		Expr expr = parseTermExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(scope.parent, Opcode.EXPR_neg, expr);
+		expr = new Expr.Operator(Opcode.EXPR_neg, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1122,8 +1131,9 @@ public class WyalFileParser {
 		WyalFile.Name nid = parseNameID(scope);
 		// Parse arguments
 		Expr[] args = parseInvocationArguments(scope);
-		// Construct relevant bytecode
-		Expr ivk = new Expr.Invoke(scope.parent, null, nid, args);
+		// Construct relevant bytecode. The type signature is left as null at
+		// this stage, since we cannot determined at this point.
+		Expr ivk = new Expr.Invoke(null, nid, args);
 		ivk.attributes().add(sourceAttr(start, index - 1));
 		return ivk;
 	}
@@ -1185,7 +1195,7 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private Expr[] parseInvocationArguments(EnclosingScope scope) {
-		ArrayList<Expr> arguments = new ArrayList<Expr>();
+		ArrayList<Expr> arguments = new ArrayList<>();
 		match(LeftBrace);
 		// generic arguments...
 		boolean firstTime = true;
@@ -1233,7 +1243,7 @@ public class WyalFileParser {
 		match(Shreak);
 		Expr expr = parseUnitExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(scope.parent, Opcode.EXPR_not, expr);
+		expr = new Expr.Operator(Opcode.EXPR_not, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1318,7 +1328,7 @@ public class WyalFileParser {
 		if(lookahead == null) {
 			return first;
 		} else {
-			ArrayList<Type> operands = new ArrayList<Type>();
+			ArrayList<Type> operands = new ArrayList<>();
 			operands.add(first);
 			do  {
 				operands.add(parseUnaryType(scope));
@@ -1326,9 +1336,9 @@ public class WyalFileParser {
 			Type rt;
 			Type[] types = operands.toArray(new Type[operands.size()]);
 			if(lookahead.kind == Ampersand) {
-				rt = new Type.Intersection(scope.parent,types);
+				rt = new Type.Intersection(types);
 			} else {
-				rt = new Type.Union(scope.parent,types);
+				rt = new Type.Union(types);
 			}
 			rt.attributes().add(sourceAttr(start, index - 1));
 			return rt;
@@ -1341,7 +1351,7 @@ public class WyalFileParser {
 		Type type = parseBaseType(scope);
 		while(tryAndMatch(false,LeftSquare) != null) {
 			match(RightSquare);
-			type = new Type.Array(scope.parent,type);
+			type = new Type.Array(type);
 			type.attributes().add(sourceAttr(start, index - 1));
 		}
 		return type;
@@ -1417,7 +1427,7 @@ public class WyalFileParser {
 		int start = index;
 		match(Shreak);
 		Type element = parseType(scope);
-		Type type = new Type.Negation(scope.parent, element);
+		Type type = new Type.Negation(element);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
@@ -1465,7 +1475,7 @@ public class WyalFileParser {
 	private Type parseRecordType(EnclosingScope scope) {
 		int start = index;
 		match(LeftCurly);
-		List<VariableDeclaration> fields = new ArrayList<VariableDeclaration>();
+		List<VariableDeclaration> fields = new ArrayList<>();
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
 			if (!firstTime) {
@@ -1476,12 +1486,12 @@ public class WyalFileParser {
 			int fieldStart = index;
 			Type fieldType = parseType(scope);
 			Identifier fieldName = parseIdentifier(scope);
-			VariableDeclaration var = new VariableDeclaration(scope.parent, fieldType, fieldName);
+			VariableDeclaration var = new VariableDeclaration(fieldType, fieldName);
 			var.attributes().add(sourceAttr(fieldStart, index - 1));
 			fields.add(var);
 		}
 		VariableDeclaration[] arr = fields.toArray(new VariableDeclaration[fields.size()]);
-		Type type = new Type.Record(scope.parent, arr);
+		Type type = new Type.Record(arr);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
@@ -1506,7 +1516,7 @@ public class WyalFileParser {
 		//
 		Name nameID = parseNameID(scope);
 		// this is a nominal type constructor
-		Type type = new Type.Nominal(scope.parent,nameID);
+		Type type = new Type.Nominal(nameID);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
@@ -1514,20 +1524,20 @@ public class WyalFileParser {
 	private Identifier parseIdentifier(EnclosingScope scope) {
 		int start = index;
 		String txt = match(Identifier).text;
-		Identifier id = new Identifier(scope.parent, txt);
+		Identifier id = new Identifier(txt);
 		id.attributes().add(sourceAttr(start, index - 1));
 		return id;
 	}
 
 	private Name parseNameID(EnclosingScope scope) {
 		int start = index;
-		List<Identifier> components = new ArrayList<Identifier>();
+		List<Identifier> components = new ArrayList<>();
 		components.add(parseIdentifier(scope));
 		while (tryAndMatch(false, Dot) != null) {
 			components.add(parseIdentifier(scope));
 		}
 		Identifier[] ids = components.toArray(new Identifier[components.size()]);
-		Name nid = new Name(scope.parent, ids);
+		Name nid = new Name(ids);
 		nid.attributes().add(sourceAttr(start, index - 1));
 		return nid;
 	}
@@ -2118,7 +2128,7 @@ public class WyalFileParser {
 		}
 
 		private EnclosingScope(Map<String, VariableDeclaration> environment, WyalFile parent) {
-			this.environment = new HashMap<String, VariableDeclaration>(environment);
+			this.environment = new HashMap<>(environment);
 			this.parent = parent;
 		}
 
