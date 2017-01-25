@@ -33,6 +33,13 @@ public interface SyntacticItem extends SyntacticElement {
 	public Opcode getOpcode();
 
 	/**
+	 * Mutate the opcode of this item
+	 *
+	 * @param opcode
+	 */
+	public void setOpcode(Opcode opcode);
+
+	/**
 	 * Get the number of operands in this bytecode
 	 *
 	 * @return
@@ -53,6 +60,14 @@ public interface SyntacticItem extends SyntacticElement {
 	 * @return
 	 */
 	public SyntacticItem[] getOperands();
+
+	/**
+	 * Mutate the ith child of this item
+	 *
+	 * @param ith
+	 * @param child
+	 */
+	public void setOperand(int ith, SyntacticItem child);
 
 	/**
 	 * Get the index of this item in the parent's items table.

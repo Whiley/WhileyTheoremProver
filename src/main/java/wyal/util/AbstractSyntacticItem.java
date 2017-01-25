@@ -16,9 +16,9 @@ import wybs.lang.SyntacticElement;
 public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implements SyntacticItem {
 	// Constants;
 	private SyntacticHeap parent;
-	private final Opcode opcode;
-	private final SyntacticItem[] operands;
-	protected final Object data;
+	private Opcode opcode;
+	private SyntacticItem[] operands;
+	protected Object data;
 
 	public AbstractSyntacticItem(Opcode opcode, Attribute... attributes) {
 		super(attributes);
@@ -68,6 +68,12 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 	}
 
 	@Override
+	public void setOpcode(Opcode opcode) {
+		this.opcode = opcode;
+	}
+
+
+	@Override
 	public int size() {
 		if(operands != null) {
 			return operands.length;
@@ -79,6 +85,11 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 	@Override
 	public SyntacticItem getOperand(int i) {
 		return operands[i];
+	}
+
+	@Override
+	public void setOperand(int ith, SyntacticItem child) {
+		operands[ith] = child;
 	}
 
 	@Override
