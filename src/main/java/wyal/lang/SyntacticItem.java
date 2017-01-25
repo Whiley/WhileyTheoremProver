@@ -77,15 +77,12 @@ public interface SyntacticItem extends SyntacticElement {
 	public int getIndex();
 
 	/**
-	 * Recursively copy this syntactic item. Observe the cloned syntactic item
-	 * is *not* allocated to any heap, and this must be done separately. Also,
-	 * all children are recursively copied as well.
+	 * Create a new copy of the given syntactic item with the given operands.
+	 * The number of operands must match <code>size()</code> for this item, and
+	 * be of appropriate type.
 	 *
-	 * @param mapping
-	 *            A mapping from the original synctactic items to the cloned
-	 *            syntactic items. This is necessary to preserve the aliasing
-	 *            structure in the resulting cloned item.
+	 * @param operands
 	 * @return
 	 */
-	public SyntacticItem clone(Map<SyntacticItem,SyntacticItem> mapping);
+	public SyntacticItem clone(SyntacticItem[] operands);
 }
