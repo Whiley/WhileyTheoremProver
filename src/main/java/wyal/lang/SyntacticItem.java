@@ -1,5 +1,7 @@
 package wyal.lang;
 
+import java.util.Map;
+
 import wyal.lang.WyalFile.Opcode;
 import wybs.lang.SyntacticElement;
 
@@ -63,7 +65,12 @@ public interface SyntacticItem extends SyntacticElement {
 	 * Recursively copy this syntactic item. Observe the cloned syntactic item
 	 * is *not* allocated to any heap, and this must be done separately. Also,
 	 * all children are recursively copied as well.
+	 *
+	 * @param mapping
+	 *            A mapping from the original synctactic items to the cloned
+	 *            syntactic items. This is necessary to preserve the aliasing
+	 *            structure in the resulting cloned item.
 	 * @return
 	 */
-	public SyntacticItem clone();
+	public SyntacticItem clone(Map<SyntacticItem,SyntacticItem> mapping);
 }

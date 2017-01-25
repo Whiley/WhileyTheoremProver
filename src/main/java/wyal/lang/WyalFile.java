@@ -7,6 +7,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static wycc.util.ArrayUtils.*;
 
@@ -267,7 +268,9 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public abstract Item clone();
+		public Item clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Item) super.clone(mapping);
+		}
 	}
 
 	public static class Pair extends Item {
@@ -276,8 +279,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public Pair clone() {
-			return new Pair((Item) getOperand(0).clone(), (Item) getOperand(1).clone());
+		public Pair copy(Map<SyntacticItem,SyntacticItem> mapping) {
+			return new Pair((Item) getOperand(0).clone(mapping), (Item) getOperand(1).clone(mapping));
 		}
 	}
 
@@ -286,8 +289,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			super(Opcode.ITEM_tuple, stmts);
 		}
 		@Override
-		public Tuple clone() {
-			return new Tuple(arrayClone((Item[])getOperands()));
+		public Tuple copy(Map<SyntacticItem,SyntacticItem> mapping) {
+			return new Tuple(arrayClone(mapping, (Item[])getOperands()));
 		}
 	}
 
@@ -301,7 +304,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public Identifier clone() {
+		public Identifier clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Identifier) super.clone(mapping);
+		}
+
+		@Override
+		public Identifier copy(Map<SyntacticItem,SyntacticItem> mapping) {
 			return new Identifier((String) data);
 		}
 	}
@@ -316,8 +324,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public Name clone() {
-			return new Name(arrayClone(getComponents()));
+		public Name clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Name) super.clone(mapping);
+		}
+
+		@Override
+		public Name copy(Map<SyntacticItem,SyntacticItem> mapping) {
+			return new Name(arrayClone(mapping, getComponents()));
 		}
 	}
 
@@ -336,7 +349,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				super(Opcode.CONST_null);
 			}
 			@Override
-			public Null clone() {
+			public Null copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Null();
 			}
 		}
@@ -351,7 +364,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Bool clone() {
+			public Bool copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Bool(get());
 			}
 		}
@@ -366,7 +379,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Int clone() {
+			public Int copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Int(get());
 			}
 		}
@@ -381,7 +394,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public UTF8 clone() {
+			public UTF8 copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new UTF8(get());
 			}
 		}
@@ -393,6 +406,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	public abstract static class Declaration extends Item {
 		public Declaration(Opcode opcode, Item... children) {
 			super(opcode, children);
+		}
+
+		@Override
+		public Declaration clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Declaration) super.clone(mapping);
 		}
 
 		/**
@@ -418,8 +436,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Import clone() {
-				return new Import(arrayClone(getComponents()));
+			public Import copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Import(arrayClone(mapping, getComponents()));
 			}
 		}
 
@@ -434,8 +452,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Assert clone() {
-				return new Assert(getBody().clone());
+			public Assert copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Assert(getBody().clone(mapping));
 			}
 		}
 
@@ -479,8 +497,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				@Override
-				public Function clone() {
-					return new Function(getName().clone(), arrayClone(getParameters()), arrayClone(getReturns()));
+				public Function copy(Map<SyntacticItem,SyntacticItem> mapping) {
+					return new Function(getName().clone(mapping), arrayClone(mapping, getParameters()), arrayClone(mapping, getReturns()));
 				}
 			}
 
@@ -497,8 +515,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				@Override
-				public Macro clone() {
-					return new Macro(getName().clone(), arrayClone(getParameters()), getBody().clone());
+				public Macro copy(Map<SyntacticItem,SyntacticItem> mapping) {
+					return new Macro(getName().clone(mapping), arrayClone(mapping, getParameters()), getBody().clone(mapping));
 				}
 			}
 
@@ -521,8 +539,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				@Override
-				public Type clone() {
-					return new Type(getName().clone(), getVariableDeclaration().clone(), arrayClone(getInvariant()));
+				public Type copy(Map<SyntacticItem,SyntacticItem> mapping) {
+					return new Type(getName().clone(mapping), getVariableDeclaration().clone(mapping), arrayClone(mapping, getInvariant()));
 				}
 			}
 		}
@@ -534,7 +552,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	public abstract static class Type extends Item {
 
 		@Override
-		public abstract Type clone();
+		public Type clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Type) super.clone(mapping);
+		}
+
+		@Override
+		public abstract Type copy(Map<SyntacticItem,SyntacticItem> mapping);
 
 		public Type(Opcode opcode, Item... items) {
 			super(opcode, items);
@@ -549,7 +572,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public static class Any extends Atom {
 			public Any() { super(Opcode.TYPE_any); }
 			@Override
-			public Any clone() {
+			public Any copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Any();
 			}
 		}
@@ -557,7 +580,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public static class Void extends Atom {
 			public Void() { super(Opcode.TYPE_void); }
 			@Override
-			public Void clone() {
+			public Void copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Void();
 			}
 		}
@@ -565,7 +588,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public static class Null extends Atom {
 			public Null() { super(Opcode.TYPE_null); }
 			@Override
-			public Null clone() {
+			public Null copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Null();
 			}
 		}
@@ -573,7 +596,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public static class Bool extends Atom {
 			public Bool() { super(Opcode.TYPE_bool); }
 			@Override
-			public Bool clone() {
+			public Bool copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Bool();
 			}
 		}
@@ -581,7 +604,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public static class Int extends Atom {
 			public Int() { super(Opcode.TYPE_int); }
 			@Override
-			public Int clone() {
+			public Int copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				return new Int();
 			}
 		}
@@ -594,8 +617,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Type) getOperand(0);
 			}
 			@Override
-			public Array clone() {
-				return new Array((Type) getElement().clone());
+			public Array copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Array((Type) getElement().clone(mapping));
 			}
 		}
 
@@ -607,8 +630,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Type) getOperand(0);
 			}
 			@Override
-			public Reference clone() {
-				return new Reference((Type) getElement().clone());
+			public Reference copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Reference((Type) getElement().clone(mapping));
 			}
 		}
 
@@ -622,8 +645,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Record clone() {
-				return new Record(arrayClone(getFields()));
+			public Record copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Record(arrayClone(mapping, getFields()));
 			}
 		}
 
@@ -637,8 +660,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Nominal clone() {
-				return new Nominal(getName().clone());
+			public Nominal copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Nominal(getName().clone(mapping));
 			}
 		}
 
@@ -651,8 +674,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Negation clone() {
-				return new Negation(getElement().clone());
+			public Negation copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Negation(getElement().clone(mapping));
 			}
 		}
 
@@ -677,8 +700,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Union clone() {
-				return new Union(arrayClone(getOperands()));
+			public Union copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Union(arrayClone(mapping, getOperands()));
 			}
 		}
 
@@ -687,8 +710,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				super(Opcode.TYPE_and, types);
 			}
 			@Override
-			public Intersection clone() {
-				return new Intersection(arrayClone(getOperands()));
+			public Intersection copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Intersection(arrayClone(mapping, getOperands()));
 			}
 		}
 	}
@@ -711,8 +734,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public VariableDeclaration clone() {
-			return new VariableDeclaration(getType().clone(),getVariableName().clone());
+		public VariableDeclaration clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (VariableDeclaration) super.clone(mapping);
+		}
+
+		@Override
+		public VariableDeclaration copy(Map<SyntacticItem,SyntacticItem> mapping) {
+			return new VariableDeclaration(getType().clone(mapping),getVariableName().clone(mapping));
 		}
 	}
 
@@ -736,8 +764,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		@Override
-		public Block clone() {
-			return new Block(arrayClone(getOperands()));
+		public Block clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Block) super.clone(mapping);
+		}
+
+		@Override
+		public Block copy(Map<SyntacticItem,SyntacticItem> mapping) {
+			return new Block(arrayClone(mapping, getOperands()));
 		}
 	}
 
@@ -765,8 +798,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Block) getOperand(size()-1);
 			}
 			@Override
-			public Quantifier clone() {
-				return new Quantifier(getOpcode(),arrayClone(getParameters()),getBody().clone());
+			public Quantifier copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Quantifier(getOpcode(),arrayClone(mapping, getParameters()),getBody().clone(mapping));
 			}
 		}
 
@@ -781,8 +814,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Block) getOperand(1);
 			}
 			@Override
-			public IfThen clone() {
-				return new IfThen(getIfBody().clone(),getThenBody().clone());
+			public IfThen copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new IfThen(getIfBody().clone(mapping),getThenBody().clone(mapping));
 			}
 		}
 
@@ -799,8 +832,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Block[]) super.getOperands();
 			}
 			@Override
-			public CaseOf clone() {
-				return new CaseOf(arrayClone(getOperands()));
+			public CaseOf copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new CaseOf(arrayClone(mapping, getOperands()));
 			}
 		}
 	}
@@ -810,7 +843,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			super(opcode, operands);
 		}
 		@Override
-		public abstract Expr clone();
+		public Expr clone(Map<SyntacticItem,SyntacticItem> mapping) {
+			return (Expr) super.clone(mapping);
+		}
+
+		@Override
+		public abstract Expr copy(Map<SyntacticItem,SyntacticItem> mapping);
 
 		public static class Cast extends Expr {
 			public Cast(Type type, Expr rhs) {
@@ -823,8 +861,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Expr) super.getOperand(1);
 			}
 			@Override
-			public Cast clone() {
-				return new Cast(getCastType().clone(),getExpr().clone());
+			public Cast copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Cast(getCastType().clone(mapping),getExpr().clone(mapping));
 			}
 		}
 
@@ -843,8 +881,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Operator clone() {
-				return new Operator(getOpcode(),arrayClone(getExprs()));
+			public Operator copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Operator(getOpcode(),arrayClone(mapping, getExprs()));
 			}
 		}
 
@@ -859,8 +897,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Identifier) getOperand(1);
 			}
 			@Override
-			public RecordAccess clone() {
-				return new RecordAccess(getSource().clone(),getField().clone());
+			public RecordAccess copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new RecordAccess(getSource().clone(mapping),getField().clone(mapping));
 			}
 		}
 
@@ -872,8 +910,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return ArrayUtils.toArray(Pair.class, getOperands());
 			}
 			@Override
-			public RecordInitialiser clone() {
-				return new RecordInitialiser(arrayClone(getFields()));
+			public RecordInitialiser copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new RecordInitialiser(arrayClone(mapping, getFields()));
 			}
 		}
 
@@ -885,8 +923,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (VariableDeclaration) getOperand(0);
 			}
 			@Override
-			public VariableAccess clone() {
-				return new VariableAccess(getVariableDeclaration().clone());
+			public VariableAccess copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new VariableAccess(getVariableDeclaration().clone(mapping));
 			}
 		}
 
@@ -898,8 +936,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Item) getOperand(0);
 			}
 			@Override
-			public Constant clone() {
-				return new Constant(getValue().clone());
+			public Constant copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Constant(getValue().clone(mapping));
 			}
 		}
 
@@ -914,8 +952,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Type) getOperand(1);
 			}
 			@Override
-			public Is clone() {
-				return new Is(getExpr().clone(),getType().clone());
+			public Is copy(Map<SyntacticItem,SyntacticItem> mapping) {
+				return new Is(getExpr().clone(mapping),getType().clone(mapping));
 			}
 		}
 
@@ -941,12 +979,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			@Override
-			public Invoke clone() {
+			public Invoke copy(Map<SyntacticItem,SyntacticItem> mapping) {
 				Type type = getType();
 				if (type != null) {
-					type = type.clone();
+					type = type.clone(mapping);
 				}
-				return new Invoke(type, getName().clone(), arrayClone(getArguments()));
+				return new Invoke(type, getName().clone(mapping), arrayClone(mapping, getArguments()));
 			}
 		}
 	}
@@ -961,12 +999,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	 * @param arr
 	 * @return
 	 */
-	private static <T extends SyntacticItem> T[] arrayClone(T[] arr) {
+	private static <T extends SyntacticItem> T[] arrayClone(Map<SyntacticItem,SyntacticItem> mapping, T[] arr) {
 		T[] narr = Arrays.copyOf(arr, arr.length);
 		for(int i=0;i!=narr.length;++i) {
 			T item = narr[i];
 			if(item != null) {
-				narr[i] = (T) item.clone();
+				narr[i] = (T) item.clone(mapping);
 			}
 		}
 		return narr;

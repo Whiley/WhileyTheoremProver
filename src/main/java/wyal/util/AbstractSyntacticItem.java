@@ -3,6 +3,7 @@ package wyal.util;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.SyntacticHeap;
@@ -110,7 +111,16 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 	}
 
 	@Override
-	abstract public SyntacticItem clone();
+	public SyntacticItem clone(Map<SyntacticItem,SyntacticItem> mapping) {
+		SyntacticItem item = mapping.get(this);
+		if(item == null) {
+			item = copy(mapping);
+			mapping.put(this, item);
+		}
+		return item;
+	}
+
+	public abstract SyntacticItem copy(Map<SyntacticItem,SyntacticItem> mapping);
 
 	@Override
 	public String toString() {

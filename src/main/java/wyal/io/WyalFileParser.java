@@ -70,7 +70,6 @@ public class WyalFileParser {
 				}
 			}
 			wf.allocate(declaration);
-			System.out.println("GOT: " + declaration.getClass().getName());
 			skipWhiteSpace();
 		}
 
