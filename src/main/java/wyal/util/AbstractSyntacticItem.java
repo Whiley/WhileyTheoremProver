@@ -12,7 +12,7 @@ import wycc.util.ArrayUtils;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 
-public class AbstractSyntacticItem extends SyntacticElement.Impl implements SyntacticItem {
+public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implements SyntacticItem {
 	// Constants;
 	private SyntacticHeap parent;
 	private final Opcode opcode;
@@ -108,6 +108,9 @@ public class AbstractSyntacticItem extends SyntacticElement.Impl implements Synt
 		}
 		return false;
 	}
+
+	@Override
+	abstract public SyntacticItem clone();
 
 	@Override
 	public String toString() {

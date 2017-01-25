@@ -716,7 +716,7 @@ public class WyalFileParser {
 		Item item;
 		switch (token.kind) {
 		case Null:
-			item = new Constant.Null(scope.parent);
+			item = new Constant.Null();
 			break;
 		case True:
 			item = new Constant.Bool(true);
@@ -1390,16 +1390,16 @@ public class WyalFileParser {
 
 		switch (token.kind) {
 		case Any:
-			t = new Type.Any(scope.parent);
+			t = new Type.Any();
 			break;
 		case Null:
-			t = new Type.Null(scope.parent);
+			t = new Type.Null();
 			break;
 		case Bool:
-			t = new Type.Bool(scope.parent);
+			t = new Type.Bool();
 			break;
 		case Int:
-			t = new Type.Int(scope.parent);
+			t = new Type.Int();
 			break;
 		default:
 			syntaxError("unknown primitive type encountered", token);

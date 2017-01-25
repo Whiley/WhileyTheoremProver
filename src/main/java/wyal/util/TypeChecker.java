@@ -129,11 +129,11 @@ public class TypeChecker {
 		Item item = expr.getValue();
 		switch (item.getOpcode()) {
 		case CONST_null:
-			return findPrimitiveType(Type.Null.class);
+			return new Type.Null();
 		case CONST_bool:
-			return findPrimitiveType(Type.Bool.class);
+			return new Type.Bool();
 		case CONST_int:
-			return findPrimitiveType(Type.Int.class);
+			return new Type.Int();
 		default:
 			throw new RuntimeException("unknown constant encountered: " + expr);
 		}
@@ -172,7 +172,7 @@ public class TypeChecker {
 				return d[0].getType();
 			}
 		} else {
-			return findPrimitiveType(Type.Bool.class);
+			return new Type.Bool();
 		}
 	}
 
@@ -181,7 +181,7 @@ public class TypeChecker {
 		Type rhs = expr.getType();
 		// TODO: implement a proper intersection test here to ensure the lhs and
 		// rhs types make sense (i.e. have some intersection).
-		return findPrimitiveType(Type.Bool.class);
+		return new Type.Bool();
 	}
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
@@ -221,7 +221,7 @@ public class TypeChecker {
 	 */
 	private Type checkLogicalOperator(Expr.Operator expr) {
 		checkOperands(expr, Type.Bool.class);
-		return findPrimitiveType(Type.Bool.class);
+		return new Type.Bool();
 	}
 
 	/**
@@ -233,7 +233,7 @@ public class TypeChecker {
 	 */
 	private Type checkArithmeticOperator(Expr.Operator expr) {
 		checkOperands(expr, Type.Int.class);
-		return findPrimitiveType(Type.Int.class);
+		return new Type.Int();
 	}
 
 	/**
@@ -260,7 +260,7 @@ public class TypeChecker {
 			throw new RuntimeException("Unknown bytecode encountered: " + expr);
 		}
 
-		return findPrimitiveType(Type.Bool.class);
+		return new Type.Bool();
 	}
 
 	private void checkOperands(Expr.Operator expr, Class<? extends Type> kind) {
@@ -272,7 +272,7 @@ public class TypeChecker {
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
 		Type.Array effectiveArray = types.extractReadableArrayType(src);
-		return findPrimitiveType(Type.Int.class);
+		return new Type.Int();
 	}
 
 	private Type checkArrayInitialiser(Expr.Operator expr) {
@@ -294,7 +294,7 @@ public class TypeChecker {
 		Type src = check(expr.getOperand(0));
 		Type.Array effectiveArray = types.extractReadableArrayType(src);
 		Type indexType = check(expr.getOperand(1));
-		checkIsSubtype(findPrimitiveType(Type.Int.class), indexType);
+		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
 	}
 
@@ -319,36 +319,6 @@ public class TypeChecker {
 			return checkIsType(declared, kind);
 		} else {
 			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
-		}
-	}
-
-	/**
-	 * Attempt to find an instance of a given primitive type in the enclosing
-	 * WyalFile. If no such instances is found, then a new "virtual" instance is
-	 * created. Virtual instances are those which have no source information
-	 * associated with them.
-	 *
-	 * @param parent
-	 * @param kind
-	 * @return
-	 */
-	private <T extends Type> T findPrimitiveType(Class<T> kind) {
-		// Look through the set of existing objects to see whether any items can
-		// be reused.
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (kind.isInstance(item)) {
-				return (T) item;
-			}
-		}
-		// Cannot find any existing occurrence of this type to use.
-		// Therefore, construct one within the context of the enclosing
-		// WyalFile.
-		try {
-			return kind.getConstructor(WyalFile.class).newInstance(parent);
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-				| NoSuchMethodException | SecurityException e) {
-			throw new RuntimeException("Internal failure", e);
 		}
 	}
 

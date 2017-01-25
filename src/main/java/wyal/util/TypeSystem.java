@@ -128,7 +128,7 @@ public class TypeSystem {
 	 */
 	public Type union(Type... types) {
 		if (types.length == 0) {
-			return new Type.Void(parent);
+			return new Type.Void();
 		} else if (types.length == 1) {
 			return types[0];
 		} else {

@@ -58,4 +58,12 @@ public interface SyntacticItem extends SyntacticElement {
 	 * @return
 	 */
 	public int getIndex();
+
+	/**
+	 * Recursively copy this syntactic item. Observe the cloned syntactic item
+	 * is *not* allocated to any heap, and this must be done separately. Also,
+	 * all children are recursively copied as well.
+	 * @return
+	 */
+	public SyntacticItem clone();
 }

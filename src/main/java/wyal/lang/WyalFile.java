@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static wycc.util.ArrayUtils.*;
@@ -256,7 +257,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	// ============================================================
 	// Fundamental Items
 	// ============================================================
-	public static class Item extends AbstractSyntacticItem {
+	public static abstract class Item extends AbstractSyntacticItem {
 		public Item(Opcode opcode, Item... items) {
 			super(opcode, items);
 		}
@@ -264,16 +265,29 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public Item(Opcode opcode, Object data) {
 			super(opcode, data);
 		}
+
+		@Override
+		public abstract Item clone();
 	}
 
 	public static class Pair extends Item {
 		public Pair(Item lhs, Item rhs) {
 			super(Opcode.ITEM_pair, lhs, rhs);
 		}
+
+		@Override
+		public Pair clone() {
+			return new Pair((Item) getOperand(0).clone(), (Item) getOperand(1).clone());
+		}
 	}
+
 	public static class Tuple extends Item {
 		public Tuple(Item... stmts) {
 			super(Opcode.ITEM_tuple, stmts);
+		}
+		@Override
+		public Tuple clone() {
+			return new Tuple(arrayClone((Item[])getOperands()));
 		}
 	}
 
@@ -285,15 +299,25 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public String get() {
 			return (String) data;
 		}
+
+		@Override
+		public Identifier clone() {
+			return new Identifier((String) data);
+		}
 	}
 
 	public static class Name extends Item {
-		public Name( Identifier... components) {
+		public Name(Identifier... components) {
 			super(Opcode.ITEM_name, components);
 		}
 
 		public Identifier[] getComponents() {
 			return (Identifier[]) getOperands();
+		}
+
+		@Override
+		public Name clone() {
+			return new Name(arrayClone(getComponents()));
 		}
 	}
 
@@ -308,8 +332,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		public static class Null extends Constant {
-			public Null(WyalFile parent) {
+			public Null() {
 				super(Opcode.CONST_null);
+			}
+			@Override
+			public Null clone() {
+				return new Null();
 			}
 		}
 
@@ -321,6 +349,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public boolean get() {
 				return (Boolean) data;
 			}
+
+			@Override
+			public Bool clone() {
+				return new Bool(get());
+			}
 		}
 
 		public static class Int extends Constant {
@@ -330,6 +363,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 
 			public BigInteger get() {
 				return (BigInteger) data;
+			}
+
+			@Override
+			public Int clone() {
+				return new Int(get());
 			}
 		}
 
@@ -341,13 +379,18 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public byte[] get() {
 				return (byte[]) data;
 			}
+
+			@Override
+			public UTF8 clone() {
+				return new UTF8(get());
+			}
 		}
 	}
 
 	// ============================================================
 	// Declarations
 	// ============================================================
-	public static class Declaration extends Item {
+	public abstract static class Declaration extends Item {
 		public Declaration(Opcode opcode, Item... children) {
 			super(opcode, children);
 		}
@@ -369,6 +412,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Import(Identifier... components) {
 				super(Opcode.DECL_import, components);
 			}
+
+			public Identifier[] getComponents() {
+				return (Identifier[]) getOperands();
+			}
+
+			@Override
+			public Import clone() {
+				return new Import(arrayClone(getComponents()));
+			}
 		}
 
 		public static class Assert extends Declaration {
@@ -380,9 +432,14 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Block getBody() {
 				return (Block) getOperand(0);
 			}
+
+			@Override
+			public Assert clone() {
+				return new Assert(getBody().clone());
+			}
 		}
 
-		public static class Named extends Declaration {
+		public static abstract class Named extends Declaration {
 
 			public Named(Opcode opcode, Identifier name, Item... children) {
 				super(opcode, append(Item.class, name, children));
@@ -392,7 +449,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Identifier) getOperand(0);
 			}
 
-			public static class FunctionOrMacro extends Named {
+			public static abstract class FunctionOrMacro extends Named {
 				public FunctionOrMacro(Identifier name, Tuple parameters, Item body) {
 					super(Opcode.DECL_macro, name, append(Item.class, parameters, body));
 				}
@@ -402,12 +459,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				public VariableDeclaration[] getParameters() {
-					Tuple params = (Tuple) getOperand(1);
-					VariableDeclaration[] vars = new VariableDeclaration[params.size()];
-					for (int i = 0; i != vars.length; ++i) {
-						vars[i] = (VariableDeclaration) params.getOperand(i);
-					}
-					return vars;
+					Tuple tuple = (Tuple) getOperand(1);
+					return ArrayUtils.toArray(VariableDeclaration.class, tuple.getOperands());
 				}
 			}
 
@@ -421,12 +474,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				public VariableDeclaration[] getReturns() {
-					Tuple returns = (Tuple) getOperand(2);
-					VariableDeclaration[] vars = new VariableDeclaration[returns.size()];
-					for (int i = 0; i != vars.length; ++i) {
-						vars[i] = (VariableDeclaration) returns.getOperand(i);
-					}
-					return vars;
+					Tuple tuple = (Tuple) getOperand(2);
+					return ArrayUtils.toArray(VariableDeclaration.class, tuple.getOperands());
+				}
+
+				@Override
+				public Function clone() {
+					return new Function(getName().clone(), arrayClone(getParameters()), arrayClone(getReturns()));
 				}
 			}
 
@@ -441,6 +495,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				public Block getBody() {
 					return (Block) getOperand(2);
 				}
+
+				@Override
+				public Macro clone() {
+					return new Macro(getName().clone(), arrayClone(getParameters()), getBody().clone());
+				}
 			}
 
 			// ============================================================
@@ -449,7 +508,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public static class Type extends Named {
 
 				public Type(Identifier name, VariableDeclaration vardecl, Block... invariant) {
-					super(Opcode.DECL_type, name, append(Item.class, vardecl, invariant));
+					super(Opcode.DECL_type, name, append(Item.class, vardecl, new Tuple(invariant)));
 				}
 
 				public VariableDeclaration getVariableDeclaration() {
@@ -457,11 +516,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				public Block[] getInvariant() {
-					Block[] invariant = new Block[size()-2];
-					for(int i=0;i!=invariant.length;++i) {
-						invariant[i] = (Block) getOperand(i+2);
-					}
-					return invariant;
+					Tuple tuple = (Tuple) getOperand(2);
+					return ArrayUtils.toArray(Block.class, tuple.getOperands());
+				}
+
+				@Override
+				public Type clone() {
+					return new Type(getName().clone(), getVariableDeclaration().clone(), arrayClone(getInvariant()));
 				}
 			}
 		}
@@ -472,51 +533,82 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	// ============================================================
 	public abstract static class Type extends Item {
 
+		@Override
+		public abstract Type clone();
+
 		public Type(Opcode opcode, Item... items) {
 			super(opcode, items);
 		}
 
-		public static class Atom extends Type {
+		public static abstract class Atom extends Type {
 			public Atom(Opcode opcode, Item... items) {
 				super(opcode, items);
 			}
 		}
 
 		public static class Any extends Atom {
-			public Any(WyalFile parent) { super(Opcode.TYPE_any); }
+			public Any() { super(Opcode.TYPE_any); }
+			@Override
+			public Any clone() {
+				return new Any();
+			}
 		}
 
 		public static class Void extends Atom {
-			public Void(WyalFile parent) { super(Opcode.TYPE_void); }
+			public Void() { super(Opcode.TYPE_void); }
+			@Override
+			public Void clone() {
+				return new Void();
+			}
 		}
 
 		public static class Null extends Atom {
-			public Null(WyalFile parent) { super(Opcode.TYPE_null); }
+			public Null() { super(Opcode.TYPE_null); }
+			@Override
+			public Null clone() {
+				return new Null();
+			}
 		}
 
 		public static class Bool extends Atom {
-			public Bool(WyalFile parent) { super(Opcode.TYPE_bool); }
+			public Bool() { super(Opcode.TYPE_bool); }
+			@Override
+			public Bool clone() {
+				return new Bool();
+			}
 		}
 
 		public static class Int extends Atom {
-			public Int(WyalFile parent) { super(Opcode.TYPE_int); }
+			public Int() { super(Opcode.TYPE_int); }
+			@Override
+			public Int clone() {
+				return new Int();
+			}
 		}
 
 		public static class Array extends Atom {
-			public Array( Type element) {
+			public Array(Type element) {
 				super(Opcode.TYPE_arr, element);
 			}
 			public Type getElement() {
 				return (Type) getOperand(0);
+			}
+			@Override
+			public Array clone() {
+				return new Array((Type) getElement().clone());
 			}
 		}
 
 		public static class Reference extends Atom {
-			public Reference( Type element) {
+			public Reference(Type element) {
 				super(Opcode.TYPE_arr, element);
 			}
 			public Type getElement() {
 				return (Type) getOperand(0);
+			}
+			@Override
+			public Reference clone() {
+				return new Reference((Type) getElement().clone());
 			}
 		}
 
@@ -526,11 +618,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 
 			public VariableDeclaration[] getFields() {
-				VariableDeclaration[] vars = new VariableDeclaration[size()];
-				for (int i = 0; i != vars.length; ++i) {
-					vars[i] = (VariableDeclaration) getOperand(i);
-				}
-				return vars;
+				return ArrayUtils.toArray(VariableDeclaration.class, getOperands());
+			}
+
+			@Override
+			public Record clone() {
+				return new Record(arrayClone(getFields()));
 			}
 		}
 
@@ -542,6 +635,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Name getName() {
 				return (Name) getOperand(0);
 			}
+
+			@Override
+			public Nominal clone() {
+				return new Nominal(getName().clone());
+			}
 		}
 
 		public static class Negation extends Type {
@@ -550,6 +648,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 			public Type getElement() {
 				return (Type) getOperand(0);
+			}
+
+			@Override
+			public Negation clone() {
+				return new Negation(getElement().clone());
 			}
 		}
 
@@ -569,14 +672,23 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		}
 
 		public static class Union extends UnionOrIntersection {
-			public Union( Type... types) {
+			public Union(Type... types) {
 				super(Opcode.TYPE_or, types);
+			}
+
+			@Override
+			public Union clone() {
+				return new Union(arrayClone(getOperands()));
 			}
 		}
 
 		public static class Intersection extends UnionOrIntersection {
-			public Intersection( Type... types) {
+			public Intersection(Type... types) {
 				super(Opcode.TYPE_and, types);
+			}
+			@Override
+			public Intersection clone() {
+				return new Intersection(arrayClone(getOperands()));
 			}
 		}
 	}
@@ -597,6 +709,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public Identifier getVariableName() {
 			return (Identifier) getOperand(1);
 		}
+
+		@Override
+		public VariableDeclaration clone() {
+			return new VariableDeclaration(getType().clone(),getVariableName().clone());
+		}
 	}
 
 	// ============================================================
@@ -612,10 +729,20 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		public Stmt getOperand(int i) {
 			return (Stmt) super.getOperand(i);
 		}
+
+		@Override
+		public Stmt[] getOperands() {
+			return (Stmt[]) super.getOperands();
+		}
+
+		@Override
+		public Block clone() {
+			return new Block(arrayClone(getOperands()));
+		}
 	}
 
 
-	public static class Stmt extends Item {
+	public abstract static class Stmt extends Item {
 		private Stmt(Opcode opcode, Item... operands) {
 			super(opcode, operands);
 		}
@@ -637,6 +764,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Block getBody() {
 				return (Block) getOperand(size()-1);
 			}
+			@Override
+			public Quantifier clone() {
+				return new Quantifier(getOpcode(),arrayClone(getParameters()),getBody().clone());
+			}
 		}
 
 		public static class IfThen extends Stmt {
@@ -649,6 +780,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Block getThenBody() {
 				return (Block) getOperand(1);
 			}
+			@Override
+			public IfThen clone() {
+				return new IfThen(getIfBody().clone(),getThenBody().clone());
+			}
 		}
 
 		public static class CaseOf extends Stmt {
@@ -659,13 +794,23 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Block getOperand(int i) {
 				return (Block) super.getOperand(i);
 			}
+			@Override
+			public Block[] getOperands() {
+				return (Block[]) super.getOperands();
+			}
+			@Override
+			public CaseOf clone() {
+				return new CaseOf(arrayClone(getOperands()));
+			}
 		}
 	}
 
-	public static class Expr extends Stmt {
+	public abstract static class Expr extends Stmt {
 		private Expr(Opcode opcode, Item... operands) {
 			super(opcode, operands);
 		}
+		@Override
+		public abstract Expr clone();
 
 		public static class Cast extends Expr {
 			public Cast(Type type, Expr rhs) {
@@ -676,6 +821,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 			public Expr getExpr() {
 				return (Expr) super.getOperand(1);
+			}
+			@Override
+			public Cast clone() {
+				return new Cast(getCastType().clone(),getExpr().clone());
 			}
 		}
 
@@ -692,6 +841,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Expr[] getExprs() {
 				return ArrayUtils.toArray(Expr.class, getOperands());
 			}
+
+			@Override
+			public Operator clone() {
+				return new Operator(getOpcode(),arrayClone(getExprs()));
+			}
 		}
 
 		public static class RecordAccess extends Expr {
@@ -704,6 +858,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Identifier getField() {
 				return (Identifier) getOperand(1);
 			}
+			@Override
+			public RecordAccess clone() {
+				return new RecordAccess(getSource().clone(),getField().clone());
+			}
 		}
 
 		public static class RecordInitialiser extends Expr {
@@ -712,6 +870,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 			public Pair[] getFields() {
 				return ArrayUtils.toArray(Pair.class, getOperands());
+			}
+			@Override
+			public RecordInitialiser clone() {
+				return new RecordInitialiser(arrayClone(getFields()));
 			}
 		}
 
@@ -722,6 +884,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public VariableDeclaration getVariableDeclaration() {
 				return (VariableDeclaration) getOperand(0);
 			}
+			@Override
+			public VariableAccess clone() {
+				return new VariableAccess(getVariableDeclaration().clone());
+			}
 		}
 
 		public static class Constant extends Expr {
@@ -730,6 +896,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			}
 			public Item getValue() {
 				return (Item) getOperand(0);
+			}
+			@Override
+			public Constant clone() {
+				return new Constant(getValue().clone());
 			}
 		}
 
@@ -743,23 +913,63 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Type getType() {
 				return (Type) getOperand(1);
 			}
+			@Override
+			public Is clone() {
+				return new Is(getExpr().clone(),getType().clone());
+			}
 		}
 
 		public static class Invoke extends Expr {
 			public Invoke(Type type, Name name, Expr... arguments) {
-				super(Opcode.EXPR_invoke, append(new Item[]{type, name}, arguments));
+				super(Opcode.EXPR_invoke, append(new Item[] { type, name }, arguments));
 			}
+
+			public Type getType() {
+				return (Type) getOperand(0);
+			}
+
 			public Name getName() {
 				return (Name) getOperand(1);
 			}
+
 			public Expr[] getArguments() {
-				Expr[] rs = new Expr[size()-2];
-				for(int i=0;i!=rs.length;++i) {
-					rs[i] = (Expr) getOperand(i+2);
+				Expr[] rs = new Expr[size() - 2];
+				for (int i = 0; i != rs.length; ++i) {
+					rs[i] = (Expr) getOperand(i + 2);
 				}
 				return rs;
 			}
+
+			@Override
+			public Invoke clone() {
+				Type type = getType();
+				if (type != null) {
+					type = type.clone();
+				}
+				return new Invoke(type, getName().clone(), arrayClone(getArguments()));
+			}
 		}
+	}
+
+	// ===========================================================
+	// Helpers
+	// ===========================================================
+
+	/**
+	 * Recursively clone an array of syntactic items
+	 *
+	 * @param arr
+	 * @return
+	 */
+	private static <T extends SyntacticItem> T[] arrayClone(T[] arr) {
+		T[] narr = Arrays.copyOf(arr, arr.length);
+		for(int i=0;i!=narr.length;++i) {
+			T item = narr[i];
+			if(item != null) {
+				narr[i] = (T) item.clone();
+			}
+		}
+		return narr;
 	}
 
 	// ===========================================================
