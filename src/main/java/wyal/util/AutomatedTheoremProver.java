@@ -34,8 +34,9 @@ public class AutomatedTheoremProver {
 
 	private void check(WyalFile.Declaration.Assert decl) {
 		AbstractSyntacticHeap heap = new AbstractSyntacticHeap();
-		WyalFile.Block block = SyntaxHeaps.clone(decl.getBody());
+		WyalFile.Block block = SyntacticHeaps.clone(decl.getBody());
 		heap.allocate(block);
+		SyntacticHeaps.substitute(block, heap.getSyntacticItem(11), new WyalFile.Constant.Bool(false));
 		// Prepare for proof-by-contradiction
 		heap.print(new PrintWriter(System.out));
 	}

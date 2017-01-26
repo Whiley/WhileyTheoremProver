@@ -32,10 +32,18 @@ public interface SyntacticHeap {
 	public int getIndexOf(SyntacticItem item);
 
 	/**
+	 * <p>
 	 * Allocate a given syntactic item into this heap. The item must not already
 	 * be allocated to another heap. This returns the address (i.e. index) of
 	 * the allocated item. This will recursively allocate children not already
 	 * allocated to this heap.
+	 * </p>
+	 * <p>
+	 * Observe that this method will not permit mixed allocation items. That is,
+	 * when it encounters an item already allocated to a heap it will check that
+	 * it is, in fact, allocated to this heap. Otherwise, an exception is
+	 * raised.
+	 * </p>
 	 *
 	 * @param item
 	 * @return

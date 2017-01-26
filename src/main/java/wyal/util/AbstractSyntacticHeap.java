@@ -33,10 +33,14 @@ public class AbstractSyntacticHeap implements SyntacticHeap {
 
 	@Override
 	public int allocate(SyntacticItem item) {
-		if (item.getParent() == this) {
+		SyntacticHeap parent = item.getParent();
+		if (parent == this) {
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return getIndexOf(item);
+		} else if(parent != null) {
+			throw new IllegalArgumentException(
+					"Cannot allocate item since a descendent is already allocated to another heap");
 		} else {
 			// Item not allocated to this heap.
 			int index = syntacticItems.size();

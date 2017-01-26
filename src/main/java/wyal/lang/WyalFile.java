@@ -229,10 +229,14 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 
 	@Override
 	public int allocate(SyntacticItem item) {
-		if (item.getParent() == this) {
+		SyntacticHeap parent = item.getParent();
+		if (parent == this) {
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return getIndexOf(item);
+		} else if(parent != null) {
+			throw new IllegalArgumentException(
+					"Cannot allocate item since a descendent is already allocated to another heap");
 		} else {
 			// Item not allocated to this heap.
 			int index = syntacticItems.size();
@@ -495,7 +499,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				}
 
 				private Macro(Identifier name, Tuple parameters, Block body) {
-					super(name, new Tuple(parameters), body);
+					super(name, parameters, body);
 				}
 
 				public Block getBody() {
@@ -763,7 +767,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				super(opcode, new Tuple(parameters),body);
 			}
 			private Quantifier(Opcode opcode, Tuple parameters, Block body) {
-				super(opcode, new Tuple(parameters),body);
+				super(opcode, parameters,body);
 			}
 			public VariableDeclaration[] getParameters() {
 				Tuple params = (Tuple) getOperand(0);
