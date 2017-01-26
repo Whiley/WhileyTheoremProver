@@ -77,6 +77,14 @@ public interface SyntacticItem extends SyntacticElement {
 	public int getIndex();
 
 	/**
+	 * Get any data associated with this item. This will be null if no data is
+	 * associated.
+	 *
+	 * @return
+	 */
+	public Object getData();
+
+	/**
 	 * Create a new copy of the given syntactic item with the given operands.
 	 * The number of operands must match <code>size()</code> for this item, and
 	 * be of appropriate type.

@@ -103,6 +103,11 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 	}
 
 	@Override
+	public Object getData() {
+		return data;
+	}
+
+	@Override
 	public int hashCode() {
 		int hash = getOpcode().hashCode() ^ Arrays.hashCode(getOperands());
 		if (data != null) {
