@@ -37,7 +37,10 @@ public class SyntaxHeaps {
 			if (operands != null) {
 				operands = Arrays.copyOf(operands, operands.length);
 				for (int i = 0; i !=operands.length; ++i) {
-					operands[i] = clone(operands[i], mapping);
+					SyntacticItem operand = operands[i];
+					if(operand != null) {
+						operands[i] = clone(operand, mapping);
+					}
 				}
 			}
 			// Now, create new item and store that for later.
