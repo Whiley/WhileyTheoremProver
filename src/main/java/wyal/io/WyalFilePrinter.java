@@ -117,14 +117,14 @@ public class WyalFilePrinter {
 	public void write(WyalFile wf, Declaration.Named.Type s) {
 		Identifier name = s.getName();
 		VariableDeclaration vardecl = s.getVariableDeclaration();
-		Block[] invariant = s.getInvariant();
+		Stmt.Block[] invariant = s.getInvariant();
 		out.print("type ");
 		out.print(name.get());
 		out.print(" is (");
 		writeVariableDeclaration(vardecl);
 		out.println(")");
 		 if(invariant.length > 0) {
-			 for(Block block : invariant) {
+			 for(Stmt.Block block : invariant) {
 				 out.println("where:");
 				 writeBlock(block,1);
 			 }
@@ -153,7 +153,7 @@ public class WyalFilePrinter {
 		out.print(decl.getVariableName().get());
 	}
 
-	public void writeBlock(Block block, int indent) {
+	public void writeBlock(Stmt.Block block, int indent) {
 		for (int i = 0; i != block.size(); i = i + 1) {
 			writeStatement(block.getOperand(i), indent);
 		}
@@ -301,6 +301,10 @@ public class WyalFilePrinter {
 		case EXPR_recinit:
 			writeRecordInitialiser((Expr.RecordInitialiser)expr);
 			break;
+		case EXPR_exists:
+		case EXPR_forall:
+			writeQuantifier((Expr.Quantifier)expr);
+			break;
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());
 		}
@@ -395,7 +399,7 @@ public class WyalFilePrinter {
 
 	public void writeArrayInitialiser(Expr.Operator expr) {
 		out.print("[");
-		writeArguments(expr.getExprs());
+		writeArguments(expr.getOperands());
 		out.print("]");
 	}
 
@@ -421,6 +425,18 @@ public class WyalFilePrinter {
 		}
 		out.print("}");
 	}
+
+	private void writeQuantifier(Expr.Quantifier stmt) {
+		if (stmt.getOpcode() == Opcode.EXPR_forall) {
+			out.print("forall");
+		} else {
+			out.print("exists");
+		}
+		writeVariableDeclarations(stmt.getParameters());
+		out.print(".");
+		writeExpression(stmt.getBody());
+	}
+
 
 	public void writeArguments(Expr...exprs) {
 		for(int i=0;i!=exprs.length;++i) {

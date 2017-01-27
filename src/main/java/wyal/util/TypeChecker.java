@@ -22,6 +22,7 @@ import wyal.lang.WyalFile.Item;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 
@@ -52,19 +53,29 @@ public class TypeChecker {
 	}
 
 	public void check() {
+		// FIXME: this is horifically inefficient!!
 		for (int i = 0; i != parent.size(); ++i) {
 			check(parent.getSyntacticItem(i));
 		}
 	}
 
 	private void check(SyntacticItem item) {
-		if (item instanceof Expr) {
-			check((Expr) item);
+		if(item instanceof Stmt) {
+			check((Stmt) item);
 		}
 	}
 
-	private Type check(Expr expr) {
+	private Type check(Stmt expr) {
 		switch (expr.getOpcode()) {
+		case STMT_block:
+			return checkBlock((Stmt.Block) expr);
+		case STMT_ifthen:
+			return checkIfThen((Stmt.IfThen) expr);
+		case STMT_caseof:
+			return checkCaseOf((Stmt.CaseOf) expr);
+		case STMT_forall:
+		case STMT_exists:
+			return checkQuantifier((Stmt.Quantifier) expr);
 		// Ignored
 		case EXPR_const:
 			return checkConstant((Expr.Constant) expr);
@@ -116,6 +127,36 @@ public class TypeChecker {
 		default:
 			throw new RuntimeException("unknown bytecode encountered: " + expr);
 		}
+	}
+
+	private Type checkBlock(Stmt.Block stmt) {
+		for(Stmt child : stmt.getOperands()) {
+			Type t = check(child);
+			checkIsSubtype(new Type.Bool(), t);
+		}
+		return new Type.Bool();
+	}
+
+	private Type checkCaseOf(Stmt.CaseOf stmt) {
+		for(Stmt child : stmt.getOperands()) {
+			Type t = check(child);
+			checkIsSubtype(new Type.Bool(), t);
+		}
+		return new Type.Bool();
+	}
+
+	private Type checkIfThen(Stmt.IfThen stmt) {
+		Type lhs = check(stmt.getIfBody());
+		Type rhs = check(stmt.getThenBody());
+		checkIsSubtype(new Type.Bool(), lhs);
+		checkIsSubtype(new Type.Bool(), rhs);
+		return new Type.Bool();
+	}
+
+	private Type checkQuantifier(Stmt.Quantifier stmt) {
+		Type body = check(stmt.getBody());
+		checkIsSubtype(new Type.Bool(), body);
+		return new Type.Bool();
 	}
 
 	/**

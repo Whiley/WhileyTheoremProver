@@ -95,7 +95,6 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		//
 		ITEM_pair(100),
 		ITEM_tuple(101),
-		ITEM_block(102),
 		ITEM_ident(103),
 		ITEM_path(104),
 		ITEM_name(105),
@@ -122,11 +121,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		TYPE_and(11),
 		TYPE_not(12),
 		// STMTS
+		STMT_block(15),
 		STMT_vardecl(16),
 		STMT_ifthen(17),
 		STMT_caseof(18),
-		STMT_exists(35),
-		STMT_forall(36),
+		STMT_exists(19),
+		STMT_forall(20),
 		// EXPRESSIONS
 		EXPR_var(20),
 		EXPR_const(21),
@@ -138,6 +138,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		EXPR_or(32),
 		EXPR_implies(33),
 		EXPR_iff(34),
+		EXPR_exists(35),
+		EXPR_forall(36),
 		// COMPARATORS
 		EXPR_eq(40),
 		EXPR_neq(41),
@@ -427,17 +429,17 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 
 		public static class Assert extends Declaration {
 
-			public Assert(Block body) {
+			public Assert(Stmt.Block body) {
 				super(Opcode.DECL_assert, body);
 			}
 
-			public Block getBody() {
-				return (Block) getOperand(0);
+			public Stmt.Block getBody() {
+				return (Stmt.Block) getOperand(0);
 			}
 
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
-				return new Assert((Block) operands[0]);
+				return new Assert((Stmt.Block) operands[0]);
 			}
 		}
 
@@ -494,22 +496,22 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			// Macro Declaration
 			// ============================================================
 			public static class Macro extends FunctionOrMacro {
-				public Macro(Identifier name, VariableDeclaration[] parameters, Block body) {
+				public Macro(Identifier name, VariableDeclaration[] parameters, Stmt.Block body) {
 					super(name, new Tuple(parameters), body);
 				}
 
-				private Macro(Identifier name, Tuple parameters, Block body) {
+				private Macro(Identifier name, Tuple parameters, Stmt.Block body) {
 					super(name, parameters, body);
 				}
 
-				public Block getBody() {
-					return (Block) getOperand(2);
+				public Stmt.Block getBody() {
+					return (Stmt.Block) getOperand(2);
 				}
 
 
 				@Override
 				public Macro clone(SyntacticItem[] operands) {
-					return new Macro((Identifier) operands[0], (Tuple) operands[1], (Block) operands[2]);
+					return new Macro((Identifier) operands[0], (Tuple) operands[1], (Stmt.Block) operands[2]);
 				}
 			}
 
@@ -518,7 +520,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			// ============================================================
 			public static class Type extends Named {
 
-				public Type(Identifier name, VariableDeclaration vardecl, Block... invariant) {
+				public Type(Identifier name, VariableDeclaration vardecl, Stmt.Block... invariant) {
 					super(Opcode.DECL_type, name, append(Item.class, vardecl, new Tuple(invariant)));
 				}
 
@@ -530,9 +532,9 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 					return (VariableDeclaration) getOperand(1);
 				}
 
-				public Block[] getInvariant() {
+				public Stmt.Block[] getInvariant() {
 					Tuple tuple = (Tuple) getOperand(2);
-					return ArrayUtils.toArray(Block.class, tuple.getOperands());
+					return ArrayUtils.toArray(Stmt.Block.class, tuple.getOperands());
 				}
 
 				@Override
@@ -732,34 +734,33 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	// Term
 	// ============================================================
 
-	public static class Block extends Item {
-		public Block(Stmt... stmts) {
-			super(Opcode.ITEM_block, stmts);
-		}
-
-		@Override
-		public Stmt getOperand(int i) {
-			return (Stmt) super.getOperand(i);
-		}
-
-		@Override
-		public Stmt[] getOperands() {
-			return (Stmt[]) super.getOperands();
-		}
-
-		@Override
-		public Block clone(SyntacticItem[] operands) {
-			return new Block((Stmt[]) operands);
-		}
-	}
-
-
 	public abstract static class Stmt extends Item {
 		private Stmt(Opcode opcode, Item... operands) {
 			super(opcode, operands);
 		}
 		private Stmt(Opcode opcode, Type type, Item... operands) {
 			super(opcode, append(Item.class, type, operands));
+		}
+
+		public static class Block extends Stmt {
+			public Block(Stmt... stmts) {
+				super(Opcode.STMT_block, stmts);
+			}
+
+			@Override
+			public Stmt getOperand(int i) {
+				return (Stmt) super.getOperand(i);
+			}
+
+			@Override
+			public Stmt[] getOperands() {
+				return (Stmt[]) super.getOperands();
+			}
+
+			@Override
+			public Block clone(SyntacticItem[] operands) {
+				return new Block((Stmt[]) operands);
+			}
 		}
 
 		public static class Quantifier extends Stmt {
@@ -848,8 +849,9 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return (Expr) super.getOperand(i);
 			}
 
-			public Expr[] getExprs() {
-				return ArrayUtils.toArray(Expr.class, getOperands());
+			@Override
+			public Expr[] getOperands() {
+				return (Expr[]) super.getOperands();
 			}
 
 			@Override
@@ -956,6 +958,31 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 				return new Invoke((Type) operands[0], (Name) operands[1], (Tuple) operands[2]);
 			}
 		}
+
+		public static class Quantifier extends Expr {
+			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Expr body) {
+				super(opcode, new Tuple(parameters), body);
+			}
+
+			private Quantifier(Opcode opcode, Tuple parameters, Expr body) {
+				super(opcode, parameters, body);
+			}
+
+			public VariableDeclaration[] getParameters() {
+				Tuple params = (Tuple) getOperand(0);
+				return (VariableDeclaration[]) params.getOperands();
+			}
+
+			public Expr getBody() {
+				return (Expr) getOperand(1);
+			}
+
+			@Override
+			public Quantifier clone(SyntacticItem[] operands) {
+				return new Quantifier(getOpcode(), (Tuple) operands[0], (Expr) operands[1]);
+			}
+		}
+
 	}
 
 	// ===========================================================

@@ -153,7 +153,7 @@ public class WyalFileParser {
 		match(Assert);
 		match(Colon);
 		matchEndLine();
-		Block body = parseStatementBlock(scope, ROOT_INDENT);
+		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
 		Declaration.Assert declaration = new Declaration.Assert(body);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 		return declaration;
@@ -177,27 +177,27 @@ public class WyalFileParser {
 		VariableDeclaration parameter = parseParameterDeclaration(scope);
 		match(RightBrace);
 		//
-		Block[] invariant = parseInvariantClauses(scope);
+		Stmt.Block[] invariant = parseInvariantClauses(scope);
 		//
 		Declaration.Named.Type declaration = new Declaration.Named.Type(name, parameter, invariant);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 		return declaration;
 	}
 
-	private Block[] parseInvariantClauses(EnclosingScope scope) {
-		List<Block> invariant = new ArrayList<>();
+	private Stmt.Block[] parseInvariantClauses(EnclosingScope scope) {
+		List<Stmt.Block> invariant = new ArrayList<>();
 		while ((tryAndMatch(false, Where)) != null) {
-			Block block;
+			Stmt.Block block;
 			if (tryAndMatch(true, Colon) != null) {
 				block = parseStatementBlock(scope, ROOT_INDENT);
 			} else {
 				Stmt stmt = parseUnitExpression(scope, false);
-				block = new Block(stmt);
+				block = new Stmt.Block(stmt);
 				matchEndLine();
 			}
 			invariant.add(block);
 		}
-		return invariant.toArray(new Block[invariant.size()]);
+		return invariant.toArray(new Stmt.Block[invariant.size()]);
 	}
 
 	protected Declaration parseFunctionDeclaration(WyalFile parent) {
@@ -227,7 +227,7 @@ public class WyalFileParser {
 		VariableDeclaration[] parameters = parseParameterDeclarations(scope);
 		match(Is);
 		match(Colon);
-		Block body = parseStatementBlock(scope, ROOT_INDENT);
+		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
 		// Create empty declaration
 		Declaration.Named.Macro declaration = new Declaration.Named.Macro(name, parameters, body);
 		declaration.attributes().add(sourceAttr(start, index - 1));
@@ -251,7 +251,7 @@ public class WyalFileParser {
 	 *            <code>null</code>.
 	 * @return
 	 */
-	private Block parseStatementBlock(EnclosingScope scope, Indent parentIndent) {
+	private Stmt.Block parseStatementBlock(EnclosingScope scope, Indent parentIndent) {
 		// First, determine the initial indentation of this block based on the
 		// first statement (or null if there is no statement).
 		Indent indent = getIndent();
@@ -263,7 +263,7 @@ public class WyalFileParser {
 			// than parent indent and,therefore, signals an empty block.
 			//
 			Expr bool = new Expr.Constant(new Constant.Bool(true));
-			return new Block(bool);
+			return new Stmt.Block(bool);
 		} else {
 			// Initial indent is valid, so we proceed parsing statements with
 			// the appropriate level of indent.
@@ -283,7 +283,7 @@ public class WyalFileParser {
 				// Second, parse the actual statement at this point!
 				statements.add(parseStatement(scope, indent));
 			}
-			return new Block(toStmtArray(statements));
+			return new Stmt.Block(toStmtArray(statements));
 		}
 	}
 
@@ -355,11 +355,11 @@ public class WyalFileParser {
 		int start = index;
 		match(Colon);
 		matchEndLine();
-		Block ifBlock = parseStatementBlock(scope, indent);
+		Stmt.Block ifBlock = parseStatementBlock(scope, indent);
 		match(Then);
 		match(Colon);
 		matchEndLine();
-		Block thenBlock = parseStatementBlock(scope, indent);
+		Stmt.Block thenBlock = parseStatementBlock(scope, indent);
 		Stmt stmt = new Stmt.IfThen(ifBlock, thenBlock);
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
@@ -368,7 +368,7 @@ public class WyalFileParser {
 	private Stmt parseEitherOrStatement(EnclosingScope scope, Indent indent) {
 		int start = index;
 
-		ArrayList<Block> blocks = new ArrayList<>();
+		ArrayList<Stmt.Block> blocks = new ArrayList<>();
 		Indent nextIndent;
 		Token lookahead;
 
@@ -384,7 +384,7 @@ public class WyalFileParser {
 			}
 		} while (lookahead != null && lookahead.kind == Or);
 
-		Block[] arr = blocks.toArray(new Block[blocks.size()]);
+		Stmt.Block[] arr = blocks.toArray(new Stmt.Block[blocks.size()]);
 		Stmt stmt = new Stmt.CaseOf(arr);
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
@@ -412,14 +412,14 @@ public class WyalFileParser {
 		// Parse the parameter declarations for this block
 		VariableDeclaration[] parameters = parseParameterDeclarations(scope);
 		// Parser the body
-		Block body;
+		Stmt.Block body;
 		if (tryAndMatch(true, Colon) != null) {
 			matchEndLine();
 			body = parseStatementBlock(scope, indent);
 		} else {
 			match(SemiColon);
 			Stmt unit = parseUnitExpression(scope, false);
-			body = new Block(unit);
+			body = new Stmt.Block(unit);
 		}
 		//
 		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.STMT_forall : Opcode.STMT_exists;
