@@ -21,8 +21,11 @@ public interface SyntacticItem extends SyntacticElement {
 	 * raised if this item is already allocated to another heap.
 	 *
 	 * @param heap
+	 *            The heap into which this item is being allocated
+	 * @param index
+	 *            The index at which this item is being allocated
 	 */
-	public void setParent(SyntacticHeap heap);
+	public void allocate(SyntacticHeap heap, int index);
 
 	/**
 	 * The opcode which defines what this bytecode does. Observe that certain

@@ -242,8 +242,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 		} else {
 			// Item not allocated to this heap.
 			int index = syntacticItems.size();
-			item.setParent(this);
 			syntacticItems.add(item);
+			item.allocate(this, index);
 			// Recursively allocate all children
 			for (int i = 0; i != item.size(); ++i) {
 				SyntacticItem child = item.getOperand(i);

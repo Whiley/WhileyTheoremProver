@@ -13,9 +13,11 @@ import wycc.util.ArrayUtils;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 
-public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implements SyntacticItem {
+public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
+		implements Comparable<AbstractSyntacticItem>, SyntacticItem {
 	// Constants;
 	private SyntacticHeap parent;
+	private int index; // index in the parent
 	private Opcode opcode;
 	private SyntacticItem[] operands;
 	protected Object data;
@@ -55,11 +57,12 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 	}
 
 	@Override
-	public void setParent(SyntacticHeap heap) {
+	public void allocate(SyntacticHeap heap, int index) {
 		if(parent != null) {
 			throw new IllegalArgumentException("item already allocated to heap");
 		}
 		this.parent = heap;
+		this.index = index;
 	}
 
 	@Override
@@ -99,7 +102,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 
 	@Override
 	public int getIndex() {
-		return parent.getIndexOf(this);
+		return index;
 	}
 
 	@Override
@@ -148,6 +151,11 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl implem
 			r += ":" + data;
 		}
 		return r;
+	}
+
+	@Override
+	public int compareTo(AbstractSyntacticItem other) {
+		return this.index - other.index;
 	}
 
 	// =========================================================================

@@ -10,17 +10,17 @@ import wyal.util.AutomatedTheoremProver.RewriteRule;
 import wycc.util.ArrayUtils;
 
 /**
- * Performs a range of simplifications related to conjuncts. In particular:
+ * Performs a range of simplifications related to disjuncts. In particular:
  *
  * <ol>
- * <li><b>Eliminates boolean constants</b>. Conjuncts containing
- * <code>false</code> are reduced to <code>false</code>. In contrast, any
- * occurrences of <code>true</code> are simply removed.</li>
- * <li><b>Flattens nested conjuncts</b>. All nested conjuncts are recursively
- * flattened into a single conjunct. For example, <code> (x && (y && z))</code>
- * is flattened to <code>(x && y && z)</code>.</li>
- * <li><b>Eliminates singleton conjuncts</b>. A conjunct containing a single
- * (non-conjunct) child is reduced to that child.</li>
+ * <li><b>Eliminates boolean constants</b>. Disjuncts containing
+ * <code>true</code> are reduced to <code>true</code>. In contrast, any
+ * occurrences of <code>false</code> are simply removed.</li>
+ * <li><b>Flattens nested disjuncts</b>. All nested disjuncts are recursively
+ * flattened into a single disjunct. For example, <code> (x || (y || z))</code>
+ * is flattened to <code>(x || y || z)</code>.</li>
+ * <li><b>Eliminates singleton disjuncts</b>. A disjunct containing a single
+ * (non-disjunct) child is reduced to that child.</li>
  * </ol>
  *
  * The implementation attempts to eliminate dynamic memory allocation in the
@@ -29,25 +29,25 @@ import wycc.util.ArrayUtils;
  * @author David J. Pearce
  *
  */
-public class AndElimination implements RewriteRule {
+public class OrElimination implements RewriteRule {
 
 	@Override
 	public SyntacticItem rewrite(SyntacticItem item) {
-		if (item.getOpcode() == Opcode.EXPR_and) {
-			// Matched conjunct
-			Expr.Operator conjunct = (Expr.Operator) item;
-			Expr[] children = conjunct.getOperands();
+		if (item.getOpcode() == Opcode.EXPR_or) {
+			// Matched disjunct
+			Expr.Operator disjunct = (Expr.Operator) item;
+			Expr[] children = disjunct.getOperands();
 			// Flatten nested intersections
-			children = flattenNestedConjuncts(children);
+			children = flatternNestedDisjuncts(children);
 			// Eliminate truths
 			children = eliminateConstants(children);
 			// Ensure sorted and unique
 			children = sortAndRemoveDuplicates(children);
 			// And, finally...
 			if (children.length == 0) {
-				// Return true here since the only way it's possible to get here
-				// is if the conjunct contained only truths at the end.
-				return new Expr.Constant(new Constant.Bool(true));
+				// Return false here since the only way it's possible to get here
+				// is if the disjunct contained only false at the end.
+				return new Expr.Constant(new Constant.Bool(false));
 			} else if (children.length == 1) {
 				return children[0];
 			} else if (children != item.getOperands()) {
@@ -60,7 +60,7 @@ public class AndElimination implements RewriteRule {
 	}
 
 	/**
-	 * Recursively remove nested conjuncts. If no nested conjuncts are
+	 * Recursively remove nested disjuncts. If no nested disjuncts are
 	 * encountered, then the same array is returned. Otherwise, a new array
 	 * containing all elements from both is returned. For example
 	 * <code>[x, y && z]</code> is returned as <code>[x,y,z]</code>.
@@ -69,7 +69,7 @@ public class AndElimination implements RewriteRule {
 	 * @param children
 	 * @return
 	 */
-	private Expr[] flattenNestedConjuncts(Expr[] children) {
+	private Expr[] flatternNestedDisjuncts(Expr[] children) {
 		int count = nestedCount(children);
 		if (count == children.length) {
 			// In this case, there are no nested expressions to include.
@@ -85,8 +85,8 @@ public class AndElimination implements RewriteRule {
 	}
 
 	/**
-	 * Count the total number of elements in this array which are not conjuncts.
-	 * This recursively includes nested conjuncts in this count. For example,
+	 * Count the total number of elements in this array which are not disjuncts.
+	 * This recursively includes nested disjuncts in this count. For example,
 	 * <code>[x, y && z]</code> returns a count of <code>3</code>.
 	 *
 	 * @param children
@@ -96,9 +96,9 @@ public class AndElimination implements RewriteRule {
 		int count = 0;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
-			if (child.getOpcode() == Opcode.EXPR_and) {
-				Expr.Operator conjunct = (Expr.Operator) child;
-				count += nestedCount(conjunct.getOperands());
+			if (child.getOpcode() == Opcode.EXPR_or) {
+				Expr.Operator disjunct = (Expr.Operator) child;
+				count += nestedCount(disjunct.getOperands());
 			} else {
 				count = count + 1;
 			}
@@ -107,13 +107,13 @@ public class AndElimination implements RewriteRule {
 	}
 
 	/**
-	 * Copy non-conjunct expressions from one array to another. This will
-	 * recursively copy the children of conjunct expressions as well.
+	 * Copy non-disjunct expressions from one array to another. This will
+	 * recursively copy the children of disjunct expressions as well.
 	 *
 	 * @param from
 	 *            The array to be copied from.
 	 * @param to
-	 *            The array to which non-conjuncts are copied.
+	 *            The array to which non-disjuncts are copied.
 	 * @param start
 	 *            The starting point in the destination array into which
 	 *            elements are copied. The underlying assumption is that the
@@ -127,9 +127,9 @@ public class AndElimination implements RewriteRule {
 		int count = 0;
 		for (int i = 0, j = start; i != from.length; ++i) {
 			Expr child = from[i];
-			if (child.getOpcode() == Opcode.EXPR_and) {
-				Expr.Operator conjunct = (Expr.Operator) child;
-				j += nestedCopy(conjunct.getOperands(), to, j);
+			if (child.getOpcode() == Opcode.EXPR_or) {
+				Expr.Operator disjunct = (Expr.Operator) child;
+				j += nestedCopy(disjunct.getOperands(), to, j);
 			} else {
 				to[j++] = from[i];
 				count = count + 1;
@@ -158,10 +158,10 @@ public class AndElimination implements RewriteRule {
 				// tree is well-typed.
 				Constant.Bool b = (Constant.Bool) c.getValue();
 				if (b.get()) {
-					numConstants++;
-				} else {
-					// A conjunct containing false is false.
+					// A disjunct containing true is true.
 					return new Expr[] { c };
+				} else {
+					numConstants++;
 				}
 			}
 		}

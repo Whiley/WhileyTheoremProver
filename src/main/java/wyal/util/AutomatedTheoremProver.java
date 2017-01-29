@@ -14,6 +14,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.rules.AndElimination;
 import wyal.rules.NotElimination;
 
 public class AutomatedTheoremProver {
@@ -41,7 +42,7 @@ public class AutomatedTheoremProver {
 		// This is a bit naughty I suppose.
 		WyalFile.Expr root = new WyalFile.Expr.Operator(Opcode.EXPR_not, body);
 		heap.allocate(root);
-		root = (WyalFile.Expr) pushDownRewrite(new NotElimination(),root,root);
+		root = (WyalFile.Expr) pushDownRewrite(new AndElimination(),root,root);
 		PrintWriter out = new PrintWriter(System.out);
 		new WyalFilePrinter(out).writeExpression(root);
 		out.flush();
