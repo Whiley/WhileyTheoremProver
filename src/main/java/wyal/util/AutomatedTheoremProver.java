@@ -1,21 +1,16 @@
 package wyal.util;
 
 import java.io.PrintWriter;
-import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.Objects;
+import java.util.Map;
 
 import wyal.io.WyalFilePrinter;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
-import wyal.rules.AndElimination;
-import wyal.rules.NotElimination;
+import wyal.rules.*;
 
 public class AutomatedTheoremProver {
 	/**
@@ -36,17 +31,16 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	private final static RewriteRule[] rules = { new NotElimination(), new AndElimination(), new OrElimination() };
+
 	private void check(WyalFile.Declaration.Assert decl) {
 		AbstractSyntacticHeap heap = new AbstractSyntacticHeap();
 		Expr body = toExpressionForm(SyntacticHeaps.clone(decl.getBody()));
 		// This is a bit naughty I suppose.
 		WyalFile.Expr root = new WyalFile.Expr.Operator(Opcode.EXPR_not, body);
 		heap.allocate(root);
-		root = (WyalFile.Expr) pushDownRewrite(new AndElimination(),root,root);
-		PrintWriter out = new PrintWriter(System.out);
-		new WyalFilePrinter(out).writeExpression(root);
-		out.flush();
-		System.out.println();
+		root = (WyalFile.Expr) pushDownRewrite(root, rules);
+		print(root);
 		// Prepare for proof-by-contradiction
 		heap.print(new PrintWriter(System.out));
 	}
@@ -62,7 +56,7 @@ public class AutomatedTheoremProver {
 	 * @return
 	 */
 	public static WyalFile.Expr toExpressionForm(WyalFile.Stmt s) {
-		switch(s.getOpcode()) {
+		switch (s.getOpcode()) {
 		case STMT_block: {
 			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) s;
 			Expr[] operands = toExpressionForm(b.getOperands());
@@ -93,7 +87,7 @@ public class AutomatedTheoremProver {
 			return new WyalFile.Expr.Quantifier(Opcode.EXPR_exists, q.getParameters(), body);
 		}
 		default:
-			if(s instanceof WyalFile.Expr) {
+			if (s instanceof WyalFile.Expr) {
 				return (WyalFile.Expr) s;
 			} else {
 				throw new IllegalArgumentException("unknown statement encountered: " + s.getOpcode());
@@ -103,7 +97,7 @@ public class AutomatedTheoremProver {
 
 	public static WyalFile.Expr[] toExpressionForm(WyalFile.Stmt[] stmts) {
 		WyalFile.Expr[] exprs = new WyalFile.Expr[stmts.length];
-		for(int i=0;i!=exprs.length;++i) {
+		for (int i = 0; i != exprs.length; ++i) {
 			exprs[i] = toExpressionForm(stmts[i]);
 		}
 		return exprs;
@@ -122,23 +116,125 @@ public class AutomatedTheoremProver {
 		SyntacticItem rewrite(SyntacticItem item);
 	}
 
-	public static SyntacticItem pushDownRewrite(RewriteRule rule, SyntacticItem item, SyntacticItem root) {
-		// FIXME: this strategy can be vastly improved by integrating properly
-		// with substitute(). Basically, to avoid much needless copying of
-		// items.
-		SyntacticItem nItem = rule.rewrite(item);
-		if(nItem != item) {
-			root = SyntacticHeaps.substitute(root, item, nItem);
-		}
-		SyntacticItem[] children = nItem.getOperands();
-		if(children != null) {
-			for(int i=0;i!=children.length;++i) {
-				SyntacticItem child = children[i];
-				if(child != null) {
-					root = pushDownRewrite(rule,child,root);
+	/**
+	 * <p>
+	 * Apply a given set of rewrite rules to a given syntactic item and
+	 * (recursively) all children contained therein. This produces a single item
+	 * representing this result of this rewrite. Observe that this may be a
+	 * freshly created location and (if so) will be detached.
+	 * </p>
+	 * <p>
+	 * This method implements the <i>push-down</i> rewrite strategy. This
+	 * iteratively applies the given rules to the item before recursively
+	 * applying them to its children.
+	 * </p>
+	 *
+	 * @param item
+	 *            The item being reduced via this rewrite. If no rewrites are
+	 *            applied, then the original item is returned untouched.
+	 * @param rules
+	 *            The array of rules to be applied to the the given item. These
+	 *            rules are applied iteratively according to their relative
+	 *            order in the array.
+	 */
+	public static SyntacticItem pushDownRewrite(SyntacticItem item, RewriteRule[] rules) {
+		SyntacticHeap heap = item.getParent();
+		item = pushDownRewrite(item,rules,new IdentityHashMap<>());
+		heap.allocate(item);
+		return item;
+	}
+
+	/**
+	 * <p>
+	 * Apply a given set of rewrite rules to a given syntactic item and
+	 * (recursively) all children contained therein. This produces a single item
+	 * representing this result of this rewrite. Observe that this may be a
+	 * freshly created location and (if so) will be detached.
+	 * </p>
+	 * <p>
+	 * This method implements the <i>push-down</i> rewrite strategy. This
+	 * iteratively applies the given rules to the item before recursively
+	 * applying them to its children.
+	 * </p>
+	 *
+	 * @param item
+	 *            The item being reduced via this rewrite. If no rewrites are
+	 *            applied, then the original item is returned untouched.
+	 * @param rules
+	 *            The array of rules to be applied to the the given item. These
+	 *            rules are applied iteratively according to their relative
+	 *            order in the array.
+	 * @param mapping
+	 *            A mapping from the original syntactic items to the cloned
+	 *            syntactic items. This is necessary to preserve the aliasing
+	 *            structure in the resulting cloned item.
+	 * @return
+	 */
+	public static SyntacticItem pushDownRewrite(SyntacticItem item, RewriteRule[] rules,
+			Map<SyntacticItem, SyntacticItem> mapping) {
+		SyntacticItem nItem = mapping.get(item);
+		if (nItem != null) {
+			// We've previously rewritten this item already to produce an
+			// updated item. Therefore, simply return that item to ensure the
+			// original aliasing structure of the ancestor(s) is properly preserved.
+			return nItem;
+		} else {
+			nItem = item;
+			SyntacticItem oItem;
+			// Iterate rewrites until a fixed-point is reached. That is, when there
+			// are no further changes to the item.
+			do {
+				oItem = nItem;
+				for (int i = 0; i != rules.length; ++i) {
+					nItem = rules[i].rewrite(nItem);
+				}
+			} while (nItem != oItem);
+			// Apply rewrites recursively to all children.
+			SyntacticItem[] children = nItem.getOperands();
+			// Initially, this will alias children. In the event of a child
+			// which is actually updated, then this will refer to a new array.
+			// That will be the signal that we need to create a new item to
+			// return.
+			SyntacticItem[] nChildren = children;
+			if (children != null) {
+				for (int i = 0; i != children.length; ++i) {
+					SyntacticItem child = children[i];
+					// Check for null, since we don't want to try and substitute
+					// into null.
+					if (child != null) {
+						// Apply all rewrite rules to the given child
+						SyntacticItem nChild = pushDownRewrite(child, rules, mapping);
+						// Check whether anything was actually changed
+						if (nChild != child && children == nChildren) {
+							// Yes, the child changed and we haven't already
+							// cloned the children array. Hence, we'd better
+							// clone it now to make sure that the original item
+							// is preserved.
+							nChildren = Arrays.copyOf(children, children.length);
+						}
+						nChildren[i] = nChild;
+					}
+					// Now, clone the original item if necessary. This is only
+					// necessary if the children array as been updated in some
+					// way.
+					if (children != nChildren) {
+						// Create the new item which, at this point, will be
+						// detached.
+						nItem = nItem.clone(nChildren);
+					}
 				}
 			}
+			// Update mapping since this item is processed
+			mapping.put(item, nItem);
+			// Done
+			return nItem;
 		}
-		return root;
+	}
+
+	private static void print(WyalFile.Expr item) {
+		PrintWriter out = new PrintWriter(System.out);
+		new WyalFilePrinter(out).writeExpression(item);
+		out.flush();
+		System.out.println();
 	}
 }

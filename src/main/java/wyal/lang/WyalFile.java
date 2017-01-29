@@ -767,8 +767,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Block body) {
 				super(opcode, new Tuple(parameters),body);
 			}
-			private Quantifier(Opcode opcode, Tuple parameters, Block body) {
+			public Quantifier(Opcode opcode, Tuple parameters, Block body) {
 				super(opcode, parameters,body);
+			}
+			public Tuple getTupleParameters() {
+				// FIXME: this should subsume getParameters()
+				return (Tuple) getOperand(0);
 			}
 			public VariableDeclaration[] getParameters() {
 				Tuple params = (Tuple) getOperand(0);
@@ -963,11 +967,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Expr body) {
 				super(opcode, new Tuple(parameters), body);
 			}
-
-			private Quantifier(Opcode opcode, Tuple parameters, Expr body) {
+			public Quantifier(Opcode opcode, Tuple parameters, Expr body) {
 				super(opcode, parameters, body);
 			}
-
+			public Tuple getTupleParameters() {
+				// FIXME: this should subsume getParameters()
+				return (Tuple) getOperand(0);
+			}
 			public VariableDeclaration[] getParameters() {
 				Tuple params = (Tuple) getOperand(0);
 				return (VariableDeclaration[]) params.getOperands();
