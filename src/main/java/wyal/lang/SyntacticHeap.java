@@ -34,19 +34,19 @@ public interface SyntacticHeap {
 	/**
 	 * <p>
 	 * Allocate a given syntactic item into this heap. The item must not already
-	 * be allocated to another heap. This returns the address (i.e. index) of
-	 * the allocated item. This will recursively allocate children not already
-	 * allocated to this heap.
+	 * be allocated to another heap. This will recursively allocate children not
+	 * already allocated to this heap. Observe that the item returned is the
+	 * actual object allocated into this heap. One should not assume that the
+	 * item given is that which is actually allocated.
 	 * </p>
 	 * <p>
-	 * Observe that this method will not permit mixed allocation items. That is,
-	 * when it encounters an item already allocated to a heap it will check that
-	 * it is, in fact, allocated to this heap. Otherwise, an exception is
-	 * raised.
+	 * This method will not permit mixed allocation items. That is, when it
+	 * encounters an item already allocated to another heap it will simple throw
+	 * an exception.
 	 * </p>
 	 *
 	 * @param item
 	 * @return
 	 */
-	public int allocate(SyntacticItem item);
+	public <T extends SyntacticItem> T allocate(T item);
 }

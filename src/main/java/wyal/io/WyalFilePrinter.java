@@ -51,10 +51,9 @@ public class WyalFilePrinter {
 
 	public void writeSyntacticItems(WyalFile wf) {
 		if (raw) {
-			List<SyntacticItem> items = wf.getSyntacticItems();
-			String lenStr = Integer.toString(items.size());
-			for (int i = 0; i != items.size(); ++i) {
-				SyntacticItem item = items.get(i);
+			String lenStr = Integer.toString(wf.size());
+			for (int i = 0; i != wf.size(); ++i) {
+				SyntacticItem item = wf.getSyntacticItem(i);
 				out.print("// ");
 				// Right align the string to ensure that all bytecodes are
 				// displayed on the same column. This just helps reading them.

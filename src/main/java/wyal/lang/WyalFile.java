@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,13 +15,16 @@ import static wycc.util.ArrayUtils.*;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
+import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
+import wybs.lang.CompilationUnit;
 import wybs.util.AbstractCompilationUnit;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
+import wyfs.lang.Path.Entry;
 
-public class WyalFile extends AbstractCompilationUnit<WyalFile> implements SyntacticHeap {
+public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 	// =========================================================================
 	// Content Type
@@ -181,84 +185,20 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> implements Synta
 	// =========================================================================
 	private final ArrayList<SyntacticItem> syntacticItems;
 
+	protected final Path.Entry<WyalFile> entry;
+
 	// =========================================================================
 	// Constructors
 	// =========================================================================
 
 	public WyalFile(Path.Entry<WyalFile> entry) {
-		super(entry);
+		this.entry = entry;
 		this.syntacticItems = new ArrayList<>();
 	}
 
-	// ============================================================
-	// Accessors
-	// ============================================================
-
-	public List<SyntacticItem> getSyntacticItems() {
-		return syntacticItems;
-	}
-
-	public <T extends SyntacticItem> List<T> getSyntacticItems(Class<T> kind) {
-		ArrayList<T> matches = new ArrayList<>();
-		for(int i=0;i!=syntacticItems.size();++i) {
-			SyntacticItem item = syntacticItems.get(i);
-			if(kind.isInstance(item)) {
-				matches.add((T) item);
-			}
-		}
-		return matches;
-	}
-
 	@Override
-	public int size() {
-		return syntacticItems.size();
-	}
-
-	@Override
-	public SyntacticItem getSyntacticItem(int index) {
-		return syntacticItems.get(index);
-	}
-
-	@Override
-	public int getIndexOf(SyntacticItem item) {
-		for(int i=0;i!=syntacticItems.size();++i) {
-			if(syntacticItems.get(i) == item) {
-				return i;
-			}
-		}
-		throw new IllegalArgumentException("invalid syntactic item");
-	}
-
-	@Override
-	public int allocate(SyntacticItem item) {
-		SyntacticHeap parent = item.getParent();
-		if (parent == this) {
-			// Item already allocated to this heap, hence return its existing
-			// address.
-			return getIndexOf(item);
-		} else if(parent != null) {
-			throw new IllegalArgumentException(
-					"Cannot allocate item since a descendent is already allocated to another heap");
-		} else {
-			// Item not allocated to this heap.
-			int index = syntacticItems.size();
-			syntacticItems.add(item);
-			item.allocate(this, index);
-			// Recursively allocate all children
-			for (int i = 0; i != item.size(); ++i) {
-				SyntacticItem child = item.getOperand(i);
-				if(child != null) {
-					allocate(child);
-				}
-			}
-			return index;
-		}
-	}
-
-	public <T extends SyntacticItem> void getSyntacticItems(T[] result, int... indices) {
-		for(int i=0;i!=indices.length;++i) {
-			result[i] = (T) getSyntacticItem(indices[i]);
-		}
+	public Entry<WyalFile> getEntry() {
+		return entry;
 	}
 
 	// ============================================================
