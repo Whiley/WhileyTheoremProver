@@ -215,24 +215,43 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public static class Pair extends Item {
-		public Pair(Item lhs, Item rhs) {
+	public static class Pair<K extends Item,V extends Item> extends Item {
+		public Pair(K lhs, V rhs) {
 			super(Opcode.ITEM_pair, lhs, rhs);
 		}
 
+		public K getFirst() {
+			return (K) getOperand(0);
+		}
+
+		public V getSecond() {
+			return (V) getOperand(1);
+		}
+
 		@Override
-		public Pair clone(SyntacticItem[] operands) {
-			return new Pair((Item) operands[0], (Item)operands[1]);
+		public Pair<K,V> clone(SyntacticItem[] operands) {
+			return new Pair<>((K) operands[0], (V)operands[1]);
 		}
 	}
 
-	public static class Tuple extends Item {
-		public Tuple(Item... stmts) {
+	public static class Tuple<T extends Item> extends Item {
+		public Tuple(T... stmts) {
 			super(Opcode.ITEM_tuple, stmts);
 		}
+
 		@Override
-		public Tuple clone(SyntacticItem[] operands) {
-			return new Tuple((Item[]) operands);
+		public T getOperand(int i) {
+			return (T) super.getOperand(i);
+		}
+
+		@Override
+		public T[] getOperands() {
+			return (T[]) super.getOperands();
+		}
+
+		@Override
+		public Tuple<T> clone(SyntacticItem[] operands) {
+			return new Tuple((T[]) operands);
 		}
 	}
 
@@ -304,6 +323,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public static class Int extends Value {
 			public Int(BigInteger value) {
 				super(Opcode.CONST_int, value);
+			}
+
+			public Int(long value) {
+				super(Opcode.CONST_int, BigInteger.valueOf(value));
 			}
 
 			public BigInteger get() {
@@ -395,17 +418,16 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			public static abstract class FunctionOrMacro extends Named {
-				public FunctionOrMacro(Identifier name, Tuple parameters, Item body) {
+				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Item body) {
 					super(Opcode.DECL_macro, name, append(Item.class, parameters, body));
 				}
 
-				public FunctionOrMacro(Identifier name, Tuple parameters, Tuple returns) {
+				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Tuple<VariableDeclaration> returns) {
 					super(Opcode.DECL_fun, name, parameters, returns);
 				}
 
-				public VariableDeclaration[] getParameters() {
-					Tuple tuple = (Tuple) getOperand(1);
-					return ArrayUtils.toArray(VariableDeclaration.class, tuple.getOperands());
+				public Tuple<VariableDeclaration> getParameters() {
+					return (Tuple) getOperand(1);
 				}
 			}
 
@@ -418,13 +440,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					super(name, new Tuple(parameters), new Tuple(returns));
 				}
 
-				private Function(Identifier name, Tuple parameters, Tuple returns) {
+				public Function(Identifier name, Tuple<VariableDeclaration> parameters, Tuple<VariableDeclaration> returns) {
 					super(name, parameters, returns);
 				}
 
-				public VariableDeclaration[] getReturns() {
-					Tuple tuple = (Tuple) getOperand(2);
-					return ArrayUtils.toArray(VariableDeclaration.class, tuple.getOperands());
+				public Tuple<VariableDeclaration> getReturns() {
+					return (Tuple<VariableDeclaration>) getOperand(2);
 				}
 
 				@Override
@@ -438,10 +459,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			// ============================================================
 			public static class Macro extends FunctionOrMacro {
 				public Macro(Identifier name, VariableDeclaration[] parameters, Stmt.Block body) {
-					super(name, new Tuple(parameters), body);
+					super(name, new Tuple<>(parameters), body);
 				}
 
-				private Macro(Identifier name, Tuple parameters, Stmt.Block body) {
+				private Macro(Identifier name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
 					super(name, parameters, body);
 				}
 
@@ -452,7 +473,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 				@Override
 				public Macro clone(SyntacticItem[] operands) {
-					return new Macro((Identifier) operands[0], (Tuple) operands[1], (Stmt.Block) operands[2]);
+					return new Macro((Identifier) operands[0], (Tuple<VariableDeclaration>) operands[1], (Stmt.Block) operands[2]);
 				}
 			}
 
@@ -465,7 +486,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					super(Opcode.DECL_type, name, append(Item.class, vardecl, new Tuple(invariant)));
 				}
 
-				private Type(Identifier name, VariableDeclaration vardecl, Tuple invariant) {
+				private Type(Identifier name, VariableDeclaration vardecl, Tuple<Stmt.Block> invariant) {
 					super(Opcode.DECL_type, name, append(Item.class, vardecl, invariant));
 				}
 
@@ -473,9 +494,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					return (VariableDeclaration) getOperand(1);
 				}
 
-				public Stmt.Block[] getInvariant() {
-					Tuple tuple = (Tuple) getOperand(2);
-					return ArrayUtils.toArray(Stmt.Block.class, tuple.getOperands());
+				public Tuple<Stmt.Block> getInvariant() {
+					return (Tuple) getOperand(2);
 				}
 
 				@Override
@@ -706,18 +726,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		public static class Quantifier extends Stmt {
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Block body) {
-				super(opcode, new Tuple(parameters),body);
+				super(opcode, new Tuple<>(parameters),body);
 			}
-			public Quantifier(Opcode opcode, Tuple parameters, Block body) {
+			public Quantifier(Opcode opcode, Tuple<VariableDeclaration> parameters, Block body) {
 				super(opcode, parameters,body);
 			}
-			public Tuple getTupleParameters() {
-				// FIXME: this should subsume getParameters()
-				return (Tuple) getOperand(0);
-			}
-			public VariableDeclaration[] getParameters() {
-				Tuple params = (Tuple) getOperand(0);
-				return (VariableDeclaration[]) params.getOperands();
+			public Tuple<VariableDeclaration> getParameters() {
+				return (Tuple<VariableDeclaration>) getOperand(0);
 			}
 			public Block getBody() {
 				return (Block) getOperand(1);
@@ -810,35 +825,25 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				super(Opcode.EXPR_poly, terms);
 			}
 
-			public static class Term extends Pair {
-//				public Term(WyalFile.Constant.Integer v, Tuple variables) {
-//					super(v, variables);
-//				}
+			@Override
+			public Term getOperand(int i) {
+				return (Term) super.getOperand(i);
+			}
 
-				public Term(Item lhs, Item rhs) {
-					super(lhs, rhs);
-					// TODO Auto-generated constructor stub
-				}
-
-				public Constant getConstant() {
-					return (Constant) super.getOperand(0);
-				}
-
-				public Tuple getVariables() {
-					return (Tuple) super.getOperand(1);
+			public static class Term extends Pair<Value.Int, Tuple<Expr>> {
+				public Term(Value.Int v, Tuple<Expr> variables) {
+					super(v, variables);
 				}
 
 				@Override
 				public Term clone(SyntacticItem[] operands) {
-					// TODO Auto-generated method stub
-					return null;
+					return new Term((Value.Int) operands[0], (Tuple) operands[1]);
 				}
 			}
 
 			@Override
 			public Polynomial clone(SyntacticItem[] operands) {
-				// TODO Auto-generated method stub
-				return null;
+				return new Polynomial((Term[]) operands);
 			}
 		}
 
@@ -915,10 +920,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		public static class Invoke extends Expr {
 			public Invoke(Type type, Name name, Expr... arguments) {
-				super(Opcode.EXPR_invoke, type, name, new Tuple(arguments));
+				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}
 
-			private Invoke(Type type, Name name, Tuple arguments) {
+			public Invoke(Type type, Name name, Tuple<Expr> arguments) {
 				super(Opcode.EXPR_invoke, type, name, arguments);
 			}
 
@@ -930,9 +935,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return (Name) getOperand(1);
 			}
 
-			public Expr[] getArguments() {
-				Tuple t = (Tuple) getOperand(2);
-				return (Expr[]) t.getOperands();
+			public Tuple<Expr> getArguments() {
+				return (Tuple) getOperand(2);
 			}
 
 			@Override
@@ -943,18 +947,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		public static class Quantifier extends Expr {
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Expr body) {
-				super(opcode, new Tuple(parameters), body);
+				super(opcode, new Tuple<>(parameters), body);
 			}
-			public Quantifier(Opcode opcode, Tuple parameters, Expr body) {
+			public Quantifier(Opcode opcode, Tuple<VariableDeclaration> parameters, Expr body) {
 				super(opcode, parameters, body);
 			}
-			public Tuple getTupleParameters() {
-				// FIXME: this should subsume getParameters()
-				return (Tuple) getOperand(0);
-			}
-			public VariableDeclaration[] getParameters() {
-				Tuple params = (Tuple) getOperand(0);
-				return (VariableDeclaration[]) params.getOperands();
+			public Tuple<VariableDeclaration> getParameters() {
+				return (Tuple<VariableDeclaration>) getOperand(0);
 			}
 
 			public Expr getBody() {
@@ -963,7 +962,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Quantifier clone(SyntacticItem[] operands) {
-				return new Quantifier(getOpcode(), (Tuple) operands[0], (Expr) operands[1]);
+				return new Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0], (Expr) operands[1]);
 			}
 		}
 

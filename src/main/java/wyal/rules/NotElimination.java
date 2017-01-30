@@ -40,7 +40,7 @@ public class NotElimination implements RewriteRule {
 				// (2) exists(...).e ---> forall(...).!e
 				Expr.Quantifier q = (Expr.Quantifier) child;
 				Expr body = not(q.getBody());
-				return new Expr.Quantifier(invert(opcode), q.getTupleParameters(), body);
+				return new Expr.Quantifier(invert(opcode), q.getParameters(), body);
 			}
 			case EXPR_implies: {
 				// !(A ==> B) ---> A && !B

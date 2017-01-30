@@ -195,10 +195,10 @@ public class TypeChecker {
 
 	private Type checkInvocation(Expr.Invoke expr) {
 		// Determine the argument types
-		Expr[] arguments = expr.getArguments();
-		Type[] types = new Type[arguments.length];
-		for (int i = 0; i != arguments.length; ++i) {
-			types[i] = check(arguments[i]);
+		WyalFile.Tuple<Expr> arguments = expr.getArguments();
+		Type[] types = new Type[arguments.size()];
+		for (int i = 0; i != arguments.size(); ++i) {
+			types[i] = check(arguments.getOperand(i));
 		}
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
@@ -206,11 +206,11 @@ public class TypeChecker {
 		if (sig instanceof Named.Function) {
 			Named.Function fn = (Named.Function) sig;
 			// Functions have specific return values
-			VariableDeclaration[] d = fn.getReturns();
-			if (d.length != 1) {
+			WyalFile.Tuple<VariableDeclaration> d = fn.getReturns();
+			if (d.size() != 1) {
 				throw new RuntimeException("invalid number of returns");
 			} else {
-				return d[0].getType();
+				return d.getOperand(0).getType();
 			}
 		} else {
 			return new Type.Bool();
@@ -500,8 +500,8 @@ public class TypeChecker {
 	 * @return
 	 */
 	private boolean isApplicable(Named.FunctionOrMacro decl, Type... args) {
-		VariableDeclaration[] parameters = decl.getParameters();
-		if (parameters.length != args.length) {
+		WyalFile.Tuple<VariableDeclaration> parameters = decl.getParameters();
+		if (parameters.size() != args.length) {
 			// Differing number of parameters / arguments. Since we don't
 			// support variable-length argument lists (yet), there is nothing
 			// more to consider.
@@ -510,7 +510,7 @@ public class TypeChecker {
 		// Number of parameters matches number of arguments. Now, check that
 		// each argument is a subtype of its corresponding parameter.
 		for (int i = 0; i != args.length; ++i) {
-			Type param = parameters[i].getType();
+			Type param = parameters.getOperand(i).getType();
 			if (!types.isSubtype(param, args[i])) {
 				return false;
 			}
@@ -534,9 +534,9 @@ public class TypeChecker {
 	 * @return
 	 */
 	private boolean isSubtype(Named.FunctionOrMacro parent, Named.FunctionOrMacro child) {
-		VariableDeclaration[] parentParams = parent.getParameters();
-		VariableDeclaration[] childParams = child.getParameters();
-		if (parentParams.length != childParams.length) {
+		WyalFile.Tuple<VariableDeclaration> parentParams = parent.getParameters();
+		WyalFile.Tuple<VariableDeclaration> childParams = child.getParameters();
+		if (parentParams.size() != childParams.size()) {
 			// Differing number of parameters / arguments. Since we don't
 			// support variable-length argument lists (yet), there is nothing
 			// more to consider.
@@ -544,9 +544,9 @@ public class TypeChecker {
 		}
 		// Number of parameters matches number of arguments. Now, check that
 		// each argument is a subtype of its corresponding parameter.
-		for (int i = 0; i != parentParams.length; ++i) {
-			Type parentParam = parentParams[i].getType();
-			Type childParam = childParams[i].getType();
+		for (int i = 0; i != parentParams.size(); ++i) {
+			Type parentParam = parentParams.getOperand(i).getType();
+			Type childParam = childParams.getOperand(i).getType();
 			if (!types.isSubtype(parentParam, childParam)) {
 				return false;
 			}

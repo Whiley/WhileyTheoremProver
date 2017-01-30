@@ -32,7 +32,12 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private final static RewriteRule[] rules = { new NotElimination(), new AndElimination(), new OrElimination() };
+	private final static RewriteRule[] rules = {
+			new NotElimination(),
+			new AndElimination(),
+			new OrElimination(),
+			new ArithmeticSimplification()
+		};
 
 	private void check(WyalFile.Declaration.Assert decl) {
 		AbstractSyntacticHeap heap = new StructurallyEquivalentHeap();

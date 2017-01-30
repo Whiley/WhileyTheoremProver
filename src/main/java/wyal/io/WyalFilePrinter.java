@@ -116,18 +116,16 @@ public class WyalFilePrinter {
 	public void write(WyalFile wf, Declaration.Named.Type s) {
 		Identifier name = s.getName();
 		VariableDeclaration vardecl = s.getVariableDeclaration();
-		Stmt.Block[] invariant = s.getInvariant();
+		Tuple<Stmt.Block> invariant = s.getInvariant();
 		out.print("type ");
 		out.print(name.get());
 		out.print(" is (");
 		writeVariableDeclaration(vardecl);
 		out.println(")");
-		 if(invariant.length > 0) {
-			 for(Stmt.Block block : invariant) {
-				 out.println("where:");
-				 writeBlock(block,1);
-			 }
-		 }
+		for(int i=0;i!=invariant.size();++i) {
+			out.println("where:");
+			writeBlock(invariant.getOperand(i),1);
+		}
 	}
 
 	public void write(WyalFile wf, Declaration.Assert s) {
@@ -135,13 +133,13 @@ public class WyalFilePrinter {
 		writeBlock(s.getBody(), 1);
 	}
 
-	private void writeVariableDeclarations(VariableDeclaration[] parameters) {
+	private void writeVariableDeclarations(Tuple<VariableDeclaration> parameters) {
 		out.print("(");
-		for (int i = 0; i != parameters.length; ++i) {
+		for (int i = 0; i != parameters.size(); ++i) {
 			if (i != 0) {
 				out.print(", ");
 			}
-			writeVariableDeclaration(parameters[i]);
+			writeVariableDeclaration(parameters.getOperand(i));
 		}
 		out.print(")");
 	}
@@ -279,6 +277,9 @@ public class WyalFilePrinter {
 		case EXPR_rem:
 			writeInfixOperator((Expr.Operator) expr);
 			break;
+		case EXPR_poly:
+			writePolynomial((Expr.Polynomial) expr);
+			break;
 		case EXPR_is:
 			writeIsOperator((Expr.Is) expr);
 			break;
@@ -376,6 +377,24 @@ public class WyalFilePrinter {
 		}
 	}
 
+	public void writePolynomial(Expr.Polynomial expr) {
+		for(int i=0;i!=expr.size();++i) {
+			if(i != 0) {
+				out.print(" + ");
+			}
+			writePolynomialTerm(expr.getOperand(i));
+		}
+	}
+
+	public void writePolynomialTerm(Expr.Polynomial.Term term) {
+		out.print(term.getFirst().get());
+		Tuple<Expr> vars = term.getSecond();
+		for(int i=0;i!=vars.size();++i) {
+			out.print("*");
+			writeExpression(vars.getOperand(i));
+		}
+	}
+
 	public void writeIsOperator(Expr.Is expr) {
 		writeExpressionWithBrackets(expr.getExpr());
 		out.print(" is ");
@@ -385,7 +404,7 @@ public class WyalFilePrinter {
 	public void writeInvoke(Expr.Invoke expr) {
 		writeName(expr.getName());
 		out.print("(");
-		writeArguments(expr.getArguments());
+		writeArguments(expr.getArguments().getOperands());
 		out.print(")");
 	}
 
@@ -433,11 +452,10 @@ public class WyalFilePrinter {
 		}
 		writeVariableDeclarations(stmt.getParameters());
 		out.print(".");
-		writeExpression(stmt.getBody());
+		writeExpressionWithBrackets(stmt.getBody());
 	}
 
-
-	public void writeArguments(Expr...exprs) {
+	public void writeArguments(Expr[] exprs) {
 		for(int i=0;i!=exprs.length;++i) {
 			if(i!=0) {
 				out.print(", ");
