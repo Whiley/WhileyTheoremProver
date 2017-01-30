@@ -1,7 +1,7 @@
 package wyal.rules;
 
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile.Constant;
+import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
@@ -18,8 +18,8 @@ public class NotElimination implements RewriteRule {
 			case EXPR_const: {
 				// !false ---> true, etc
 				Expr.Constant c = (Expr.Constant) child;
-				Constant.Bool b = (Constant.Bool) c.getValue();
-				return new Expr.Constant(new Constant.Bool(!b.get()));
+				Value.Bool b = (Value.Bool) c.getValue();
+				return new Expr.Constant(new Value.Bool(!b.get()));
 			}
 			case EXPR_not:
 				// !!x ---> x

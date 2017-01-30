@@ -159,6 +159,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_mul(53),
 		EXPR_div(54),
 		EXPR_rem(55),
+		EXPR_poly(56),
 		// ARRAY
 		EXPR_arrinit(60),
 		EXPR_arrlen(61),
@@ -265,17 +266,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public abstract static class Constant extends Item {
+	public abstract static class Value extends Item {
 
-		public Constant(Opcode opcode) {
+		public Value(Opcode opcode) {
 			super(opcode);
 		}
 
-		public Constant(Opcode opcode, Object data) {
+		public Value(Opcode opcode, Object data) {
 			super(opcode,data);
 		}
 
-		public static class Null extends Constant {
+		public static class Null extends Value {
 			public Null() {
 				super(Opcode.CONST_null);
 			}
@@ -285,7 +286,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Bool extends Constant {
+		public static class Bool extends Value {
 			public Bool(boolean value) {
 				super(Opcode.CONST_bool, value);
 			}
@@ -300,7 +301,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Int extends Constant {
+		public static class Int extends Value {
 			public Int(BigInteger value) {
 				super(Opcode.CONST_int, value);
 			}
@@ -315,7 +316,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class UTF8 extends Constant {
+		public static class UTF8 extends Value {
 			public UTF8(byte[] bytes) {
 				super(Opcode.CONST_utf8, bytes);
 			}
@@ -671,7 +672,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	}
 
 	// ============================================================
-	// Term
+	// Stmt
 	// ============================================================
 
 	public abstract static class Stmt extends Item {
@@ -801,6 +802,43 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Operator clone(SyntacticItem[] operands) {
 				return new Operator(getOpcode(),(Expr[]) operands);
+			}
+		}
+
+		public static class Polynomial extends Expr {
+			public Polynomial(Term... terms) {
+				super(Opcode.EXPR_poly, terms);
+			}
+
+			public static class Term extends Pair {
+//				public Term(WyalFile.Constant.Integer v, Tuple variables) {
+//					super(v, variables);
+//				}
+
+				public Term(Item lhs, Item rhs) {
+					super(lhs, rhs);
+					// TODO Auto-generated constructor stub
+				}
+
+				public Constant getConstant() {
+					return (Constant) super.getOperand(0);
+				}
+
+				public Tuple getVariables() {
+					return (Tuple) super.getOperand(1);
+				}
+
+				@Override
+				public Term clone(SyntacticItem[] operands) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+			}
+
+			@Override
+			public Polynomial clone(SyntacticItem[] operands) {
+				// TODO Auto-generated method stub
+				return null;
 			}
 		}
 

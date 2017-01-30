@@ -388,7 +388,7 @@ public class AutomatedTheoremProver {
 	private static boolean isContradiction(WyalFile.Expr item) {
 		if (item instanceof Expr.Constant) {
 			Expr.Constant c = (Expr.Constant) item;
-			Constant.Bool b = (Constant.Bool) c.getValue();
+			Value.Bool b = (Value.Bool) c.getValue();
 			return !b.get();
 		}
 		return false;

@@ -262,7 +262,7 @@ public class WyalFileParser {
 			// Initial indent either doesn't exist or is not strictly greater
 			// than parent indent and,therefore, signals an empty block.
 			//
-			Expr bool = new Expr.Constant(new Constant.Bool(true));
+			Expr bool = new Expr.Constant(new Value.Bool(true));
 			return new Stmt.Block(bool);
 		} else {
 			// Initial indent is valid, so we proceed parsing statements with
@@ -715,24 +715,24 @@ public class WyalFileParser {
 		Item item;
 		switch (token.kind) {
 		case Null:
-			item = new Constant.Null();
+			item = new Value.Null();
 			break;
 		case True:
-			item = new Constant.Bool(true);
+			item = new Value.Bool(true);
 			break;
 		case False:
-			item = new Constant.Bool(false);
+			item = new Value.Bool(false);
 			break;
 		case IntValue: {
 			BigInteger val = new BigInteger(token.text);
-			item = new Constant.Int(val);
+			item = new Value.Int(val);
 			break;
 		}
 		case StringValue: {
 			String str = parseString(token.text);
 			// FIXME: following may be broken because of conversion between
 			// UTF16 from java.lang.String.
-			item = new Constant.UTF8(str.getBytes());
+			item = new Value.UTF8(str.getBytes());
 			break;
 		}
 		default:

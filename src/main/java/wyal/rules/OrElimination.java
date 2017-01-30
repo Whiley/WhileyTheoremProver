@@ -3,7 +3,7 @@ package wyal.rules;
 import java.util.Arrays;
 
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile.Constant;
+import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
@@ -47,7 +47,7 @@ public class OrElimination implements RewriteRule {
 			if (children.length == 0) {
 				// Return false here since the only way it's possible to get here
 				// is if the disjunct contained only false at the end.
-				return new Expr.Constant(new Constant.Bool(false));
+				return new Expr.Constant(new Value.Bool(false));
 			} else if (children.length == 1) {
 				return children[0];
 			} else if (children != item.getOperands()) {
@@ -156,7 +156,7 @@ public class OrElimination implements RewriteRule {
 				Expr.Constant c = (Expr.Constant) child;
 				// The following is safe only because we assume the expression
 				// tree is well-typed.
-				Constant.Bool b = (Constant.Bool) c.getValue();
+				Value.Bool b = (Value.Bool) c.getValue();
 				if (b.get()) {
 					// A disjunct containing true is true.
 					return new Expr[] { c };
