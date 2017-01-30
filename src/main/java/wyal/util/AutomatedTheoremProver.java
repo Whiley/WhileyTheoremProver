@@ -49,6 +49,13 @@ public class AutomatedTheoremProver {
 		print(root);
 		// Prepare for proof-by-contradiction
 		heap.print(new PrintWriter(System.out));
+		//
+		if(isContradiction(root)) {
+			return;
+		} else {
+			// FIXME: throw proper error here
+			throw new IllegalArgumentException("Verification error!");
+		}
 	}
 
 	/**
@@ -369,5 +376,21 @@ public class AutomatedTheoremProver {
 		new WyalFilePrinter(out).writeExpression(item);
 		out.flush();
 		System.out.println();
+	}
+
+	/**
+	 * Check whether a given expression represents a contradiction (i.e. is
+	 * false).
+	 *
+	 * @param item
+	 * @return
+	 */
+	private static boolean isContradiction(WyalFile.Expr item) {
+		if (item instanceof Expr.Constant) {
+			Expr.Constant c = (Expr.Constant) item;
+			Constant.Bool b = (Constant.Bool) c.getValue();
+			return !b.get();
+		}
+		return false;
 	}
 }
