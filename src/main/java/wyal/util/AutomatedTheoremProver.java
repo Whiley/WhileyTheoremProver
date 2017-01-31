@@ -239,7 +239,7 @@ public class AutomatedTheoremProver {
 					SyntacticItem child = children[i];
 					// Check for null, since we don't want to try and substitute
 					// into null.
-					if (child != null) {
+					if (child instanceof Expr) {
 						// Apply all rewrite rules to the given child
 						SyntacticItem nChild = pushDownRewrite(child, rules, mapping);
 						// Check whether anything was actually changed

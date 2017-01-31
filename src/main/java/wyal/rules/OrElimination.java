@@ -213,23 +213,14 @@ public class OrElimination implements RewriteRule {
 		}
 	}
 
-	/**
-	 * Check whether or not the children of this array are sorted according to
-	 * syntactic heap index. And, if so, whether or not there are any duplicate
-	 * elements encountered.
-	 *
-	 * @param children
-	 * @return
-	 */
 	private int isSortedAndUnique(Expr[] children) {
 		int r = 0;
 		for (int i = 1; i < children.length; ++i) {
-			int leftIndex = children[i - 1].getIndex();
-			int rightIndex = children[i].getIndex();
-			if (leftIndex == rightIndex) {
+			int c = children[i - 1].compareTo(children[i]);
+			if (c == 0) {
 				// Duplicate found, though still could be in sorted order.
 				r = 1;
-			} else if (leftIndex > rightIndex) {
+			} else if (c > 0) {
 				// NOT in sorted order
 				return -1;
 			}

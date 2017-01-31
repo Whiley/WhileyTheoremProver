@@ -5,6 +5,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 
@@ -387,11 +388,23 @@ public class WyalFilePrinter {
 	}
 
 	public void writePolynomialTerm(Expr.Polynomial.Term term) {
-		out.print(term.getFirst().get());
-		Tuple<Expr> vars = term.getSecond();
-		for(int i=0;i!=vars.size();++i) {
-			out.print("*");
-			writeExpression(vars.getOperand(i));
+		BigInteger coefficient = term.getCoefficient().get();
+		Tuple<Expr> atoms = term.getAtoms();
+		boolean firstTime = true;
+		if (coefficient.equals(BigInteger.ONE) && atoms.size() > 0) {
+			// ignore this
+		} else if (coefficient.equals(BigInteger.valueOf(-1)) && atoms.size() > 0) {
+			out.print("-");
+		} else {
+			out.print(coefficient);
+			firstTime = false;
+		}
+		for (int i = 0; i != atoms.size(); ++i) {
+			if (!firstTime) {
+				out.print("*");
+			}
+			firstTime = false;
+			writeExpression(atoms.getOperand(i));
 		}
 	}
 

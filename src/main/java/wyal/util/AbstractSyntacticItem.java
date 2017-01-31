@@ -1,5 +1,6 @@
 package wyal.util;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -14,7 +15,7 @@ import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 
 public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
-		implements Comparable<AbstractSyntacticItem>, SyntacticItem {
+		implements Comparable<SyntacticItem>, SyntacticItem {
 	// Constants;
 	private SyntacticHeap parent;
 	private int index; // index in the parent
@@ -158,8 +159,95 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 	}
 
 	@Override
-	public int compareTo(AbstractSyntacticItem other) {
-		return this.index - other.index;
+	public int compareTo(SyntacticItem other) {
+		int diff = opcode.ordinal() - other.getOpcode().ordinal();
+		if (diff != 0) {
+			return diff;
+		}
+		// We have two items with the same opcode. Need to investigate their
+		// structure.
+		diff = size() - other.size();
+		if (diff != 0) {
+			return diff;
+		}
+		for (int i = 0; i != size(); ++i) {
+			diff = getOperand(i).compareTo(other.getOperand(i));
+			if (diff != 0) {
+				return diff;
+			}
+		}
+		return compareData(data, other.getData());
+	}
+
+	/**
+	 * Compare the data object associated with a given syntactic item. An
+	 * important question here is what kinds of data are actually permitted. At
+	 * this stage, it's not completely clear. However, at least:
+	 * <code>Boolean</code>, <code>BigInteger</code>, <code>String</code> and
+	 * <code>byte[]</code>.  For simplicity, we'll order them according to this sequence.
+	 *
+	 * @param leftData
+	 * @param rightData
+	 * @return
+	 */
+	private int compareData(Object leftData, Object rightData) {
+		if(leftData == null || rightData == null) {
+			if(leftData == rightData) {
+				return 0;
+			} else if(leftData == null) {
+				return -1;
+			} else {
+				return 1;
+			}
+		}
+		// At this point, we have two non-null data items. Therefore, we need to
+		// determine whether they refer to the same kind of item or to different
+		// kinds. In the latter case, we need to determine the relative ordering
+		// of kinds.
+		int leftKind = getDataKind(leftData);
+		int rightKind = getDataKind(rightData);
+		if(leftKind != rightKind) {
+			return leftKind - rightKind;
+		} else {
+			switch(leftKind) {
+			case 0: // Boolean
+				return ((Boolean)leftData).compareTo((Boolean)rightData);
+			case 1: // BigInteger
+				return ((BigInteger)leftData).compareTo((BigInteger)rightData);
+			case 2: // String
+				return ((String)leftData).compareTo((String)rightData);
+			default:
+				// byte[]
+				byte[] leftBytes = (byte[]) leftData;
+				byte[] rightBytes = (byte[]) rightData;
+				if(leftBytes.length != rightBytes.length) {
+					return leftBytes.length - rightBytes.length;
+				} else {
+					for(int i=0;i!=leftBytes.length;++i) {
+						int c = Byte.compare(leftBytes[i], rightBytes[i]);
+						if(c != 0) {
+							return c;
+						}
+					}
+					//
+					return 0;
+				}
+			}
+		}
+	}
+
+	private int getDataKind(Object o) {
+		if (o instanceof Boolean) {
+			return 0;
+		} else if (o instanceof BigInteger) {
+			return 1;
+		} else if (o instanceof String) {
+			return 2;
+		} else if (o instanceof byte[]) {
+			return 3;
+		} else {
+			throw new IllegalArgumentException("unknown datakind encountered");
+		}
 	}
 
 	// =========================================================================

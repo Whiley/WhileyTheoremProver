@@ -1,12 +1,10 @@
 package wyal.rules;
 
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
@@ -15,13 +13,6 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
 
 public class ArithmeticSimplification implements RewriteRule {
-	// TODO:
-	// Evaluate constant expressions
-	// combine constants
-	// Normalise substraction
-	// Flatten sums
-	// Distribute multiplication over addition
-	// GCD
 
 	@Override
 	public SyntacticItem rewrite(SyntacticItem item) {
@@ -47,17 +38,37 @@ public class ArithmeticSimplification implements RewriteRule {
 		Polynomial rhs = (Polynomial) nChildren[1];
 		if (isConstant(lhs) && isConstant(rhs)) {
 			return evaluateEquation(expr.getOpcode(), asConstant(lhs), asConstant(rhs));
-		} else if (isZero(lhs) && children == nChildren) {
+		} else if ((isZero(lhs) || isZero(rhs)) && children == nChildren) {
 			// Equation already in normal form, and cannot be reduced further.
 			// Therefore, no need to do anything else
 			return expr;
 		} else {
-			rhs = subtract(rhs, lhs);
-			lhs = new Polynomial(BigInteger.ZERO);
-			// We need to clone POLY_ZERO here, since otherwise it would be
-			// allocated to a heap and, hence, couldn't be reused in the future.
+			int lhsSigns = countSigns(lhs);
+			int rhsSigns = countSigns(rhs);
+			if(lhsSigns < rhsSigns) {
+				rhs = subtract(rhs, lhs);
+				lhs = new Polynomial(BigInteger.ZERO);
+			} else {
+				lhs = subtract(lhs, rhs);
+				rhs = new Polynomial(BigInteger.ZERO);
+			}
 			return expr.clone(new Expr[]{lhs, rhs});
 		}
+	}
+
+	private int countSigns(Polynomial p) {
+		int signs = 0;
+		for(int i=0;i!=p.size();++i) {
+			Polynomial.Term term = p.getOperand(i);
+			BigInteger b = term.getCoefficient().get();
+			int c = b.compareTo(BigInteger.ZERO);
+			if(c < 0) {
+				signs = signs - 1;
+			} else {
+				signs = signs + 1;
+			}
+		}
+		return signs;
 	}
 
 	/**
@@ -262,8 +273,6 @@ public class ArithmeticSimplification implements RewriteRule {
 		Expr[] atoms = new Expr[lhsAtoms.size() + rhsAtoms.size()];
 		System.arraycopy(lhsAtoms.getOperands(), 0, atoms, 0, lhsAtoms.size());
 		System.arraycopy(rhsAtoms.getOperands(), 0, atoms, lhsAtoms.size(), rhsAtoms.size());
-		// FIXME: is this broken in the case that the resulting terms have not
-		// been allocated into a heap yet?
 		Arrays.sort(atoms);
 		Value.Int coefficient = new Value.Int(lhsCoeff.multiply(rhsCoeff));
 		return new Polynomial.Term(coefficient, new Tuple<>(atoms));
@@ -339,16 +348,22 @@ public class ArithmeticSimplification implements RewriteRule {
 		for (int i = 0; i != terms.size(); ++i) {
 			Polynomial.Term ith = terms.get(i);
 			if (ith != null) {
-				Tuple<Expr> ithAtoms = ith.getAtoms();
-				for (int j = i + 1; j != terms.size(); ++j) {
-					Polynomial.Term jth = terms.get(j);
-					if (jth != null && ithAtoms.equals(jth.getAtoms())) {
-						// We have two overlapping terms, namely i and j.
-						// Add them together and assign the result to the jth
-						// position.
-						terms.set(j, add(ith, jth));
-						terms.set(i, null);
-						break;
+				if (isZero(ith)) {
+					// Eliminate any zeros which may have arisen during the calculation.
+					terms.set(i,null);
+				} else {
+					Tuple<Expr> ithAtoms = ith.getAtoms();
+					for (int j = i + 1; j != terms.size(); ++j) {
+						Polynomial.Term jth = terms.get(j);
+						if (jth != null && ithAtoms.equals(jth.getAtoms())) {
+							// We have two overlapping terms, namely i and j.
+							// Add them together and assign the result to the
+							// jth
+							// position.
+							terms.set(j, add(ith, jth));
+							terms.set(i, null);
+							break;
+						}
 					}
 				}
 			}
@@ -356,6 +371,11 @@ public class ArithmeticSimplification implements RewriteRule {
 
 		// strip out null entries, factorise and we're done!
 		return new Polynomial(cancel(terms));
+	}
+
+	private boolean isZero(Polynomial.Term term) {
+		BigInteger coefficient = term.getCoefficient().get();
+		return coefficient.equals(BigInteger.ZERO);
 	}
 
 	private Polynomial.Term add(Polynomial.Term lhs, Polynomial.Term rhs) {

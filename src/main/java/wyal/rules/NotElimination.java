@@ -46,7 +46,7 @@ public class NotElimination implements RewriteRule {
 				// !(A ==> B) ---> A && !B
 				Expr.Operator operator = (Expr.Operator) child;
 				Expr lhs = operator.getOperand(0);
-				Expr rhs = operator.getOperand(0);
+				Expr rhs = operator.getOperand(1);
 				return new Expr.Operator(Opcode.EXPR_and, lhs, not(rhs));
 			}
 			case EXPR_eq:

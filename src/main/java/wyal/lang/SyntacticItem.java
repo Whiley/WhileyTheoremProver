@@ -1,11 +1,9 @@
 package wyal.lang;
 
-import java.util.Map;
-
 import wyal.lang.WyalFile.Opcode;
 import wybs.lang.SyntacticElement;
 
-public interface SyntacticItem extends SyntacticElement {
+public interface SyntacticItem extends SyntacticElement, Comparable<SyntacticItem> {
 
 	/**
 	 * Get the enclosing compilation unit in which this syntactic item is
