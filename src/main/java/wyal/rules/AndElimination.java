@@ -41,8 +41,6 @@ public class AndElimination implements RewriteRule {
 			children = flattenNestedConjuncts(children);
 			// Eliminate truths
 			children = eliminateConstants(children);
-			// Ensure sorted and unique
-			children = sortAndRemoveDuplicates(children);
 			// And, finally...
 			if (children.length == 0) {
 				// Return true here since the only way it's possible to get here
@@ -180,61 +178,5 @@ public class AndElimination implements RewriteRule {
 			}
 			return nChildren;
 		}
-	}
-
-	/**
-	 * Sort and remove duplicate expressions from the given array. The concept
-	 * of a duplicate expression is based solely on the index of that expression
-	 * in the contained syntactic heap. That is, two expressions with the same
-	 * index are considered duplicates. Likewise, sorting is conducted based on
-	 * heap index, with those with lower indices coming earlier in the resulting
-	 * array.
-	 *
-	 * @param children
-	 * @return
-	 */
-	public Expr[] sortAndRemoveDuplicates(Expr[] children) {
-		int r = isSortedAndUnique(children);
-		switch(r) {
-		case 0:
-			// In this case, the array is already sorted and no duplicates were
-			// found.
-			return children;
-		case 1:
-			// In this case, the array is already sorted, but duplicates were
-			// found
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		default:
-			// In this case, the array is not sorted and may or may not
-			// contained duplicates.
-			children = Arrays.copyOf(children, children.length);
-			Arrays.sort(children);
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		}
-	}
-
-	/**
-	 * Check whether or not the children of this array are sorted according to
-	 * syntactic heap index. And, if so, whether or not there are any duplicate
-	 * elements encountered.
-	 *
-	 * @param children
-	 * @return
-	 */
-	private int isSortedAndUnique(Expr[] children) {
-		int r = 0;
-		for (int i = 1; i < children.length; ++i) {
-			int leftIndex = children[i - 1].getIndex();
-			int rightIndex = children[i].getIndex();
-			if (leftIndex == rightIndex) {
-				// Duplicate found, though still could be in sorted order.
-				r = 1;
-			} else if (leftIndex > rightIndex) {
-				// NOT in sorted order
-				return -1;
-			}
-		}
-		// All good
-		return r;
 	}
 }

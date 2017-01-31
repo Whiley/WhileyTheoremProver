@@ -821,6 +821,9 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Polynomial extends Expr {
+			public Polynomial(BigInteger constant) {
+				super(Opcode.EXPR_poly,new Polynomial.Term[]{new Polynomial.Term(constant)});
+			}
 			public Polynomial(Term... terms) {
 				super(Opcode.EXPR_poly, terms);
 			}
@@ -831,8 +834,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			public static class Term extends Pair<Value.Int, Tuple<Expr>> {
+				public Term(BigInteger constant) {
+					this(new Value.Int(constant));
+				}
+				public Term(Value.Int constant) {
+					super(constant, new Tuple<Expr>());
+				}
 				public Term(Value.Int v, Tuple<Expr> variables) {
 					super(v, variables);
+				}
+
+				public Value.Int getCoefficient() {
+					return getFirst();
+				}
+
+				public Tuple<Expr> getAtoms() {
+					return getSecond();
 				}
 
 				@Override

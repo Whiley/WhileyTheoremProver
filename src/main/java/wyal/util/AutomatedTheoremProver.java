@@ -36,7 +36,8 @@ public class AutomatedTheoremProver {
 			new NotElimination(),
 			new AndElimination(),
 			new OrElimination(),
-			new ArithmeticSimplification()
+			new ArithmeticSimplification(),
+			new QuantifierElimination()
 		};
 
 	private void check(WyalFile.Declaration.Assert decl) {
@@ -50,7 +51,11 @@ public class AutomatedTheoremProver {
 		// held).
 		WyalFile.Expr root = new WyalFile.Expr.Operator(Opcode.EXPR_not, body);
 		root = heap.allocate(root);
-		root = (WyalFile.Expr) pushDownRewrite(root, rules);
+		WyalFile.Expr oRoot = root;
+		do {
+			oRoot = root;
+			root = (WyalFile.Expr) pushDownRewrite(root, rules);
+		} while(oRoot != root);
 		print(root);
 		// Prepare for proof-by-contradiction
 		heap.print(new PrintWriter(System.out));

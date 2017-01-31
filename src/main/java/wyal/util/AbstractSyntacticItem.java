@@ -102,7 +102,11 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public int getIndex() {
-		return index;
+		if (parent != null) {
+			return index;
+		} else {
+			throw new IllegalArgumentException("SyntacticItem not allocated to heap");
+		}
 	}
 
 	@Override
@@ -139,7 +143,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 					r += ", ";
 				}
 				SyntacticItem item = operands[i];
-				if(item != null) {
+				if(item != null && item.getParent() != null) {
 					r += item.getIndex();
 				} else {
 					r += "?";
