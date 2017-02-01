@@ -17,6 +17,7 @@ import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
+import wyal.util.Polynomials;
 import wybs.lang.CompilationUnit;
 import wybs.util.AbstractCompilationUnit;
 import wycc.util.ArrayUtils;
@@ -820,7 +821,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Polynomial extends Expr {
+		public final static class Polynomial extends Expr {
 			public Polynomial(BigInteger constant) {
 				super(Opcode.EXPR_poly,new Polynomial.Term[]{new Polynomial.Term(constant)});
 			}
@@ -831,6 +832,26 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Term getOperand(int i) {
 				return (Term) super.getOperand(i);
+			}
+
+			public Polynomial negate() {
+				return Polynomials.negate(this);
+			}
+
+			public Polynomial add(Polynomial p) {
+				return Polynomials.add(this,p);
+			}
+
+			public Polynomial subtract(Polynomial.Term p) {
+				return Polynomials.subtract(this,p);
+			}
+
+			public Polynomial subtract(Polynomial p) {
+				return Polynomials.subtract(this,p);
+			}
+
+			public Polynomial multiply(Polynomial p) {
+				return Polynomials.multiply(this,p);
 			}
 
 			public static class Term extends Pair<Value.Int, Tuple<Expr>> {

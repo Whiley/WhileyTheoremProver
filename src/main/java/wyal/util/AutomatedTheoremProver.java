@@ -37,7 +37,8 @@ public class AutomatedTheoremProver {
 			new AndElimination(),
 			new OrElimination(),
 			new ArithmeticSimplification(),
-			new QuantifierElimination()
+			new QuantifierElimination(),
+			new InequalityClosure()
 		};
 
 	private void check(WyalFile.Declaration.Assert decl) {
@@ -381,7 +382,7 @@ public class AutomatedTheoremProver {
 	 *
 	 * @param item
 	 */
-	private static void print(WyalFile.Expr item) {
+	public static void print(WyalFile.Expr item) {
 		PrintWriter out = new PrintWriter(System.out);
 		new WyalFilePrinter(out).writeExpression(item);
 		out.flush();

@@ -193,20 +193,23 @@ public class AndElimination implements RewriteRule {
 	 * @param children
 	 * @return
 	 */
-	public Expr[] sortAndRemoveDuplicates(Expr[] children) {
+	public static Expr[] sortAndRemoveDuplicates(Expr[] children) {
 		int r = isSortedAndUnique(children);
 		switch(r) {
 		case 0:
 			// In this case, the array is already sorted and no duplicates were
 			// found.
+			System.out.println("STAGE 1");
 			return children;
 		case 1:
 			// In this case, the array is already sorted, but duplicates were
 			// found
+			System.out.println("STAGE 2");
 			return ArrayUtils.sortedRemoveDuplicates(children);
 		default:
 			// In this case, the array is not sorted and may or may not
 			// contained duplicates.
+			System.out.println("STAGE 3");
 			children = Arrays.copyOf(children, children.length);
 			Arrays.sort(children);
 			return ArrayUtils.sortedRemoveDuplicates(children);
@@ -221,7 +224,7 @@ public class AndElimination implements RewriteRule {
 	 * @param children
 	 * @return
 	 */
-	private int isSortedAndUnique(Expr[] children) {
+	private static int isSortedAndUnique(Expr[] children) {
 		int r = 0;
 		for (int i = 1; i < children.length; ++i) {
 			int c = children[i - 1].compareTo(children[i]);
