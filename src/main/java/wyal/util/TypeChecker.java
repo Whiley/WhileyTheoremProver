@@ -5,12 +5,8 @@
 // of the BSD license.  See the LICENSE file for details.
 package wyal.util;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -19,7 +15,6 @@ import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
-import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Type;
@@ -219,7 +214,7 @@ public class TypeChecker {
 
 	private Type checkIsOperator(Expr.Is expr) {
 		Type lhs = check(expr.getExpr());
-		Type rhs = expr.getType();
+		Type rhs = expr.getTypeTest();
 		// TODO: implement a proper intersection test here to ensure the lhs and
 		// rhs types make sense (i.e. have some intersection).
 		return new Type.Bool();
@@ -242,11 +237,11 @@ public class TypeChecker {
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
-		Pair[] fields = expr.getFields();
+		Pair<Identifier,Expr>[] fields = expr.getFields();
 		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
-			Identifier fieldName = (Identifier) fields[i].getOperand(0);
-			Type fieldType = check((Expr) fields[i].getOperand(1));
+			Identifier fieldName = fields[i].getFirst();
+			Type fieldType = check(fields[i].getSecond());
 			decls[i] = new VariableDeclaration(fieldType, fieldName);
 		}
 		//

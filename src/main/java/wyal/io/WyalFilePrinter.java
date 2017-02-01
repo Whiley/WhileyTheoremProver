@@ -411,7 +411,7 @@ public class WyalFilePrinter {
 	public void writeIsOperator(Expr.Is expr) {
 		writeExpressionWithBrackets(expr.getExpr());
 		out.print(" is ");
-		writeType(expr.getType());
+		writeType(expr.getTypeTest());
 	}
 
 	public void writeInvoke(Expr.Invoke expr) {

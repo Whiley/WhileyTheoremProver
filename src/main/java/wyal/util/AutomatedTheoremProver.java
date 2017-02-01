@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import wyal.io.WyalFilePrinter;
+import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -15,12 +16,19 @@ import wyal.rules.*;
 
 public class AutomatedTheoremProver {
 	/**
+	 * The type system encapsulates the core algorithms for type simplification
+	 * and subtyping testing.
+	 */
+	private final TypeSystem types;
+	/**
 	 * The enclosing WyAL file being checked.
 	 */
 	private final WyalFile parent;
 
 	public AutomatedTheoremProver(final WyalFile parent) {
 		this.parent = parent;
+		// FIXME: this should be shared between different compilation stages
+		this.types = new TypeSystem(parent);
 	}
 
 	public void check() {
@@ -38,7 +46,7 @@ public class AutomatedTheoremProver {
 		AbstractSyntacticHeap heap = new StructurallyEquivalentHeap();
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
-		Formula root = Formulae.toFormula(SyntacticHeaps.clone(decl.getBody()));
+		Formula root = Formulae.toFormula(SyntacticHeaps.clone(decl.getBody()),types);
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction". In essence, once rewriting is complete, we
 		// should have reduced the term to false (if the original assertion
@@ -50,7 +58,7 @@ public class AutomatedTheoremProver {
 		System.out.println("--");
 		do {
 			oRoot = root;
-			root = (WyalFile.Formula) pushDownRewrite(root, rules);
+			root = (Formula) pushDownRewrite(root, rules);
 		} while(oRoot != root);
 		print(root);
 		// Prepare for proof-by-contradiction

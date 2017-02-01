@@ -2,9 +2,9 @@ package wyal.rules;
 
 import java.util.ArrayList;
 
+import wyal.lang.Formula;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Formula;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;

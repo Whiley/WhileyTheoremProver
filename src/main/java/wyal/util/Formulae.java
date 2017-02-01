@@ -1,14 +1,14 @@
 package wyal.util;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 
+import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Formula;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Stmt;
+import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wycc.util.ArrayUtils;
@@ -19,89 +19,107 @@ public class Formulae {
 	 * Take a tree of statements and expressions, and return a formula. This is
 	 * the first part of the process in discharging a given assertion.
 	 *
-	 * @param s
+	 * @param stmt
+	 *            The statement being converted into a formula
+	 * @param types
+	 *            The type system is required for the translation, as some
+	 *            aspects depend upon the types of expressions involved.
 	 * @return
 	 */
-	public static WyalFile.Formula toFormula(WyalFile.Stmt s) {
-		switch (s.getOpcode()) {
+	public static Formula toFormula(WyalFile.Stmt stmt, TypeSystem types) {
+		switch (stmt.getOpcode()) {
 		case STMT_block: {
-			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) s;
-			Formula[] operands = toFormulae(b.getOperands());
+			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
+			Formula[] operands = toFormulae(b.getOperands(),types);
 			return Formula.and(operands);
 		}
 		case STMT_caseof: {
-			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) s;
-			Formula[] operands = toFormulae(b.getOperands());
+			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) stmt;
+			Formula[] operands = toFormulae(b.getOperands(),types);
 			return Formula.or(operands);
 		}
 		case STMT_ifthen: {
-			WyalFile.Stmt.IfThen it = (WyalFile.Stmt.IfThen) s;
-			Formula lhs = toFormula(it.getIfBody());
-			Formula rhs = toFormula(it.getThenBody());
+			WyalFile.Stmt.IfThen it = (WyalFile.Stmt.IfThen) stmt;
+			Formula lhs = toFormula(it.getIfBody(),types);
+			Formula rhs = toFormula(it.getThenBody(),types);
 			return Formula.or(lhs.invert(), rhs);
 		}
 		case STMT_forall: {
-			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) s;
-			Formula body = toFormula(q.getBody());
-			return new Formula.Quantifier(Opcode.EXPR_forall, q.getParameters(), body);
+			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			Formula body = toFormula(q.getBody(),types);
+			return Formula.forall(q.getParameters(), body);
 		}
 		case STMT_exists: {
-			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) s;
-			Formula body = toFormula(q.getBody());
-			return new Formula.Quantifier(Opcode.EXPR_exists, q.getParameters(), body);
+			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			Formula body = toFormula(q.getBody(),types);
+			return Formula.exists(q.getParameters(), body);
 		}
 		case EXPR_eq: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			return new Formula.Equality(true, lhs, rhs);
+			Type lhs_t = lhs.getReturnType(types);
+			if(types.isSubtype(new Type.Int(), lhs_t)) {
+				Polynomial lhs_p = Polynomials.toPolynomial(lhs);
+				Polynomial rhs_p = Polynomials.toPolynomial(rhs);
+				return Formula.equals(lhs_p, rhs_p);
+			} else {
+				return Formula.unify(lhs, rhs);
+			}
 		}
 		case EXPR_neq: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			return new Formula.Equality(false, lhs, rhs);
+			Type lhs_t = lhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t)) {
+				Polynomial lhs_p = Polynomials.toPolynomial(lhs);
+				Polynomial rhs_p = Polynomials.toPolynomial(rhs);
+				return Formula.notEquals(lhs_p, rhs_p);
+			} else {
+				return Formula.notUnify(lhs, rhs);
+			}
 		}
 		case EXPR_lt: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
 			return Formula.lessThan(lhs, rhs);
 		}
 		case EXPR_lteq: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
 			return Formula.greaterThanOrEquals(rhs, lhs);
 		}
 		case EXPR_gt: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
 			return Formula.lessThan(rhs, lhs);
 		}
 		case EXPR_gteq: {
-			Expr.Operator operator = (Expr.Operator) s;
+			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
 			return Formula.greaterThanOrEquals(lhs, rhs);
 		}
 		case EXPR_not: {
-			Expr.Operator operator = (Expr.Operator) s;
-			Formula f = toFormula(operator.getOperand(0));
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Formula f = toFormula(operator.getOperand(0),types);
 			return f.invert();
 		}
 		case EXPR_const: {
-			Expr.Constant c = (Expr.Constant) s;
+			Expr.Constant c = (Expr.Constant) stmt;
 			Value.Bool b = (Value.Bool) c.getValue();
 			return new Formula.Truth(b);
 		}
 		default:
-			if (s instanceof WyalFile.Expr) {
+			if (stmt instanceof WyalFile.Expr) {
 				Expr.Constant TRUE = new Expr.Constant(new Value.Bool(true));
-				return new Formula.Equality(true, TRUE, (WyalFile.Expr) s);
+				return Formula.unify(TRUE, (WyalFile.Expr) stmt);
 			} else {
-				throw new IllegalArgumentException("unknown statement encountered: " + s.getOpcode());
+				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
 			}
 		}
 	}
@@ -112,10 +130,10 @@ public class Formulae {
 	 * @param stmts
 	 * @return
 	 */
-	public static Formula[] toFormulae(WyalFile.Stmt[] stmts) {
+	public static Formula[] toFormulae(WyalFile.Stmt[] stmts, TypeSystem types) {
 		Formula[] exprs = new Formula[stmts.length];
 		for (int i = 0; i != exprs.length; ++i) {
-			exprs[i] = toFormula(stmts[i]);
+			exprs[i] = toFormula(stmts[i], types);
 		}
 		return exprs;
 	}
@@ -128,15 +146,9 @@ public class Formulae {
 	 * @param rhs
 	 * @return
 	 */
-	public static Formula.Truth evaluateEquation(Opcode opcode, BigInteger lhs, BigInteger rhs) {
+	public static Formula.Truth evaluateInequality(Opcode opcode, Value.Int lhs, Value.Int rhs) {
 		boolean result;
 		switch (opcode) {
-		case EXPR_eq:
-			result = lhs.equals(rhs);
-			break;
-		case EXPR_neq:
-			result = !(lhs.equals(rhs));
-			break;
 		case EXPR_lt:
 			result = lhs.compareTo(rhs) < 0;
 			break;
@@ -150,7 +162,30 @@ public class Formulae {
 			result = lhs.compareTo(rhs) >= 0;
 			break;
 		default:
-			throw new IllegalArgumentException("Invalid equation opcode: " + opcode);
+			throw new IllegalArgumentException("Invalid inequality opcode: " + opcode);
+		}
+		return new Formula.Truth(result);
+	}
+
+	/**
+	 * Evaluate a given equality or inequality.
+	 *
+	 * @param opcode
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	public static Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
+		boolean result;
+		switch (opcode) {
+		case EXPR_eq:
+			result = lhs.equals(rhs);
+			break;
+		case EXPR_neq:
+			result = !(lhs.equals(rhs));
+			break;
+		default:
+			throw new IllegalArgumentException("Invalid equality opcode: " + opcode);
 		}
 		return new Formula.Truth(result);
 	}

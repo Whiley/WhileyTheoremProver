@@ -16,13 +16,17 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
+import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
-import wyal.util.Formulae;
 import wyal.util.Polynomials;
+import wyal.util.TypeSystem;
 import wybs.lang.CompilationUnit;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
@@ -126,9 +130,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		TYPE_arr(7),
 		TYPE_rec(8),
 		TYPE_fun(9),
-		TYPE_or(10),
-		TYPE_and(11),
-		TYPE_not(12),
+		TYPE_macro(10),
+		TYPE_or(11),
+		TYPE_and(12),
+		TYPE_not(13),
 		// STMTS
 		STMT_block(15),
 		STMT_vardecl(16),
@@ -291,9 +296,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			super(opcode,data, new SyntacticItem[0]);
 		}
 
+		public abstract Type getType();
+
 		public static class Null extends Value {
 			public Null() {
 				super(Opcode.CONST_null);
+			}
+			@Override
+			public Type getType() {
+				return new Type.Null();
 			}
 			@Override
 			public Null clone(SyntacticItem[] operands) {
@@ -309,7 +320,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public boolean get() {
 				return (Boolean) data;
 			}
-
+			@Override
+			public Type getType() {
+				return new Type.Bool();
+			}
 			@Override
 			public Bool clone(SyntacticItem[] operands) {
 				return new Bool(get());
@@ -324,7 +338,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Int(long value) {
 				super(Opcode.CONST_int, BigInteger.valueOf(value));
 			}
-
+			@Override
+			public Type getType() {
+				return new Type.Int();
+			}
 			public BigInteger get() {
 				return (BigInteger) data;
 			}
@@ -339,7 +356,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public UTF8(byte[] bytes) {
 				super(Opcode.CONST_utf8, bytes);
 			}
-
+			@Override
+			public Type getType() {
+				throw new UnsupportedOperationException();
+			}
 			public byte[] get() {
 				return (byte[]) data;
 			}
@@ -388,7 +408,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			public Assert(Stmt.Block body) {
 				super(Opcode.DECL_assert, body);
-				System.out.println("GOT BODY: " + getOperands());
 			}
 
 			public Stmt.Block getBody() {
@@ -659,6 +678,39 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return new Intersection((Type[]) operands);
 			}
 		}
+
+		public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Type {
+			public FunctionOrMacro(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
+				super(opcode,parameters,returns);
+			}
+			public Tuple<Type> getParameters() {
+				return (Tuple<Type>) getOperand(0);
+			}
+			public Tuple<Type> getReturns() {
+				return (Tuple<Type>) getOperand(1);
+			}
+		}
+
+		public static class Function extends AbstractSyntacticItem implements Type {
+			public Function(Tuple<Type> parameters, Tuple<Type> returns) {
+				super(Opcode.TYPE_fun,parameters,returns);
+			}
+
+			@Override
+			public Function clone(SyntacticItem[] operands) {
+				return new Function((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			}
+		}
+
+		public static class Macro extends AbstractSyntacticItem implements Type {
+			public Macro(Tuple<Type> parameters, Tuple<Type> returns) {
+				super(Opcode.TYPE_macro,parameters, returns);
+			}
+			@Override
+			public Macro clone(SyntacticItem[] operands) {
+				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			}
+		}
 	}
 
 	// ============================================================
@@ -768,19 +820,21 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	public interface Expr extends Stmt {
 
 		/**
-		 * An atom is a special form of expression which is guaranteed to be in
-		 * a "normal form".
+		 * Get the type of value returned from evaluating this expression.
 		 *
-		 * @author David J. Pearce
-		 *
+		 * @param types
+		 *            Used to expand nominal types in various situations.
+		 * @return
 		 */
-		public interface Atom extends Expr {
-
-		}
+		public Type getReturnType(TypeSystem types);
 
 		public static class Cast extends AbstractSyntacticItem implements Expr {
 			public Cast(Type type, Expr rhs) {
 				super(Opcode.EXPR_cast, type, rhs);
+			}
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				return (Type) super.getOperand(0);
 			}
 			public Type getCastType() {
 				return (Type) super.getOperand(0);
@@ -800,6 +854,51 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
+			public Type getReturnType(TypeSystem types) {
+				switch (getOpcode()) {
+				case EXPR_not:
+				case EXPR_and:
+				case EXPR_or:
+				case EXPR_implies:
+				case EXPR_iff:
+				case EXPR_eq:
+				case EXPR_neq:
+				case EXPR_lt:
+				case EXPR_lteq:
+				case EXPR_gt:
+				case EXPR_gteq:
+					return new Type.Bool();
+				case EXPR_neg:
+				case EXPR_add:
+				case EXPR_sub:
+				case EXPR_mul:
+				case EXPR_div:
+				case EXPR_rem:
+				case EXPR_arrlen:
+					return new Type.Int();
+				case EXPR_arrinit: {
+					Type[] ts = new Type[size()];
+					for (int i = 0; i != ts.length; ++i) {
+						ts[i] = getOperand(i).getReturnType(types);
+					}
+					Type element = types.union(ts);
+					return new Type.Array(element);
+				}
+				case EXPR_arrgen: {
+					Type element = getOperand(0).getReturnType(types);
+					return new Type.Array(element);
+				}
+				case EXPR_arridx: {
+					Type src = getOperand(0).getReturnType(types);
+					Type.Array effectiveArray = types.extractReadableArrayType(src);
+					return effectiveArray.getElement();
+				}
+				default:
+					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());
+				}
+			}
+
+			@Override
 			public Expr getOperand(int i) {
 				return (Expr) super.getOperand(i);
 			}
@@ -811,7 +910,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Operator clone(SyntacticItem[] operands) {
-				return new Operator(getOpcode(),(Expr[]) operands);
+				return new Operator(getOpcode(), (Expr[]) operands);
 			}
 		}
 
@@ -826,6 +925,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Term getOperand(int i) {
 				return (Term) super.getOperand(i);
+			}
+
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				// FIXME: we could do better than this.
+				return new Type.Int();
 			}
 
 			/**
@@ -845,11 +950,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			 * @param p
 			 * @return
 			 */
-			public BigInteger toConstant() {
+			public Value.Int toConstant() {
 				if (size() == 1) {
 					Polynomial.Term term = getOperand(0);
 					if (term.getAtoms().size() == 0) {
-						return term.getCoefficient().get();
+						return term.getCoefficient();
 					}
 				}
 				throw new IllegalArgumentException("polynomial is not constant");
@@ -910,6 +1015,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public RecordAccess(Expr lhs, Identifier rhs) {
 				super(Opcode.EXPR_recfield, lhs, rhs);
 			}
+
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				Type src = getSource().getReturnType(types);
+				Type.Record effectiveRecord = types.extractReadableRecordType(src);
+				VariableDeclaration[] fields = effectiveRecord.getFields();
+				String actualFieldName = getField().get();
+				for (int i = 0; i != fields.length; ++i) {
+					VariableDeclaration vd = fields[i];
+					String declaredFieldName = vd.getVariableName().get();
+					if (declaredFieldName.equals(actualFieldName)) {
+						return vd.getType();
+					}
+				}
+				//
+				throw new RuntimeException("invalid record access: " + actualFieldName);
+			}
 			public Expr getSource() {
 				return (Expr) getOperand(0);
 			}
@@ -923,10 +1045,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class RecordInitialiser extends AbstractSyntacticItem implements Expr {
-			public RecordInitialiser(Pair... fields) {
+			public RecordInitialiser(Pair<Identifier,Expr>... fields) {
 				super(Opcode.EXPR_recinit, fields);
 			}
-			public Pair[] getFields() {
+
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				Pair<Identifier, Expr>[] fields = getFields();
+				VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+				for (int i = 0; i != fields.length; ++i) {
+					Identifier fieldName = fields[i].getFirst();
+					Type fieldType = fields[i].getSecond().getReturnType(types);
+					decls[i] = new VariableDeclaration(fieldType, fieldName);
+				}
+				//
+				return new Type.Record(decls);
+			}
+			public Pair<Identifier,Expr>[] getFields() {
 				return ArrayUtils.toArray(Pair.class, getOperands());
 			}
 			@Override
@@ -938,6 +1073,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public static class VariableAccess extends AbstractSyntacticItem implements Expr {
 			public VariableAccess(VariableDeclaration decl) {
 				super(Opcode.EXPR_var, decl);
+			}
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				return getVariableDeclaration().getType();
 			}
 			public VariableDeclaration getVariableDeclaration() {
 				return (VariableDeclaration) getOperand(0);
@@ -952,6 +1091,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Constant(Value value) {
 				super(Opcode.EXPR_const, value);
 			}
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				return getValue().getType();
+			}
 			public Value getValue() {
 				return (Value) getOperand(0);
 			}
@@ -965,10 +1108,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Is(Expr lhs, Type rhs) {
 				super(Opcode.EXPR_is, lhs, rhs);
 			}
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				return new Type.Bool();
+			}
 			public Expr getExpr() {
 				return (Expr) getOperand(0);
 			}
-			public Type getType() {
+			public Type getTypeTest() {
 				return (Type) getOperand(1);
 			}
 			@Override
@@ -978,16 +1125,27 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Invoke extends AbstractSyntacticItem implements Expr {
-			public Invoke(Type type, Name name, Expr... arguments) {
+			public Invoke(Type.FunctionOrMacro type, Name name, Expr... arguments) {
 				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}
 
-			public Invoke(Type type, Name name, Tuple<Expr> arguments) {
+			public Invoke(Type.FunctionOrMacro type, Name name, Tuple<Expr> arguments) {
 				super(Opcode.EXPR_invoke, type, name, arguments);
 			}
 
-			public Type getType() {
-				return (Type) getOperand(0);
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				Type.FunctionOrMacro type = getSignatureType();
+				Tuple<Type> returns = type.getReturns();
+				if (returns.size() != 1) {
+					throw new IllegalArgumentException("need support for multiple returns");
+				} else {
+					return returns.getOperand(0);
+				}
+			}
+
+			public Type.FunctionOrMacro getSignatureType() {
+				return (Type.FunctionOrMacro) getOperand(0);
 			}
 
 			public Name getName() {
@@ -1000,7 +1158,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Invoke clone(SyntacticItem[] operands) {
-				return new Invoke((Type) operands[0], (Name) operands[1], (Tuple) operands[2]);
+				return new Invoke((Type.FunctionOrMacro) operands[0], (Name) operands[1], (Tuple) operands[2]);
 			}
 		}
 
@@ -1014,7 +1172,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Tuple<VariableDeclaration> getParameters() {
 				return (Tuple<VariableDeclaration>) getOperand(0);
 			}
-
+			@Override
+			public Type getReturnType(TypeSystem types) {
+				return new Type.Bool();
+			}
 			public Expr getBody() {
 				return (Expr) getOperand(1);
 			}
@@ -1022,305 +1183,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Quantifier clone(SyntacticItem[] operands) {
 				return new Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0], (Expr) operands[1]);
-			}
-		}
-	}
-
-	/**
-	 * A special kind of expression which maintains a normal form
-	 * representation. As such, formulae are not suitable for representing
-	 * source-level syntax, as they do not faithfully retain relevant aspects,
-	 * such as ordering, etc. Instead, they are used with the automated theorem
-	 * prover for ensuring properties are correct.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public interface Formula extends Expr {
-
-		/**
-		 * Invert a given formula.
-		 * @return
-		 */
-		public Formula invert();
-
-		@Override
-		public Formula clone(SyntacticItem[] operands);
-
-		/**
-		 * Combine formulae together as conjuncts, whilst performing a range of
-		 * simplifications:
-		 *
-		 * <ol>
-		 * <li><b>Eliminates boolean constants</b>. Conjuncts containing
-		 * <code>false</code> are reduced to <code>false</code>. In contrast,
-		 * any occurrences of <code>true</code> are simply removed.</li>
-		 * <li><b>Flattens nested conjuncts</b>. All nested conjuncts are
-		 * recursively flattened into a single conjunct. For example,
-		 * <code> (x && (y && z))</code> is flattened to
-		 * <code>(x && y && z)</code>.</li>
-		 * <li><b>Eliminates singleton conjuncts</b>. A conjunct containing a
-		 * single (non-conjunct) child is reduced to that child.</li>
-		 * </ol>
-		 *
-		 * The implementation attempts to eliminate dynamic memory allocation in
-		 * the case that no reduction is applied.
-		 *
-		 * @author David J. Pearce
-		 *
-		 */
-		public static Formula and(Formula... formulae) {
-			// Flatten nested conjuncts
-			formulae = Formulae.flattenNestedConjuncts(formulae);
-			// Eliminate truths
-			formulae = Formulae.eliminateConstants(false, formulae);
-			// Ensure sorted and unique
-			formulae = Formulae.sortAndRemoveDuplicates(formulae);
-			// And, finally...
-			if (formulae.length == 0) {
-				// Return true here since the only way it's possible to get here
-				// is if the conjunct contained only truths at the end.
-				return new Truth(true);
-			} else if (formulae.length == 1) {
-				return formulae[0];
-			} else {
-				return new Conjunct(formulae);
-			}
-		}
-
-		/**
-		 * Combine formulae together as disjuncts, whilst performing a range of
-		 * simplifications:
-		 *
-		 * <ol>
-		 * <li><b>Eliminates boolean constants</b>. Disjuncts containing
-		 * <code>true</code> are reduced to <code>true</code>. In contrast, any
-		 * occurrences of <code>false</code> are simply removed.</li>
-		 * <li><b>Flattens nested disjuncts</b>. All nested disjuncts are
-		 * recursively flattened into a single disjunct. For example,
-		 * <code> (x || (y || z))</code> is flattened to
-		 * <code>(x || y || z)</code>.</li>
-		 * <li><b>Eliminates singleton disjuncts</b>. A disjunct containing a
-		 * single (non-disjunct) child is reduced to that child.</li>
-		 * </ol>
-		 *
-		 * The implementation attempts to eliminate dynamic memory allocation in
-		 * the case that no reduction is applied.
-		 *
-		 */
-		public static Formula or(Formula... formulae) {
-			// Flatten nested disjuncts
-			formulae = Formulae.flattenNestedDisjuncts(formulae);
-			// Eliminate truths
-			formulae = Formulae.eliminateConstants(true, formulae);
-			// Ensure sorted and unique
-			formulae = Formulae.sortAndRemoveDuplicates(formulae);
-			// And, finally...
-			if (formulae.length == 0) {
-				// Return false here since the only way it's possible to get
-				// here is if the disjunct contained only falsehoods at the end.
-				return new Truth(false);
-			} else if (formulae.length == 1) {
-				return formulae[0];
-			} else {
-				return new Disjunct(formulae);
-			}
-		}
-
-		public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
-			if (lhs.isConstant() && rhs.isConstant()) {
-				return Formulae.evaluateEquation(Opcode.EXPR_lt, lhs.toConstant(), rhs.toConstant());
-			} else {
-				// FIXME: we need to normalise the left- and right-hand sides
-				// here
-				return new Inequality(true,lhs,rhs);
-			}
-		}
-
-		public static Formula greaterThanOrEquals(Polynomial lhs, Polynomial rhs) {
-			if (lhs.isConstant() && rhs.isConstant()) {
-				return Formulae.evaluateEquation(Opcode.EXPR_gteq, lhs.toConstant(), rhs.toConstant());
-			} else {
-				// FIXME: we need to normalise the left- and right-hand sides
-				// here
-				return new Inequality(false, lhs, rhs);
-			}
-		}
-
-		public static class Truth extends Expr.Constant implements Formula {
-
-			public Truth(boolean value) {
-				super(new Value.Bool(value));
-			}
-
-			public Truth(Value.Bool value) {
-				super(value);
-			}
-
-			public boolean holds() {
-				return getValue().get();
-			}
-
-			@Override
-			public Value.Bool getValue() {
-				return (Value.Bool) super.getValue();
-			}
-
-			@Override
-			public Formula invert() {
-				return new Truth(!getValue().get());
-			}
-
-			@Override
-			public Truth clone(SyntacticItem[] operands) {
-				return new Truth((Value.Bool) operands[0]);
-			}
-		}
-
-		public static class Conjunct extends Expr.Operator implements Formula {
-
-			private Conjunct(Formula... operands) {
-				super(Opcode.EXPR_and, operands);
-			}
-
-			@Override
-			public Formula getOperand(int i) {
-				return (Formula) super.getOperand(i);
-			}
-
-			@Override
-			public Formula[] getOperands() {
-				return (Formula[]) super.getOperands();
-			}
-
-			@Override
-			public Formula invert() {
-				Formula[] children = getOperands();
-				Formula[] nChildren = new Formula[children.length];
-				for(int i=0;i!=children.length;++i) {
-					nChildren[i] = children[i].invert();
-				}
-				return or(nChildren);
-			}
-
-			@Override
-			public Conjunct clone(SyntacticItem[] operands) {
-				return new Conjunct((Formula[]) operands);
-			}
-		}
-
-		public static class Disjunct extends Expr.Operator implements Formula {
-
-			private Disjunct(Formula... operands) {
-				super(Opcode.EXPR_or, operands);
-			}
-
-			@Override
-			public Formula getOperand(int i) {
-				return (Formula) super.getOperand(i);
-			}
-
-			@Override
-			public Formula[] getOperands() {
-				return (Formula[]) super.getOperands();
-			}
-
-			@Override
-			public Formula invert() {
-				Formula[] children = getOperands();
-				Formula[] nChildren = new Formula[children.length];
-				for(int i=0;i!=children.length;++i) {
-					nChildren[i] = children[i].invert();
-				}
-				return and(nChildren);
-			}
-			@Override
-			public Disjunct clone(SyntacticItem[] operands) {
-				return new Disjunct((Formula[]) operands);
-			}
-		}
-
-		public static class Quantifier extends Expr.Quantifier implements Formula {
-			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Formula body) {
-				super(opcode, new Tuple<>(parameters), body);
-			}
-
-			public Quantifier(Opcode opcode, Tuple<VariableDeclaration> parameters, Formula body) {
-				super(opcode, parameters, body);
-			}
-
-			@Override
-			public Tuple<VariableDeclaration> getParameters() {
-				return (Tuple<VariableDeclaration>) getOperand(0);
-			}
-
-			@Override
-			public Formula getBody() {
-				return (Formula) getOperand(1);
-			}
-
-			@Override
-			public Formula invert() {
-				Formula body = getBody().invert();
-				if(getOpcode() == Opcode.EXPR_forall) {
-					return new Formula.Quantifier(Opcode.EXPR_exists,getParameters(),body);
-				} else {
-					return new Formula.Quantifier(Opcode.EXPR_forall,getParameters(),body);
-				}
-			}
-
-			@Override
-			public Formula.Quantifier clone(SyntacticItem[] operands) {
-				return new Formula.Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0],
-						(Formula) operands[1]);
-			}
-		}
-
-		public static class Inequality extends Expr.Operator implements Formula {
-
-			private Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
-				super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, lhs, rhs);
-			}
-
-			@Override
-			public Polynomial getOperand(int i) {
-				return (Polynomial) super.getOperand(i);
-			}
-
-			@Override
-			public Polynomial[] getOperands() {
-				return (Polynomial[]) super.getOperands();
-			}
-
-			@Override
-			public Formula invert() {
-				Polynomial lhs = getOperand(0);
-				Polynomial rhs = getOperand(1);
-				return new Inequality(getOpcode() != Opcode.EXPR_lt,lhs,rhs);
-			}
-
-			@Override
-			public Inequality clone(SyntacticItem[] operands) {
-				return new Inequality(getOpcode() == Opcode.EXPR_lt, (Polynomial) operands[0],
-						(Polynomial) operands[1]);
-			}
-		}
-
-		public static class Equality extends Expr.Operator implements Formula {
-			public Equality(boolean sign, Expr lhs, Expr rhs) {
-				super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
-			}
-
-			@Override
-			public Equality clone(SyntacticItem[] operands) {
-				return new Equality(getOpcode() == Opcode.EXPR_eq, (Expr) operands[0], (Expr) operands[1]);
-			}
-
-			@Override
-			public Formula invert() {
-				Expr lhs = getOperand(0);
-				Expr rhs = getOperand(1);
-				return new Equality(getOpcode() != Opcode.EXPR_eq,lhs,rhs);
 			}
 		}
 	}
