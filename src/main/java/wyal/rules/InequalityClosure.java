@@ -1,34 +1,31 @@
 package wyal.rules;
 
-import java.awt.ItemSelectable;
 import java.util.ArrayList;
 
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Formula;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
-import wyal.util.Polynomials;
 
 public class InequalityClosure implements RewriteRule {
 
 	@Override
-	public SyntacticItem rewrite(SyntacticItem item) {
-		if (item.getOpcode() == Opcode.EXPR_and) {
+	public Formula rewrite(Formula item) {
+		if (item instanceof Formula.Conjunct) {
 			// We've found a conjunct of terms. Therefore, we want to look
 			// through and pick out all inequalities and close over them.
-			Expr.Operator conjunct = (Expr.Operator) item;
-			ArrayList<Expr> inferred = new ArrayList<>();
+			Formula.Conjunct conjunct = (Formula.Conjunct) item;
+			ArrayList<Formula> inferred = new ArrayList<>();
 			for (int i = 0; i != conjunct.size(); ++i) {
-				Expr ith = conjunct.getOperand(i);
-				if (isNormalisedInequality(ith)) {
+				Formula ith = conjunct.getOperand(i);
+				if (ith instanceof Formula.Inequality) {
 					for (int j = i + 1; j != conjunct.size(); ++j) {
-						Expr jth = conjunct.getOperand(j);
-						if (isNormalisedInequality(jth)) {
-							infer((Expr.Operator) ith, (Expr.Operator) jth, inferred);
+						Formula jth = conjunct.getOperand(j);
+						if (jth instanceof Formula.Inequality) {
+							infer((Formula.Inequality) ith, (Formula.Inequality) jth, inferred);
 						}
 					}
 				}
@@ -40,14 +37,14 @@ public class InequalityClosure implements RewriteRule {
 					inferred.add(conjunct.getOperand(i));
 				}
 				System.out.println("INFERRING: ");
-				Expr[] items = AndElimination.sortAndRemoveDuplicates(inferred.toArray(new Expr[inferred.size()]));
-				conjunct = new Expr.Operator(Opcode.EXPR_and, items);
+				Formula[] items = inferred.toArray(new Formula[inferred.size()]);
+				item = Formula.and(items);
 				AutomatedTheoremProver.print(conjunct);
 				// FIXME: this test is rather inefficient, isn't it?
-				if(item.equals(conjunct)) {
+				if (item.equals(conjunct)) {
 					return item;
 				} else {
-					return conjunct;
+					return item;
 				}
 			}
 		}
@@ -55,32 +52,9 @@ public class InequalityClosure implements RewriteRule {
 		return item;
 	}
 
-	/**
-	 * Determine whether a given term is an inequality or not. In addition, it
-	 * must have been normalised so that it consists of a polynomial and zero.
-	 *
-	 * @param term
-	 * @return
-	 */
-	private static boolean isNormalisedInequality(Expr term) {
-
-		// FIXME: need to check whether polynomials are in normalised form? In
-		// particular, after a substitution we could have a polynomial which is
-		// (temporarily) not in normal form.
-
-		switch (term.getOpcode()) {
-		case EXPR_lt:
-		case EXPR_lteq:
-		case EXPR_gt:
-		case EXPR_gteq:
-			return true;
-		}
-		return false;
-	}
-
-	private static void infer(Expr.Operator ith, Expr.Operator jth, ArrayList<Expr> inferred) {
+	private static void infer(Formula.Inequality ith, Formula.Inequality jth, ArrayList<Formula> inferred) {
 		//
-		Expr.Operator op = closeOverInequalities(ith, jth);
+		Formula op = closeOverInequalities(ith, jth);
 		if (op != null) {
 			inferred.add(op);
 		}
@@ -93,7 +67,7 @@ public class InequalityClosure implements RewriteRule {
 	 * @param jth
 	 * @return
 	 */
-	private static Expr.Operator closeOverInequalities(Expr.Operator ith, Expr.Operator jth) {
+	private static Formula closeOverInequalities(Formula.Inequality ith, Formula.Inequality jth) {
 		Polynomial ithLowerBound = extractBound(false, ith);
 		Polynomial ithUpperBound = extractBound(true, ith);
 		Polynomial jthLowerBound = extractBound(false, jth);
@@ -115,7 +89,10 @@ public class InequalityClosure implements RewriteRule {
 		}
 
 		// FIXME: need to properly construct inequality here.
-		return new Expr.Operator(Opcode.EXPR_lt, lhs, rhs);
+		// FIXME: also need to check for inequality which can be evaluated to
+		// true. This is necessary to prevent repeat applications of this rule
+		// which infer true and this is then removed, etc.
+		return Formula.lessThan(lhs, rhs);
 	}
 
 	/**
@@ -126,14 +103,12 @@ public class InequalityClosure implements RewriteRule {
 	 * @param inequality
 	 * @return
 	 */
-	private static Polynomial extractBound(boolean sign, Expr.Operator inequality) {
+	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
 		int i;
 		switch (inequality.getOpcode()) {
 		case EXPR_lt:
-		case EXPR_lteq:
 			i = sign ? 1 : 0;
 			break;
-		case EXPR_gt:
 		case EXPR_gteq:
 			i = sign ? 0 : 1;
 			break;

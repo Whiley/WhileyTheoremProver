@@ -326,7 +326,7 @@ public class WyalFilePrinter {
 	}
 
 	public void writeConstant(Expr.Constant expr) {
-		Item value = expr.getValue();
+		Value value = expr.getValue();
 		switch (value.getOpcode()) {
 		case CONST_null:
 			out.print("null");

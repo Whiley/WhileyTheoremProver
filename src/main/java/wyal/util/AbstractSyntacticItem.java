@@ -23,6 +23,13 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 	private SyntacticItem[] operands;
 	protected Object data;
 
+	public AbstractSyntacticItem(Opcode opcode) {
+		super();
+		this.opcode = opcode;
+		this.operands = null;
+		this.data = null;
+	}
+
 	public AbstractSyntacticItem(Opcode opcode, Attribute... attributes) {
 		super(attributes);
 		this.opcode = opcode;
@@ -34,16 +41,10 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 		this(opcode, operands.toArray(new SyntacticItem[operands.size()]));
 	}
 
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem[] operands) {
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem... operands) {
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = null;;
-	}
-
-	protected AbstractSyntacticItem(Opcode opcode, Object data) {
-		this.opcode = opcode;
-		this.operands = null;
-		this.data = data;
 	}
 
 	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {

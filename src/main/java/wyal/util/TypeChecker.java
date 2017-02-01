@@ -18,12 +18,12 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Item;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
 
 /**
@@ -167,7 +167,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type checkConstant(Expr.Constant expr) {
-		Item item = expr.getValue();
+		Value item = expr.getValue();
 		switch (item.getOpcode()) {
 		case CONST_null:
 			return new Type.Null();

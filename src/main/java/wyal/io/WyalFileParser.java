@@ -712,7 +712,7 @@ public class WyalFileParser {
 
 	private Expr parseConstantExpression(Token token, EnclosingScope scope) {
 		match(token.kind);
-		Item item;
+		Value item;
 		switch (token.kind) {
 		case Null:
 			item = new Value.Null();

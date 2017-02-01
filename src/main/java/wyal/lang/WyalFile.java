@@ -15,11 +15,15 @@ import static wycc.util.ArrayUtils.*;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Value;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
+import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wybs.lang.CompilationUnit;
-import wybs.util.AbstractCompilationUnit;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
@@ -206,17 +210,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// ============================================================
 	// Fundamental Items
 	// ============================================================
-	public static abstract class Item extends AbstractSyntacticItem {
-		public Item(Opcode opcode, Item... items) {
-			super(opcode, items);
-		}
 
-		public Item(Opcode opcode, Object data) {
-			super(opcode, data);
-		}
-	}
-
-	public static class Pair<K extends Item,V extends Item> extends Item {
+	public static class Pair<K extends SyntacticItem,V extends SyntacticItem> extends AbstractSyntacticItem {
 		public Pair(K lhs, V rhs) {
 			super(Opcode.ITEM_pair, lhs, rhs);
 		}
@@ -235,7 +230,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public static class Tuple<T extends Item> extends Item {
+	public static class Tuple<T extends SyntacticItem> extends AbstractSyntacticItem {
 		public Tuple(T... stmts) {
 			super(Opcode.ITEM_tuple, stmts);
 		}
@@ -256,9 +251,9 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public static class Identifier extends Item {
+	public static class Identifier extends AbstractSyntacticItem {
 		public Identifier(String name) {
-			super(Opcode.ITEM_ident, name);
+			super(Opcode.ITEM_ident, name, new SyntacticItem[0]);
 		}
 
 		public String get() {
@@ -271,7 +266,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public static class Name extends Item {
+	public static class Name extends AbstractSyntacticItem {
 		public Name(Identifier... components) {
 			super(Opcode.ITEM_name, components);
 		}
@@ -286,14 +281,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public abstract static class Value extends Item {
+	public abstract static class Value extends AbstractSyntacticItem {
 
 		public Value(Opcode opcode) {
 			super(opcode);
 		}
 
 		public Value(Opcode opcode, Object data) {
-			super(opcode,data);
+			super(opcode,data, new SyntacticItem[0]);
 		}
 
 		public static class Null extends Value {
@@ -359,10 +354,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// ============================================================
 	// Declarations
 	// ============================================================
-	public abstract static class Declaration extends Item {
-		public Declaration(Opcode opcode, Item... children) {
-			super(opcode, children);
-		}
+	public static interface Declaration extends SyntacticItem {
 
 		/**
 		 * Represents an import declaration in a Wycs source file. For example:
@@ -377,7 +369,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Import extends Declaration {
+		public static class Import extends AbstractSyntacticItem implements Declaration {
 			public Import(Identifier... components) {
 				super(Opcode.DECL_import, components);
 			}
@@ -392,10 +384,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Assert extends Declaration {
+		public static class Assert extends AbstractSyntacticItem implements Declaration {
 
 			public Assert(Stmt.Block body) {
 				super(Opcode.DECL_assert, body);
+				System.out.println("GOT BODY: " + getOperands());
 			}
 
 			public Stmt.Block getBody() {
@@ -408,23 +401,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static abstract class Named extends Declaration {
+		public static interface Named extends Declaration {
 
-			public Named(Opcode opcode, Identifier name, Item... children) {
-				super(opcode, append(Item.class, name, children));
-			}
+			public Identifier getName();
 
-			public Identifier getName() {
-				return (Identifier) getOperand(0);
-			}
-
-			public static abstract class FunctionOrMacro extends Named {
-				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Item body) {
-					super(Opcode.DECL_macro, name, append(Item.class, parameters, body));
+			public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Named {
+				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
+					super(Opcode.DECL_macro, name, parameters, body);
 				}
 
 				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Tuple<VariableDeclaration> returns) {
 					super(Opcode.DECL_fun, name, parameters, returns);
+				}
+
+				@Override
+				public Identifier getName() {
+					return (Identifier) getOperand(0);
 				}
 
 				public Tuple<VariableDeclaration> getParameters() {
@@ -471,7 +463,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					return (Stmt.Block) getOperand(2);
 				}
 
-
 				@Override
 				public Macro clone(SyntacticItem[] operands) {
 					return new Macro((Identifier) operands[0], (Tuple<VariableDeclaration>) operands[1], (Stmt.Block) operands[2]);
@@ -481,14 +472,19 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			// ============================================================
 			// Type Declaration
 			// ============================================================
-			public static class Type extends Named {
+			public static class Type extends AbstractSyntacticItem implements Named {
 
 				public Type(Identifier name, VariableDeclaration vardecl, Stmt.Block... invariant) {
-					super(Opcode.DECL_type, name, append(Item.class, vardecl, new Tuple(invariant)));
+					super(Opcode.DECL_type, name, vardecl, new Tuple(invariant));
 				}
 
 				private Type(Identifier name, VariableDeclaration vardecl, Tuple<Stmt.Block> invariant) {
-					super(Opcode.DECL_type, name, append(Item.class, vardecl, invariant));
+					super(Opcode.DECL_type, name, vardecl, invariant);
+				}
+
+				@Override
+				public Identifier getName() {
+					return (Identifier) getOperand(0);
 				}
 
 				public VariableDeclaration getVariableDeclaration() {
@@ -510,14 +506,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// ============================================================
 	// Types
 	// ============================================================
-	public abstract static class Type extends Item {
+	public static interface Type extends SyntacticItem {
 
-		public Type(Opcode opcode, Item... items) {
-			super(opcode, items);
-		}
-
-		public static abstract class Atom extends Type {
-			public Atom(Opcode opcode, Item... items) {
+		public static abstract class Atom extends AbstractSyntacticItem implements Type {
+			public Atom(Opcode opcode, SyntacticItem... items) {
 				super(opcode, items);
 			}
 		}
@@ -603,7 +595,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Nominal extends Type {
+		public static class Nominal extends AbstractSyntacticItem implements Type {
 			public Nominal(Name name) {
 				super(Opcode.TYPE_nom, name);
 			}
@@ -618,7 +610,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Negation extends Type {
+		public static class Negation extends AbstractSyntacticItem implements Type {
 			public Negation(Type element) {
 				super(Opcode.TYPE_not, element);
 			}
@@ -632,7 +624,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public abstract static class UnionOrIntersection extends Type {
+		public abstract static class UnionOrIntersection extends AbstractSyntacticItem implements Type {
 			public UnionOrIntersection( Opcode kind, Type... types) {
 				super(kind, types);
 			}
@@ -673,7 +665,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// Variable Declaration
 	// ============================================================
 
-	public static class VariableDeclaration extends Item {
+	public static class VariableDeclaration extends AbstractSyntacticItem {
 		public VariableDeclaration(Type type, Identifier name) {
 			super(Opcode.STMT_vardecl, type, name);
 		}
@@ -696,15 +688,9 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// Stmt
 	// ============================================================
 
-	public abstract static class Stmt extends Item {
-		private Stmt(Opcode opcode, Item... operands) {
-			super(opcode, operands);
-		}
-		private Stmt(Opcode opcode, Type type, Item... operands) {
-			super(opcode, append(Item.class, type, operands));
-		}
+	public interface Stmt extends SyntacticItem {
 
-		public static class Block extends Stmt {
+		public static class Block extends AbstractSyntacticItem implements Stmt {
 			public Block(Stmt... stmts) {
 				super(Opcode.STMT_block, stmts);
 			}
@@ -725,7 +711,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Quantifier extends Stmt {
+		public static class Quantifier extends AbstractSyntacticItem implements Stmt {
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Block body) {
 				super(opcode, new Tuple<>(parameters),body);
 			}
@@ -744,7 +730,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class IfThen extends Stmt {
+		public static class IfThen extends AbstractSyntacticItem implements Stmt {
 			public IfThen(Block ifBlock, Block thenBlock) {
 				super(Opcode.STMT_ifthen, ifBlock, thenBlock);
 			}
@@ -760,7 +746,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class CaseOf extends Stmt {
+		public static class CaseOf extends AbstractSyntacticItem implements Stmt {
 			public CaseOf(Block... cases) {
 				super(Opcode.STMT_caseof, cases);
 			}
@@ -779,12 +765,20 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
-	public abstract static class Expr extends Stmt {
-		private Expr(Opcode opcode, Item... operands) {
-			super(opcode, operands);
+	public interface Expr extends Stmt {
+
+		/**
+		 * An atom is a special form of expression which is guaranteed to be in
+		 * a "normal form".
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
+		public interface Atom extends Expr {
+
 		}
 
-		public static class Cast extends Expr {
+		public static class Cast extends AbstractSyntacticItem implements Expr {
 			public Cast(Type type, Expr rhs) {
 				super(Opcode.EXPR_cast, type, rhs);
 			}
@@ -800,7 +794,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Operator extends Expr {
+		public static class Operator extends AbstractSyntacticItem implements Expr {
 			public Operator(Opcode opcode, Expr... operands) {
 				super(opcode, operands);
 			}
@@ -821,7 +815,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public final static class Polynomial extends Expr {
+		public final static class Polynomial extends AbstractSyntacticItem implements Expr {
 			public Polynomial(BigInteger constant) {
 				super(Opcode.EXPR_poly,new Polynomial.Term[]{new Polynomial.Term(constant)});
 			}
@@ -832,6 +826,33 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Term getOperand(int i) {
 				return (Term) super.getOperand(i);
+			}
+
+			/**
+			 * Check whether a polynomial is a constant or not.
+			 *
+			 * @param p
+			 * @return
+			 */
+			public boolean isConstant() {
+				return size() == 1 && getOperand(0).getAtoms().size() == 0;
+			}
+
+			/**
+			 * Extract the constant that this polynomial represents (assuming it
+			 * does).
+			 *
+			 * @param p
+			 * @return
+			 */
+			public BigInteger toConstant() {
+				if (size() == 1) {
+					Polynomial.Term term = getOperand(0);
+					if (term.getAtoms().size() == 0) {
+						return term.getCoefficient().get();
+					}
+				}
+				throw new IllegalArgumentException("polynomial is not constant");
 			}
 
 			public Polynomial negate() {
@@ -885,7 +906,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class RecordAccess extends Expr {
+		public static class RecordAccess extends AbstractSyntacticItem implements Expr {
 			public RecordAccess(Expr lhs, Identifier rhs) {
 				super(Opcode.EXPR_recfield, lhs, rhs);
 			}
@@ -901,7 +922,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class RecordInitialiser extends Expr {
+		public static class RecordInitialiser extends AbstractSyntacticItem implements Expr {
 			public RecordInitialiser(Pair... fields) {
 				super(Opcode.EXPR_recinit, fields);
 			}
@@ -914,7 +935,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class VariableAccess extends Expr {
+		public static class VariableAccess extends AbstractSyntacticItem implements Expr {
 			public VariableAccess(VariableDeclaration decl) {
 				super(Opcode.EXPR_var, decl);
 			}
@@ -927,20 +948,20 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Constant extends Expr {
-			public Constant(Item value) {
+		public static class Constant extends AbstractSyntacticItem implements Expr {
+			public Constant(Value value) {
 				super(Opcode.EXPR_const, value);
 			}
-			public Item getValue() {
-				return (Item) getOperand(0);
+			public Value getValue() {
+				return (Value) getOperand(0);
 			}
 			@Override
 			public Constant clone(SyntacticItem[] operands) {
-				return new Constant((Item) operands[0]);
+				return new Constant((Value) operands[0]);
 			}
 		}
 
-		public static class Is extends Expr {
+		public static class Is extends AbstractSyntacticItem implements Expr {
 			public Is(Expr lhs, Type rhs) {
 				super(Opcode.EXPR_is, lhs, rhs);
 			}
@@ -956,7 +977,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Invoke extends Expr {
+		public static class Invoke extends AbstractSyntacticItem implements Expr {
 			public Invoke(Type type, Name name, Expr... arguments) {
 				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}
@@ -983,7 +1004,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Quantifier extends Expr {
+		public static class Quantifier extends AbstractSyntacticItem implements Expr {
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Expr body) {
 				super(opcode, new Tuple<>(parameters), body);
 			}
@@ -1003,7 +1024,305 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return new Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0], (Expr) operands[1]);
 			}
 		}
+	}
 
+	/**
+	 * A special kind of expression which maintains a normal form
+	 * representation. As such, formulae are not suitable for representing
+	 * source-level syntax, as they do not faithfully retain relevant aspects,
+	 * such as ordering, etc. Instead, they are used with the automated theorem
+	 * prover for ensuring properties are correct.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	public interface Formula extends Expr {
+
+		/**
+		 * Invert a given formula.
+		 * @return
+		 */
+		public Formula invert();
+
+		@Override
+		public Formula clone(SyntacticItem[] operands);
+
+		/**
+		 * Combine formulae together as conjuncts, whilst performing a range of
+		 * simplifications:
+		 *
+		 * <ol>
+		 * <li><b>Eliminates boolean constants</b>. Conjuncts containing
+		 * <code>false</code> are reduced to <code>false</code>. In contrast,
+		 * any occurrences of <code>true</code> are simply removed.</li>
+		 * <li><b>Flattens nested conjuncts</b>. All nested conjuncts are
+		 * recursively flattened into a single conjunct. For example,
+		 * <code> (x && (y && z))</code> is flattened to
+		 * <code>(x && y && z)</code>.</li>
+		 * <li><b>Eliminates singleton conjuncts</b>. A conjunct containing a
+		 * single (non-conjunct) child is reduced to that child.</li>
+		 * </ol>
+		 *
+		 * The implementation attempts to eliminate dynamic memory allocation in
+		 * the case that no reduction is applied.
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
+		public static Formula and(Formula... formulae) {
+			// Flatten nested conjuncts
+			formulae = Formulae.flattenNestedConjuncts(formulae);
+			// Eliminate truths
+			formulae = Formulae.eliminateConstants(false, formulae);
+			// Ensure sorted and unique
+			formulae = Formulae.sortAndRemoveDuplicates(formulae);
+			// And, finally...
+			if (formulae.length == 0) {
+				// Return true here since the only way it's possible to get here
+				// is if the conjunct contained only truths at the end.
+				return new Truth(true);
+			} else if (formulae.length == 1) {
+				return formulae[0];
+			} else {
+				return new Conjunct(formulae);
+			}
+		}
+
+		/**
+		 * Combine formulae together as disjuncts, whilst performing a range of
+		 * simplifications:
+		 *
+		 * <ol>
+		 * <li><b>Eliminates boolean constants</b>. Disjuncts containing
+		 * <code>true</code> are reduced to <code>true</code>. In contrast, any
+		 * occurrences of <code>false</code> are simply removed.</li>
+		 * <li><b>Flattens nested disjuncts</b>. All nested disjuncts are
+		 * recursively flattened into a single disjunct. For example,
+		 * <code> (x || (y || z))</code> is flattened to
+		 * <code>(x || y || z)</code>.</li>
+		 * <li><b>Eliminates singleton disjuncts</b>. A disjunct containing a
+		 * single (non-disjunct) child is reduced to that child.</li>
+		 * </ol>
+		 *
+		 * The implementation attempts to eliminate dynamic memory allocation in
+		 * the case that no reduction is applied.
+		 *
+		 */
+		public static Formula or(Formula... formulae) {
+			// Flatten nested disjuncts
+			formulae = Formulae.flattenNestedDisjuncts(formulae);
+			// Eliminate truths
+			formulae = Formulae.eliminateConstants(true, formulae);
+			// Ensure sorted and unique
+			formulae = Formulae.sortAndRemoveDuplicates(formulae);
+			// And, finally...
+			if (formulae.length == 0) {
+				// Return false here since the only way it's possible to get
+				// here is if the disjunct contained only falsehoods at the end.
+				return new Truth(false);
+			} else if (formulae.length == 1) {
+				return formulae[0];
+			} else {
+				return new Disjunct(formulae);
+			}
+		}
+
+		public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
+			if (lhs.isConstant() && rhs.isConstant()) {
+				return Formulae.evaluateEquation(Opcode.EXPR_lt, lhs.toConstant(), rhs.toConstant());
+			} else {
+				// FIXME: we need to normalise the left- and right-hand sides
+				// here
+				return new Inequality(true,lhs,rhs);
+			}
+		}
+
+		public static Formula greaterThanOrEquals(Polynomial lhs, Polynomial rhs) {
+			if (lhs.isConstant() && rhs.isConstant()) {
+				return Formulae.evaluateEquation(Opcode.EXPR_gteq, lhs.toConstant(), rhs.toConstant());
+			} else {
+				// FIXME: we need to normalise the left- and right-hand sides
+				// here
+				return new Inequality(false, lhs, rhs);
+			}
+		}
+
+		public static class Truth extends Expr.Constant implements Formula {
+
+			public Truth(boolean value) {
+				super(new Value.Bool(value));
+			}
+
+			public Truth(Value.Bool value) {
+				super(value);
+			}
+
+			public boolean holds() {
+				return getValue().get();
+			}
+
+			@Override
+			public Value.Bool getValue() {
+				return (Value.Bool) super.getValue();
+			}
+
+			@Override
+			public Formula invert() {
+				return new Truth(!getValue().get());
+			}
+
+			@Override
+			public Truth clone(SyntacticItem[] operands) {
+				return new Truth((Value.Bool) operands[0]);
+			}
+		}
+
+		public static class Conjunct extends Expr.Operator implements Formula {
+
+			private Conjunct(Formula... operands) {
+				super(Opcode.EXPR_and, operands);
+			}
+
+			@Override
+			public Formula getOperand(int i) {
+				return (Formula) super.getOperand(i);
+			}
+
+			@Override
+			public Formula[] getOperands() {
+				return (Formula[]) super.getOperands();
+			}
+
+			@Override
+			public Formula invert() {
+				Formula[] children = getOperands();
+				Formula[] nChildren = new Formula[children.length];
+				for(int i=0;i!=children.length;++i) {
+					nChildren[i] = children[i].invert();
+				}
+				return or(nChildren);
+			}
+
+			@Override
+			public Conjunct clone(SyntacticItem[] operands) {
+				return new Conjunct((Formula[]) operands);
+			}
+		}
+
+		public static class Disjunct extends Expr.Operator implements Formula {
+
+			private Disjunct(Formula... operands) {
+				super(Opcode.EXPR_or, operands);
+			}
+
+			@Override
+			public Formula getOperand(int i) {
+				return (Formula) super.getOperand(i);
+			}
+
+			@Override
+			public Formula[] getOperands() {
+				return (Formula[]) super.getOperands();
+			}
+
+			@Override
+			public Formula invert() {
+				Formula[] children = getOperands();
+				Formula[] nChildren = new Formula[children.length];
+				for(int i=0;i!=children.length;++i) {
+					nChildren[i] = children[i].invert();
+				}
+				return and(nChildren);
+			}
+			@Override
+			public Disjunct clone(SyntacticItem[] operands) {
+				return new Disjunct((Formula[]) operands);
+			}
+		}
+
+		public static class Quantifier extends Expr.Quantifier implements Formula {
+			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Formula body) {
+				super(opcode, new Tuple<>(parameters), body);
+			}
+
+			public Quantifier(Opcode opcode, Tuple<VariableDeclaration> parameters, Formula body) {
+				super(opcode, parameters, body);
+			}
+
+			@Override
+			public Tuple<VariableDeclaration> getParameters() {
+				return (Tuple<VariableDeclaration>) getOperand(0);
+			}
+
+			@Override
+			public Formula getBody() {
+				return (Formula) getOperand(1);
+			}
+
+			@Override
+			public Formula invert() {
+				Formula body = getBody().invert();
+				if(getOpcode() == Opcode.EXPR_forall) {
+					return new Formula.Quantifier(Opcode.EXPR_exists,getParameters(),body);
+				} else {
+					return new Formula.Quantifier(Opcode.EXPR_forall,getParameters(),body);
+				}
+			}
+
+			@Override
+			public Formula.Quantifier clone(SyntacticItem[] operands) {
+				return new Formula.Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0],
+						(Formula) operands[1]);
+			}
+		}
+
+		public static class Inequality extends Expr.Operator implements Formula {
+
+			private Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
+				super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, lhs, rhs);
+			}
+
+			@Override
+			public Polynomial getOperand(int i) {
+				return (Polynomial) super.getOperand(i);
+			}
+
+			@Override
+			public Polynomial[] getOperands() {
+				return (Polynomial[]) super.getOperands();
+			}
+
+			@Override
+			public Formula invert() {
+				Polynomial lhs = getOperand(0);
+				Polynomial rhs = getOperand(1);
+				return new Inequality(getOpcode() != Opcode.EXPR_lt,lhs,rhs);
+			}
+
+			@Override
+			public Inequality clone(SyntacticItem[] operands) {
+				return new Inequality(getOpcode() == Opcode.EXPR_lt, (Polynomial) operands[0],
+						(Polynomial) operands[1]);
+			}
+		}
+
+		public static class Equality extends Expr.Operator implements Formula {
+			public Equality(boolean sign, Expr lhs, Expr rhs) {
+				super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
+			}
+
+			@Override
+			public Equality clone(SyntacticItem[] operands) {
+				return new Equality(getOpcode() == Opcode.EXPR_eq, (Expr) operands[0], (Expr) operands[1]);
+			}
+
+			@Override
+			public Formula invert() {
+				Expr lhs = getOperand(0);
+				Expr rhs = getOperand(1);
+				return new Equality(getOpcode() != Opcode.EXPR_eq,lhs,rhs);
+			}
+		}
 	}
 
 	// ===========================================================
