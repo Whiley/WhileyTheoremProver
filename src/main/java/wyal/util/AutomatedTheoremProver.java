@@ -51,6 +51,8 @@ public class AutomatedTheoremProver {
 		// "proof-by-contradiction". In essence, once rewriting is complete, we
 		// should have reduced the term to false (if the original assertion
 		// held).
+		print(root);
+		System.out.println("<<");
 		root = root.invert();
 		root = heap.allocate(root);
 		Formula oRoot = root;

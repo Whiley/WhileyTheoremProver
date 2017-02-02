@@ -39,10 +39,9 @@ public class InequalityClosure implements RewriteRule {
 				System.out.println("INFERRING: ");
 				Formula[] items = inferred.toArray(new Formula[inferred.size()]);
 				item = Formula.and(items);
-				AutomatedTheoremProver.print(conjunct);
-				// FIXME: this test is rather inefficient, isn't it?
+				AutomatedTheoremProver.print(item);
 				if (item.equals(conjunct)) {
-					return item;
+					return conjunct;
 				} else {
 					return item;
 				}
@@ -56,6 +55,11 @@ public class InequalityClosure implements RewriteRule {
 		//
 		Formula op = closeOverInequalities(ith, jth);
 		if (op != null) {
+			System.out.println("FROM: ");
+			System.out.println("  ");AutomatedTheoremProver.print(ith);
+			System.out.println("  ");AutomatedTheoremProver.print(jth);
+			System.out.println("INFERRED: ");
+			System.out.println("  ");AutomatedTheoremProver.print(op);
 			inferred.add(op);
 		}
 	}
@@ -87,12 +91,13 @@ public class InequalityClosure implements RewriteRule {
 		} else {
 			return null;
 		}
-
-		// FIXME: need to properly construct inequality here.
-		// FIXME: also need to check for inequality which can be evaluated to
-		// true. This is necessary to prevent repeat applications of this rule
-		// which infer true and this is then removed, etc.
-		return Formula.lessThan(lhs, rhs);
+		if(ith.getSign() && jth.getSign()) {
+			// Result is strict as had something like ... < x < ...
+			return Formula.lessThan(lhs, rhs);
+		} else {
+			// Result is not-strict as had something like ... <= x < ...
+			return Formula.greaterThanOrEqual(rhs, lhs);
+		}
 	}
 
 	/**
@@ -154,8 +159,6 @@ public class InequalityClosure implements RewriteRule {
 					if (jthAtoms.equals(ithAtoms)) {
 						// FIXME: we should be selecting the lexiographically
 						// least candidate here.
-						// FIXME: sign of the constant is also potentially an
-						// issue
 						return new Pair<>(ith, jth);
 					}
 				}
@@ -165,10 +168,28 @@ public class InequalityClosure implements RewriteRule {
 		return null;
 	}
 
-	private static Polynomial rearrangeToLeft(Polynomial left, Polynomial right, Polynomial.Term term) {
-		return rearrange(true, left, right, term);
+	/**
+	 * Rearrange the left- and right-hand sides of an equation such that the
+	 * given term is on the right, and the remainder is on the left.
+	 *
+	 * @param lhs
+	 * @param rhs
+	 * @param term
+	 * @return
+	 */
+	private static Polynomial rearrangeToLeft(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
+		return rearrange(true, lhs, rhs, term);
 	}
 
+	/**
+	 * Rearrange the left- and right-hand sides of an equation such that the
+	 * given term is on the left, and the remainder is on the right.
+	 *
+	 * @param lhs
+	 * @param rhs
+	 * @param term
+	 * @return
+	 */
 	private static Polynomial rearrangeToRight(Polynomial left, Polynomial right, Polynomial.Term term) {
 		return rearrange(false, left, right, term);
 	}

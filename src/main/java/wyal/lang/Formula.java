@@ -3,6 +3,7 @@ package wyal.lang;
 
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
@@ -55,7 +56,7 @@ public interface Formula extends Expr {
 		// Flatten nested conjuncts
 		formulae = Formulae.flattenNestedConjuncts(formulae);
 		// Eliminate truths
-		formulae = Formulae.eliminateConstants(false, formulae);
+		formulae = Formulae.eliminateConstants(true, formulae);
 		// Ensure sorted and unique
 		formulae = Formulae.sortAndRemoveDuplicates(formulae);
 		// And, finally...
@@ -94,7 +95,7 @@ public interface Formula extends Expr {
 		// Flatten nested disjuncts
 		formulae = Formulae.flattenNestedDisjuncts(formulae);
 		// Eliminate truths
-		formulae = Formulae.eliminateConstants(true, formulae);
+		formulae = Formulae.eliminateConstants(false, formulae);
 		// Ensure sorted and unique
 		formulae = Formulae.sortAndRemoveDuplicates(formulae);
 		// And, finally...
@@ -109,27 +110,25 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static Formula lessThan(Expr.Polynomial lhs, Expr.Polynomial rhs) {
+	public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			return Formulae.evaluateInequality(Opcode.EXPR_lt, lhs.toConstant(), rhs.toConstant());
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(false);
 		} else {
-			// FIXME: we need to normalise the left- and right-hand sides
-			// here
-			return new Inequality(true,lhs,rhs);
+			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
+			return new Inequality(true,bs.getFirst(),bs.getSecond());
 		}
 	}
 
-	public static Formula greaterThanOrEquals(Expr.Polynomial lhs, Expr.Polynomial rhs) {
+	public static Formula greaterThanOrEqual(Polynomial lhs, Polynomial rhs) {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			return Formulae.evaluateInequality(Opcode.EXPR_gteq, lhs.toConstant(), rhs.toConstant());
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(true);
 		} else {
-			// FIXME: we need to normalise the left- and right-hand sides
-			// here
-			return new Inequality(false, lhs, rhs);
+			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
+			return new Inequality(false,bs.getFirst(),bs.getSecond());
 		}
 	}
 
@@ -141,7 +140,8 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(true);
 		} else {
-			return new Equality(true,lhs,rhs);
+			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
+			return new Equality(true,bs.getFirst(),bs.getSecond());
 		}
 	}
 
@@ -153,7 +153,8 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(false);
 		} else {
-			return new Equality(false,lhs,rhs);
+			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
+			return new Equality(false,bs.getFirst(),bs.getSecond());
 		}
 	}
 
@@ -165,7 +166,7 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(true);
 		} else {
-			return new Equality(true,lhs,rhs);
+			return new Unifier(true,lhs,rhs);
 		}
 	}
 
@@ -177,7 +178,7 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(false);
 		} else {
-			return new Equality(false,lhs,rhs);
+			return new Unifier(false,lhs,rhs);
 		}
 	}
 
@@ -254,8 +255,8 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula.Conjunct clone(SyntacticItem[] operands) {
-			return new Conjunct((Formula[]) operands);
+		public Formula clone(SyntacticItem[] operands) {
+			return and((Formula[]) operands);
 		}
 	}
 
@@ -285,8 +286,8 @@ public interface Formula extends Expr {
 			return and(nChildren);
 		}
 		@Override
-		public Formula.Disjunct clone(SyntacticItem[] operands) {
-			return new Disjunct((Formula[]) operands);
+		public Formula clone(SyntacticItem[] operands) {
+			return or((Formula[]) operands);
 		}
 	}
 
@@ -320,56 +321,84 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula.Quantifier clone(SyntacticItem[] operands) {
-			return new Formula.Quantifier(getSign(), (Tuple<VariableDeclaration>) operands[0],
-					(Formula) operands[1]);
+		public Formula clone(SyntacticItem[] operands) {
+			if (getSign()) {
+				return forall((Tuple<VariableDeclaration>) operands[0], (Formula) operands[1]);
+			} else {
+				return exists((Tuple<VariableDeclaration>) operands[0], (Formula) operands[1]);
+			}
 		}
 	}
 
 	public static class Inequality extends Expr.Operator implements Formula {
 
-		private Inequality(boolean sign, Expr.Polynomial lhs, Expr.Polynomial rhs) {
-			super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, lhs, rhs);
+		private Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
+			super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
+		}
+
+		public boolean getSign() {
+			return getOpcode() == Opcode.EXPR_lt;
 		}
 
 		@Override
-		public Expr.Polynomial getOperand(int i) {
-			return (Expr.Polynomial) super.getOperand(i);
+		public Polynomial getOperand(int i) {
+			return (Polynomial) super.getOperand(i);
 		}
 
 		@Override
-		public Expr.Polynomial[] getOperands() {
-			return (Expr.Polynomial[]) super.getOperands();
+		public Polynomial[] getOperands() {
+			return (Polynomial[]) super.getOperands();
 		}
 
 		@Override
 		public Formula invert() {
-			Expr.Polynomial lhs = getOperand(0);
-			Expr.Polynomial rhs = getOperand(1);
-			return new Inequality(getOpcode() != Opcode.EXPR_lt,lhs,rhs);
+			Polynomial lhs = getOperand(0);
+			Polynomial rhs = getOperand(1);
+			return new Inequality(!getSign(),lhs,rhs);
 		}
 
 		@Override
-		public Formula.Inequality clone(SyntacticItem[] operands) {
-			return new Inequality(getOpcode() == Opcode.EXPR_lt, (Expr.Polynomial) operands[0],
-					(Expr.Polynomial) operands[1]);
+		public Formula clone(SyntacticItem[] operands) {
+			if (getSign()) {
+				return lessThan((Polynomial) operands[0],(Polynomial) operands[1]);
+			} else {
+				return greaterThanOrEqual((Polynomial) operands[0],(Polynomial) operands[1]);
+			}
 		}
 	}
 
 	public static class Equality extends Expr.Operator implements Formula {
-		private Equality(boolean sign, Expr lhs, Expr rhs) {
-			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
+		private Equality(boolean sign, Polynomial lhs, Polynomial rhs) {
+			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, new Polynomial[]{lhs, rhs});
+		}
+
+		public boolean getSign() {
+			return getOpcode() == Opcode.EXPR_eq;
 		}
 
 		@Override
-		public Formula.Equality clone(SyntacticItem[] operands) {
-			return new Equality(getOpcode() == Opcode.EXPR_eq, (Expr) operands[0], (Expr) operands[1]);
+		public Polynomial getOperand(int i) {
+			return (Polynomial) super.getOperand(i);
+		}
+
+		@Override
+		public Polynomial[] getOperands() {
+			return (Polynomial[]) super.getOperands();
+		}
+
+		@Override
+		public Formula clone(SyntacticItem[] operands) {
+			if (getSign()) {
+				return Formula.equals((Polynomial) operands[0],(Polynomial) operands[1]);
+			} else {
+				return notEquals((Polynomial) operands[0],(Polynomial) operands[1]);
+			}
 		}
 
 		@Override
 		public Formula invert() {
-			Expr lhs = getOperand(0);
-			Expr rhs = getOperand(1);
+			Polynomial lhs = getOperand(0);
+			Polynomial rhs = getOperand(1);
 			return new Equality(getOpcode() != Opcode.EXPR_eq,lhs,rhs);
 		}
 	}
@@ -379,9 +408,18 @@ public interface Formula extends Expr {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
+
+		public boolean getSign() {
+			return getOpcode() == Opcode.EXPR_eq;
+		}
+
 		@Override
-		public Formula.Unifier clone(SyntacticItem[] operands) {
-			return new Unifier(getOpcode() == Opcode.EXPR_eq, (Expr) operands[0], (Expr) operands[1]);
+		public Formula clone(SyntacticItem[] operands) {
+			if (getSign()) {
+				return unify((Polynomial) operands[0],(Polynomial) operands[1]);
+			} else {
+				return notUnify((Polynomial) operands[0],(Polynomial) operands[1]);
+			}
 		}
 
 		@Override

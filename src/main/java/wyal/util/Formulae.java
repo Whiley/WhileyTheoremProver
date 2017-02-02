@@ -1,5 +1,6 @@
 package wyal.util;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
 import wyal.lang.Formula;
@@ -7,6 +8,7 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
@@ -54,6 +56,18 @@ public class Formulae {
 			Formula body = toFormula(q.getBody(),types);
 			return Formula.exists(q.getParameters(), body);
 		}
+		case EXPR_implies: {
+			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
+			Formula lhs = toFormula(it.getOperand(0),types);
+			Formula rhs = toFormula(it.getOperand(1),types);
+			System.out.println("LHS:");
+			System.out.println("    ");AutomatedTheoremProver.print(lhs);
+			System.out.println("RHS:");
+			System.out.println("    ");AutomatedTheoremProver.print(rhs);
+			System.out.println("LHS (inverted):");
+			System.out.println("    ");AutomatedTheoremProver.print(lhs.invert());
+			return Formula.or(lhs.invert(), rhs);
+		}
 		case EXPR_eq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
@@ -90,7 +104,7 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
-			return Formula.greaterThanOrEquals(rhs, lhs);
+			return Formula.greaterThanOrEqual(rhs, lhs);
 		}
 		case EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -102,7 +116,7 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = Polynomials.toPolynomial(operator.getOperand(0));
 			Polynomial rhs = Polynomials.toPolynomial(operator.getOperand(1));
-			return Formula.greaterThanOrEquals(lhs, rhs);
+			return Formula.greaterThanOrEqual(lhs, rhs);
 		}
 		case EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -364,6 +378,66 @@ public class Formulae {
 			children = Arrays.copyOf(children, children.length);
 			Arrays.sort(children);
 			return ArrayUtils.sortedRemoveDuplicates(children);
+		}
+	}
+
+	/**
+	 * Normalise bounds of an equation to be positive. For example, consider the
+	 * inequality <code>x < y - z</code>. In this case, the right-hand side is
+	 * not normalised because it contains a negative term. The normalised
+	 * version of this inequality would be <code>x + z < y</code>.
+	 *
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	public static Pair<Polynomial,Polynomial> normaliseBounds(Polynomial lhs, Polynomial rhs) {
+		Polynomial bound = factorise(lhs.subtract(rhs));
+		Polynomial pos = new Polynomial(BigInteger.ZERO);
+		Polynomial neg = new Polynomial(BigInteger.ZERO);
+		for(int i=0;i!=bound.size();++i) {
+			Polynomial.Term t = bound.getOperand(i);
+			BigInteger coeff = t.getCoefficient().get();
+			if(coeff.compareTo(BigInteger.ZERO) >= 0) {
+				pos = pos.add(t);
+			} else {
+				neg = neg.subtract(t);
+			}
+		}
+		return new Pair<>(pos,neg);
+	}
+
+	/**
+	 * Factorise a given polynomial. For example, <code>2x+2</code> is
+	 * factorised to be <code>x+1</code>. Observe that this does not preseve the
+	 * result of the polynomial. However, it is safe to do when simplifying
+	 * equations. For example, <code>2x == 2y</code> can be safely factorised to
+	 * <code>x == y</code>.
+	 *
+	 * @param p
+	 * @return
+	 */
+	private static Polynomial factorise(Polynomial p) {
+		BigInteger factor = p.getOperand(0).getCoefficient().get();
+		for(int i=1;i!=p.size();++i) {
+			BigInteger c = p.getOperand(i).getCoefficient().get();
+			factor = factor.gcd(c);
+		}
+		if(factor.equals(BigInteger.ONE)) {
+			// No useful factor discovered
+			return p;
+		} else {
+			// Yes, we found a useful factor. Therefore, divide all coefficients
+			// by this.
+			Polynomial r = new Polynomial(BigInteger.ZERO);
+			for(int i=0;i!=p.size();++i) {
+				Polynomial.Term t = p.getOperand(i);
+				BigInteger c = t.getCoefficient().get();
+				c = c.divide(factor);
+				// FIXME: this could be more efficient I guess
+				r = r.add(new Polynomial.Term(new Value.Int(c), t.getAtoms()));
+			}
+			return r;
 		}
 	}
 

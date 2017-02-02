@@ -15,14 +15,6 @@ import static wycc.util.ArrayUtils.*;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
 import wyal.util.Polynomials;
@@ -909,7 +901,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
-			public Operator clone(SyntacticItem[] operands) {
+			public Expr clone(SyntacticItem[] operands) {
 				return new Operator(getOpcode(), (Expr[]) operands);
 			}
 		}
@@ -965,6 +957,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			public Polynomial add(Polynomial p) {
+				return Polynomials.add(this,p);
+			}
+
+			public Polynomial add(Polynomial.Term p) {
 				return Polynomials.add(this,p);
 			}
 
@@ -1181,7 +1177,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
-			public Quantifier clone(SyntacticItem[] operands) {
+			public Expr clone(SyntacticItem[] operands) {
 				return new Quantifier(getOpcode(), (Tuple<VariableDeclaration>) operands[0], (Expr) operands[1]);
 			}
 		}
