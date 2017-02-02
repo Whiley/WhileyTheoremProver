@@ -36,10 +36,8 @@ public class InequalityClosure implements RewriteRule {
 				for(int i=0;i!=conjunct.size();++i) {
 					inferred.add(conjunct.getOperand(i));
 				}
-				System.out.println("INFERRING: ");
 				Formula[] items = inferred.toArray(new Formula[inferred.size()]);
 				item = Formula.and(items);
-				AutomatedTheoremProver.print(item);
 				if (item.equals(conjunct)) {
 					return conjunct;
 				} else {
@@ -55,11 +53,12 @@ public class InequalityClosure implements RewriteRule {
 		//
 		Formula op = closeOverInequalities(ith, jth);
 		if (op != null) {
-			System.out.println("FROM: ");
-			System.out.println("  ");AutomatedTheoremProver.print(ith);
-			System.out.println("  ");AutomatedTheoremProver.print(jth);
-			System.out.println("INFERRED: ");
-			System.out.println("  ");AutomatedTheoremProver.print(op);
+			System.out.print("FROM: ");
+			AutomatedTheoremProver.print(ith);
+			System.out.print(" AND: ");
+			AutomatedTheoremProver.print(jth);
+			System.out.print(" INFERRED: ");
+			AutomatedTheoremProver.println(op);
 			inferred.add(op);
 		}
 	}
@@ -83,19 +82,19 @@ public class InequalityClosure implements RewriteRule {
 		Polynomial rhs;
 		if (lCandidate != null) {
 			// FIXME: should be selecting the least candidate
-			lhs = rearrangeToRight(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeToLeft(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lhs = rearrangeForUpperBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			rhs = rearrangeForLowerBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 		} else if (rCandidate != null) {
-			lhs = rearrangeToRight(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			rhs = rearrangeToLeft(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
 		} else {
 			return null;
 		}
-		if(ith.getSign() && jth.getSign()) {
-			// Result is strict as had something like ... < x < ...
+		if(ith.getSign() || jth.getSign()) {
+			// Result is strict as had something like ... <= x < ...
 			return Formula.lessThan(lhs, rhs);
 		} else {
-			// Result is not-strict as had something like ... <= x < ...
+			// Result is not-strict as had something like ... <= x <= ...
 			return Formula.greaterThanOrEqual(rhs, lhs);
 		}
 	}
@@ -154,7 +153,7 @@ public class InequalityClosure implements RewriteRule {
 			Tuple<Expr> ithAtoms = ith.getAtoms();
 			if (ithAtoms.size() > 0) {
 				for (int j = 0; j != upper.size(); ++j) {
-					Polynomial.Term jth = lower.getOperand(j);
+					Polynomial.Term jth = upper.getOperand(j);
 					Tuple<Expr> jthAtoms = jth.getAtoms();
 					if (jthAtoms.equals(ithAtoms)) {
 						// FIXME: we should be selecting the lexiographically
@@ -177,7 +176,7 @@ public class InequalityClosure implements RewriteRule {
 	 * @param term
 	 * @return
 	 */
-	private static Polynomial rearrangeToLeft(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
+	private static Polynomial rearrangeForLowerBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
 		return rearrange(true, lhs, rhs, term);
 	}
 
@@ -190,8 +189,8 @@ public class InequalityClosure implements RewriteRule {
 	 * @param term
 	 * @return
 	 */
-	private static Polynomial rearrangeToRight(Polynomial left, Polynomial right, Polynomial.Term term) {
-		return rearrange(false, left, right, term);
+	private static Polynomial rearrangeForUpperBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
+		return rearrange(false, lhs, rhs, term);
 	}
 
 	/**

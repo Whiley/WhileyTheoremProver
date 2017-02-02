@@ -51,18 +51,16 @@ public class AutomatedTheoremProver {
 		// "proof-by-contradiction". In essence, once rewriting is complete, we
 		// should have reduced the term to false (if the original assertion
 		// held).
-		print(root);
-		System.out.println("<<");
 		root = root.invert();
 		root = heap.allocate(root);
 		Formula oRoot = root;
-		print(root);
-		System.out.println("--");
+		println(root);
+		System.out.println("--------------------------");
 		do {
 			oRoot = root;
 			root = (Formula) pushDownRewrite(root, rules);
 		} while(oRoot != root);
-		print(root);
+		println(root);
 		// Prepare for proof-by-contradiction
 		heap.print(new PrintWriter(System.out));
 		//
@@ -279,11 +277,15 @@ public class AutomatedTheoremProver {
 	 *
 	 * @param item
 	 */
+	public static void println(WyalFile.Expr item) {
+		print(item);
+		System.out.println();
+	}
+
 	public static void print(WyalFile.Expr item) {
 		PrintWriter out = new PrintWriter(System.out);
 		new WyalFilePrinter(out).writeExpression(item);
 		out.flush();
-		System.out.println();
 	}
 
 	/**

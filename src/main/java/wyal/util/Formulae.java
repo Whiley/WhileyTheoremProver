@@ -60,12 +60,6 @@ public class Formulae {
 			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
 			Formula lhs = toFormula(it.getOperand(0),types);
 			Formula rhs = toFormula(it.getOperand(1),types);
-			System.out.println("LHS:");
-			System.out.println("    ");AutomatedTheoremProver.print(lhs);
-			System.out.println("RHS:");
-			System.out.println("    ");AutomatedTheoremProver.print(rhs);
-			System.out.println("LHS (inverted):");
-			System.out.println("    ");AutomatedTheoremProver.print(lhs.invert());
 			return Formula.or(lhs.invert(), rhs);
 		}
 		case EXPR_eq: {
@@ -419,6 +413,10 @@ public class Formulae {
 	 */
 	private static Polynomial factorise(Polynomial p) {
 		BigInteger factor = p.getOperand(0).getCoefficient().get();
+		// In case of just one coefficient which is negative, we need to compute
+		// abs() here.
+		factor = factor.abs();
+		//
 		for(int i=1;i!=p.size();++i) {
 			BigInteger c = p.getOperand(i).getCoefficient().get();
 			factor = factor.gcd(c);
