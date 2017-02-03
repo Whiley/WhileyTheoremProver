@@ -11,6 +11,7 @@ import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.Formula.Polynomial;
 import wyal.lang.WyalFile.*;
 import wyal.rules.*;
 
@@ -49,7 +50,7 @@ public class AutomatedTheoremProver {
 		AbstractSyntacticHeap heap = new StructurallyEquivalentHeap();
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
-		Formula root = Formulae.toFormula(SyntacticHeaps.clone(decl.getBody()),types);
+		Formula root = toFormula(SyntacticHeaps.clone(decl.getBody()),types);
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction". In essence, once rewriting is complete, we
 		// should have reduced the term to false (if the original assertion
@@ -75,6 +76,219 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+
+	/**
+	 * Take a tree of statements and expressions, and return a formula. This is
+	 * the first part of the process in discharging a given assertion. The
+	 * purpose of a formula is just to provide a more "structured" form of the
+	 * logical expression. The interface Formula also provides useful functions
+	 * form manipulating formulae.
+	 *
+	 * @param stmt
+	 *            The statement being converted into a formula
+	 * @param types
+	 *            The type system is required for the translation, as some
+	 *            aspects depend upon the types of expressions involved.
+	 * @return
+	 */
+	public static Formula toFormula(WyalFile.Stmt stmt, TypeSystem types) {
+		switch (stmt.getOpcode()) {
+		case STMT_block: {
+			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
+			Formula[] operands = toFormulae(b.getOperands(),types);
+			return Formulae.and(operands);
+		}
+		case STMT_caseof: {
+			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) stmt;
+			Formula[] operands = toFormulae(b.getOperands(),types);
+			return Formulae.or(operands);
+		}
+		case STMT_ifthen: {
+			WyalFile.Stmt.IfThen it = (WyalFile.Stmt.IfThen) stmt;
+			Formula lhs = toFormula(it.getIfBody(),types);
+			Formula rhs = toFormula(it.getThenBody(),types);
+			return Formulae.or(lhs.invert(), rhs);
+		}
+		case STMT_forall: {
+			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			Formula body = toFormula(q.getBody(),types);
+			return Formula.forall(q.getParameters(), body);
+		}
+		case STMT_exists: {
+			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			Formula body = toFormula(q.getBody(),types);
+			return Formula.exists(q.getParameters(), body);
+		}
+		case EXPR_implies: {
+			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
+			Formula lhs = toFormula(it.getOperand(0),types);
+			Formula rhs = toFormula(it.getOperand(1),types);
+			return Formulae.or(lhs.invert(), rhs);
+		}
+		case EXPR_eq: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
+			Type lhs_t = lhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t)) {
+				Polynomial lhs_p = toPolynomial(lhs);
+				Polynomial rhs_p = toPolynomial(rhs);
+				// Force arithmetic equality
+				return Formulae.equal(lhs_p, rhs_p);
+			} else {
+				Formula.Atom lhs_a = toPolynomial(lhs);
+				Formula.Atom rhs_a = toPolynomial(rhs);
+				return Formulae.equal(lhs_a, rhs_a);
+			}
+		}
+		case EXPR_neq: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
+			Type lhs_t = lhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t)) {
+				Polynomial lhs_p = toPolynomial(lhs);
+				Polynomial rhs_p = toPolynomial(rhs);
+				// Force arithmetic equality
+				return Formulae.notEqual(lhs_p, rhs_p);
+			} else {
+				Formula.Atom lhs_a = toPolynomial(lhs);
+				Formula.Atom rhs_a = toPolynomial(rhs);
+				return Formulae.notEqual(lhs_a, rhs_a);
+			}
+		}
+		case EXPR_lt: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Polynomial lhs = toPolynomial(operator.getOperand(0));
+			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			return Formulae.lessThan(lhs, rhs);
+		}
+		case EXPR_lteq: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Polynomial lhs = toPolynomial(operator.getOperand(0));
+			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			return Formulae.greaterThanOrEqual(rhs, lhs);
+		}
+		case EXPR_gt: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Polynomial lhs = toPolynomial(operator.getOperand(0));
+			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			return Formulae.lessThan(rhs, lhs);
+		}
+		case EXPR_gteq: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Polynomial lhs = toPolynomial(operator.getOperand(0));
+			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			return Formulae.greaterThanOrEqual(lhs, rhs);
+		}
+		case EXPR_not: {
+			Expr.Operator operator = (Expr.Operator) stmt;
+			Formula f = toFormula(operator.getOperand(0),types);
+			return f.invert();
+		}
+		case EXPR_const: {
+			Expr.Constant c = (Expr.Constant) stmt;
+			Value.Bool b = (Value.Bool) c.getValue();
+			return new Formula.Truth(b);
+		}
+		default:
+			if (stmt instanceof WyalFile.Expr) {
+				Formula.Atom atom = toAtom((WyalFile.Expr) stmt);
+				Formula.Atom TRUE = new Formula.Truth(new Value.Bool(true));
+				return Formulae.equal(TRUE, atom);
+			} else {
+				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
+			}
+		}
+	}
+
+	/**
+	 * Convert an array of statements into an array of (equivalent) expressions.
+	 *
+	 * @param stmts
+	 * @return
+	 */
+	public static Formula[] toFormulae(WyalFile.Stmt[] stmts, TypeSystem types) {
+		Formula[] exprs = new Formula[stmts.length];
+		for (int i = 0; i != exprs.length; ++i) {
+			exprs[i] = toFormula(stmts[i], types);
+		}
+		return exprs;
+	}
+
+	public static Polynomial toPolynomial(Expr e) {
+		Formula.Atom atom = toAtom(e);
+		if(atom instanceof Polynomial) {
+			return (Polynomial) atom;
+		} else {
+			// FIXME: this needs to be resolved
+			throw new IllegalArgumentException("implement me!");
+		}
+	}
+
+	/**
+	 * Convert an arbitrary expression to a polynomial.
+	 *
+	 * @param e
+	 * @return
+	 */
+	public static Formula.Atom toAtom(Expr e) {
+		switch (e.getOpcode()) {
+		case EXPR_const:
+			return toAtom((Expr.Constant) e);
+		//case EXPR_invoke:
+		//case EXPR_arridx:
+		case EXPR_var:
+			return toAtom((Expr.VariableAccess) e);
+		case EXPR_add:
+		case EXPR_mul:
+		case EXPR_sub: {
+			return toAtom((Expr.Operator) e);
+		}
+		default:
+			throw new IllegalArgumentException("cannot convert expression to polynomial");
+		}
+	}
+
+	private static Formula.Atom toAtom(Expr.Constant e) {
+		Value.Int c = (Value.Int) e.getValue();
+		// FIXME: not every constant produces a polynomials
+		return new Polynomial(new Polynomial.Term(c));
+	}
+
+	private static Formula.Atom toAtom(Expr.VariableAccess e) {
+		return new Formula.VariableAccess(e.getVariableDeclaration());
+	}
+
+	private static Formula.Atom toAtom(Expr.Operator e) {
+		Expr[] children = e.getOperands();
+		// FIXME: not all operators produce atoms
+		Polynomial result = toPolynomial(children[0]);
+		switch (e.getOpcode()) {
+		case EXPR_add: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.add(toPolynomial(children[i]));
+			}
+			break;
+		}
+		case EXPR_sub: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.subtract(toPolynomial(children[i]));
+			}
+			break;
+		}
+		case EXPR_mul: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.multiply(toPolynomial(children[i]));
+			}
+			break;
+		}
+		default:
+			throw new IllegalArgumentException("IMPLEMENT ME");
+		}
+
+		return result;
+	}
 
 	/**
 	 * Initialise the "structural invariant". This invariant states that no two

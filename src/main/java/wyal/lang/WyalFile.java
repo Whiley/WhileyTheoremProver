@@ -5,10 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 
 import static wycc.util.ArrayUtils.*;
 
@@ -17,7 +13,6 @@ import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
-import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
 import wybs.lang.CompilationUnit;
 import wycc.util.ArrayUtils;

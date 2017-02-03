@@ -14,7 +14,6 @@ import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;
 import wyal.util.Formulae;
-import wyal.util.Polynomials;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
 
 /**
@@ -42,7 +41,7 @@ public class VariableUnification implements RewriteRule {
 			if (f instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) f;
 				if (eq.getSign()) {
-					Pair<Identifier, Expr> substitution = rearrangeForSubstitution(eq);
+					Pair<Identifier, Formula.Atom> substitution = rearrangeForSubstitution(eq);
 					nChildren = applySubstitution(substitution, i, nChildren, children == nChildren);
 				}
 			}
@@ -50,13 +49,13 @@ public class VariableUnification implements RewriteRule {
 		//
 		if (children != nChildren) {
 			// Something changed
-			return Formula.and(nChildren);
+			return Formulae.and(nChildren);
 		} else {
 			return item;
 		}
 	}
 
-	private Formula[] applySubstitution(Pair<Identifier, Expr> substitution, int ignored, Formula[] children,
+	private Formula[] applySubstitution(Pair<Identifier, Formula.Atom> substitution, int ignored, Formula[] children,
 			boolean shared) {
 		if (substitution != null) {
 			// We've found a suitable substitution
@@ -80,9 +79,9 @@ public class VariableUnification implements RewriteRule {
 		return children;
 	}
 
-	private Pair<Identifier, Expr> rearrangeForSubstitution(Formula.Equality f) {
+	private Pair<Identifier, Formula.Atom> rearrangeForSubstitution(Formula.Equality f) {
 		Identifier var;
-		Expr bound;
+		Formula.Atom bound;
 		if (f instanceof Formula.ArithmeticEquality) {
 			// Arithmetic equalities are a special case because we can actually
 			// rearrange them.
@@ -113,8 +112,8 @@ public class VariableUnification implements RewriteRule {
 		} else {
 			// For non-arithmetic equalities, we can't rearrange them.
 			// Therefore, there are relatively few options.
-			Expr lhs = f.getOperand(0);
-			Expr rhs = f.getOperand(1);
+			Formula.Atom lhs = f.getOperand(0);
+			Formula.Atom rhs = f.getOperand(1);
 			//
 			if (lhs instanceof Expr.VariableAccess && rhs instanceof Expr.VariableAccess) {
 				Identifier v1 = ((Expr.VariableAccess) lhs).getVariableDeclaration().getVariableName();
@@ -203,19 +202,10 @@ public class VariableUnification implements RewriteRule {
 		return va.getVariableDeclaration().getVariableName();
 	}
 
-	private Expr substitute(Pair<Identifier, Expr> substitution, Expr item) {
+	private Formula.Atom substitute(Pair<Identifier, Formula.Atom> substitution, Formula.Atom item) {
 		switch (item.getOpcode()) {
 		case EXPR_const:
 			return item;
-		case EXPR_or:
-		case EXPR_and:
-		case EXPR_forall:
-		case EXPR_exists:
-		case EXPR_eq:
-		case EXPR_neq:
-		case EXPR_lt:
-		case EXPR_gteq:
-			return substituteFormula(substitution, (Formula) item);
 		case EXPR_var: {
 			// In this case, we might be able to make a substitution.
 			Expr.VariableAccess v = (Expr.VariableAccess) item;
@@ -232,32 +222,19 @@ public class VariableUnification implements RewriteRule {
 		case EXPR_mul: {
 			return substitutePolynomialTerm(substitution, (Polynomial.Term) item);
 		}
-		case EXPR_arridx:
-		case EXPR_arrgen:
-		case EXPR_arrinit: {
-			Expr.Operator op = (Expr.Operator) item;
-			Expr[] children = op.getOperands();
-			Expr[] nChildren = substitute(substitution, children);
-			//
-			if (nChildren != children) {
-				// something changed!
-				return (Expr) item.clone(nChildren);
-			}
-			return item;
-		}
 		default:
 			throw new IllegalArgumentException("invalid expression opcode: " + item.getOpcode());
 		}
 	}
 
-	private Formula substituteFormula(Pair<Identifier, Expr> substitution, Formula item) {
+	private Formula substituteFormula(Pair<Identifier, Formula.Atom> substitution, Formula item) {
 		switch (item.getOpcode()) {
 		case EXPR_or: {
 			Formula.Disjunct disjunct = (Formula.Disjunct) item;
 			Formula[] children = disjunct.getOperands();
 			Formula[] nChildren = substitute(substitution, children);
 			if (children != nChildren) {
-				return item.clone(nChildren);
+				return Formulae.or(nChildren);
 			} else {
 				return item;
 			}
@@ -267,7 +244,7 @@ public class VariableUnification implements RewriteRule {
 			Formula[] children = conjunct.getOperands();
 			Formula[] nChildren = substitute(substitution, children);
 			if (children != nChildren) {
-				return item.clone(nChildren);
+				return Formulae.and(nChildren);
 			} else {
 				return item;
 			}
@@ -288,23 +265,27 @@ public class VariableUnification implements RewriteRule {
 		case EXPR_eq:
 		case EXPR_neq: {
 			Formula.Equality equality = (Formula.Equality) item;
-			Expr[] children = equality.getOperands();
-			Expr[] nChildren = substitute(substitution, children);
-			if (children != nChildren) {
-				return item.clone(nChildren);
-			} else {
+			Formula.Atom[] children = equality.getOperands();
+			Formula.Atom[] nChildren = substitute(substitution, children);
+			if (children == nChildren) {
 				return item;
+			} else if(equality.getSign()){
+				return Formulae.equal(nChildren[0], nChildren[1]);
+			} else {
+				return Formulae.notEqual(nChildren[0], nChildren[1]);
 			}
 		}
 		case EXPR_lt:
 		case EXPR_gteq: {
 			Formula.Inequality inequality = (Formula.Inequality) item;
-			Expr[] children = inequality.getOperands();
-			Expr[] nChildren = substitute(substitution, children);
-			if (children != nChildren) {
-				return item.clone(nChildren);
-			} else {
+			Formula.Atom[] children = inequality.getOperands();
+			Formula.Atom[] nChildren = substitute(substitution, children);
+			if (children == nChildren) {
 				return item;
+			} else if (inequality.getSign()) {
+				return Formulae.lessThan((Polynomial) nChildren[0], (Polynomial) nChildren[1]);
+			} else {
+				return Formulae.greaterThanOrEqual((Polynomial) nChildren[0], (Polynomial) nChildren[1]);
 			}
 		}
 		default:
@@ -312,12 +293,12 @@ public class VariableUnification implements RewriteRule {
 		}
 	}
 
-	private Polynomial substitutePolynomial(Pair<Identifier, Expr> substitution, Polynomial p) {
+	private Polynomial substitutePolynomial(Pair<Identifier, Formula.Atom> substitution, Polynomial p) {
 		Polynomial.Term[] children = p.getOperands();
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
 			Polynomial.Term before = children[i];
-			Expr after = substitute(substitution, before);
+			Formula.Atom after = substitutePolynomialTerm(substitution, before);
 			if (before != after && nChildren == children) {
 				// Cannot use Arrays.copyOf here as this introduces a bug.
 				nChildren = new Expr[children.length];
@@ -332,9 +313,9 @@ public class VariableUnification implements RewriteRule {
 		}
 	}
 
-	private Expr substitutePolynomialTerm(Pair<Identifier, Expr> substitution, Polynomial.Term p) {
-		Expr[] children = p.getOperands();
-		Expr[] nChildren = substitute(substitution, children);
+	private Formula.Atom substitutePolynomialTerm(Pair<Identifier, Formula.Atom> substitution, Polynomial.Term p) {
+		Formula.Atom[] children = p.getOperands();
+		Formula.Atom[] nChildren = substitute(substitution, children);
 		if (children == nChildren) {
 			return p;
 		} else {
@@ -347,7 +328,7 @@ public class VariableUnification implements RewriteRule {
 		}
 	}
 
-	private Polynomial evaluatePolynomialTerm(Expr[] children) {
+	private Polynomial evaluatePolynomialTerm(Formula.Atom[] children) {
 		Polynomial p = new Polynomial(BigInteger.ONE);
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -360,7 +341,7 @@ public class VariableUnification implements RewriteRule {
 		return p;
 	}
 
-	private Polynomial flatternPolynomial(Expr[] children) {
+	private Polynomial flatternPolynomial(Formula.Atom[] children) {
 		int count = 0;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -377,25 +358,31 @@ public class VariableUnification implements RewriteRule {
 				if (child instanceof Polynomial) {
 					p = p.add((Polynomial) child);
 				} else {
-					p = p.add((Polynomial.Term) child);
+					p = Formulae.add(p, (Polynomial.Term) child);
 				}
 			}
 			return p;
 		}
 	}
 
+	public static Polynomial sum(Polynomial.Term... terms) {
+		Polynomial.Term[] nTerms = Arrays.copyOf(terms, terms.length);
+		// FIXME: this is not the ideal way to do this.
+		return Formulae.toNormalForm(nTerms);
+	}
+
 	/**
-	 * Substitute through an array of syntactic items.
+	 * Substitute through an array of syntactic formulae.
 	 *
 	 * @param substitution
 	 * @param children
 	 * @return
 	 */
-	private <T extends Expr> T[] substitute(Pair<Identifier, Expr> substitution, T[] children) {
-		T[] nChildren = children;
+	private Formula[] substitute(Pair<Identifier, Formula.Atom> substitution, Formula[] children) {
+		Formula[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
-			T before = children[i];
-			T after = (T) substitute(substitution, before);
+			Formula before = children[i];
+			Formula after = substituteFormula(substitution, before);
 			if (before != after && nChildren == children) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
@@ -404,4 +391,23 @@ public class VariableUnification implements RewriteRule {
 		return nChildren;
 	}
 
+	/**
+	 * Substitute through an array of syntactic atom.
+	 *
+	 * @param substitution
+	 * @param children
+	 * @return
+	 */
+	private Formula.Atom[] substitute(Pair<Identifier, Formula.Atom> substitution, Formula.Atom[] children) {
+		Formula.Atom[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Formula.Atom before = children[i];
+			Formula.Atom after = substitute(substitution, before);
+			if (before != after && nChildren == children) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = after;
+		}
+		return nChildren;
+	}
 }

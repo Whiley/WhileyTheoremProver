@@ -9,6 +9,7 @@ import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
+import wyal.util.Formulae;
 
 public class InequalityClosure implements RewriteRule {
 
@@ -37,7 +38,7 @@ public class InequalityClosure implements RewriteRule {
 					inferred.add(conjunct.getOperand(i));
 				}
 				Formula[] items = inferred.toArray(new Formula[inferred.size()]);
-				item = Formula.and(items);
+				item = Formulae.and(items);
 				if (item.equals(conjunct)) {
 					return conjunct;
 				} else {
@@ -92,10 +93,10 @@ public class InequalityClosure implements RewriteRule {
 		}
 		if(ith.getSign() || jth.getSign()) {
 			// Result is strict as had something like ... <= x < ...
-			return Formula.lessThan(lhs, rhs);
+			return Formulae.lessThan(lhs, rhs);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return Formula.greaterThanOrEqual(rhs, lhs);
+			return Formulae.greaterThanOrEqual(rhs, lhs);
 		}
 	}
 

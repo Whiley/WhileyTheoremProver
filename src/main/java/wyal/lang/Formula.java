@@ -28,164 +28,10 @@ public interface Formula extends Expr {
 
 	/**
 	 * Invert a given formula.
+	 *
 	 * @return
 	 */
 	public Formula invert();
-
-	@Override
-	public Formula clone(SyntacticItem[] operands);
-
-	/**
-	 * Combine formulae together as conjuncts, whilst performing a range of
-	 * simplifications:
-	 *
-	 * <ol>
-	 * <li><b>Eliminates boolean constants</b>. Conjuncts containing
-	 * <code>false</code> are reduced to <code>false</code>. In contrast,
-	 * any occurrences of <code>true</code> are simply removed.</li>
-	 * <li><b>Flattens nested conjuncts</b>. All nested conjuncts are
-	 * recursively flattened into a single conjunct. For example,
-	 * <code> (x && (y && z))</code> is flattened to
-	 * <code>(x && y && z)</code>.</li>
-	 * <li><b>Eliminates singleton conjuncts</b>. A conjunct containing a
-	 * single (non-conjunct) child is reduced to that child.</li>
-	 * </ol>
-	 *
-	 * The implementation attempts to eliminate dynamic memory allocation in
-	 * the case that no reduction is applied.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public static Formula and(Formula... formulae) {
-		// Flatten nested conjuncts
-		formulae = Formulae.flattenNestedConjuncts(formulae);
-		// Eliminate truths
-		formulae = Formulae.eliminateConstants(true, formulae);
-		// Ensure sorted and unique
-		formulae = Formulae.sortAndRemoveDuplicates(formulae);
-		// And, finally...
-		if (formulae.length == 0) {
-			// Return true here since the only way it's possible to get here
-			// is if the conjunct contained only truths at the end.
-			return new Truth(true);
-		} else if (formulae.length == 1) {
-			return formulae[0];
-		} else {
-			return new Conjunct(formulae);
-		}
-	}
-
-	/**
-	 * Combine formulae together as disjuncts, whilst performing a range of
-	 * simplifications:
-	 *
-	 * <ol>
-	 * <li><b>Eliminates boolean constants</b>. Disjuncts containing
-	 * <code>true</code> are reduced to <code>true</code>. In contrast, any
-	 * occurrences of <code>false</code> are simply removed.</li>
-	 * <li><b>Flattens nested disjuncts</b>. All nested disjuncts are
-	 * recursively flattened into a single disjunct. For example,
-	 * <code> (x || (y || z))</code> is flattened to
-	 * <code>(x || y || z)</code>.</li>
-	 * <li><b>Eliminates singleton disjuncts</b>. A disjunct containing a
-	 * single (non-disjunct) child is reduced to that child.</li>
-	 * </ol>
-	 *
-	 * The implementation attempts to eliminate dynamic memory allocation in
-	 * the case that no reduction is applied.
-	 *
-	 */
-	public static Formula or(Formula... formulae) {
-		// Flatten nested disjuncts
-		formulae = Formulae.flattenNestedDisjuncts(formulae);
-		// Eliminate truths
-		formulae = Formulae.eliminateConstants(false, formulae);
-		// Ensure sorted and unique
-		formulae = Formulae.sortAndRemoveDuplicates(formulae);
-		// And, finally...
-		if (formulae.length == 0) {
-			// Return false here since the only way it's possible to get
-			// here is if the disjunct contained only falsehoods at the end.
-			return new Truth(false);
-		} else if (formulae.length == 1) {
-			return formulae[0];
-		} else {
-			return new Disjunct(formulae);
-		}
-	}
-
-	public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
-		if (lhs.isConstant() && rhs.isConstant()) {
-			return Formulae.evaluateInequality(Opcode.EXPR_lt, lhs.toConstant(), rhs.toConstant());
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(false);
-		} else {
-			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new Inequality(true,bs.getFirst(),bs.getSecond());
-		}
-	}
-
-	public static Formula greaterThanOrEqual(Polynomial lhs, Polynomial rhs) {
-		if (lhs.isConstant() && rhs.isConstant()) {
-			return Formulae.evaluateInequality(Opcode.EXPR_gteq, lhs.toConstant(), rhs.toConstant());
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(true);
-		} else {
-			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new Inequality(false,bs.getFirst(),bs.getSecond());
-		}
-	}
-
-	public static Formula equal(Polynomial lhs, Polynomial rhs) {
-		if (lhs.isConstant() && rhs.isConstant()) {
-			Value lhs_v = lhs.toConstant();
-			Value rhs_v = rhs.toConstant();
-			return Formulae.evaluateEquality(Opcode.EXPR_eq, lhs_v, rhs_v);
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(true);
-		} else {
-			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new ArithmeticEquality(true,bs.getFirst(),bs.getSecond());
-		}
-	}
-
-	public static Formula notEqual(Polynomial lhs, Polynomial rhs) {
-		if (lhs.isConstant() && rhs.isConstant()) {
-			Value lhs_v = lhs.toConstant();
-			Value rhs_v = rhs.toConstant();
-			return Formulae.evaluateEquality(Opcode.EXPR_neq, lhs_v, rhs_v);
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(false);
-		} else {
-			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new ArithmeticEquality(false,bs.getFirst(),bs.getSecond());
-		}
-	}
-
-	public static Formula equal(Atom lhs, Atom rhs) {
-		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
-			Value lhs_v = ((Expr.Constant)lhs).getValue();
-			Value rhs_v = ((Expr.Constant)rhs).getValue();
-			return Formulae.evaluateEquality(Opcode.EXPR_eq, lhs_v, rhs_v);
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(true);
-		} else {
-			return new Equality(true,lhs,rhs);
-		}
-	}
-
-	public static Formula notEqual(Atom lhs, Atom rhs) {
-		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
-			Value lhs_v = ((Expr.Constant)lhs).getValue();
-			Value rhs_v = ((Expr.Constant)rhs).getValue();
-			return Formulae.evaluateEquality(Opcode.EXPR_neq, lhs_v, rhs_v);
-		} else if(lhs.equals(rhs)) {
-			return new Formula.Truth(false);
-		} else {
-			return new Equality(false,lhs,rhs);
-		}
-	}
 
 	public static Formula forall(Tuple<VariableDeclaration> parameters, Formula body) {
 		if(body instanceof Truth) {
@@ -203,13 +49,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static Polynomial sum(Polynomial.Term... terms) {
-		Polynomial.Term[] nTerms = Arrays.copyOf(terms, terms.length);
-		// FIXME: this is not the ideal way to do this.
-		return toNormalForm(nTerms);
-	}
-
-	public static class Truth extends Expr.Constant implements Formula {
+	public static class Truth extends Expr.Constant implements Formula,Atom {
 
 		public Truth(boolean value) {
 			super(new Value.Bool(value));
@@ -232,16 +72,11 @@ public interface Formula extends Expr {
 		public Formula invert() {
 			return new Truth(!getValue().get());
 		}
-
-		@Override
-		public Formula.Truth clone(SyntacticItem[] operands) {
-			return new Truth((Value.Bool) operands[0]);
-		}
 	}
 
 	public static class Conjunct extends Expr.Operator implements Formula {
 
-		private Conjunct(Formula... operands) {
+		public Conjunct(Formula... operands) {
 			super(Opcode.EXPR_and, operands);
 		}
 
@@ -262,18 +97,13 @@ public interface Formula extends Expr {
 			for(int i=0;i!=children.length;++i) {
 				nChildren[i] = children[i].invert();
 			}
-			return or(nChildren);
-		}
-
-		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			return and((Formula[]) operands);
+			return Formulae.or(nChildren);
 		}
 	}
 
 	public static class Disjunct extends Expr.Operator implements Formula {
 
-		private Disjunct(Formula... operands) {
+		public Disjunct(Formula... operands) {
 			super(Opcode.EXPR_or, operands);
 		}
 
@@ -294,20 +124,16 @@ public interface Formula extends Expr {
 			for(int i=0;i!=children.length;++i) {
 				nChildren[i] = children[i].invert();
 			}
-			return and(nChildren);
-		}
-		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			return or((Formula[]) operands);
+			return Formulae.and(nChildren);
 		}
 	}
 
 	public static class Quantifier extends Expr.Quantifier implements Formula {
-		private Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
+		public Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
 			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameters), body);
 		}
 
-		private  Quantifier(boolean sign, Tuple<VariableDeclaration> parameters, Formula body) {
+		public Quantifier(boolean sign, Tuple<VariableDeclaration> parameters, Formula body) {
 			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, parameters, body);
 		}
 
@@ -330,20 +156,11 @@ public interface Formula extends Expr {
 			Formula body = getBody().invert();
 			return new Formula.Quantifier(!getSign(),getParameters(),body);
 		}
-
-		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			if (getSign()) {
-				return forall((Tuple<VariableDeclaration>) operands[0], (Formula) operands[1]);
-			} else {
-				return exists((Tuple<VariableDeclaration>) operands[0], (Formula) operands[1]);
-			}
-		}
 	}
 
 	public static class Inequality extends Expr.Operator implements Formula {
 
-		private Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
+		public Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
 			super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
 		}
 
@@ -367,23 +184,14 @@ public interface Formula extends Expr {
 			Polynomial rhs = getOperand(1);
 			return new Inequality(!getSign(),lhs,rhs);
 		}
-
-		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			if (getSign()) {
-				return lessThan((Polynomial) operands[0],(Polynomial) operands[1]);
-			} else {
-				return greaterThanOrEqual((Polynomial) operands[0],(Polynomial) operands[1]);
-			}
-		}
 	}
 
 	public static class Equality extends Expr.Operator implements Formula {
-		private Equality(boolean sign, Expr lhs, Expr rhs) {
+		public Equality(boolean sign, Expr lhs, Expr rhs) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
-		private Equality(boolean sign, Polynomial[] arr) {
+		public Equality(boolean sign, Polynomial[] arr) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, arr);
 		}
 
@@ -397,12 +205,8 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			if (getSign()) {
-				return equal((Atom)operands[0],(Atom)operands[1]);
-			} else {
-				return notEqual((Atom)operands[0],(Atom)operands[1]);
-			}
+		public Atom[] getOperands() {
+			return (Atom[]) super.getOperands();
 		}
 
 		@Override
@@ -410,15 +214,15 @@ public interface Formula extends Expr {
 			Atom lhs = getOperand(0);
 			Atom rhs = getOperand(1);
 			if(getSign()) {
-				return notEqual(lhs,rhs);
+				return Formulae.notEqual(lhs,rhs);
 			} else {
-				return equal(lhs,rhs);
+				return Formulae.equal(lhs,rhs);
 			}
 		}
 	}
 
 	public static class ArithmeticEquality extends Equality implements Formula {
-		private ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
+		public ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
 			super(sign, new Polynomial[]{lhs, rhs});
 		}
 
@@ -433,24 +237,13 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			Polynomial lhs = (Polynomial) operands[0];
-			Polynomial rhs = (Polynomial) operands[1];
-			if (getSign()) {
-				return Formula.equal(lhs,rhs);
-			} else {
-				return notEqual(lhs,rhs);
-			}
-		}
-
-		@Override
 		public Formula invert() {
 			Polynomial lhs = getOperand(0);
 			Polynomial rhs = getOperand(1);
 			if (getSign()) {
-				return Formula.notEqual(lhs,rhs);
+				return Formulae.notEqual(lhs,rhs);
 			} else {
-				return equal(lhs,rhs);
+				return Formulae.equal(lhs,rhs);
 			}
 		}
 	}
@@ -464,6 +257,7 @@ public interface Formula extends Expr {
 		public VariableAccess(VariableDeclaration decl) {
 			super(decl);
 		}
+
 
 	}
 
@@ -526,95 +320,24 @@ public interface Formula extends Expr {
 			throw new IllegalArgumentException("polynomial is not constant");
 		}
 
-		/**
-		 * A simple implementation of polynomial negation. This simply negates the
-		 * coefficient of each term.
-		 *
-		 * @param p
-		 * @return
-		 */
 		public Polynomial negate() {
-			Polynomial.Term[] terms = new Polynomial.Term[size()];
-
-			for (int i = 0; i != terms.length; ++i) {
-				terms[i] = getOperand(i).negate();
-			}
-
-			return new Polynomial(terms);
+			return Formulae.negate(this);
 		}
 
-		/**
-		 * <p>
-		 * Add two polynomials together, producing a polynomial in normal form.
-		 * To do this, we must add the coefficients for terms which have the
-		 * same set of atoms, whilst other terms are incorporated as is. For
-		 * example, consider adding <code>2+2x</code> with <code>1+3x+4y</code>.
-		 * In this case, we have some terms in common, so the result becomes
-		 * <code>(2+1) + (2x+3x) + 4y</code> which is simplified to
-		 * <code>3 + 5x + 4y</code>.
-		 * </p>
-		 *
-		 * @param poly
-		 * @return
-		 */
 		public Polynomial add(Polynomial poly) {
-			Polynomial.Term[] terms = new Polynomial.Term[this.size() + poly.size()];
-			int this_size = this.size();
-			//
-			for (int i = 0; i != this_size; ++i) {
-				terms[i] = this.getOperand(i);
-			}
-			for (int j = 0; j != poly.size(); ++j) {
-				terms[this_size + j] = poly.getOperand(j);
-			}
-			return toNormalForm(terms);
-		}
-
-		public Polynomial add(Polynomial.Term p) {
-			Polynomial.Term[] terms = new Polynomial.Term[this.size() + 1];
-			for (int i = 0; i != this.size(); ++i) {
-				terms[i] = this.getOperand(i);
-			}
-			terms[this.size()] = p;
-			return toNormalForm(terms);
+			return Formulae.add(this, poly);
 		}
 
 		public Polynomial subtract(Polynomial.Term p) {
-			return add(p.negate());
+			return Formulae.add(this,p.negate());
 		}
 
 		public Polynomial subtract(Polynomial p) {
 			return add(p.negate());
 		}
 
-		/**
-		 * Multiply two polynomials together. This is done by reusing the add()
-		 * function as much as possible, though this may not be the most efficient.
-		 * In essence, to multiply one polynomial (e.g. <code>2+2x</code>) by
-		 * another (e.g.<code>1+3x+4y</code>) it breaks it down into a series of
-		 * multiplications over terms and additions. That is, we multiply each term
-		 * from the first polynomial by the second (e.g. <code>2*(1+3x+4y)</code>
-		 * and <code>2x*(1+3x+4y)</code>). Then, we add the results together (e.g.
-		 * <code>(2+6x+8y) + (2x+6x2+8xy)</code>).
-		 *
-		 * @param p
-		 * @return
-		 */
 		public Polynomial multiply(Polynomial rhs) {
-			int lhs_size = this.size();
-			int rhs_size = rhs.size();
-			Polynomial.Term[] terms = new Polynomial.Term[lhs_size*rhs_size];
-
-			for (int i = 0; i != lhs_size; ++i) {
-				Polynomial.Term lhsTerm = this.getOperand(i);
-				int j_base = i * rhs_size;
-				for (int j = 0; j != rhs_size; ++j) {
-					Polynomial.Term rhsTerm = rhs.getOperand(j);
-					terms[j_base+j] = lhsTerm.multiply(rhsTerm);
-				}
-			}
-
-			return toNormalForm(terms);
+			return Formulae.multiply(this, rhs);
 		}
 
 		public static class Term extends Expr.Operator {
@@ -627,7 +350,7 @@ public interface Formula extends Expr {
 			public Term(Value.Int v, Tuple<Atom> variables) {
 				super(Opcode.EXPR_mul,append(v, variables));
 			}
-			private Term(Atom[] operands) {
+			Term(Atom[] operands) {
 				super(Opcode.EXPR_mul,operands);
 			}
 			public Value.Int getCoefficient() {
@@ -683,12 +406,7 @@ public interface Formula extends Expr {
 				return new Polynomial.Term(coefficient, new Tuple<>(atoms));
 			}
 
-			@Override
-			public Term clone(SyntacticItem[] operands) {
-				return new Term((Atom[]) operands);
-			}
-
-			private static Atom[] append(Value.Int i, Tuple<Atom> variables) {
+			static Atom[] append(Value.Int i, Tuple<Atom> variables) {
 				Atom[] exprs = new Atom[variables.size()+1];
 				exprs[0] = new Formula.Constant(i);
 				for(int k=0;k!=variables.size();++k) {
@@ -696,99 +414,6 @@ public interface Formula extends Expr {
 				}
 				return exprs;
 			}
-		}
-
-		@Override
-		public Polynomial clone(SyntacticItem[] operands) {
-			return Formula.sum((Term[]) operands);
-		}
-	}
-
-	// ======================================================================
-	// Helpers
-	// ======================================================================
-	/**
-	 * Given a list of unsorted and potentially overlapping terms, apply the
-	 * necessary simplifications to produce a polynomial in normal form. For
-	 * example, given <code>[2, 7x, 4y, -x]</code> we would end up with
-	 * <code>[1, 3x, 2y]</code>.
-	 *
-	 * @param terms
-	 * @return
-	 */
-	public static Polynomial toNormalForm(Polynomial.Term[] terms) {
-		mergeTerms(terms);
-		// Strip out null entries
-		Polynomial.Term[] nTerms = removeNulls(terms);
-		// Sort remaining terms
-		Arrays.sort(nTerms);
-		// Done
-		return new Polynomial(nTerms);
-	}
-
-	static boolean isZero(Polynomial.Term term) {
-		BigInteger coefficient = term.getCoefficient().get();
-		return coefficient.equals(BigInteger.ZERO);
-	}
-
-	/**
-	 * Combine all terms which have the same set of atoms by adding the
-	 * coefficients together. For example, [x,2x] is combined into [null,3x].
-	 *
-	 * @param terms
-	 */
-	static void mergeTerms(Polynomial.Term[] terms) {
-		for (int i = 0; i != terms.length; ++i) {
-			Polynomial.Term ith = terms[i];
-			if (ith != null) {
-				if (isZero(ith)) {
-					// Eliminate any zeros which may have arisen during the
-					// calculation.
-					terms[i] = null;
-				} else {
-					Tuple<Atom> ithAtoms = ith.getAtoms();
-					for (int j = i + 1; j != terms.length; ++j) {
-						Polynomial.Term jth = terms[j];
-						if (jth != null && ithAtoms.equals(jth.getAtoms())) {
-							// We have two overlapping terms, namely i and j.
-							// Add them together and assign the result to the
-							// jth position.
-							terms[j] = ith.add(jth);
-							terms[i] = null;
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * This strips out any occurrence of null from the given list of terms.
-	 *
-	 * @param terms
-	 * @return
-	 */
-	static Polynomial.Term[] removeNulls(Polynomial.Term[] terms) {
-		int count = 0;
-		for (int i = 0; i != terms.length; ++i) {
-			if (terms[i] != null) {
-				count = count + 1;
-			}
-		}
-		if (count == 0) {
-			return new Polynomial.Term[] { new Polynomial.Term(BigInteger.ZERO) };
-		} else {
-			//
-			Polynomial.Term[] nTerms = new Polynomial.Term[count];
-			for (int i = 0, j = 0; i != terms.length; ++i) {
-				Polynomial.Term term = terms[i];
-				if (term != null) {
-					nTerms[j++] = term;
-				}
-			}
-			//
-			return nTerms;
 		}
 	}
 }
