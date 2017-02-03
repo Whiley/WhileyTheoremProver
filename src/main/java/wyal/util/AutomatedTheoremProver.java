@@ -40,7 +40,10 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private final static RewriteRule[] rules = { new InequalityClosure() };
+	private final static RewriteRule[] rules = {
+			new InequalityClosure(),
+			new VariableUnification()
+		};
 
 	private void check(WyalFile.Declaration.Assert decl) {
 		AbstractSyntacticHeap heap = new StructurallyEquivalentHeap();

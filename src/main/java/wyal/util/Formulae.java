@@ -70,9 +70,10 @@ public class Formulae {
 			if(types.isSubtype(new Type.Int(), lhs_t)) {
 				Polynomial lhs_p = Polynomials.toPolynomial(lhs);
 				Polynomial rhs_p = Polynomials.toPolynomial(rhs);
-				return Formula.equals(lhs_p, rhs_p);
+				// Force arithmetic equality
+				return Formula.equal(lhs_p, rhs_p);
 			} else {
-				return Formula.unify(lhs, rhs);
+				return Formula.equal(lhs, rhs);
 			}
 		}
 		case EXPR_neq: {
@@ -83,9 +84,10 @@ public class Formulae {
 			if (types.isSubtype(new Type.Int(), lhs_t)) {
 				Polynomial lhs_p = Polynomials.toPolynomial(lhs);
 				Polynomial rhs_p = Polynomials.toPolynomial(rhs);
-				return Formula.notEquals(lhs_p, rhs_p);
+				// Force arithmetic equality
+				return Formula.notEqual(lhs_p, rhs_p);
 			} else {
-				return Formula.notUnify(lhs, rhs);
+				return Formula.notEqual(lhs, rhs);
 			}
 		}
 		case EXPR_lt: {
@@ -125,7 +127,7 @@ public class Formulae {
 		default:
 			if (stmt instanceof WyalFile.Expr) {
 				Expr.Constant TRUE = new Expr.Constant(new Value.Bool(true));
-				return Formula.unify(TRUE, (WyalFile.Expr) stmt);
+				return Formula.equal(TRUE, (WyalFile.Expr) stmt);
 			} else {
 				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
 			}

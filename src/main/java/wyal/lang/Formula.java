@@ -132,7 +132,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static Formula equals(Polynomial lhs, Polynomial rhs) {
+	public static Formula equal(Polynomial lhs, Polynomial rhs) {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			Value lhs_v = lhs.toConstant();
 			Value rhs_v = rhs.toConstant();
@@ -141,11 +141,11 @@ public interface Formula extends Expr {
 			return new Formula.Truth(true);
 		} else {
 			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new Equality(true,bs.getFirst(),bs.getSecond());
+			return new ArithmeticEquality(true,bs.getFirst(),bs.getSecond());
 		}
 	}
 
-	public static Formula notEquals(Polynomial lhs, Polynomial rhs) {
+	public static Formula notEqual(Polynomial lhs, Polynomial rhs) {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			Value lhs_v = lhs.toConstant();
 			Value rhs_v = rhs.toConstant();
@@ -154,11 +154,11 @@ public interface Formula extends Expr {
 			return new Formula.Truth(false);
 		} else {
 			Pair<Polynomial,Polynomial> bs = Formulae.normaliseBounds(lhs,rhs);
-			return new Equality(false,bs.getFirst(),bs.getSecond());
+			return new ArithmeticEquality(false,bs.getFirst(),bs.getSecond());
 		}
 	}
 
-	public static Formula unify(Expr lhs, Expr rhs) {
+	public static Formula equal(Expr lhs, Expr rhs) {
 		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
 			Value lhs_v = ((Expr.Constant)lhs).getValue();
 			Value rhs_v = ((Expr.Constant)rhs).getValue();
@@ -166,11 +166,11 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(true);
 		} else {
-			return new Unifier(true,lhs,rhs);
+			return new Equality(true,lhs,rhs);
 		}
 	}
 
-	public static Formula notUnify(Expr lhs, Expr rhs) {
+	public static Formula notEqual(Expr lhs, Expr rhs) {
 		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
 			Value lhs_v = ((Expr.Constant)lhs).getValue();
 			Value rhs_v = ((Expr.Constant)rhs).getValue();
@@ -178,7 +178,7 @@ public interface Formula extends Expr {
 		} else if(lhs.equals(rhs)) {
 			return new Formula.Truth(false);
 		} else {
-			return new Unifier(false,lhs,rhs);
+			return new Equality(false,lhs,rhs);
 		}
 	}
 
@@ -368,12 +368,38 @@ public interface Formula extends Expr {
 	}
 
 	public static class Equality extends Expr.Operator implements Formula {
-		private Equality(boolean sign, Polynomial lhs, Polynomial rhs) {
-			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, new Polynomial[]{lhs, rhs});
+		private Equality(boolean sign, Expr lhs, Expr rhs) {
+			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
+		}
+
+		private Equality(boolean sign, Polynomial[] arr) {
+			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, arr);
 		}
 
 		public boolean getSign() {
 			return getOpcode() == Opcode.EXPR_eq;
+		}
+
+		@Override
+		public Formula clone(SyntacticItem[] operands) {
+			if (getSign()) {
+				return equal((Expr)operands[0],(Expr)operands[1]);
+			} else {
+				return notEqual((Expr)operands[0],(Expr)operands[1]);
+			}
+		}
+
+		@Override
+		public Formula invert() {
+			Expr lhs = getOperand(0);
+			Expr rhs = getOperand(1);
+			return new Equality(getOpcode() != Opcode.EXPR_eq, lhs, rhs);
+		}
+	}
+
+	public static class ArithmeticEquality extends Equality implements Formula {
+		private ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
+			super(sign, new Polynomial[]{lhs, rhs});
 		}
 
 		@Override
@@ -389,9 +415,9 @@ public interface Formula extends Expr {
 		@Override
 		public Formula clone(SyntacticItem[] operands) {
 			if (getSign()) {
-				return Formula.equals((Polynomial) operands[0],(Polynomial) operands[1]);
+				return Formula.equal((Polynomial) operands[0],(Polynomial) operands[1]);
 			} else {
-				return notEquals((Polynomial) operands[0],(Polynomial) operands[1]);
+				return notEqual((Polynomial) operands[0],(Polynomial) operands[1]);
 			}
 		}
 
@@ -399,34 +425,7 @@ public interface Formula extends Expr {
 		public Formula invert() {
 			Polynomial lhs = getOperand(0);
 			Polynomial rhs = getOperand(1);
-			return new Equality(getOpcode() != Opcode.EXPR_eq,lhs,rhs);
-		}
-	}
-
-	public static class Unifier extends Expr.Operator implements Formula {
-		private Unifier(boolean sign, Expr lhs, Expr rhs) {
-			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
-		}
-
-
-		public boolean getSign() {
-			return getOpcode() == Opcode.EXPR_eq;
-		}
-
-		@Override
-		public Formula clone(SyntacticItem[] operands) {
-			if (getSign()) {
-				return unify((Polynomial) operands[0],(Polynomial) operands[1]);
-			} else {
-				return notUnify((Polynomial) operands[0],(Polynomial) operands[1]);
-			}
-		}
-
-		@Override
-		public Formula invert() {
-			Expr lhs = getOperand(0);
-			Expr rhs = getOperand(1);
-			return new Unifier(getOpcode() != Opcode.EXPR_eq, lhs, rhs);
+			return new ArithmeticEquality(getOpcode() != Opcode.EXPR_eq,lhs,rhs);
 		}
 	}
 }
