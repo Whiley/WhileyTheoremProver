@@ -12,7 +12,7 @@ import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.lang.Formula.Polynomial;
 import wycc.util.ArrayUtils;
 
 public class Formulae {

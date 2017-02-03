@@ -161,7 +161,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_mul(53),
 		EXPR_div(54),
 		EXPR_rem(55),
-		EXPR_poly(56),
 		// ARRAY
 		EXPR_arrinit(60),
 		EXPR_arrlen(61),
@@ -245,6 +244,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		@Override
 		public Tuple<T> clone(SyntacticItem[] operands) {
 			return new Tuple((T[]) operands);
+		}
+
+		@Override
+		public String toString() {
+			String r = "";
+			for(int i=0;i!=size();++i) {
+				if(i!=0) {
+					r += ",";
+				}
+				SyntacticItem child = getOperand(i);
+				if(child == null) {
+					r += "?";
+				} else {
+					r += child.toString();
+				}
+			}
+			return "(" + r + ")";
 		}
 	}
 
@@ -903,107 +919,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Expr clone(SyntacticItem[] operands) {
 				return new Operator(getOpcode(), (Expr[]) operands);
-			}
-		}
-
-		public final static class Polynomial extends AbstractSyntacticItem implements Expr {
-			public Polynomial(BigInteger constant) {
-				super(Opcode.EXPR_poly,new Polynomial.Term[]{new Polynomial.Term(constant)});
-			}
-			public Polynomial(Term... terms) {
-				super(Opcode.EXPR_poly, terms);
-			}
-
-			@Override
-			public Term getOperand(int i) {
-				return (Term) super.getOperand(i);
-			}
-
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				// FIXME: we could do better than this.
-				return new Type.Int();
-			}
-
-			/**
-			 * Check whether a polynomial is a constant or not.
-			 *
-			 * @param p
-			 * @return
-			 */
-			public boolean isConstant() {
-				return size() == 1 && getOperand(0).getAtoms().size() == 0;
-			}
-
-			/**
-			 * Extract the constant that this polynomial represents (assuming it
-			 * does).
-			 *
-			 * @param p
-			 * @return
-			 */
-			public Value.Int toConstant() {
-				if (size() == 1) {
-					Polynomial.Term term = getOperand(0);
-					if (term.getAtoms().size() == 0) {
-						return term.getCoefficient();
-					}
-				}
-				throw new IllegalArgumentException("polynomial is not constant");
-			}
-
-			public Polynomial negate() {
-				return Polynomials.negate(this);
-			}
-
-			public Polynomial add(Polynomial p) {
-				return Polynomials.add(this,p);
-			}
-
-			public Polynomial add(Polynomial.Term p) {
-				return Polynomials.add(this,p);
-			}
-
-			public Polynomial subtract(Polynomial.Term p) {
-				return Polynomials.subtract(this,p);
-			}
-
-			public Polynomial subtract(Polynomial p) {
-				return Polynomials.subtract(this,p);
-			}
-
-			public Polynomial multiply(Polynomial p) {
-				return Polynomials.multiply(this,p);
-			}
-
-			public static class Term extends Pair<Value.Int, Tuple<Expr>> {
-				public Term(BigInteger constant) {
-					this(new Value.Int(constant));
-				}
-				public Term(Value.Int constant) {
-					super(constant, new Tuple<Expr>());
-				}
-				public Term(Value.Int v, Tuple<Expr> variables) {
-					super(v, variables);
-				}
-
-				public Value.Int getCoefficient() {
-					return getFirst();
-				}
-
-				public Tuple<Expr> getAtoms() {
-					return getSecond();
-				}
-
-				@Override
-				public Term clone(SyntacticItem[] operands) {
-					return new Term((Value.Int) operands[0], (Tuple) operands[1]);
-				}
-			}
-
-			@Override
-			public Polynomial clone(SyntacticItem[] operands) {
-				return new Polynomial((Term[]) operands);
 			}
 		}
 

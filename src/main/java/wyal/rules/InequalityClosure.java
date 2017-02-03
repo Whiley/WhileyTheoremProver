@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 import wyal.lang.Formula;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.lang.Formula.Polynomial;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;
@@ -150,11 +150,11 @@ public class InequalityClosure implements RewriteRule {
 	private static Pair<Polynomial.Term, Polynomial.Term> selectCandidateTerm(Polynomial lower, Polynomial upper) {
 		for (int i = 0; i != lower.size(); ++i) {
 			Polynomial.Term ith = lower.getOperand(i);
-			Tuple<Expr> ithAtoms = ith.getAtoms();
+			Tuple<Formula.Atom> ithAtoms = ith.getAtoms();
 			if (ithAtoms.size() > 0) {
 				for (int j = 0; j != upper.size(); ++j) {
 					Polynomial.Term jth = upper.getOperand(j);
-					Tuple<Expr> jthAtoms = jth.getAtoms();
+					Tuple<Formula.Atom> jthAtoms = jth.getAtoms();
 					if (jthAtoms.equals(ithAtoms)) {
 						// FIXME: we should be selecting the lexiographically
 						// least candidate here.

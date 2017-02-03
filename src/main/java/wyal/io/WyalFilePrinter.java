@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import static wyal.lang.WyalFile.*;
+
+import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Value;
@@ -221,6 +223,14 @@ public class WyalFilePrinter {
 	 */
 	public void writeExpressionWithBrackets(WyalFile.Expr expr) {
 		switch (expr.getOpcode()) {
+		case EXPR_add:
+			if (expr instanceof Formula.Polynomial) {
+				Formula.Polynomial p = (Formula.Polynomial) expr;
+				if (p.size() == 1) {
+					writeExpression(expr);
+					break;
+				}
+			}
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_implies:
@@ -232,7 +242,6 @@ public class WyalFilePrinter {
 		case EXPR_gt:
 		case EXPR_gteq:
 		case EXPR_is:
-		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
@@ -261,6 +270,11 @@ public class WyalFilePrinter {
 		case EXPR_arrlen:
 			writeUnaryOperator((Expr.Operator) expr);
 			break;
+		case EXPR_add:
+			if(expr instanceof Formula.Polynomial) {
+				writePolynomial((Formula.Polynomial)expr);
+				break;
+			}
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_implies:
@@ -271,15 +285,11 @@ public class WyalFilePrinter {
 		case EXPR_lteq:
 		case EXPR_gt:
 		case EXPR_gteq:
-		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
 		case EXPR_rem:
 			writeInfixOperator((Expr.Operator) expr);
-			break;
-		case EXPR_poly:
-			writePolynomial((Expr.Polynomial) expr);
 			break;
 		case EXPR_is:
 			writeIsOperator((Expr.Is) expr);
@@ -378,7 +388,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writePolynomial(Expr.Polynomial expr) {
+	public void writePolynomial(Formula.Polynomial expr) {
 		for(int i=0;i!=expr.size();++i) {
 			if(i != 0) {
 				out.print(" + ");
@@ -387,9 +397,9 @@ public class WyalFilePrinter {
 		}
 	}
 
-	public void writePolynomialTerm(Expr.Polynomial.Term term) {
+	public void writePolynomialTerm(Formula.Polynomial.Term term) {
 		BigInteger coefficient = term.getCoefficient().get();
-		Tuple<Expr> atoms = term.getAtoms();
+		Tuple<Formula.Atom> atoms = term.getAtoms();
 		boolean firstTime = true;
 		if (coefficient.equals(BigInteger.ONE) && atoms.size() > 0) {
 			// ignore this
