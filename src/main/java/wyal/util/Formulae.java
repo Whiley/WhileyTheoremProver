@@ -7,6 +7,7 @@ import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Stmt;
@@ -28,7 +29,6 @@ public class Formulae {
 	// ========================================================================
 	// Conjuncts / Disjuncts
 	// ========================================================================
-
 
 	/**
 	 * Combine formulae together as conjuncts, whilst performing a range of
@@ -182,6 +182,64 @@ public class Formulae {
 		}
 	}
 
+
+	/**
+	 * <p>
+	 * Substitute for a given variable within a given syntactic item.
+	 * Specifically, this replaces all instances of VariableAccess which match
+	 * the given declaration. Observe that the substitution is performed
+	 * verbatim and (for example) without simplifying the underlying item.
+	 * </p>
+	 * <p>
+	 * This function preserves the aliasing structure of the original item up to
+	 * the substitution itself. Furthermore, if no substitution was performed
+	 * then the original item is returned as is.
+	 * </p>
+	 *
+	 * @param substitution
+	 * @param item
+	 * @return
+	 */
+	public static SyntacticItem substitute(Pair<Identifier, SyntacticItem> substitution, SyntacticItem item) {
+		// FIXME: this function is broken because it should not be using
+		// identifiers for substitution. Instead, is should be using variable
+		// declarations.
+		if (item instanceof Expr.VariableAccess) {
+			// In this case, we might be able to make a substitution.
+			Expr.VariableAccess v = (Expr.VariableAccess) item;
+			Identifier name = v.getVariableDeclaration().getVariableName();
+			if (name.equals(substitution.getFirst())) {
+				// Yes, we made a substitution!
+				return substitution.getSecond();
+			}
+			return item;
+		} else {
+			// No immediate substitution possible. Instead, recursively traverse
+			// term looking for substitution.
+			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] nChildren = children;
+			for (int i = 0; i != children.length; ++i) {
+				SyntacticItem child = children[i];
+				SyntacticItem nChild = substitute(substitution, item);
+				if (child != nChild && nChildren == children) {
+					// Clone the new children array to avoid interfering with
+					// original item.
+					nChildren = Arrays.copyOf(children, children.length);
+				}
+				nChildren[i] = nChild;
+			}
+			if (nChildren == children) {
+				// No children were updated, hence simply return the original
+				// item.
+				return item;
+			} else {
+				// At least one child was changed, therefore clone the original
+				// item with the new children.
+				return item.clone(nChildren);
+			}
+		}
+	}
+
 	/**
 	 * Recursively remove nested conjuncts. If no nested conjuncts are
 	 * encountered, then the same array is returned. Otherwise, a new array
@@ -192,7 +250,7 @@ public class Formulae {
 	 * @param children
 	 * @return
 	 */
-	public static Formula[] flattenNestedConjuncts(Formula[] children) {
+	private static Formula[] flattenNestedConjuncts(Formula[] children) {
 		return flattenNestedClauses(true,children);
 	}
 
@@ -206,7 +264,7 @@ public class Formulae {
 	 * @param children
 	 * @return
 	 */
-	public static Formula[] flattenNestedDisjuncts(Formula[] children) {
+	private static Formula[] flattenNestedDisjuncts(Formula[] children) {
 		return flattenNestedClauses(false,children);
 	}
 
@@ -294,7 +352,7 @@ public class Formulae {
 	 * @param children
 	 * @return
 	 */
-	public static Formula[] eliminateConstants(boolean sign, Formula[] children) {
+	private static Formula[] eliminateConstants(boolean sign, Formula[] children) {
 		// Count number of constants
 		int numConstants = 0;
 		for (int i = 0; i != children.length; ++i) {
@@ -339,7 +397,7 @@ public class Formulae {
 	 * @param children
 	 * @return
 	 */
-	public static <T extends SyntacticItem> T[] sortAndRemoveDuplicates(T[] children) {
+	private static <T extends SyntacticItem> T[] sortAndRemoveDuplicates(T[] children) {
 		int r = isSortedAndUnique(children);
 		switch(r) {
 		case 0:
@@ -369,7 +427,7 @@ public class Formulae {
 	 * @param rhs
 	 * @return
 	 */
-	public static Pair<Polynomial,Polynomial> normaliseBounds(Polynomial lhs, Polynomial rhs) {
+	private static Pair<Polynomial,Polynomial> normaliseBounds(Polynomial lhs, Polynomial rhs) {
 		Polynomial bound = factorise(lhs.subtract(rhs));
 		Polynomial pos = new Polynomial(BigInteger.ZERO);
 		Polynomial neg = new Polynomial(BigInteger.ZERO);
@@ -399,7 +457,7 @@ public class Formulae {
 	 * @param rhs
 	 * @return
 	 */
-	public static Formula.Truth evaluateInequality(Opcode opcode, Value.Int lhs, Value.Int rhs) {
+	private static Formula.Truth evaluateInequality(Opcode opcode, Value.Int lhs, Value.Int rhs) {
 		boolean result;
 		switch (opcode) {
 		case EXPR_lt:
@@ -430,7 +488,7 @@ public class Formulae {
 	 * @param rhs
 	 * @return
 	 */
-	public static Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
+	private static Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
 		boolean result;
 		switch (opcode) {
 		case EXPR_eq:
@@ -520,7 +578,7 @@ public class Formulae {
 	 * @param terms
 	 * @return
 	 */
-	public static Polynomial toNormalForm(Polynomial.Term[] terms) {
+	private static Polynomial toNormalForm(Polynomial.Term[] terms) {
 		mergeTerms(terms);
 		// Strip out null entries
 		Polynomial.Term[] nTerms = ArrayUtils.removeAll(terms, null);
@@ -536,7 +594,7 @@ public class Formulae {
 		return new Polynomial(nTerms);
 	}
 
-	static boolean isZero(Polynomial.Term term) {
+	private static boolean isZero(Polynomial.Term term) {
 		BigInteger coefficient = term.getCoefficient().get();
 		return coefficient.equals(BigInteger.ZERO);
 	}
@@ -547,7 +605,7 @@ public class Formulae {
 	 *
 	 * @param terms
 	 */
-	static void mergeTerms(Polynomial.Term[] terms) {
+	private static void mergeTerms(Polynomial.Term[] terms) {
 		for (int i = 0; i != terms.length; ++i) {
 			Polynomial.Term ith = terms[i];
 			if (ith != null) {
