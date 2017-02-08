@@ -399,22 +399,22 @@ public class WyalFilePrinter {
 
 	public void writePolynomialTerm(Formula.Polynomial.Term term) {
 		BigInteger coefficient = term.getCoefficient().get();
-		Tuple<Formula.Atom> atoms = term.getAtoms();
+		Formula.Atom[] atoms = term.getAtoms();
 		boolean firstTime = true;
-		if (coefficient.equals(BigInteger.ONE) && atoms.size() > 0) {
+		if (coefficient.equals(BigInteger.ONE) && atoms.length > 0) {
 			// ignore this
-		} else if (coefficient.equals(BigInteger.valueOf(-1)) && atoms.size() > 0) {
+		} else if (coefficient.equals(BigInteger.valueOf(-1)) && atoms.length > 0) {
 			out.print("-");
 		} else {
 			out.print(coefficient);
 			firstTime = false;
 		}
-		for (int i = 0; i != atoms.size(); ++i) {
+		for (int i = 0; i != atoms.length; ++i) {
 			if (!firstTime) {
 				out.print("*");
 			}
 			firstTime = false;
-			writeExpression(atoms.getOperand(i));
+			writeExpression(atoms[i]);
 		}
 	}
 

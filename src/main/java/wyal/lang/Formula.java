@@ -4,22 +4,25 @@ package wyal.lang;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import wyal.lang.Formula.Polynomial;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
+import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
 
 /**
- * A special kind of expression which maintains a normal form
- * representation. As such, formulae are not suitable for representing
- * source-level syntax, as they do not faithfully retain relevant aspects,
- * such as ordering, etc. Instead, they are used with the automated theorem
- * prover for ensuring properties are correct.
+ * A special kind of expression which maintains a normal form representation. As
+ * such, formulae are not suitable for representing source-level syntax, as they
+ * do not faithfully retain relevant aspects, such as ordering, etc. Instead,
+ * they are used with the automated theorem prover for ensuring properties are
+ * correct.
  *
  * @author David J. Pearce
  *
@@ -33,21 +36,8 @@ public interface Formula extends Expr {
 	 */
 	public Formula invert();
 
-	public static Formula forall(Tuple<VariableDeclaration> parameters, Formula body) {
-		if(body instanceof Truth) {
-			return body;
-		} else {
-			return new Quantifier(true,parameters,body);
-		}
-	}
-
-	public static Formula exists(Tuple<VariableDeclaration> parameters, Formula body) {
-		if(body instanceof Truth) {
-			return body;
-		} else {
-			return new Quantifier(false,parameters,body);
-		}
-	}
+	@Override
+	public Formula clone(SyntacticItem[] children);
 
 	public static class Truth extends Expr.Constant implements Formula,Atom {
 
@@ -71,6 +61,11 @@ public interface Formula extends Expr {
 		@Override
 		public Formula invert() {
 			return new Truth(!getValue().get());
+		}
+
+		@Override
+		public Truth clone(SyntacticItem[] children) {
+			return new Truth(getValue());
 		}
 	}
 
@@ -97,7 +92,12 @@ public interface Formula extends Expr {
 			for(int i=0;i!=children.length;++i) {
 				nChildren[i] = children[i].invert();
 			}
-			return Formulae.or(nChildren);
+			return new Disjunct(nChildren);
+		}
+
+		@Override
+		public Conjunct clone(SyntacticItem[] children) {
+			return new Conjunct((Formula[]) children);
 		}
 	}
 
@@ -124,7 +124,12 @@ public interface Formula extends Expr {
 			for(int i=0;i!=children.length;++i) {
 				nChildren[i] = children[i].invert();
 			}
-			return Formulae.and(nChildren);
+			return new Conjunct(nChildren);
+		}
+
+		@Override
+		public Disjunct clone(SyntacticItem[] children) {
+			return new Disjunct((Formula[]) children);
 		}
 	}
 
@@ -156,6 +161,11 @@ public interface Formula extends Expr {
 			Formula body = getBody().invert();
 			return new Formula.Quantifier(!getSign(),getParameters(),body);
 		}
+
+		@Override
+		public Formula.Quantifier clone(SyntacticItem[] children) {
+			return new Formula.Quantifier(getSign(), (Tuple) children[0], (Formula) children[1]);
+		}
 	}
 
 	public static class Inequality extends Expr.Operator implements Formula {
@@ -184,10 +194,15 @@ public interface Formula extends Expr {
 			Polynomial rhs = getOperand(1);
 			return new Inequality(!getSign(),lhs,rhs);
 		}
+
+		@Override
+		public Inequality clone(SyntacticItem[] children) {
+			return new Inequality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
+		}
 	}
 
 	public static class Equality extends Expr.Operator implements Formula {
-		public Equality(boolean sign, Expr lhs, Expr rhs) {
+		public Equality(boolean sign, Atom lhs, Atom rhs) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
@@ -213,11 +228,12 @@ public interface Formula extends Expr {
 		public Formula invert() {
 			Atom lhs = getOperand(0);
 			Atom rhs = getOperand(1);
-			if(getSign()) {
-				return Formulae.notEqual(lhs,rhs);
-			} else {
-				return Formulae.equal(lhs,rhs);
-			}
+			return new Equality(!getSign(),lhs,rhs);
+		}
+
+		@Override
+		public Equality clone(SyntacticItem[] children) {
+			return new Equality(getSign(),(Atom) children[0],(Atom) children[1]);
 		}
 	}
 
@@ -240,16 +256,18 @@ public interface Formula extends Expr {
 		public Formula invert() {
 			Polynomial lhs = getOperand(0);
 			Polynomial rhs = getOperand(1);
-			if (getSign()) {
-				return Formulae.notEqual(lhs,rhs);
-			} else {
-				return Formulae.equal(lhs,rhs);
-			}
+			return new Equality(!getSign(), lhs, rhs);
+		}
+
+		@Override
+		public ArithmeticEquality clone(SyntacticItem[] children) {
+			return new ArithmeticEquality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
 		}
 	}
 
 	public interface Atom extends Expr {
-
+		@Override
+		public Atom clone(SyntacticItem[] children);
 	}
 
 	public static class VariableAccess extends Expr.VariableAccess implements Atom {
@@ -258,15 +276,10 @@ public interface Formula extends Expr {
 			super(decl);
 		}
 
-
-	}
-
-	public static class Constant extends Expr.Constant implements Atom {
-
-		public Constant(Value v) {
-			super(v);
+		@Override
+		public Formula.VariableAccess clone(SyntacticItem[] children) {
+			return new Formula.VariableAccess((VariableDeclaration) children[0]);
 		}
-
 	}
 
 	public final static class Polynomial extends Expr.Operator implements Atom {
@@ -300,7 +313,7 @@ public interface Formula extends Expr {
 		 * @return
 		 */
 		public boolean isConstant() {
-			return size() == 1 && getOperand(0).getAtoms().size() == 0;
+			return size() == 1 && getOperand(0).getAtoms().length == 0;
 		}
 
 		/**
@@ -313,7 +326,7 @@ public interface Formula extends Expr {
 		public Value.Int toConstant() {
 			if (size() == 1) {
 				Polynomial.Term term = getOperand(0);
-				if (term.getAtoms().size() == 0) {
+				if (term.getAtoms().length == 0) {
 					return term.getCoefficient();
 				}
 			}
@@ -321,23 +334,32 @@ public interface Formula extends Expr {
 		}
 
 		public Polynomial negate() {
-			return Formulae.negate(this);
+			return Polynomials.negate(this);
 		}
 
 		public Polynomial add(Polynomial poly) {
-			return Formulae.add(this, poly);
+			return Polynomials.add(this, poly);
 		}
 
-		public Polynomial subtract(Polynomial.Term p) {
-			return Formulae.add(this,p.negate());
+		public Polynomial add(Polynomial.Term term) {
+			return Polynomials.add(this, term);
 		}
 
 		public Polynomial subtract(Polynomial p) {
 			return add(p.negate());
 		}
 
+		public Polynomial subtract(Polynomial.Term term) {
+			return Polynomials.add(this, Polynomials.negate(term));
+		}
+
 		public Polynomial multiply(Polynomial rhs) {
-			return Formulae.multiply(this, rhs);
+			return Polynomials.multiply(this, rhs);
+		}
+
+		@Override
+		public Polynomial clone(SyntacticItem[] children) {
+			return new Polynomial((Term[]) children);
 		}
 
 		public static class Term extends Expr.Operator {
@@ -347,8 +369,11 @@ public interface Formula extends Expr {
 			public Term(Value.Int constant) {
 				super(Opcode.EXPR_mul,new Constant(constant));
 			}
-			public Term(Value.Int v, Tuple<Atom> variables) {
-				super(Opcode.EXPR_mul,append(v, variables));
+			public Term(Atom atom) {
+				super(Opcode.EXPR_mul,append(new Value.Int(1),atom));
+			}
+			public Term(Value.Int coefficient, Atom... variables) {
+				super(Opcode.EXPR_mul,append(coefficient,variables));
 			}
 			Term(Atom[] operands) {
 				super(Opcode.EXPR_mul,operands);
@@ -358,62 +383,30 @@ public interface Formula extends Expr {
 				return (Value.Int) c.getValue();
 			}
 
-			@Override
-			public Atom[] getOperands() {
-				return (Atom[]) super.getOperands();
+			public Atom[] getAtoms() {
+				Expr[] children = getOperands();
+				Atom[] atoms = new Atom[children.length-1];
+				System.arraycopy(children, 1, atoms, 0, atoms.length);
+				return atoms;
 			}
 
-			public Tuple<Atom> getAtoms() {
-				Atom[] atoms = getOperands();
-				atoms = Arrays.copyOfRange(atoms, 1, atoms.length);
-				return new Tuple<>(atoms);
-			}
 
-			public Polynomial.Term negate() {
-				BigInteger coeff = getCoefficient().get();
-				return new Polynomial.Term(new Value.Int(coeff.negate()), getAtoms());
-			}
-
-			public Polynomial.Term add(Polynomial.Term term) {
-				BigInteger lhsCoeff = this.getCoefficient().get();
-				BigInteger rhsCoeff = term.getCoefficient().get();
-				BigInteger r = lhsCoeff.add(rhsCoeff);
-				if (r.equals(BigInteger.ZERO)) {
-					return null;
-				} else {
-					return new Polynomial.Term(new Value.Int(r), getAtoms());
-				}
-			}
-
-			/**
-			 * Multiply two polynomial terms together. For example, multiplying
-			 * <code>4xy</code> by <code>2x</code> gives <code>8x^2y</code>.
-			 *
-			 * @param lhs
-			 * @param rhs
-			 * @return
-			 */
-			public Polynomial.Term multiply(Polynomial.Term rhs) {
-				BigInteger lhsCoeff = this.getCoefficient().get();
-				BigInteger rhsCoeff = rhs.getCoefficient().get();
-				Tuple<Atom> lhsAtoms = this.getAtoms();
-				Tuple<Atom> rhsAtoms = rhs.getAtoms();
-				Atom[] atoms = new Atom[lhsAtoms.size() + rhsAtoms.size()];
-				System.arraycopy(lhsAtoms.getOperands(), 0, atoms, 0, lhsAtoms.size());
-				System.arraycopy(rhsAtoms.getOperands(), 0, atoms, lhsAtoms.size(), rhsAtoms.size());
-				Arrays.sort(atoms);
-				Value.Int coefficient = new Value.Int(lhsCoeff.multiply(rhsCoeff));
-				return new Polynomial.Term(coefficient, new Tuple<>(atoms));
-			}
-
-			static Atom[] append(Value.Int i, Tuple<Atom> variables) {
-				Atom[] exprs = new Atom[variables.size()+1];
-				exprs[0] = new Formula.Constant(i);
-				for(int k=0;k!=variables.size();++k) {
-					exprs[k+1] = variables.getOperand(k);
+			static Expr[] append(Value.Int i, Atom... variables) {
+				Expr[] exprs = new Expr[variables.length+1];
+				exprs[0] = new Expr.Constant(i);
+				for(int k=0;k!=variables.length;++k) {
+					exprs[k+1] = variables[k];
 				}
 				return exprs;
 			}
+
+			@Override
+			public Term clone(SyntacticItem[] children) {
+				Atom[] atoms = new Atom[children.length-1];
+				System.arraycopy(children, 1, atoms, 0, atoms.length);
+				return new Term((Value.Int) children[0], atoms);
+			}
+
 		}
 	}
 }

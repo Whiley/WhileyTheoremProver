@@ -49,7 +49,7 @@ public class VariableUnification implements RewriteRule {
 		//
 		if (children != nChildren) {
 			// Something changed
-			return Formulae.and(nChildren);
+			return new Formula.Conjunct(nChildren);
 		} else {
 			return item;
 		}
@@ -62,7 +62,7 @@ public class VariableUnification implements RewriteRule {
 			for (int j = 0; j != children.length; ++j) {
 				if (j != ignored) {
 					Formula before = children[j];
-					Formula after = substituteFormula(substitution, before);
+					Formula after = (Formula) Formulae.substitute(substitution, before);
 					if(before != after) {
 						System.out.print("REWROTE: ");
 						AutomatedTheoremProver.print(before);
@@ -178,12 +178,12 @@ public class VariableUnification implements RewriteRule {
 	 * @return
 	 */
 	public boolean isCandidate(Polynomial.Term term) {
-		Tuple<Formula.Atom> atoms = term.getAtoms();
+		Formula.Atom[] atoms = term.getAtoms();
 		BigInteger coefficient = term.getCoefficient().get();
-		if (atoms.size() == 1 && coefficient.equals(BigInteger.ONE)) {
+		if (atoms.length == 1 && coefficient.equals(BigInteger.ONE)) {
 			// FIXME: can we substitute for things other than a variable access?
 			// I think perhapds we should be able to.
-			return atoms.getOperand(0) instanceof Expr.VariableAccess;
+			return atoms[0] instanceof Expr.VariableAccess;
 		} else {
 			return false;
 		}
@@ -198,166 +198,9 @@ public class VariableUnification implements RewriteRule {
 	 * @return
 	 */
 	private Identifier extractCandidateName(Polynomial.Term term) {
-		Expr.VariableAccess va = (Expr.VariableAccess) term.getAtoms().getOperand(0);
+		Expr.VariableAccess va = (Expr.VariableAccess) term.getAtoms()[0];
 		return va.getVariableDeclaration().getVariableName();
 	}
 
 
-	/**
-	 * Substitute through an array of syntactic atoms.
-	 *
-	 * @param substitution
-	 * @param children
-	 * @return
-	 */
-	private Formula.Atom[] substituteAtoms(Pair<Identifier, Formula.Atom> substitution, Formula.Atom[] children) {
-		Formula.Atom[] nChildren = children;
-		for (int i = 0; i != children.length; ++i) {
-			Formula.Atom before = children[i];
-			Formula.Atom after = substituteAtom(substitution, before);
-			if (before != after && nChildren == children) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
-			nChildren[i] = after;
-		}
-		return nChildren;
-	}
-
-	/**
-	 * Substitute through an individual atom.
-	 *
-	 * @param substitution
-	 * @param item
-	 * @return
-	 */
-	private Formula.Atom substituteAtom(Pair<Identifier, Formula.Atom> substitution, Formula.Atom item) {
-		switch (item.getOpcode()) {
-		case EXPR_const:
-			return item;
-		case EXPR_var: {
-			// In this case, we might be able to make a substitution.
-			Expr.VariableAccess v = (Expr.VariableAccess) item;
-			Identifier name = v.getVariableDeclaration().getVariableName();
-			if (name.equals(substitution.getFirst())) {
-				// Yes, we made a substitution!
-				return substitution.getSecond();
-			}
-			return item;
-		}
-		case EXPR_add: {
-			return substitutePolynomial(substitution, (Polynomial) item);
-		}
-		case EXPR_mul: {
-			// FIXME: does this make sense???
-			return substitutePolynomialTerm(substitution, (Polynomial.Term) item);
-		}
-		default:
-			throw new IllegalArgumentException("invalid expression opcode: " + item.getOpcode());
-		}
-	}
-
-	/**
-	 * Substitute through a polynomial
-	 *
-	 * @param substitution
-	 * @param p
-	 * @return
-	 */
-	private Polynomial substitutePolynomial(Pair<Identifier, Formula.Atom> substitution, Polynomial p) {
-		Polynomial.Term[] children = p.getOperands();
-		Formula.Atom[] nChildren = children;
-		for (int i = 0; i != children.length; ++i) {
-			Polynomial.Term before = children[i];
-			Formula.Atom after = substitutePolynomialTerm(substitution, before);
-			if (before != after && nChildren == children) {
-				// Cannot use Arrays.copyOf here as this introduces a bug.
-				nChildren = new Expr[children.length];
-				System.arraycopy(children, 0, nChildren, 0, children.length);
-			}
-			nChildren[i] = after;
-		}
-		if (nChildren == children) {
-			return p;
-		} else {
-			return flatternPolynomial(nChildren);
-		}
-	}
-
-	private Formula.Atom substitutePolynomialTerm(Pair<Identifier, Formula.Atom> substitution, Polynomial.Term p) {
-		Formula.Atom[] children = p.getOperands();
-		Formula.Atom[] nChildren = substitute(substitution, children);
-		if (children == nChildren) {
-			return p;
-		} else {
-			for (int i = 0; i != nChildren.length; ++i) {
-				if (nChildren[i] instanceof Polynomial) {
-					return evaluatePolynomialTerm(nChildren);
-				}
-			}
-			return p.clone(nChildren);
-		}
-	}
-
-	private Polynomial evaluatePolynomialTerm(Formula.Atom[] children) {
-		Polynomial p = new Polynomial(BigInteger.ONE);
-		for (int i = 0; i != children.length; ++i) {
-			Expr child = children[i];
-			if (child instanceof Polynomial) {
-				p = p.multiply((Polynomial) child);
-			} else {
-				p = p.multiply(Polynomials.toPolynomial(child));
-			}
-		}
-		return p;
-	}
-
-	private Polynomial flatternPolynomial(Formula.Atom[] children) {
-		int count = 0;
-		for (int i = 0; i != children.length; ++i) {
-			Expr child = children[i];
-			if (child instanceof Polynomial) {
-				count++;
-			}
-		}
-		if (count == 0) {
-			return Formula.sum((Polynomial.Term[]) children);
-		} else {
-			Polynomial p = new Polynomial(BigInteger.ZERO);
-			for (int i = 0; i != children.length; ++i) {
-				Expr child = children[i];
-				if (child instanceof Polynomial) {
-					p = p.add((Polynomial) child);
-				} else {
-					p = Formulae.add(p, (Polynomial.Term) child);
-				}
-			}
-			return p;
-		}
-	}
-
-	public static Polynomial sum(Polynomial.Term... terms) {
-		Polynomial.Term[] nTerms = Arrays.copyOf(terms, terms.length);
-		// FIXME: this is not the ideal way to do this.
-		return Formulae.toNormalForm(nTerms);
-	}
-
-	/**
-	 * Substitute through an array of syntactic formulae.
-	 *
-	 * @param substitution
-	 * @param children
-	 * @return
-	 */
-	private Formula[] substitute(Pair<Identifier, Formula.Atom> substitution, Formula[] children) {
-		Formula[] nChildren = children;
-		for (int i = 0; i != children.length; ++i) {
-			Formula before = children[i];
-			Formula after = substituteFormula(substitution, before);
-			if (before != after && nChildren == children) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
-			nChildren[i] = after;
-		}
-		return nChildren;
-	}
 }

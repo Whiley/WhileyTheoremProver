@@ -1,15 +1,13 @@
 package wyal.rules;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import wyal.lang.Formula;
-import wyal.lang.WyalFile.Expr;
 import wyal.lang.Formula.Polynomial;
 import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Tuple;
 import wyal.util.AutomatedTheoremProver;
 import wyal.util.AutomatedTheoremProver.RewriteRule;
-import wyal.util.Formulae;
 
 public class InequalityClosure implements RewriteRule {
 
@@ -38,7 +36,7 @@ public class InequalityClosure implements RewriteRule {
 					inferred.add(conjunct.getOperand(i));
 				}
 				Formula[] items = inferred.toArray(new Formula[inferred.size()]);
-				item = Formulae.and(items);
+				item = new Formula.Conjunct(items);
 				if (item.equals(conjunct)) {
 					return conjunct;
 				} else {
@@ -64,158 +62,5 @@ public class InequalityClosure implements RewriteRule {
 		}
 	}
 
-	/**
-	 * Close over two inequalities.
-	 *
-	 * @param ith
-	 * @param jth
-	 * @return
-	 */
-	private static Formula closeOverInequalities(Formula.Inequality ith, Formula.Inequality jth) {
-		Polynomial ithLowerBound = extractBound(false, ith);
-		Polynomial ithUpperBound = extractBound(true, ith);
-		Polynomial jthLowerBound = extractBound(false, jth);
-		Polynomial jthUpperBound = extractBound(true, jth);
 
-		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
-		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
-		Polynomial lhs;
-		Polynomial rhs;
-		if (lCandidate != null) {
-			// FIXME: should be selecting the least candidate
-			lhs = rearrangeForUpperBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForLowerBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-		} else if (rCandidate != null) {
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-		} else {
-			return null;
-		}
-		if(ith.getSign() || jth.getSign()) {
-			// Result is strict as had something like ... <= x < ...
-			return Formulae.lessThan(lhs, rhs);
-		} else {
-			// Result is not-strict as had something like ... <= x <= ...
-			return Formulae.greaterThanOrEqual(rhs, lhs);
-		}
-	}
-
-	/**
-	 * Extract a given bound from the inequality. Here, true is upper and false
-	 * is lower.
-	 *
-	 * @param sign
-	 * @param inequality
-	 * @return
-	 */
-	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
-		int i;
-		switch (inequality.getOpcode()) {
-		case EXPR_lt:
-			i = sign ? 1 : 0;
-			break;
-		case EXPR_gteq:
-			i = sign ? 0 : 1;
-			break;
-		default:
-			throw new IllegalArgumentException("Invalid inequality");
-		}
-		return (Polynomial) inequality.getOperand(i);
-	}
-
-	/**
-	 * <p>
-	 * Determine a suitable term (if one exists) for rearranging the two
-	 * inequalities. A candidate term must be common to both and involve at
-	 * least one variable, and should appear on opposite sides of the
-	 * inequalities. The selected candidate then has the lowest ordering of any
-	 * possible term. For example, consider these two options:
-	 * </p>
-	 *
-	 * <pre>
-	 * x < y + z
-	 * x + y > z
-	 * </pre>
-	 *
-	 * <p>
-	 * For these two equations, the candidate terms are <code>x</code> and
-	 * <code>z</code>. Since <code>y</code> is an upper bound on both, it is not
-	 * considered. Then, <code>x</code> is selected as the actual term for
-	 * rearranging since it is lexiographically lower than <code>z</code>.
-	 * </p>
-	 *
-	 * @param ith
-	 * @param jth
-	 * @return
-	 */
-	private static Pair<Polynomial.Term, Polynomial.Term> selectCandidateTerm(Polynomial lower, Polynomial upper) {
-		for (int i = 0; i != lower.size(); ++i) {
-			Polynomial.Term ith = lower.getOperand(i);
-			Tuple<Formula.Atom> ithAtoms = ith.getAtoms();
-			if (ithAtoms.size() > 0) {
-				for (int j = 0; j != upper.size(); ++j) {
-					Polynomial.Term jth = upper.getOperand(j);
-					Tuple<Formula.Atom> jthAtoms = jth.getAtoms();
-					if (jthAtoms.equals(ithAtoms)) {
-						// FIXME: we should be selecting the lexiographically
-						// least candidate here.
-						return new Pair<>(ith, jth);
-					}
-				}
-			}
-		}
-		//
-		return null;
-	}
-
-	/**
-	 * Rearrange the left- and right-hand sides of an equation such that the
-	 * given term is on the right, and the remainder is on the left.
-	 *
-	 * @param lhs
-	 * @param rhs
-	 * @param term
-	 * @return
-	 */
-	private static Polynomial rearrangeForLowerBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
-		return rearrange(true, lhs, rhs, term);
-	}
-
-	/**
-	 * Rearrange the left- and right-hand sides of an equation such that the
-	 * given term is on the left, and the remainder is on the right.
-	 *
-	 * @param lhs
-	 * @param rhs
-	 * @param term
-	 * @return
-	 */
-	private static Polynomial rearrangeForUpperBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
-		return rearrange(false, lhs, rhs, term);
-	}
-
-	/**
-	 * Rearrange a given inequality such that a given term appears on a given
-	 * side, and everything else is moved on to the right side . For example,
-	 * consider rearranging these for <code>x</code>:
-	 *
-	 * <pre>
-	 * x + y < 1
-	 * </pre>
-	 *
-	 * The resulting polynomial represents the "right-hand side" which (in this
-	 * case) is 1-y. Thus, the resulting inequality would be x < 1 - y.
-	 *
-	 * @param inequality
-	 * @param term
-	 */
-	private static Polynomial rearrange(boolean toLeft, Polynomial left, Polynomial right, Polynomial.Term term) {
-		if (toLeft) {
-			right = right.subtract(term);
-			return left.add(right.negate());
-		} else {
-			left = left.subtract(term);
-			return right.add(left.negate());
-		}
-	}
 }
