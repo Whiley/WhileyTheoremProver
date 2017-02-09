@@ -23,7 +23,7 @@ public class Polynomials {
 	 * @param terms
 	 * @return
 	 */
-	private static Polynomial toNormalForm(Polynomial.Term[] terms) {
+	public static Polynomial toNormalForm(Polynomial.Term[] terms) {
 		mergeTerms(terms);
 		// Strip out null entries
 		Polynomial.Term[] nTerms = ArrayUtils.removeAll(terms, null);
@@ -170,6 +170,18 @@ public class Polynomials {
 				Polynomial.Term rhsTerm = rhs.getOperand(j);
 				terms[j_base + j] = multiply(lhsTerm,rhsTerm);
 			}
+		}
+
+		return toNormalForm(terms);
+	}
+
+	public static Polynomial multiply(Polynomial lhs, Polynomial.Term rhs) {
+		int lhs_size = lhs.size();
+		Polynomial.Term[] terms = new Polynomial.Term[lhs_size];
+
+		for (int i = 0; i != lhs_size; ++i) {
+			Polynomial.Term lhsTerm = lhs.getOperand(i);
+			terms[i] = multiply(lhsTerm, rhs);
 		}
 
 		return toNormalForm(terms);

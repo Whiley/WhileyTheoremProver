@@ -53,35 +53,45 @@ public class Formulae {
 		switch (stmt.getOpcode()) {
 		case STMT_block: {
 			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
-			Formula[] operands = toFormulae(b.getOperands(),types);
+			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Conjunct(operands);
 		}
 		case STMT_caseof: {
 			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) stmt;
-			Formula[] operands = toFormulae(b.getOperands(),types);
+			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Disjunct(operands);
 		}
 		case STMT_ifthen: {
 			WyalFile.Stmt.IfThen it = (WyalFile.Stmt.IfThen) stmt;
-			Formula lhs = toFormula(it.getIfBody(),types);
-			Formula rhs = toFormula(it.getThenBody(),types);
-			return new Formula.Disjunct(lhs.invert(),rhs);
+			Formula lhs = toFormula(it.getIfBody(), types);
+			Formula rhs = toFormula(it.getThenBody(), types);
+			return new Formula.Disjunct(invert(lhs), rhs);
 		}
 		case STMT_forall: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
-			Formula body = toFormula(q.getBody(),types);
-			return new Formula.Quantifier(true,q.getParameters(), body);
+			Formula body = toFormula(q.getBody(), types);
+			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
 		case STMT_exists: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
-			Formula body = toFormula(q.getBody(),types);
-			return new Formula.Quantifier(false,q.getParameters(), body);
+			Formula body = toFormula(q.getBody(), types);
+			return new Formula.Quantifier(false, q.getParameters(), body);
+		}
+		case EXPR_and: {
+			Expr.Operator b = (Expr.Operator) stmt;
+			Formula[] operands = toFormulae(b.getOperands(), types);
+			return new Formula.Conjunct(operands);
+		}
+		case EXPR_or: {
+			Expr.Operator b = (Expr.Operator) stmt;
+			Formula[] operands = toFormulae(b.getOperands(), types);
+			return new Formula.Disjunct(operands);
 		}
 		case EXPR_implies: {
 			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
-			Formula lhs = toFormula(it.getOperand(0),types);
-			Formula rhs = toFormula(it.getOperand(1),types);
-			return new Formula.Disjunct(lhs.invert(), rhs);
+			Formula lhs = toFormula(it.getOperand(0), types);
+			Formula rhs = toFormula(it.getOperand(1), types);
+			return new Formula.Disjunct(invert(lhs), rhs);
 		}
 		case EXPR_eq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -131,7 +141,7 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(true, lhs, rhs);
+			return new Formula.Inequality(true, rhs, lhs);
 		}
 		case EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -141,8 +151,8 @@ public class Formulae {
 		}
 		case EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Formula f = toFormula(operator.getOperand(0),types);
-			return f.invert();
+			Formula f = toFormula(operator.getOperand(0), types);
+			return invert(f);
 		}
 		case EXPR_const: {
 			Expr.Constant c = (Expr.Constant) stmt;
@@ -185,7 +195,7 @@ public class Formulae {
 	 */
 	private static Polynomial toPolynomial(Expr e) {
 		Formula.Atom atom = toAtom(e);
-		if(atom instanceof Polynomial) {
+		if (atom instanceof Polynomial) {
 			return (Polynomial) atom;
 		} else {
 			Polynomial.Term term = new Polynomial.Term(atom);
@@ -203,23 +213,24 @@ public class Formulae {
 		switch (e.getOpcode()) {
 		case EXPR_const:
 			return toAtom((Expr.Constant) e);
-		//case EXPR_invoke:
-		//case EXPR_arridx:
+		// case EXPR_invoke:
+		// case EXPR_arridx:
 		case EXPR_var:
 			return toAtom((Expr.VariableAccess) e);
+		case EXPR_neg:
 		case EXPR_add:
 		case EXPR_mul:
 		case EXPR_sub: {
 			return toAtom((Expr.Operator) e);
 		}
 		default:
-			throw new IllegalArgumentException("cannot convert expression to polynomial");
+			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
 		}
 	}
 
 	private static Formula.Atom toAtom(Expr.Constant e) {
 		Value val = e.getValue();
-		if(val instanceof Value.Int) {
+		if (val instanceof Value.Int) {
 			Value.Int c = (Value.Int) val;
 			return new Polynomial(new Polynomial.Term(c));
 		} else {
@@ -255,6 +266,10 @@ public class Formulae {
 			}
 			break;
 		}
+		case EXPR_neg: {
+			result = result.negate();
+			break;
+		}
 		default:
 			throw new IllegalArgumentException("IMPLEMENT ME");
 		}
@@ -263,8 +278,110 @@ public class Formulae {
 	}
 
 	// ========================================================================
+	// Inversion
+	// ========================================================================
+
+	/**
+	 * Logically invert a given formula. This pushes through all inversions as
+	 * far as possible. For example, <code>!(x == 0 && y < x)</code> becomes
+	 * <code>x != 0 || y >= x</code>. This method is useful (amongst other
+	 * things) for beginning a proof-by-contradiction. In such a proof, we first
+	 * invert the formula in question and then establish that this reduces to a
+	 * contradiction.
+	 *
+	 * @param f
+	 * @return
+	 */
+	public static Formula invert(Formula f) {
+		switch (f.getOpcode()) {
+		case EXPR_const: {
+			Formula.Truth truth = (Formula.Truth) f;
+			return new Formula.Truth(!truth.holds());
+		}
+		case EXPR_and: {
+			Formula.Conjunct c = (Formula.Conjunct) f;
+			return new Disjunct(invert(c.getOperands()));
+		}
+		case EXPR_or: {
+			Formula.Disjunct c = (Formula.Disjunct) f;
+			return new Conjunct(invert(c.getOperands()));
+		}
+		case EXPR_exists:
+		case EXPR_forall: {
+			Formula.Quantifier q = (Formula.Quantifier) f;
+			return new Formula.Quantifier(!q.getSign(), q.getParameters(), invert(q.getBody()));
+		}
+		case EXPR_eq:
+		case EXPR_neq: {
+			if(f instanceof ArithmeticEquality) {
+				ArithmeticEquality e = (ArithmeticEquality) f;
+				return new ArithmeticEquality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+			} else {
+				Equality e = (Equality) f;
+				return new Equality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+			}
+		}
+		case EXPR_lt:
+		case EXPR_gteq: {
+			Inequality e = (Inequality) f;
+			return new Inequality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+		}
+		default:
+			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
+		}
+	}
+
+	private static Formula[] invert(Formula[] children) {
+		Formula[] nChildren = new Formula[children.length];
+		for(int i=0;i!=children.length;++i) {
+			nChildren[i] = invert(children[i]);
+		}
+		return nChildren;
+	}
+
+	// ========================================================================
 	// Simplifications
 	// ========================================================================
+
+	/**
+	 * Recursively simplify a given formula by applying the "standard"
+	 * simplifications for each kind. If no simplification is performed, this
+	 * returns the original object in tact.
+	 *
+	 * @param f
+	 * @return
+	 */
+	public static Formula simplify(Formula f) {
+		switch (f.getOpcode()) {
+		case EXPR_const: {
+			return f;
+		}
+		case EXPR_and: {
+			return simplify((Formula.Conjunct)f);
+		}
+		case EXPR_or: {
+			return simplify((Formula.Disjunct)f);
+		}
+		case EXPR_exists:
+		case EXPR_forall: {
+			return simplify((Formula.Quantifier)f);
+		}
+		case EXPR_eq:
+		case EXPR_neq: {
+			if(f instanceof ArithmeticEquality) {
+				return simplify((Formula.ArithmeticEquality)f);
+			} else {
+				return simplify((Formula.Equality)f);
+			}
+		}
+		case EXPR_lt:
+		case EXPR_gteq: {
+			return simplify((Formula.Inequality)f);
+		}
+		default:
+			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
+		}
+	}
 
 	/**
 	 * Apply a range of simplifications to a given conjunct:
@@ -283,8 +400,7 @@ public class Formulae {
 	 *
 	 * The implementation attempts to eliminate dynamic memory allocation in the
 	 * case that no simplification is applied. Furthermore, this function is
-	 * <b>not recursive</b>. That is, it does not attempt to simplify the
-	 * children of this formula.
+	 * <b>recursive</b>. That is, it will simplify all children of this formula.
 	 *
 	 * @author David J. Pearce
 	 *
@@ -294,6 +410,8 @@ public class Formulae {
 		Formula[] nChildren = children;
 		// Flatten nested conjuncts
 		nChildren = flattenNestedConjuncts(nChildren);
+		// Simplify children
+		nChildren = simplify(nChildren);
 		// Eliminate truths
 		nChildren = eliminateConstants(true, nChildren);
 		// Ensure sorted and unique
@@ -330,8 +448,8 @@ public class Formulae {
 	 *
 	 * The implementation attempts to eliminate dynamic memory allocation in the
 	 * case that no simplification is applied. Furthermore, this function is
-	 * <b>not recursive</b>. That is, it does not attempt to simplify the
-	 * children of this formula.
+	 * <b>not recursive</b>. Furthermore, this function is <b>recursive</b>.
+	 * That is, it will simplify all children of this formula.
 	 *
 	 */
 	public static Formula simplify(Disjunct disjunct) {
@@ -339,6 +457,8 @@ public class Formulae {
 		Formula[] nChildren = children;
 		// Flatten nested disjuncts
 		nChildren = flattenNestedDisjuncts(nChildren);
+		// Simplify children
+		nChildren = simplify(nChildren);
 		// Eliminate truths
 		nChildren = eliminateConstants(false, nChildren);
 		// Ensure sorted and unique
@@ -358,8 +478,21 @@ public class Formulae {
 		}
 	}
 
+	private static Formula[] simplify(Formula[] children) {
+		Formula[] nChildren = children;
+		for (int i = 0; i != nChildren.length; ++i) {
+			Formula child = children[i];
+			Formula nChild = simplify(child);
+			if (child != nChild && children != nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		return nChildren;
+	}
+
 	/**
-	 * Simplify a quantifier expression. In essence, if the body is a truth
+	 * Simplify a quantified formula. In essence, if the body is a truth
 	 * value then that is returned. For example, <code>forall x.true</code> is
 	 * simply <code>true</code>.
 	 *
@@ -368,8 +501,11 @@ public class Formulae {
 	 */
 	public static Formula simplify(Quantifier quantifier) {
 		Formula body = quantifier.getBody();
-		if(body instanceof Truth) {
-			return body;
+		Formula nBody = simplify(body);
+		if (nBody instanceof Truth) {
+			return nBody;
+		} else if (nBody != body) {
+			return new Quantifier(quantifier.getSign(), quantifier.getParameters(), nBody);
 		} else {
 			return quantifier;
 		}
@@ -395,16 +531,20 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(Inequality ieq) {
-		Polynomial lhs = ieq.getOperand(0);
-		Polynomial rhs = ieq.getOperand(1);
-		// FIXME: this doesn't cancel terms!
+		Polynomial lhs = simplify(ieq.getOperand(0));
+		Polynomial rhs = simplify(ieq.getOperand(1));
+		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
+		lhs = bs.getFirst();
+		rhs = bs.getSecond();
+		//
 		if (lhs.isConstant() && rhs.isConstant()) {
 			return evaluateInequality(ieq.getOpcode(), lhs.toConstant(), rhs.toConstant());
 		} else if (lhs.equals(rhs)) {
 			return new Formula.Truth(false);
 		} else {
-			Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
-			return new Inequality(true, bs.getFirst(), bs.getSecond());
+			// FIXME: need to ensure identical object returned if no
+			// simplification applied.
+			return new Inequality(ieq.getSign(), bs.getFirst(), bs.getSecond());
 		}
 	}
 
@@ -429,18 +569,20 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(ArithmeticEquality eq) {
-		Polynomial lhs = eq.getOperand(0);
-		Polynomial rhs = eq.getOperand(1);
+		Polynomial lhs = simplify(eq.getOperand(0));
+		Polynomial rhs = simplify(eq.getOperand(1));
 		// FIXME: this doesn't cancel terms!
 		if (lhs.isConstant() && rhs.isConstant()) {
 			Value lhs_v = lhs.toConstant();
 			Value rhs_v = rhs.toConstant();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (lhs.equals(rhs)) {
-			return new Formula.Truth(true);
+			return new Formula.Truth(eq.getSign());
 		} else {
 			Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
-			return new ArithmeticEquality(true, bs.getFirst(), bs.getSecond());
+			// FIXME: need to ensure identical object returned if no
+			// simplification applied.
+			return new ArithmeticEquality(eq.getSign(), bs.getFirst(), bs.getSecond());
 		}
 	}
 
@@ -454,16 +596,113 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(Equality eq) {
-		Atom lhs = eq.getOperand(0);
-		Atom rhs = eq.getOperand(1);
+		Atom lhs = simplify(eq.getOperand(0));
+		Atom rhs = simplify(eq.getOperand(1));
 		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
 			Value lhs_v = ((Expr.Constant) lhs).getValue();
 			Value rhs_v = ((Expr.Constant) rhs).getValue();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (lhs.equals(rhs)) {
-			return new Formula.Truth(true);
+			return new Formula.Truth(eq.getSign());
 		} else {
+			// FIXME: need to ensure new object returned if simplification
+			// applied.
 			return eq;
+		}
+	}
+
+	public static Formula.Atom simplify(Formula.Atom f) {
+		// FIXME: need to actually do something here
+		return f;
+	}
+
+	/**
+	 * Simplify a polynomial. This ensures that all terms are simplified, and
+	 * that there are no nested polynomials.
+	 *
+	 * @param p
+	 * @return
+	 */
+	private static Polynomial simplify(Polynomial p) {
+		Polynomial.Term[] children = p.getOperands();
+		Expr[] nChildren = children;
+		for(int i=0;i!=p.size();++i) {
+			Polynomial.Term child = children[i];
+			Expr nChild = simplify(child);
+			if (nChild instanceof Polynomial && nChildren instanceof Polynomial.Term[]) {
+				// At this point, we are now committed to constructing a new
+				// polynomial. For now, we continue simplifying the children as
+				// before. However, we downgrade the enclosing array to hold
+				// only expressions in order that it can hold both terms and
+				// polynomials.
+				Expr[] oChildren = nChildren;
+				nChildren = new Expr[nChildren.length];
+				System.arraycopy(oChildren, 0, nChildren, 0, nChildren.length);
+			} else if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		//
+		if (children == nChildren) {
+			// In this case, nothing changed anyway.
+			return p;
+		} else if(nChildren instanceof Polynomial.Term[]){
+			// FIXME: we need to do some other kinds of simplification here. For
+			// example, coalescing terms.
+			return Polynomials.toNormalForm((Polynomial.Term[]) nChildren);
+		} else {
+			Polynomial result = new Polynomial(BigInteger.ZERO);
+			for(int i=0;i!=nChildren.length;++i) {
+				Expr nChild = nChildren[i];
+				if(nChild instanceof Polynomial) {
+					result = result.add((Polynomial) nChild);
+				} else {
+					result = result.add((Polynomial.Term) nChild);
+				}
+			}
+			return result;
+		}
+	}
+
+	private static Expr simplify(Polynomial.Term p) {
+		final Formula.Atom[] children = p.getAtoms();
+		Formula.Atom[] nChildren = children;
+		int numPolynomials = 0;
+
+		for(int i=0;i!=children.length;++i) {
+			Atom child = children[i];
+			Atom nChild = simplify(child);
+			if(nChild instanceof Polynomial) {
+				numPolynomials = numPolynomials+1;
+			}
+			if(child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+
+		if(numPolynomials == 0) {
+			// This is the easy case. No nested polynomials were found.
+			if(nChildren == children) {
+				return p;
+			} else {
+				return new Polynomial.Term(p.getCoefficient(),nChildren);
+			}
+		} else {
+			// This is the harder case. At least one nested polynomial was
+			// found.  For now, we don't make much effort to be efficient.
+			Polynomial result = new Polynomial(BigInteger.ONE);
+			for(int i=0;i!=nChildren.length;++i) {
+				Atom nChild = nChildren[i];
+				if(nChild instanceof Polynomial) {
+					result = result.multiply((Polynomial) nChild);
+				} else {
+					Polynomial.Term term = new Polynomial.Term(nChild);
+					result = result.multiply(term);
+				}
+			}
+			return result;
 		}
 	}
 
@@ -493,20 +732,24 @@ public class Formulae {
 		Polynomial rhs;
 		if (lCandidate != null) {
 			// FIXME: should be selecting the least candidate
-			lhs = rearrangeForUpperBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForLowerBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 		} else if (rCandidate != null) {
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 		} else {
 			return null;
 		}
-		if (ith.getSign() || jth.getSign()) {
+		if(ith.getSign() && jth.getSign()) {
+			// Result is *very* strict as had something like ... < x < ...
+			lhs = lhs.add(new Polynomial.Term(BigInteger.ONE));
+			return simplify(new Formula.Inequality(true, lhs, rhs));
+		} else if (ith.getSign() || jth.getSign()) {
 			// Result is strict as had something like ... <= x < ...
-			return new Formula.Inequality(true, lhs, rhs);
+			return simplify(new Formula.Inequality(true, lhs, rhs));
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return new Formula.Inequality(false, lhs, rhs);
+			return simplify(new Formula.Inequality(false, lhs, rhs));
 		}
 	}
 
@@ -578,6 +821,132 @@ public class Formulae {
 		return null;
 	}
 
+	public static Pair<Identifier, Formula.Atom> rearrangeForSubstitution(Formula.Equality f) {
+		Identifier var;
+		Formula.Atom bound;
+		if (f instanceof Formula.ArithmeticEquality) {
+			// Arithmetic equalities are a special case because we can actually
+			// rearrange them.
+			Formula.ArithmeticEquality e = (Formula.ArithmeticEquality) f;
+			Polynomial lhs = e.getOperand(0);
+			Polynomial rhs = e.getOperand(1);
+			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs);
+			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs);
+			if (lhsCandidate != null && rhsCandidate != null) {
+				Identifier var1 = extractCandidateName(lhsCandidate);
+				Identifier var2 = extractCandidateName(rhsCandidate);
+				if (var1.compareTo(var2) <= 0) {
+					var = var1;
+					bound = rhs.subtract(lhs.subtract(lhsCandidate));
+				} else {
+					var = var2;
+					bound = lhs.subtract(rhs.subtract(rhsCandidate));
+				}
+			} else if (lhsCandidate != null) {
+				var = extractCandidateName(lhsCandidate);
+				bound = rhs.subtract(lhs.subtract(lhsCandidate));
+			} else if (rhsCandidate != null) {
+				var = extractCandidateName(rhsCandidate);
+				bound = lhs.subtract(rhs.subtract(rhsCandidate));
+			} else {
+				return null;
+			}
+		} else {
+			// For non-arithmetic equalities, we can't rearrange them.
+			// Therefore, there are relatively few options.
+			Formula.Atom lhs = f.getOperand(0);
+			Formula.Atom rhs = f.getOperand(1);
+			//
+			if (lhs instanceof Expr.VariableAccess && rhs instanceof Expr.VariableAccess) {
+				Identifier v1 = ((Expr.VariableAccess) lhs).getVariableDeclaration().getVariableName();
+				Identifier v2 = ((Expr.VariableAccess) rhs).getVariableDeclaration().getVariableName();
+				if (v1.compareTo(v2) <= 0) {
+					var = v1;
+					bound = rhs;
+				} else {
+					var = v2;
+					bound = lhs;
+				}
+			} else if (lhs instanceof Expr.VariableAccess) {
+				Expr.VariableAccess v = (Expr.VariableAccess) lhs;
+				var = v.getVariableDeclaration().getVariableName();
+				bound = rhs;
+			} else if (rhs instanceof Expr.VariableAccess) {
+				Expr.VariableAccess v = (Expr.VariableAccess) rhs;
+				var = v.getVariableDeclaration().getVariableName();
+				bound = lhs;
+			} else {
+				// no option here
+				return null;
+			}
+		}
+
+		System.out.print("FOUND SUBSTITUTION: " + var + " ==> ");
+		AutomatedTheoremProver.println(bound);
+		return new Pair<>(var, bound);
+	}
+
+
+
+
+	/**
+	 * Examine all terms in a polynomial to see whether any is a candidate for
+	 * substitution or not. If one or more are found, then the least candidate
+	 * is returned.
+	 *
+	 * @param p
+	 * @return
+	 */
+	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p) {
+		Polynomial.Term candidate = null;
+		Identifier candidateVar = null;
+		for (int i = 0; i != p.size(); ++i) {
+			Polynomial.Term term = p.getOperand(0);
+			if (isCandidate(term)) {
+				Identifier var = extractCandidateName(term);
+				if (candidateVar == null || var.compareTo(candidateVar) < 0) {
+					candidateVar = var;
+					candidate = term;
+				}
+			}
+		}
+		return candidate;
+	}
+
+	/**
+	 * Determine whether a given polynomial term is a candidate for
+	 * substitution. A candidate must be a single atom with a trivial
+	 * coefficient (i.e. 1). At this time, a candidate must also be a variable
+	 * access (though this may be later relaxed).
+	 *
+	 * @param term
+	 * @return
+	 */
+	private static boolean isCandidate(Polynomial.Term term) {
+		Formula.Atom[] atoms = term.getAtoms();
+		BigInteger coefficient = term.getCoefficient().get();
+		if (atoms.length == 1 && coefficient.equals(BigInteger.ONE)) {
+			// FIXME: can we substitute for things other than a variable access?
+			// I think perhapds we should be able to.
+			return atoms[0] instanceof Expr.VariableAccess;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Extract the name of a candidate. That is, the variable which is being
+	 * rearranged for. This is necessary to determine whether a given candidate
+	 * is the <i>least</i> candidate or not.
+	 *
+	 * @param term
+	 * @return
+	 */
+	private static Identifier extractCandidateName(Polynomial.Term term) {
+		Expr.VariableAccess va = (Expr.VariableAccess) term.getAtoms()[0];
+		return va.getVariableDeclaration().getVariableName();
+	}
+
 	/**
 	 * Rearrange a given equation such that the given term appears on the
 	 * right-hand side, and everything else is moved on to the left side. For
@@ -625,6 +994,7 @@ public class Formulae {
 		lhs = lhs.subtract(term);
 		return rhs.add(lhs.negate());
 	}
+
 	/**
 	 * <p>
 	 * Substitute for a given variable within a given syntactic item.
@@ -642,7 +1012,8 @@ public class Formulae {
 	 * @param item
 	 * @return
 	 */
-	public static <T extends SyntacticItem> SyntacticItem substitute(Pair<Identifier, T> substitution, SyntacticItem item) {
+	public static <T extends SyntacticItem> SyntacticItem substitute(Pair<Identifier, T> substitution,
+			SyntacticItem item) {
 		// FIXME: this function is broken because it should not be using
 		// identifiers for substitution. Instead, is should be using variable
 		// declarations.
@@ -662,7 +1033,7 @@ public class Formulae {
 			SyntacticItem[] nChildren = children;
 			for (int i = 0; i != children.length; ++i) {
 				SyntacticItem child = children[i];
-				SyntacticItem nChild = substitute(substitution, item);
+				SyntacticItem nChild = substitute(substitution, child);
 				if (child != nChild && nChildren == children) {
 					// Clone the new children array to avoid interfering with
 					// original item.
@@ -693,7 +1064,7 @@ public class Formulae {
 	 * @return
 	 */
 	private static Formula[] flattenNestedConjuncts(Formula[] children) {
-		return flattenNestedClauses(true,children);
+		return flattenNestedClauses(true, children);
 	}
 
 	/**
@@ -707,7 +1078,7 @@ public class Formulae {
 	 * @return
 	 */
 	private static Formula[] flattenNestedDisjuncts(Formula[] children) {
-		return flattenNestedClauses(false,children);
+		return flattenNestedClauses(false, children);
 	}
 
 	private static Formula[] flattenNestedClauses(boolean sign, Formula[] children) {
@@ -768,21 +1139,20 @@ public class Formulae {
 	 *         is now occupied.
 	 */
 	private static int nestedCopy(boolean flag, Formula[] from, Formula[] to, int start) {
-		int count = 0;
-		for (int i = 0, j = start; i != from.length; ++i) {
+		int j = start;
+		for (int i = 0; i != from.length; ++i) {
 			Expr child = from[i];
 			if (flag && child.getOpcode() == Opcode.EXPR_and) {
 				Formula.Conjunct conjunct = (Formula.Conjunct) child;
-				j += nestedCopy(flag,conjunct.getOperands(), to, j);
+				j += nestedCopy(flag, conjunct.getOperands(), to, j);
 			} else if (!flag && child.getOpcode() == Opcode.EXPR_or) {
 				Formula.Disjunct disjunct = (Formula.Disjunct) child;
-				j += nestedCopy(flag,disjunct.getOperands(), to, j);
+				j += nestedCopy(flag, disjunct.getOperands(), to, j);
 			} else {
 				to[j++] = from[i];
-				count = count + 1;
 			}
 		}
-		return count;
+		return j - start;
 	}
 
 	/**
@@ -841,7 +1211,7 @@ public class Formulae {
 	 */
 	private static <T extends SyntacticItem> T[] sortAndRemoveDuplicates(T[] children) {
 		int r = isSortedAndUnique(children);
-		switch(r) {
+		switch (r) {
 		case 0:
 			// In this case, the array is already sorted and no duplicates were
 			// found.
@@ -965,7 +1335,7 @@ public class Formulae {
 			BigInteger c = p.getOperand(i).getCoefficient().get();
 			factor = factor.gcd(c);
 		}
-		if (factor.equals(BigInteger.ONE)) {
+		if (factor.equals(BigInteger.ZERO) || factor.equals(BigInteger.ONE)) {
 			// No useful factor discovered
 			return p;
 		} else {

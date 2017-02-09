@@ -29,13 +29,6 @@ import wyal.util.TypeSystem;
  */
 public interface Formula extends Expr {
 
-	/**
-	 * Invert a given formula.
-	 *
-	 * @return
-	 */
-	public Formula invert();
-
 	@Override
 	public Formula clone(SyntacticItem[] children);
 
@@ -56,11 +49,6 @@ public interface Formula extends Expr {
 		@Override
 		public Value.Bool getValue() {
 			return (Value.Bool) super.getValue();
-		}
-
-		@Override
-		public Formula invert() {
-			return new Truth(!getValue().get());
 		}
 
 		@Override
@@ -86,16 +74,6 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula invert() {
-			Formula[] children = getOperands();
-			Formula[] nChildren = new Formula[children.length];
-			for(int i=0;i!=children.length;++i) {
-				nChildren[i] = children[i].invert();
-			}
-			return new Disjunct(nChildren);
-		}
-
-		@Override
 		public Conjunct clone(SyntacticItem[] children) {
 			return new Conjunct((Formula[]) children);
 		}
@@ -115,16 +93,6 @@ public interface Formula extends Expr {
 		@Override
 		public Formula[] getOperands() {
 			return (Formula[]) super.getOperands();
-		}
-
-		@Override
-		public Formula invert() {
-			Formula[] children = getOperands();
-			Formula[] nChildren = new Formula[children.length];
-			for(int i=0;i!=children.length;++i) {
-				nChildren[i] = children[i].invert();
-			}
-			return new Conjunct(nChildren);
 		}
 
 		@Override
@@ -157,12 +125,6 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula invert() {
-			Formula body = getBody().invert();
-			return new Formula.Quantifier(!getSign(),getParameters(),body);
-		}
-
-		@Override
 		public Formula.Quantifier clone(SyntacticItem[] children) {
 			return new Formula.Quantifier(getSign(), (Tuple) children[0], (Formula) children[1]);
 		}
@@ -186,13 +148,6 @@ public interface Formula extends Expr {
 		@Override
 		public Polynomial[] getOperands() {
 			return (Polynomial[]) super.getOperands();
-		}
-
-		@Override
-		public Formula invert() {
-			Polynomial lhs = getOperand(0);
-			Polynomial rhs = getOperand(1);
-			return new Inequality(!getSign(),lhs,rhs);
 		}
 
 		@Override
@@ -225,13 +180,6 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula invert() {
-			Atom lhs = getOperand(0);
-			Atom rhs = getOperand(1);
-			return new Equality(!getSign(),lhs,rhs);
-		}
-
-		@Override
 		public Equality clone(SyntacticItem[] children) {
 			return new Equality(getSign(),(Atom) children[0],(Atom) children[1]);
 		}
@@ -250,13 +198,6 @@ public interface Formula extends Expr {
 		@Override
 		public Polynomial[] getOperands() {
 			return (Polynomial[]) super.getOperands();
-		}
-
-		@Override
-		public Formula invert() {
-			Polynomial lhs = getOperand(0);
-			Polynomial rhs = getOperand(1);
-			return new Equality(!getSign(), lhs, rhs);
 		}
 
 		@Override
@@ -357,6 +298,10 @@ public interface Formula extends Expr {
 			return Polynomials.multiply(this, rhs);
 		}
 
+		public Polynomial multiply(Polynomial.Term rhs) {
+			return Polynomials.multiply(this, rhs);
+		}
+
 		@Override
 		public Polynomial clone(SyntacticItem[] children) {
 			return new Polynomial((Term[]) children);
@@ -375,7 +320,7 @@ public interface Formula extends Expr {
 			public Term(Value.Int coefficient, Atom... variables) {
 				super(Opcode.EXPR_mul,append(coefficient,variables));
 			}
-			Term(Atom[] operands) {
+			Term(Expr[] operands) {
 				super(Opcode.EXPR_mul,operands);
 			}
 			public Value.Int getCoefficient() {
@@ -390,7 +335,6 @@ public interface Formula extends Expr {
 				return atoms;
 			}
 
-
 			static Expr[] append(Value.Int i, Atom... variables) {
 				Expr[] exprs = new Expr[variables.length+1];
 				exprs[0] = new Expr.Constant(i);
@@ -402,9 +346,7 @@ public interface Formula extends Expr {
 
 			@Override
 			public Term clone(SyntacticItem[] children) {
-				Atom[] atoms = new Atom[children.length-1];
-				System.arraycopy(children, 1, atoms, 0, atoms.length);
-				return new Term((Value.Int) children[0], atoms);
+				return new Term((Expr[])children);
 			}
 
 		}

@@ -1,21 +1,14 @@
 package wyal.util;
 
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.BitSet;
 
 import wyal.io.WyalFilePrinter;
 import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.Formula.Polynomial;
-import wyal.lang.Formula.Quantifier;
-import wyal.lang.Formula.Truth;
 import wyal.lang.WyalFile.*;
-import wyal.rules.*;
 
 public class AutomatedTheoremProver {
 	/**
@@ -43,117 +36,220 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private final static RewriteRule[] rules = {
-			new InequalityClosure(),
-			new VariableUnification()
-		};
-
 	private void check(WyalFile.Declaration.Assert decl) {
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
 		Formula root = Formulae.toFormula(SyntacticHeaps.clone(decl.getBody()),types);
-		// Invert the body of the assertion in order to perform a
-		// "proof-by-contradiction". In essence, once rewriting is complete, we
-		// should have reduced the term to false (if the original assertion
-		// held).
-		root = root.invert();
-		Formula oRoot = root;
-		println(root);
-		System.out.println("--------------------------");
-		do {
-			oRoot = root;
-			root = (Formula) pushDownRewrite(root, rules);
-		} while(oRoot != root);
-		println(root);
+		// Check whether or not this formula is valid.
+		boolean valid = checkValidity(root);
 		//
-		if(isContradiction(root)) {
-			return;
-		} else {
+		if(!valid) {
 			// FIXME: throw proper error here
 			throw new IllegalArgumentException("Verification error!");
 		}
 	}
 
-	public static interface RewriteRule {
-		/**
-		 * Attempt to rewrite a given syntactic item, producing a potentially
-		 * updated item. In the case that the rewrite did not apply, then the
-		 * original item is returned. Otherwise, a new item may be returned
-		 * (which may be completed new, or maybe an existing item in the heap).
-		 *
-		 * @param item
-		 * @return
-		 */
-		Formula rewrite(Formula item);
-	}
-
 	/**
-	 * <p>
-	 * Apply a given set of rewrite rules to a given syntactic item and
-	 * (recursively) all children contained therein. This produces a single item
-	 * representing this result of this rewrite. Observe that this may be a
-	 * freshly created location and (if so) will be detached.
-	 * </p>
-	 * <p>
-	 * This method implements the <i>push-down</i> rewrite strategy. This
-	 * iteratively applies the given rules to the item before recursively
-	 * applying them to its children.
-	 * </p>
+	 * Check whether a given formula is unsatisfiable or not. That is, whether
+	 * or not it can be reduces to false.
 	 *
-	 * @param item
-	 *            The item being reduced via this rewrite. If no rewrites are
-	 *            applied, then the original item is returned untouched.
-	 * @param rules
-	 *            The array of rules to be applied to the the given item. These
-	 *            rules are applied iteratively according to their relative
-	 *            order in the array.
+	 * @param formula
 	 * @return
 	 */
-	public static Formula pushDownRewrite(Formula item, RewriteRule[] rules) {
-		Formula nItem = item;
-		// Iterate rewrites until a fixed-point is reached. That is, when there
-		// are no further changes to the item.
-		do {
-			item = nItem;
-			for (int i = 0; i != rules.length; ++i) {
-				nItem = rules[i].rewrite(nItem);
-			}
-		} while (nItem != item);
-		// Apply rewrites recursively to all children.
-		SyntacticItem[] children = nItem.getOperands();
-		// Initially, this will alias children. In the event of a child
-		// which is actually updated, then this will refer to a new array.
-		// That will be the signal that we need to create a new item to
-		// return.
-		SyntacticItem[] nChildren = children;
-		if (children != null) {
-			for (int i = 0; i != children.length; ++i) {
-				SyntacticItem child = children[i];
-				if (child instanceof Formula) {
-					// Apply all rewrite rules to the given child
-					Formula nChild = pushDownRewrite((Formula) child, rules);
-					// Check whether anything was actually changed
-					if (nChild != child && children == nChildren) {
-						// Yes, the child changed and we haven't already
-						// cloned the children array. Hence, we'd better
-						// clone it now to make sure that the original item
-						// is preserved.
-						nChildren = Arrays.copyOf(children, children.length);
+	private boolean checkValidity(Formula formula) {
+		SyntacticHeap heap = new StructurallyEquivalentHeap();
+		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
+		// Invert the body of the assertion in order to perform a
+		// "proof-by-contradiction".
+		formula = Formulae.invert(formula);
+		println(formula);
+		System.out.println("--------------------------");
+		// Simplify the formula, since inversion does not do this.
+		formula = Formulae.simplify(formula);
+		println(formula);
+		System.out.println("--------------------------");
+		// Allocate initial formula to the heap
+		formula = heap.allocate(formula);
+		// Create initial state
+		State state = new State(heap);
+		// Assume the formula holds
+		state.set(formula);
+		//
+		return checkUnsat(state,FALSE);
+	}
+
+	private boolean checkUnsat(State state, Formula.Truth FALSE) {
+		// The following loop is *very* primitive in nature.
+		for (int i = 0; i != state.size(); ++i) {
+			Formula truth = state.get(i);
+			if (truth instanceof Formula.Conjunct) {
+				Formula.Conjunct conjunct = (Formula.Conjunct) truth;
+				state.unset(conjunct);
+				state.set(conjunct.getOperands());
+				return checkUnsat(state, FALSE);
+			} else if (truth instanceof Formula.Disjunct) {
+				Formula.Disjunct disjunct = (Formula.Disjunct) truth;
+				state.unset(disjunct);
+				State[] splits = state.split(disjunct.getOperands());
+				for (int j = 0; j != splits.length; ++j) {
+					if (!checkUnsat(splits[j], FALSE)) {
+						return false;
 					}
-					nChildren[i] = nChild;
+				}
+				return true;
+			} else if (truth instanceof Formula.Quantifier){
+				Formula.Quantifier quantifier = (Formula.Quantifier) truth;
+				if(!quantifier.getSign()) {
+					// existential
+					state.unset(quantifier);
+					state.set(quantifier.getBody());
+					return checkUnsat(state, FALSE);
 				}
 			}
-			// Now, clone the original item if necessary. This is only
-			// necessary if the children array as been updated in some
-			// way.
-			if (children != nChildren) {
-				// Create the new item which, at this point, will be
-				// detached.
-				nItem = nItem.clone(nChildren);
+		}
+		// If we get here, then we have a fully expanded state which contains
+		// only primitive formulae.
+		//
+		// Apply congurence closure
+		System.out.println("Applying congruence...");
+		closeOverCongruence(state);
+		// Apply transitive closure over inequalities
+		System.out.println("Applying closure...");
+		closeOverInequalities(state);
+		// Done
+		return state.contains(FALSE);
+	}
+
+	private void closeOverCongruence(State state) {
+		boolean changed = true;
+		while(changed) {
+			changed=false;
+			for (int i = 0; i != state.size(); ++i) {
+				Formula ith = state.get(i);
+				if (ith instanceof Formula.Equality) {
+					Formula.Equality eq = (Formula.Equality) ith;
+					if (eq.getSign()) {
+						Pair<Identifier, Formula.Atom> substitution = Formulae.rearrangeForSubstitution(eq);
+						changed |= applySubstitution(substitution,i,state);
+					}
+				}
 			}
 		}
-		// Done
-		return nItem;
+	}
+
+	private boolean applySubstitution(Pair<Identifier, Formula.Atom> substitution, int ignored, State state) {
+		boolean nochange = true;
+
+		if (substitution != null) {
+			// We've found a suitable substitution
+			for (int j = 0; j < state.size(); ++j) {
+				Formula before = state.get(j);
+				if (j != ignored && before != null) {
+					Formula after = (Formula) Formulae.substitute(substitution, before);
+					//
+					if (before != after) {
+						System.out.print("REWROTE: ");
+						AutomatedTheoremProver.print(before);
+						System.out.print(" -----> ");
+						AutomatedTheoremProver.print(Formulae.simplify(after));
+					}
+					if (before != after) {
+						state.unset(before);
+						after = state.allocate(Formulae.simplify(after));
+						nochange &= state.contains(after);
+						state.set(after);
+					}
+				}
+			}
+		}
+		return !nochange;
+	}
+
+	private void closeOverInequalities(State state) {
+		boolean nochange = false;
+		while (!nochange) {
+			nochange = true;
+			//
+			for (int i = 0; i != state.size(); ++i) {
+				Formula ith = state.get(i);
+				if (ith instanceof Formula.Inequality) {
+					Formula.Inequality ith_ieq = (Formula.Inequality) ith;
+					for (int j = i + 1; j != state.size(); ++j) {
+						Formula jth = state.get(j);
+						if (jth instanceof Formula.Inequality) {
+							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
+							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq);
+							if (inferred != null) {
+								inferred = state.allocate(inferred);
+								System.out.print("INFERRED: ");println(inferred);
+								nochange &= state.contains(inferred);
+								state.set(inferred);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private static class State {
+		private final SyntacticHeap heap;
+		private final BitSet truths;
+
+		public State(SyntacticHeap heap) {
+			this.heap = heap;
+			this.truths = new BitSet();
+		}
+
+		public State(State state) {
+			this.heap = state.heap;
+			this.truths = (BitSet) state.truths.clone();
+		}
+
+		public int size() {
+			return truths.length();
+		}
+
+		public boolean contains(Formula truth) {
+			return truths.get(truth.getIndex());
+		}
+
+		public Formula get(int index) {
+			if (truths.get(index)) {
+				return (Formula) heap.getSyntacticItem(index);
+			} else {
+				return null;
+			}
+		}
+
+		public void set(Formula truth) {
+			final int index = truth.getIndex();
+			truths.set(index);
+		}
+
+		public void set(Formula... truths) {
+			for(int i=0;i!=truths.length;++i) {
+				this.truths.set(truths[i].getIndex());
+			}
+		}
+
+		public void unset(Formula formula) {
+			this.truths.clear(formula.getIndex());
+		}
+
+		public State[] split(Formula... cases) {
+			State[] result = new State[cases.length];
+			for (int i = 0; i != cases.length; ++i) {
+				State child = new State(this);
+				result[i] = child;
+				child.set(cases[i]);
+			}
+			return result;
+		}
+
+		public Formula allocate(Formula f) {
+			return heap.allocate(f);
+		}
 	}
 
 	/**
