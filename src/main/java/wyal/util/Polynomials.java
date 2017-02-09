@@ -3,8 +3,8 @@ package wyal.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-import wyal.lang.Formula.Atom;
-import wyal.lang.Formula.Polynomial;
+import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Value;
 import wycc.util.ArrayUtils;
 
@@ -59,7 +59,7 @@ public class Polynomials {
 					// calculation.
 					terms[i] = null;
 				} else {
-					Atom[] ithAtoms = ith.getAtoms();
+					Expr[] ithAtoms = ith.getAtoms();
 					for (int j = i + 1; j != terms.length; ++j) {
 						Polynomial.Term jth = terms[j];
 						if (jth != null && Arrays.equals(ithAtoms,jth.getAtoms())) {
@@ -190,9 +190,9 @@ public class Polynomials {
 	public static Polynomial.Term multiply(Polynomial.Term lhs, Polynomial.Term rhs) {
 		BigInteger lhsCoeff = lhs.getCoefficient().get();
 		BigInteger rhsCoeff = rhs.getCoefficient().get();
-		Atom[] lhsAtoms = lhs.getAtoms();
-		Atom[] rhsAtoms = rhs.getAtoms();
-		Atom[] atoms = new Atom[lhsAtoms.length + rhsAtoms.length];
+		Expr[] lhsAtoms = lhs.getAtoms();
+		Expr[] rhsAtoms = rhs.getAtoms();
+		Expr[] atoms = new Expr[lhsAtoms.length + rhsAtoms.length];
 		System.arraycopy(lhsAtoms, 0, atoms, 0, lhsAtoms.length);
 		System.arraycopy(rhsAtoms, 0, atoms, lhsAtoms.length, rhsAtoms.length);
 		Arrays.sort(atoms);

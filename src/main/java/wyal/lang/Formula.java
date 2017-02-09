@@ -1,21 +1,10 @@
 package wyal.lang;
 
-
-import java.math.BigInteger;
-import java.util.Arrays;
-
-import wyal.lang.Formula.Polynomial;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.util.Formulae;
-import wyal.util.Polynomials;
-import wyal.util.TypeSystem;
 
 /**
  * A special kind of expression which maintains a normal form representation. As
@@ -32,7 +21,7 @@ public interface Formula extends Expr {
 	@Override
 	public Formula clone(SyntacticItem[] children);
 
-	public static class Truth extends Expr.Constant implements Formula,Atom {
+	public static class Truth extends Expr.Constant implements Formula {
 
 		public Truth(boolean value) {
 			super(new Value.Bool(value));
@@ -157,7 +146,7 @@ public interface Formula extends Expr {
 	}
 
 	public static class Equality extends Expr.Operator implements Formula {
-		public Equality(boolean sign, Atom lhs, Atom rhs) {
+		public Equality(boolean sign, Expr lhs, Expr rhs) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
@@ -170,18 +159,8 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Atom getOperand(int i) {
-			return (Atom) super.getOperand(i);
-		}
-
-		@Override
-		public Atom[] getOperands() {
-			return (Atom[]) super.getOperands();
-		}
-
-		@Override
 		public Equality clone(SyntacticItem[] children) {
-			return new Equality(getSign(),(Atom) children[0],(Atom) children[1]);
+			return new Equality(getSign(),(Expr) children[0],(Expr) children[1]);
 		}
 	}
 
@@ -203,152 +182,6 @@ public interface Formula extends Expr {
 		@Override
 		public ArithmeticEquality clone(SyntacticItem[] children) {
 			return new ArithmeticEquality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
-		}
-	}
-
-	public interface Atom extends Expr {
-		@Override
-		public Atom clone(SyntacticItem[] children);
-	}
-
-	public static class VariableAccess extends Expr.VariableAccess implements Atom {
-
-		public VariableAccess(VariableDeclaration decl) {
-			super(decl);
-		}
-
-		@Override
-		public Formula.VariableAccess clone(SyntacticItem[] children) {
-			return new Formula.VariableAccess((VariableDeclaration) children[0]);
-		}
-	}
-
-	public final static class Polynomial extends Expr.Operator implements Atom {
-		public Polynomial(BigInteger constant) {
-			super(Opcode.EXPR_add,new Polynomial.Term[]{new Polynomial.Term(constant)});
-		}
-		public Polynomial(Term... terms) {
-			super(Opcode.EXPR_add, terms);
-		}
-
-		@Override
-		public Term getOperand(int i) {
-			return (Term) super.getOperand(i);
-		}
-
-		@Override
-		public Type getReturnType(TypeSystem types) {
-			// FIXME: we could do better than this.
-			return new Type.Int();
-		}
-
-		@Override
-		public Polynomial.Term[] getOperands() {
-			return (Polynomial.Term[]) super.getOperands();
-		}
-
-		/**
-		 * Check whether a polynomial is a constant or not.
-		 *
-		 * @param p
-		 * @return
-		 */
-		public boolean isConstant() {
-			return size() == 1 && getOperand(0).getAtoms().length == 0;
-		}
-
-		/**
-		 * Extract the constant that this polynomial represents (assuming it
-		 * does).
-		 *
-		 * @param p
-		 * @return
-		 */
-		public Value.Int toConstant() {
-			if (size() == 1) {
-				Polynomial.Term term = getOperand(0);
-				if (term.getAtoms().length == 0) {
-					return term.getCoefficient();
-				}
-			}
-			throw new IllegalArgumentException("polynomial is not constant");
-		}
-
-		public Polynomial negate() {
-			return Polynomials.negate(this);
-		}
-
-		public Polynomial add(Polynomial poly) {
-			return Polynomials.add(this, poly);
-		}
-
-		public Polynomial add(Polynomial.Term term) {
-			return Polynomials.add(this, term);
-		}
-
-		public Polynomial subtract(Polynomial p) {
-			return add(p.negate());
-		}
-
-		public Polynomial subtract(Polynomial.Term term) {
-			return Polynomials.add(this, Polynomials.negate(term));
-		}
-
-		public Polynomial multiply(Polynomial rhs) {
-			return Polynomials.multiply(this, rhs);
-		}
-
-		public Polynomial multiply(Polynomial.Term rhs) {
-			return Polynomials.multiply(this, rhs);
-		}
-
-		@Override
-		public Polynomial clone(SyntacticItem[] children) {
-			return new Polynomial((Term[]) children);
-		}
-
-		public static class Term extends Expr.Operator {
-			public Term(BigInteger constant) {
-				this(new Value.Int(constant));
-			}
-			public Term(Value.Int constant) {
-				super(Opcode.EXPR_mul,new Constant(constant));
-			}
-			public Term(Atom atom) {
-				super(Opcode.EXPR_mul,append(new Value.Int(1),atom));
-			}
-			public Term(Value.Int coefficient, Atom... variables) {
-				super(Opcode.EXPR_mul,append(coefficient,variables));
-			}
-			Term(Expr[] operands) {
-				super(Opcode.EXPR_mul,operands);
-			}
-			public Value.Int getCoefficient() {
-				Constant c = (Constant) getOperand(0);
-				return (Value.Int) c.getValue();
-			}
-
-			public Atom[] getAtoms() {
-				Expr[] children = getOperands();
-				Atom[] atoms = new Atom[children.length-1];
-				System.arraycopy(children, 1, atoms, 0, atoms.length);
-				return atoms;
-			}
-
-			static Expr[] append(Value.Int i, Atom... variables) {
-				Expr[] exprs = new Expr[variables.length+1];
-				exprs[0] = new Expr.Constant(i);
-				for(int k=0;k!=variables.length;++k) {
-					exprs[k+1] = variables[k];
-				}
-				return exprs;
-			}
-
-			@Override
-			public Term clone(SyntacticItem[] children) {
-				return new Term((Expr[])children);
-			}
-
 		}
 	}
 }

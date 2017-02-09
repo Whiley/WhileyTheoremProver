@@ -129,7 +129,7 @@ public class AutomatedTheoremProver {
 				if (ith instanceof Formula.Equality) {
 					Formula.Equality eq = (Formula.Equality) ith;
 					if (eq.getSign()) {
-						Pair<Identifier, Formula.Atom> substitution = Formulae.rearrangeForSubstitution(eq);
+						Pair<Identifier, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
 						changed |= applySubstitution(substitution,i,state);
 					}
 				}
@@ -137,7 +137,7 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySubstitution(Pair<Identifier, Formula.Atom> substitution, int ignored, State state) {
+	private boolean applySubstitution(Pair<Identifier, Expr> substitution, int ignored, State state) {
 		boolean nochange = true;
 
 		if (substitution != null) {

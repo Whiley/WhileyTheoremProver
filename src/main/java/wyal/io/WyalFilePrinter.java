@@ -399,7 +399,7 @@ public class WyalFilePrinter {
 
 	public void writePolynomialTerm(Formula.Polynomial.Term term) {
 		BigInteger coefficient = term.getCoefficient().get();
-		Formula.Atom[] atoms = term.getAtoms();
+		Expr[] atoms = term.getAtoms();
 		boolean firstTime = true;
 		if (coefficient.equals(BigInteger.ONE) && atoms.length > 0) {
 			// ignore this
@@ -617,5 +617,6 @@ public class WyalFilePrinter {
 		OPERATOR_MAP.put(Opcode.EXPR_sub, "-");
 		OPERATOR_MAP.put(Opcode.EXPR_mul, "*");
 		OPERATOR_MAP.put(Opcode.EXPR_div, "/");
+		OPERATOR_MAP.put(Opcode.EXPR_rem, "%");
 	}
 }

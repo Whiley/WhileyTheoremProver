@@ -7,6 +7,7 @@ import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.Formula.*;
 import wycc.util.ArrayUtils;
 
@@ -104,9 +105,7 @@ public class Formulae {
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
 			} else {
-				Formula.Atom lhs_a = toAtom(lhs);
-				Formula.Atom rhs_a = toAtom(rhs);
-				return new Formula.Equality(true, lhs_a, rhs_a);
+				return new Formula.Equality(true, lhs, rhs);
 			}
 		}
 		case EXPR_neq: {
@@ -120,9 +119,7 @@ public class Formulae {
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
 			} else {
-				Formula.Atom lhs_a = toAtom(lhs);
-				Formula.Atom rhs_a = toAtom(rhs);
-				return new Formula.Equality(false, lhs_a, rhs_a);
+				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
 		case EXPR_lt: {
@@ -161,9 +158,9 @@ public class Formulae {
 		}
 		default:
 			if (stmt instanceof WyalFile.Expr) {
-				Formula.Atom atom = toAtom((WyalFile.Expr) stmt);
-				Formula.Atom TRUE = new Formula.Truth(new Value.Bool(true));
-				return new Formula.Equality(true, TRUE, atom);
+				Expr expr = (WyalFile.Expr) stmt;
+				Expr TRUE = new Formula.Truth(new Value.Bool(true));
+				return new Formula.Equality(true, expr, TRUE);
 			} else {
 				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
 			}
@@ -194,87 +191,12 @@ public class Formulae {
 	 * @return
 	 */
 	private static Polynomial toPolynomial(Expr e) {
-		Formula.Atom atom = toAtom(e);
-		if (atom instanceof Polynomial) {
-			return (Polynomial) atom;
+		if (e instanceof Polynomial) {
+			return (Polynomial) e;
 		} else {
-			Polynomial.Term term = new Polynomial.Term(atom);
+			Polynomial.Term term = new Polynomial.Term(e);
 			return new Polynomial(term);
 		}
-	}
-
-	/**
-	 * Convert an arbitrary expression to an atom.
-	 *
-	 * @param e
-	 * @return
-	 */
-	private static Formula.Atom toAtom(Expr e) {
-		switch (e.getOpcode()) {
-		case EXPR_const:
-			return toAtom((Expr.Constant) e);
-		// case EXPR_invoke:
-		// case EXPR_arridx:
-		case EXPR_var:
-			return toAtom((Expr.VariableAccess) e);
-		case EXPR_neg:
-		case EXPR_add:
-		case EXPR_mul:
-		case EXPR_sub: {
-			return toAtom((Expr.Operator) e);
-		}
-		default:
-			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
-		}
-	}
-
-	private static Formula.Atom toAtom(Expr.Constant e) {
-		Value val = e.getValue();
-		if (val instanceof Value.Int) {
-			Value.Int c = (Value.Int) val;
-			return new Polynomial(new Polynomial.Term(c));
-		} else {
-			Value.Bool b = (Value.Bool) val;
-			return new Formula.Truth(b.get());
-		}
-	}
-
-	private static Formula.Atom toAtom(Expr.VariableAccess e) {
-		return new Formula.VariableAccess(e.getVariableDeclaration());
-	}
-
-	private static Formula.Atom toAtom(Expr.Operator e) {
-		Expr[] children = e.getOperands();
-		// FIXME: not all operators produce polynomials
-		Polynomial result = toPolynomial(children[0]);
-		switch (e.getOpcode()) {
-		case EXPR_add: {
-			for (int i = 1; i != children.length; ++i) {
-				result = result.add(toPolynomial(children[i]));
-			}
-			break;
-		}
-		case EXPR_sub: {
-			for (int i = 1; i != children.length; ++i) {
-				result = result.subtract(toPolynomial(children[i]));
-			}
-			break;
-		}
-		case EXPR_mul: {
-			for (int i = 1; i != children.length; ++i) {
-				result = result.multiply(toPolynomial(children[i]));
-			}
-			break;
-		}
-		case EXPR_neg: {
-			result = result.negate();
-			break;
-		}
-		default:
-			throw new IllegalArgumentException("IMPLEMENT ME");
-		}
-
-		return result;
 	}
 
 	// ========================================================================
@@ -571,18 +493,27 @@ public class Formulae {
 	public static Formula simplify(ArithmeticEquality eq) {
 		Polynomial lhs = simplify(eq.getOperand(0));
 		Polynomial rhs = simplify(eq.getOperand(1));
-		// FIXME: this doesn't cancel terms!
+		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
+		lhs = bs.getFirst();
+		rhs = bs.getSecond();
 		if (lhs.isConstant() && rhs.isConstant()) {
 			Value lhs_v = lhs.toConstant();
 			Value rhs_v = rhs.toConstant();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (lhs.equals(rhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else {
-			Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
+		} else if(eq.getSign()) {
 			// FIXME: need to ensure identical object returned if no
 			// simplification applied.
-			return new ArithmeticEquality(eq.getSign(), bs.getFirst(), bs.getSecond());
+			return new ArithmeticEquality(true, lhs, rhs);
+		} else {
+			// For an arithmetic equality of the form x != y, we return a
+			// disjunction of the form (x < y) || (x > y). This is not
+			// necessarily the most efficient thing to do. However, for our
+			// purposes, this works well enough for now.
+			Inequality lt = new Inequality(true,lhs,rhs);
+			Inequality gt = new Inequality(true,rhs,lhs);
+			return new Formula.Disjunct(lt,gt);
 		}
 	}
 
@@ -596,8 +527,8 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(Equality eq) {
-		Atom lhs = simplify(eq.getOperand(0));
-		Atom rhs = simplify(eq.getOperand(1));
+		Expr lhs = simplify(eq.getOperand(0));
+		Expr rhs = simplify(eq.getOperand(1));
 		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
 			Value lhs_v = ((Expr.Constant) lhs).getValue();
 			Value rhs_v = ((Expr.Constant) rhs).getValue();
@@ -611,9 +542,116 @@ public class Formulae {
 		}
 	}
 
-	public static Formula.Atom simplify(Formula.Atom f) {
-		// FIXME: need to actually do something here
-		return f;
+	/**
+	 * Convert an arbitrary expression to an atom.
+	 *
+	 * @param e
+	 * @return
+	 */
+	private static Expr simplify(Expr e) {
+		switch (e.getOpcode()) {
+		case EXPR_var:
+			return e;
+		case EXPR_const:
+			return simplify((Expr.Constant) e);
+		case EXPR_invoke:
+		case EXPR_arridx:
+		case EXPR_arrlen:
+		case EXPR_arrinit:
+		case EXPR_arrgen:
+		case EXPR_rem: // temporary for now
+ 			return simplifyNonArithmetic((Expr.Operator) e);
+		case EXPR_neg:
+		case EXPR_add:
+		case EXPR_mul:
+		case EXPR_sub: {
+			return simplifyArithmetic((Expr.Operator) e);
+		}
+		case EXPR_recfield:
+			return simplify((Expr.RecordAccess) e);
+		default:
+			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
+		}
+	}
+
+	private static Expr simplify(Expr.Constant e) {
+		Value val = e.getValue();
+		if (val instanceof Value.Int) {
+			Value.Int c = (Value.Int) val;
+			return new Polynomial(new Polynomial.Term(c));
+		} else {
+			Value.Bool b = (Value.Bool) val;
+			return new Formula.Truth(b.get());
+		}
+	}
+
+	private static Expr simplify(Expr.RecordAccess e) {
+		Expr source = e.getSource();
+		Expr nSource = simplify(source);
+		if (source == nSource) {
+			return e;
+		} else {
+			return new Expr.RecordAccess(source, e.getField());
+		}
+	}
+
+	private static Expr simplifyNonArithmetic(Expr.Operator e) {
+		Expr[] children = e.getOperands();
+		Expr[] nChildren = children;
+		for(int i=0;i!=children.length;++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child);
+			if(child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children,children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		if(nChildren == children) {
+			return e;
+		} else {
+			// FIXME: there are further simplifications that can be performed
+			// here. For example, taking the field of a constant record;
+			// likewise, taking a constant index into a constant array. Although
+			// unlikely, they can arise through the use of e.g. configuration
+			// constants, etc.
+			return e.clone(nChildren);
+		}
+	}
+
+	private static Expr simplifyArithmetic(Expr.Operator e) {
+		if(e instanceof Polynomial) {
+			return simplify((Polynomial)e);
+		} else {
+			Expr[] children = e.getOperands();
+			Polynomial result = toPolynomial(simplify(children[0]));
+			switch (e.getOpcode()) {
+			case EXPR_add: {
+				for (int i = 1; i != children.length; ++i) {
+					result = result.add(toPolynomial(simplify(children[i])));
+				}
+				break;
+			}
+			case EXPR_sub: {
+				for (int i = 1; i != children.length; ++i) {
+					result = result.subtract(toPolynomial(simplify(children[i])));
+				}
+				break;
+			}
+			case EXPR_mul: {
+				for (int i = 1; i != children.length; ++i) {
+					result = result.multiply(toPolynomial(simplify(children[i])));
+				}
+				break;
+			}
+			case EXPR_neg: {
+				result = result.negate();
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("Unknown arithmetic opcode encountered");
+			}
+			return result;
+		}
 	}
 
 	/**
@@ -666,13 +704,13 @@ public class Formulae {
 	}
 
 	private static Expr simplify(Polynomial.Term p) {
-		final Formula.Atom[] children = p.getAtoms();
-		Formula.Atom[] nChildren = children;
+		final Expr[] children = p.getAtoms();
+		Expr[] nChildren = children;
 		int numPolynomials = 0;
 
 		for(int i=0;i!=children.length;++i) {
-			Atom child = children[i];
-			Atom nChild = simplify(child);
+			Expr child = children[i];
+			Expr nChild = simplify(child);
 			if(nChild instanceof Polynomial) {
 				numPolynomials = numPolynomials+1;
 			}
@@ -692,9 +730,9 @@ public class Formulae {
 		} else {
 			// This is the harder case. At least one nested polynomial was
 			// found.  For now, we don't make much effort to be efficient.
-			Polynomial result = new Polynomial(BigInteger.ONE);
+			Polynomial result = new Polynomial(new Polynomial.Term(p.getCoefficient()));
 			for(int i=0;i!=nChildren.length;++i) {
-				Atom nChild = nChildren[i];
+				Expr nChild = nChildren[i];
 				if(nChild instanceof Polynomial) {
 					result = result.multiply((Polynomial) nChild);
 				} else {
@@ -702,6 +740,7 @@ public class Formulae {
 					result = result.multiply(term);
 				}
 			}
+
 			return result;
 		}
 	}
@@ -804,11 +843,11 @@ public class Formulae {
 	private static Pair<Polynomial.Term, Polynomial.Term> selectCandidateTerm(Polynomial lower, Polynomial upper) {
 		for (int i = 0; i != lower.size(); ++i) {
 			Polynomial.Term ith = lower.getOperand(i);
-			Formula.Atom[] ithAtoms = ith.getAtoms();
+			Expr[] ithAtoms = ith.getAtoms();
 			if (ithAtoms.length > 0) {
 				for (int j = 0; j != upper.size(); ++j) {
 					Polynomial.Term jth = upper.getOperand(j);
-					Formula.Atom[] jthAtoms = jth.getAtoms();
+					Expr[] jthAtoms = jth.getAtoms();
 					if (Arrays.equals(ithAtoms, jthAtoms)) {
 						// FIXME: we should be selecting the lexiographically
 						// least candidate here.
@@ -821,9 +860,9 @@ public class Formulae {
 		return null;
 	}
 
-	public static Pair<Identifier, Formula.Atom> rearrangeForSubstitution(Formula.Equality f) {
+	public static Pair<Identifier, Expr> rearrangeForSubstitution(Formula.Equality f) {
 		Identifier var;
-		Formula.Atom bound;
+		Expr bound;
 		if (f instanceof Formula.ArithmeticEquality) {
 			// Arithmetic equalities are a special case because we can actually
 			// rearrange them.
@@ -854,8 +893,8 @@ public class Formulae {
 		} else {
 			// For non-arithmetic equalities, we can't rearrange them.
 			// Therefore, there are relatively few options.
-			Formula.Atom lhs = f.getOperand(0);
-			Formula.Atom rhs = f.getOperand(1);
+			Expr lhs = f.getOperand(0);
+			Expr rhs = f.getOperand(1);
 			//
 			if (lhs instanceof Expr.VariableAccess && rhs instanceof Expr.VariableAccess) {
 				Identifier v1 = ((Expr.VariableAccess) lhs).getVariableDeclaration().getVariableName();
@@ -885,9 +924,6 @@ public class Formulae {
 		AutomatedTheoremProver.println(bound);
 		return new Pair<>(var, bound);
 	}
-
-
-
 
 	/**
 	 * Examine all terms in a polynomial to see whether any is a candidate for
@@ -923,7 +959,7 @@ public class Formulae {
 	 * @return
 	 */
 	private static boolean isCandidate(Polynomial.Term term) {
-		Formula.Atom[] atoms = term.getAtoms();
+		Expr[] atoms = term.getAtoms();
 		BigInteger coefficient = term.getCoefficient().get();
 		if (atoms.length == 1 && coefficient.equals(BigInteger.ONE)) {
 			// FIXME: can we substitute for things other than a variable access?
