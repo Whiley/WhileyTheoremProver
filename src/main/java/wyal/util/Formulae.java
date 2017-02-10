@@ -70,12 +70,28 @@ public class Formulae {
 		}
 		case STMT_forall: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Disjunct(invert(invariant), body);
+			}
+			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
 		case STMT_exists: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
+			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Conjunct(invariant, body);
+			}
+			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
 		case EXPR_and: {
@@ -156,6 +172,10 @@ public class Formulae {
 			Value.Bool b = (Value.Bool) c.getValue();
 			return new Formula.Truth(b);
 		}
+		case EXPR_invoke: {
+			Expr.Invoke ivk = (Expr.Invoke) stmt;
+			return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+		}
 		default:
 			if (stmt instanceof WyalFile.Expr) {
 				Expr expr = (WyalFile.Expr) stmt;
@@ -199,6 +219,168 @@ public class Formulae {
 		}
 	}
 
+	/**
+	 * For a given sequence of variable declarations expand their type
+	 * invariants as appropriate. This expansion is done lazily, in that it
+	 * produces invocations to the type invariants themselves. Such invocations
+	 * must then be separately expanded (like macros) later on. As an example,
+	 * consider this:
+	 *
+	 * <pre>
+	 * type nat is (int x) where x >= 0
+	 *
+	 * assert:
+	 *     forall(nat x):
+	 *         x >= 0
+	 * </pre>
+	 *
+	 * The type invariant given for <code>x</code> in the quantifier will be
+	 * expanded, to give then body <code>nat(x) ==> x >= 0</code>. The call
+	 * <code>nat(x)</code> will later be expanded during theorem proving to
+	 * <code>x >= 0</code>. The reason this is done lazily is to properly
+	 * support recursive types and their invariants.
+	 *
+	 * @param declarations
+	 * @param types
+	 * @return
+	 */
+	private static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
+		Formula result = null;
+		for (int i = 0; i != declarations.size(); ++i) {
+			VariableDeclaration decl = declarations.getOperand(i);
+			Formula invariant = extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
+			// FIXME: need to perform appropriate variable substitution here?
+			if (invariant != null && result == null) {
+				result = invariant;
+			} else if (invariant != null) {
+				result = new Conjunct(result, invariant);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Expand the type invariant associated with a given type (if any). For
+	 * example, primitive types have no invariant associated with them. In
+	 * contrast, nominal types may have as the following example illustrates:
+	 *
+	 * <pre>
+	 * type nat is (int x) where x >= 0
+	 * </pre>
+	 *
+	 * Here, the resulting invariant produced is <code>nat(x)</code>. Another
+	 * interesting example is that for a record:
+	 *
+	 * <pre>
+	 * type Point is ({nat x, nat y} p)
+	 * </pre>
+	 *
+	 * Here, the resulting invariant would be <code>nat(p.x) && nat(p.y)</code>.
+	 *
+	 * @param type
+	 * @param types
+	 * @return
+	 */
+	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+		switch(type.getOpcode()) {
+		case TYPE_void:
+		case TYPE_any:
+		case TYPE_null:
+		case TYPE_bool:
+		case TYPE_int:
+			return null; // no invariant
+		case TYPE_nom: {
+			Type.Nominal nom = (Type.Nominal) type;
+			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
+			if(td.getInvariant() == null) {
+				return null;
+			} else {
+				Type parameter = td.getVariableDeclaration().getType();
+				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
+				return new Formula.Invoke(true, ft, nom.getName(), root);
+			}
+		}
+		case TYPE_arr: {
+			Type.Array t = (Type.Array) type;
+			Formula inv = extractTypeInvariant(t.getElement(), root, types);
+			if (inv == null) {
+				return null;
+			} else {
+				// forall i.(0 <= i && i <|root|) ==> inv
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i" + root.getParent().size()));
+				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+				Polynomial zero = toPolynomial(0);
+				Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
+				Formula gt = greaterOrEqual(va, zero);
+				Formula lt = lessThan(va, len);
+				return new Quantifier(true, var, implies(and(gt, lt), inv));
+			}
+		}
+		case TYPE_or: {
+			Type.Union t = (Type.Union) type;
+			Formula result = null;
+			for(int i=0;i!=t.size();++i) {
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				if(inv != null && result == null) {
+					result = inv;
+				} else if(inv != null) {
+					result = new Disjunct(result,inv);
+				}
+			}
+			return result;
+		}
+		case TYPE_and: {
+			Type.Intersection t = (Type.Intersection) type;
+			Formula result = null;
+			for(int i=0;i!=t.size();++i) {
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				if(inv != null && result == null) {
+					result = inv;
+				} else if(inv != null) {
+					result = new Conjunct(result,inv);
+				}
+			}
+			return result;
+		}
+		case TYPE_not: {
+			Type.Negation t = (Type.Negation) type;
+			Formula inv = extractTypeInvariant(t.getElement(),root,types);
+			if(inv == null) {
+				return null;
+			} else {
+				return invert(inv);
+			}
+		}
+		case TYPE_ref:
+		case TYPE_rec:
+		case TYPE_fun:
+		case TYPE_macro:
+		default:
+			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
+		}
+	}
+
+	private static Formula lessThan(Polynomial lhs, Polynomial rhs) {
+		return new Formula.Inequality(true, lhs, rhs);
+	}
+
+	private static Formula greaterOrEqual(Polynomial lhs, Polynomial rhs) {
+		return new Formula.Inequality(false, lhs, rhs);
+	}
+
+	private static Formula implies(Formula lhs, Formula rhs) {
+		return new Formula.Disjunct(invert(lhs),rhs);
+	}
+
+	private static Formula and(Formula lhs, Formula rhs) {
+		return new Formula.Conjunct(lhs,rhs);
+	}
+
+	public static Polynomial toPolynomial(int value) {
+		return new Polynomial(new Polynomial.Term(BigInteger.valueOf(value)));
+	}
+
 	// ========================================================================
 	// Inversion
 	// ========================================================================
@@ -231,22 +413,28 @@ public class Formulae {
 		case EXPR_exists:
 		case EXPR_forall: {
 			Formula.Quantifier q = (Formula.Quantifier) f;
+			// FIXME: it's perhaps a little strange that we invert the body
+			// here?
 			return new Formula.Quantifier(!q.getSign(), q.getParameters(), invert(q.getBody()));
 		}
 		case EXPR_eq:
 		case EXPR_neq: {
-			if(f instanceof ArithmeticEquality) {
+			if (f instanceof ArithmeticEquality) {
 				ArithmeticEquality e = (ArithmeticEquality) f;
-				return new ArithmeticEquality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+				return new ArithmeticEquality(!e.getSign(), e.getOperand(0), e.getOperand(1));
 			} else {
 				Equality e = (Equality) f;
-				return new Equality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+				return new Equality(!e.getSign(), e.getOperand(0), e.getOperand(1));
 			}
 		}
 		case EXPR_lt:
 		case EXPR_gteq: {
 			Inequality e = (Inequality) f;
-			return new Inequality(!e.getSign(),e.getOperand(0),e.getOperand(1));
+			return new Inequality(!e.getSign(), e.getOperand(0), e.getOperand(1));
+		}
+		case EXPR_invoke: {
+			Invoke e = (Invoke) f;
+			return new Formula.Invoke(!e.getSign(),e.getSignatureType(),e.getName(),e.getArguments());
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
@@ -255,7 +443,7 @@ public class Formulae {
 
 	private static Formula[] invert(Formula[] children) {
 		Formula[] nChildren = new Formula[children.length];
-		for(int i=0;i!=children.length;++i) {
+		for (int i = 0; i != children.length; ++i) {
 			nChildren[i] = invert(children[i]);
 		}
 		return nChildren;
@@ -279,26 +467,29 @@ public class Formulae {
 			return f;
 		}
 		case EXPR_and: {
-			return simplify((Formula.Conjunct)f);
+			return simplify((Formula.Conjunct) f);
 		}
 		case EXPR_or: {
-			return simplify((Formula.Disjunct)f);
+			return simplify((Formula.Disjunct) f);
 		}
 		case EXPR_exists:
 		case EXPR_forall: {
-			return simplify((Formula.Quantifier)f);
+			return simplify((Formula.Quantifier) f);
 		}
 		case EXPR_eq:
 		case EXPR_neq: {
-			if(f instanceof ArithmeticEquality) {
-				return simplify((Formula.ArithmeticEquality)f);
+			if (f instanceof ArithmeticEquality) {
+				return simplify((Formula.ArithmeticEquality) f);
 			} else {
-				return simplify((Formula.Equality)f);
+				return simplify((Formula.Equality) f);
 			}
 		}
 		case EXPR_lt:
 		case EXPR_gteq: {
-			return simplify((Formula.Inequality)f);
+			return simplify((Formula.Inequality) f);
+		}
+		case EXPR_invoke: {
+			return simplify((Formula.Invoke) f);
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
@@ -414,9 +605,9 @@ public class Formulae {
 	}
 
 	/**
-	 * Simplify a quantified formula. In essence, if the body is a truth
-	 * value then that is returned. For example, <code>forall x.true</code> is
-	 * simply <code>true</code>.
+	 * Simplify a quantified formula. In essence, if the body is a truth value
+	 * then that is returned. For example, <code>forall x.true</code> is simply
+	 * <code>true</code>.
 	 *
 	 * @param quantifier
 	 * @return
@@ -502,7 +693,7 @@ public class Formulae {
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (lhs.equals(rhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else if(eq.getSign()) {
+		} else if (eq.getSign()) {
 			// FIXME: need to ensure identical object returned if no
 			// simplification applied.
 			return new ArithmeticEquality(true, lhs, rhs);
@@ -511,9 +702,9 @@ public class Formulae {
 			// disjunction of the form (x < y) || (x > y). This is not
 			// necessarily the most efficient thing to do. However, for our
 			// purposes, this works well enough for now.
-			Inequality lt = new Inequality(true,lhs,rhs);
-			Inequality gt = new Inequality(true,rhs,lhs);
-			return new Formula.Disjunct(lt,gt);
+			Inequality lt = new Inequality(true, lhs, rhs);
+			Inequality gt = new Inequality(true, rhs, lhs);
+			return new Formula.Disjunct(lt, gt);
 		}
 	}
 
@@ -542,6 +733,39 @@ public class Formulae {
 		}
 	}
 
+	public static Formula simplify(Invoke ivk) {
+		Tuple<Expr> args = ivk.getArguments();
+		Tuple<Expr> nArgs = simplify(args);
+		if(args == nArgs) {
+			return ivk;
+		} else {
+			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
+		}
+	}
+
+	private static Tuple<Expr> simplify(Tuple<Expr> tuple) {
+		Expr[] children = tuple.getOperands();
+		Expr[] nChildren = simplify(children);
+		if(children == nChildren) {
+			return tuple;
+		} else {
+			return new Tuple<>(nChildren);
+		}
+	}
+
+	private static Expr[] simplify(Expr[] children) {
+		Expr[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child);
+			if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		return nChildren;
+	}
+
 	/**
 	 * Convert an arbitrary expression to an atom.
 	 *
@@ -555,12 +779,13 @@ public class Formulae {
 		case EXPR_const:
 			return simplify((Expr.Constant) e);
 		case EXPR_invoke:
+			return simplify((Expr.Invoke) e);
 		case EXPR_arridx:
 		case EXPR_arrlen:
 		case EXPR_arrinit:
 		case EXPR_arrgen:
 		case EXPR_rem: // temporary for now
- 			return simplifyNonArithmetic((Expr.Operator) e);
+			return simplifyNonArithmetic((Expr.Operator) e);
 		case EXPR_neg:
 		case EXPR_add:
 		case EXPR_mul:
@@ -595,18 +820,21 @@ public class Formulae {
 		}
 	}
 
+	private static Expr simplify(Expr.Invoke ivk) {
+		Tuple<Expr> args = ivk.getArguments();
+		Tuple<Expr> nArgs = simplify(args);
+		if(args == nArgs) {
+			return ivk;
+		} else {
+			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
+		}
+	}
+
 	private static Expr simplifyNonArithmetic(Expr.Operator e) {
 		Expr[] children = e.getOperands();
-		Expr[] nChildren = children;
-		for(int i=0;i!=children.length;++i) {
-			Expr child = children[i];
-			Expr nChild = simplify(child);
-			if(child != nChild && children == nChildren) {
-				nChildren = Arrays.copyOf(children,children.length);
-			}
-			nChildren[i] = nChild;
-		}
-		if(nChildren == children) {
+		Expr[] nChildren = simplify(children);
+
+		if (nChildren == children) {
 			return e;
 		} else {
 			// FIXME: there are further simplifications that can be performed
@@ -619,8 +847,8 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArithmetic(Expr.Operator e) {
-		if(e instanceof Polynomial) {
-			return simplify((Polynomial)e);
+		if (e instanceof Polynomial) {
+			return simplify((Polynomial) e);
 		} else {
 			Expr[] children = e.getOperands();
 			Polynomial result = toPolynomial(simplify(children[0]));
@@ -664,7 +892,7 @@ public class Formulae {
 	private static Polynomial simplify(Polynomial p) {
 		Polynomial.Term[] children = p.getOperands();
 		Expr[] nChildren = children;
-		for(int i=0;i!=p.size();++i) {
+		for (int i = 0; i != p.size(); ++i) {
 			Polynomial.Term child = children[i];
 			Expr nChild = simplify(child);
 			if (nChild instanceof Polynomial && nChildren instanceof Polynomial.Term[]) {
@@ -685,15 +913,15 @@ public class Formulae {
 		if (children == nChildren) {
 			// In this case, nothing changed anyway.
 			return p;
-		} else if(nChildren instanceof Polynomial.Term[]){
+		} else if (nChildren instanceof Polynomial.Term[]) {
 			// FIXME: we need to do some other kinds of simplification here. For
 			// example, coalescing terms.
 			return Polynomials.toNormalForm((Polynomial.Term[]) nChildren);
 		} else {
 			Polynomial result = new Polynomial(BigInteger.ZERO);
-			for(int i=0;i!=nChildren.length;++i) {
+			for (int i = 0; i != nChildren.length; ++i) {
 				Expr nChild = nChildren[i];
-				if(nChild instanceof Polynomial) {
+				if (nChild instanceof Polynomial) {
 					result = result.add((Polynomial) nChild);
 				} else {
 					result = result.add((Polynomial.Term) nChild);
@@ -708,32 +936,32 @@ public class Formulae {
 		Expr[] nChildren = children;
 		int numPolynomials = 0;
 
-		for(int i=0;i!=children.length;++i) {
+		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
 			Expr nChild = simplify(child);
-			if(nChild instanceof Polynomial) {
-				numPolynomials = numPolynomials+1;
+			if (nChild instanceof Polynomial) {
+				numPolynomials = numPolynomials + 1;
 			}
-			if(child != nChild && children == nChildren) {
+			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
 			nChildren[i] = nChild;
 		}
 
-		if(numPolynomials == 0) {
+		if (numPolynomials == 0) {
 			// This is the easy case. No nested polynomials were found.
-			if(nChildren == children) {
+			if (nChildren == children) {
 				return p;
 			} else {
-				return new Polynomial.Term(p.getCoefficient(),nChildren);
+				return new Polynomial.Term(p.getCoefficient(), nChildren);
 			}
 		} else {
 			// This is the harder case. At least one nested polynomial was
-			// found.  For now, we don't make much effort to be efficient.
+			// found. For now, we don't make much effort to be efficient.
 			Polynomial result = new Polynomial(new Polynomial.Term(p.getCoefficient()));
-			for(int i=0;i!=nChildren.length;++i) {
+			for (int i = 0; i != nChildren.length; ++i) {
 				Expr nChild = nChildren[i];
-				if(nChild instanceof Polynomial) {
+				if (nChild instanceof Polynomial) {
 					result = result.multiply((Polynomial) nChild);
 				} else {
 					Polynomial.Term term = new Polynomial.Term(nChild);
@@ -779,7 +1007,7 @@ public class Formulae {
 		} else {
 			return null;
 		}
-		if(ith.getSign() && jth.getSign()) {
+		if (ith.getSign() && jth.getSign()) {
 			// Result is *very* strict as had something like ... < x < ...
 			lhs = lhs.add(new Polynomial.Term(BigInteger.ONE));
 			return simplify(new Formula.Inequality(true, lhs, rhs));
@@ -1048,7 +1276,7 @@ public class Formulae {
 	 * @param item
 	 * @return
 	 */
-	public static <T extends SyntacticItem> SyntacticItem substitute(Pair<Identifier, T> substitution,
+	public static <T extends SyntacticItem> SyntacticItem substitute(Identifier var, T substitution,
 			SyntacticItem item) {
 		// FIXME: this function is broken because it should not be using
 		// identifiers for substitution. Instead, is should be using variable
@@ -1057,9 +1285,9 @@ public class Formulae {
 			// In this case, we might be able to make a substitution.
 			Expr.VariableAccess v = (Expr.VariableAccess) item;
 			Identifier name = v.getVariableDeclaration().getVariableName();
-			if (name.equals(substitution.getFirst())) {
+			if (name.equals(var)) {
 				// Yes, we made a substitution!
-				return substitution.getSecond();
+				return substitution;
 			}
 			return item;
 		} else {
@@ -1069,7 +1297,7 @@ public class Formulae {
 			SyntacticItem[] nChildren = children;
 			for (int i = 0; i != children.length; ++i) {
 				SyntacticItem child = children[i];
-				SyntacticItem nChild = substitute(substitution, child);
+				SyntacticItem nChild = substitute(var, substitution, child);
 				if (child != nChild && nChildren == children) {
 					// Clone the new children array to avoid interfering with
 					// original item.

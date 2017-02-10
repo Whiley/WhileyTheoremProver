@@ -7,13 +7,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.Formula.Conjunct;
+import wyal.lang.Formula.Disjunct;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Declaration.Named;
@@ -451,6 +455,31 @@ public class TypeSystem {
 		}
 	}
 
+	// ========================================================================
+	// Resolution
+	// ========================================================================
+
+	public Declaration.Named resolveAsDeclaration(Name name) {
+		Identifier[] components = name.getComponents();
+		if (components.length > 1) {
+			// FIXME: implement this
+			throw new IllegalArgumentException("Need to handle proper namespaces!");
+		}
+		// Look through the enclosing file first!
+		SyntacticHeap parent = name.getParent();
+		for (int i = 0; i != parent.size(); ++i) {
+			SyntacticItem item = parent.getSyntacticItem(i);
+			if (item instanceof Declaration.Named) {
+				Declaration.Named nd = (Declaration.Named) item;
+				if (nd.getName().equals(components[0])) {
+					return nd;
+				}
+			}
+		}
+		// FIXME: consider imported files as well
+		throw new IllegalArgumentException("unable to resolve " + Arrays.toString(name.getComponents()) + " as type");
+	}
+
 	/**
 	 * Expand a given named declaration on the assumption that it is a type.
 	 * This will initially look for the given name in the enclosing file, before
@@ -459,7 +488,7 @@ public class TypeSystem {
 	 * @param name
 	 * @return
 	 */
-	private Declaration.Named.Type resolveAsDeclaredType(Name name) {
+	public Declaration.Named.Type resolveAsDeclaredType(Name name) {
 		Identifier[] components = name.getComponents();
 		if (components.length > 1) {
 			// FIXME: implement this
@@ -477,7 +506,7 @@ public class TypeSystem {
 			}
 		}
 		// FIXME: consider imported files as well
-		throw new IllegalArgumentException("unable to resolve " + name + " as type");
+		throw new IllegalArgumentException("unable to resolve " + Arrays.toString(name.getComponents()) + " as type");
 	}
 
 	// ========================================================================

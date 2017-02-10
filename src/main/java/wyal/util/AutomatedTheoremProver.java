@@ -9,6 +9,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.lang.WyalFile.Stmt.Block;
 
 public class AutomatedTheoremProver {
 	/**
@@ -39,11 +40,11 @@ public class AutomatedTheoremProver {
 	private void check(WyalFile.Declaration.Assert decl) {
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
-		Formula root = Formulae.toFormula(SyntacticHeaps.clone(decl.getBody()),types);
+		Formula root = Formulae.toFormula(decl.getBody(), types);
 		// Check whether or not this formula is valid.
-		boolean valid = checkValidity(root);
+		boolean valid = checkValidity(decl.getParent(), root);
 		//
-		if(!valid) {
+		if (!valid) {
 			// FIXME: throw proper error here
 			throw new IllegalArgumentException("Verification error!");
 		}
@@ -56,8 +57,8 @@ public class AutomatedTheoremProver {
 	 * @param formula
 	 * @return
 	 */
-	private boolean checkValidity(Formula formula) {
-		SyntacticHeap heap = new StructurallyEquivalentHeap();
+	private boolean checkValidity(SyntacticHeap parent, Formula formula) {
+		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
@@ -69,13 +70,13 @@ public class AutomatedTheoremProver {
 		println(formula);
 		System.out.println("--------------------------");
 		// Allocate initial formula to the heap
-		formula = heap.allocate(formula);
+		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		// Create initial state
 		State state = new State(heap);
 		// Assume the formula holds
 		state.set(formula);
 		//
-		return checkUnsat(state,FALSE);
+		return checkUnsat(state, FALSE);
 	}
 
 	private boolean checkUnsat(State state, Formula.Truth FALSE) {
@@ -97,14 +98,30 @@ public class AutomatedTheoremProver {
 					}
 				}
 				return true;
-			} else if (truth instanceof Formula.Quantifier){
+			} else if (truth instanceof Formula.Quantifier) {
 				Formula.Quantifier quantifier = (Formula.Quantifier) truth;
-				if(!quantifier.getSign()) {
+				if (!quantifier.getSign()) {
 					// existential
 					state.unset(quantifier);
 					state.set(quantifier.getBody());
 					return checkUnsat(state, FALSE);
 				}
+			} else if (truth instanceof Formula.Invoke) {
+				// FIXME: this is broken in the case of recursive macros. The
+				// reason for this is simply that it will expand forever :)
+				// FIXME: also broken because assume this is a type invariant
+				// invocation
+				Formula.Invoke ivk = (Formula.Invoke) truth;
+				// Determine the type declaration in question
+				Type.AbstractFunction af = ivk.getSignatureType();
+				// FIXME: this resolution should have already been performed elsewhere
+				Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
+				// Calculate the invariant
+				Formula invariant = extractDeclarationInvariant(decl,ivk.getArguments());
+				// Update the state
+				state.unset(truth);
+				state.set(state.allocate(invariant));
+				return checkUnsat(state, FALSE);
 			}
 		}
 		// If we get here, then we have a fully expanded state which contains
@@ -120,17 +137,60 @@ public class AutomatedTheoremProver {
 		return state.contains(FALSE);
 	}
 
+	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
+		if(decl instanceof Declaration.Named.Type) {
+			// This is a type invariant macro call. In such case, we
+			// need to first determine what the invariant actually is.
+			Declaration.Named.Type td = (Declaration.Named.Type) decl;
+			// Expand the corresponding type invariant
+			return expandTypeInvariant(td, arguments.getOperand(0));
+		} else {
+			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
+			// Expand the macro body with appropriate substitutions
+			return expandMacroBody(md, arguments.getOperands());
+		}
+	}
+
+	private Formula expandMacroBody(Declaration.Named.Macro md, Expr[] arguments) {
+		VariableDeclaration[] parameters = md.getParameters().getOperands();
+		Formula body = Formulae.toFormula(md.getBody(), types);
+		for (int i = 0; i != arguments.length; ++i) {
+			// At this point, we must substitute the parameter name used in
+			// the type declaration for the name used as the invocation
+			// argument.
+			body = (Formula) Formulae.substitute(parameters[i].getVariableName(), arguments[i], body);
+		}
+		return Formulae.simplify(body);
+	}
+
+	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
+		Tuple<Block> invariant = td.getInvariant();
+		Formula result = null;
+		for (int i = 0; i != invariant.size(); ++i) {
+			// Convert the invariant clause into a formula
+			Formula ith = Formulae.toFormula(invariant.getOperand(i), types);
+			//
+			result = i == 0 ? ith : new Formula.Conjunct(result, ith);
+		}
+		// At this point, we must substitute the variable name used in
+		// the type declaration for the name used as the invocation
+		// argument.
+		result = (Formula) Formulae.substitute(td.getVariableDeclaration().getVariableName(), argument,
+				result);
+		return Formulae.simplify(result);
+	}
+
 	private void closeOverCongruence(State state) {
 		boolean changed = true;
-		while(changed) {
-			changed=false;
+		while (changed) {
+			changed = false;
 			for (int i = 0; i != state.size(); ++i) {
 				Formula ith = state.get(i);
 				if (ith instanceof Formula.Equality) {
 					Formula.Equality eq = (Formula.Equality) ith;
 					if (eq.getSign()) {
 						Pair<Identifier, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-						changed |= applySubstitution(substitution,i,state);
+						changed |= applySubstitution(substitution, i, state);
 					}
 				}
 			}
@@ -145,7 +205,8 @@ public class AutomatedTheoremProver {
 			for (int j = 0; j < state.size(); ++j) {
 				Formula before = state.get(j);
 				if (j != ignored && before != null) {
-					Formula after = (Formula) Formulae.substitute(substitution, before);
+					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
+							before);
 					//
 					if (before != after) {
 						System.out.print("REWROTE: ");
@@ -181,7 +242,8 @@ public class AutomatedTheoremProver {
 							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq);
 							if (inferred != null) {
 								inferred = state.allocate(inferred);
-								System.out.print("INFERRED: ");println(inferred);
+								System.out.print("INFERRED: ");
+								println(inferred);
 								nochange &= state.contains(inferred);
 								state.set(inferred);
 							}
@@ -228,7 +290,7 @@ public class AutomatedTheoremProver {
 		}
 
 		public void set(Formula... truths) {
-			for(int i=0;i!=truths.length;++i) {
+			for (int i = 0; i != truths.length; ++i) {
 				this.truths.set(truths[i].getIndex());
 			}
 		}

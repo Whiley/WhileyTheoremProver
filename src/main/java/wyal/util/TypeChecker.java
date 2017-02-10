@@ -348,7 +348,7 @@ public class TypeChecker {
 		} else if (type instanceof Type.Nominal) {
 			Type.Nominal nt = (Type.Nominal) type;
 			// Look up the type declaration to which the name refers
-			Declaration.Named.Type td = resolveAsDeclaredType(nt.getName());
+			Declaration.Named.Type td = types.resolveAsDeclaredType(nt.getName());
 			// Extract the actual type corresponding to this declaration
 			Type declared = td.getVariableDeclaration().getType();
 			// Check it makes sense
@@ -356,34 +356,6 @@ public class TypeChecker {
 		} else {
 			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
 		}
-	}
-
-	/**
-	 * Expand a given named declaration on the assumption that it is a type.
-	 * This will initially look for the given name in the enclosing file, before
-	 * considering those import statements included in the appropriate order.
-	 *
-	 * @param name
-	 * @return
-	 */
-	private Declaration.Named.Type resolveAsDeclaredType(Name name) {
-		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
-		// Look through the enclosing file first!
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (item instanceof Declaration.Named.Type) {
-				Declaration.Named.Type nd = (Declaration.Named.Type) item;
-				if (nd.getName().equals(components[0])) {
-					return nd;
-				}
-			}
-		}
-		// FIXME: consider imported files as well
-		throw new IllegalArgumentException("unable to resolve " + name + " as type");
 	}
 
 	/**

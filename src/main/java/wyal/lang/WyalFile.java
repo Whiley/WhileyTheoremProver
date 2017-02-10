@@ -117,9 +117,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		TYPE_rec(8),
 		TYPE_fun(9),
 		TYPE_macro(10),
-		TYPE_or(11),
-		TYPE_and(12),
-		TYPE_not(13),
+		TYPE_inv(11),
+		TYPE_or(12),
+		TYPE_and(13),
+		TYPE_not(14),
 		// STMTS
 		STMT_block(15),
 		STMT_vardecl(16),
@@ -681,8 +682,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Type {
-			public FunctionOrMacro(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
+		public static abstract class AbstractFunction extends AbstractSyntacticItem implements Type {
+			public AbstractFunction(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
 				super(opcode,parameters,returns);
 			}
 			public Tuple<Type> getParameters() {
@@ -693,7 +694,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Function extends AbstractSyntacticItem implements Type {
+		public static class Function extends AbstractFunction implements Type {
 			public Function(Tuple<Type> parameters, Tuple<Type> returns) {
 				super(Opcode.TYPE_fun,parameters,returns);
 			}
@@ -704,10 +705,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Macro extends AbstractSyntacticItem implements Type {
+		public static class Macro extends AbstractFunction implements Type {
 			public Macro(Tuple<Type> parameters, Tuple<Type> returns) {
-				super(Opcode.TYPE_macro,parameters, returns);
+				super(Opcode.TYPE_macro, parameters, returns);
 			}
+
+			@Override
+			public Macro clone(SyntacticItem[] operands) {
+				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			}
+		}
+
+		public static class Invariant extends AbstractFunction implements Type {
+			public Invariant(Tuple<Type> parameters) {
+				super(Opcode.TYPE_inv, parameters, new Tuple<Type>(new Bool()));
+			}
+
 			@Override
 			public Macro clone(SyntacticItem[] operands) {
 				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
@@ -1160,17 +1173,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Invoke extends AbstractSyntacticItem implements Expr {
-			public Invoke(Type.FunctionOrMacro type, Name name, Expr... arguments) {
+			public Invoke(Type.AbstractFunction type, Name name, Expr... arguments) {
 				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}
 
-			public Invoke(Type.FunctionOrMacro type, Name name, Tuple<Expr> arguments) {
+			public Invoke(Type.AbstractFunction type, Name name, Tuple<Expr> arguments) {
 				super(Opcode.EXPR_invoke, type, name, arguments);
 			}
 
 			@Override
 			public Type getReturnType(TypeSystem types) {
-				Type.FunctionOrMacro type = getSignatureType();
+				Type.AbstractFunction type = getSignatureType();
 				Tuple<Type> returns = type.getReturns();
 				if (returns.size() != 1) {
 					throw new IllegalArgumentException("need support for multiple returns");
@@ -1179,8 +1192,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 			}
 
-			public Type.FunctionOrMacro getSignatureType() {
-				return (Type.FunctionOrMacro) getOperand(0);
+			public Type.AbstractFunction getSignatureType() {
+				return (Type.AbstractFunction) getOperand(0);
 			}
 
 			public Name getName() {
@@ -1193,7 +1206,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Invoke clone(SyntacticItem[] operands) {
-				return new Invoke((Type.FunctionOrMacro) operands[0], (Name) operands[1], (Tuple) operands[2]);
+				return new Invoke((Type.AbstractFunction) operands[0], (Name) operands[1], (Tuple) operands[2]);
 			}
 		}
 

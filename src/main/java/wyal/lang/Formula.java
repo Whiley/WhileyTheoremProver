@@ -1,8 +1,10 @@
 package wyal.lang;
 
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
+import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
 
@@ -42,7 +44,7 @@ public interface Formula extends Expr {
 
 		@Override
 		public Truth clone(SyntacticItem[] children) {
-			return new Truth(getValue());
+			return new Truth((Value.Bool) children[0]);
 		}
 	}
 
@@ -91,6 +93,10 @@ public interface Formula extends Expr {
 	}
 
 	public static class Quantifier extends Expr.Quantifier implements Formula {
+		public Quantifier(boolean sign, VariableDeclaration parameter, Formula body) {
+			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameter), body);
+		}
+
 		public Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
 			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameters), body);
 		}
@@ -182,6 +188,35 @@ public interface Formula extends Expr {
 		@Override
 		public ArithmeticEquality clone(SyntacticItem[] children) {
 			return new ArithmeticEquality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
+		}
+	}
+
+	public static class Invoke extends Expr.Invoke implements Formula {
+		private boolean sign;
+
+		public Invoke(boolean sign, Type.AbstractFunction type, Name name, Expr... arguments) {
+			super(type, name, arguments);
+			this.sign = sign;
+		}
+
+		public Invoke(boolean sign, Type.AbstractFunction type, Name name, Tuple<Expr> arguments) {
+			super(type, name, arguments);
+			this.sign = sign;
+		}
+
+		public boolean getSign() {
+			return sign;
+		}
+
+		@Override
+		public Boolean getData() {
+			return sign;
+		}
+
+		@Override
+		public Formula.Invoke clone(SyntacticItem[] children) {
+			return new Formula.Invoke(sign,(Type.AbstractFunction) children[0], (Name) children[1],
+					(Tuple) children[2]);
 		}
 	}
 }
