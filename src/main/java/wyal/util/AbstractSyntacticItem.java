@@ -161,6 +161,9 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public int compareTo(SyntacticItem other) {
+//		if (other == null) {
+//			return 1;
+//		}
 		int diff = opcode.ordinal() - other.getOpcode().ordinal();
 		if (diff != 0) {
 			return diff;
@@ -172,9 +175,20 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 			return diff;
 		}
 		for (int i = 0; i != size(); ++i) {
-			diff = getOperand(i).compareTo(other.getOperand(i));
-			if (diff != 0) {
-				return diff;
+			SyntacticItem my_ith = getOperand(i);
+			SyntacticItem other_ith = other.getOperand(i);
+			if (my_ith == null) {
+				if(other_ith == null) {
+					return 0;
+				} else {
+					// null is below everything
+					return -1;
+				}
+			} else {
+				diff = my_ith.compareTo(other_ith);
+				if (diff != 0) {
+					return diff;
+				}
 			}
 		}
 		return compareData(data, other.getData());

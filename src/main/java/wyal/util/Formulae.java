@@ -259,6 +259,8 @@ public class Formulae {
 		return result;
 	}
 
+	private static int skolem = 0;
+
 	/**
 	 * Expand the type invariant associated with a given type (if any). For
 	 * example, primitive types have no invariant associated with them. In
@@ -300,6 +302,24 @@ public class Formulae {
 				return new Formula.Invoke(true, ft, nom.getName(), root);
 			}
 		}
+		case TYPE_rec: {
+			Type.Record r = (Type.Record) type;
+			VariableDeclaration[] fields = r.getFields();
+			Formula inv = null;
+			for(int i=0;i!=fields.length;++i) {
+				VariableDeclaration fieldDecl = (VariableDeclaration) fields[i];
+				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
+				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types);
+				if(fieldInv != null) {
+					if(inv == null) {
+						inv = fieldInv;
+					} else {
+						inv = and(inv,fieldInv);
+					}
+				}
+			}
+			return inv;
+		}
 		case TYPE_arr: {
 			Type.Array t = (Type.Array) type;
 			Formula inv = extractTypeInvariant(t.getElement(), root, types);
@@ -308,7 +328,7 @@ public class Formulae {
 			} else {
 				// forall i.(0 <= i && i <|root|) ==> inv
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-						new Identifier("i" + root.getParent().size()));
+						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
 				Polynomial zero = toPolynomial(0);
 				Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
@@ -353,7 +373,6 @@ public class Formulae {
 			}
 		}
 		case TYPE_ref:
-		case TYPE_rec:
 		case TYPE_fun:
 		case TYPE_macro:
 		default:
@@ -1088,8 +1107,8 @@ public class Formulae {
 		return null;
 	}
 
-	public static Pair<Identifier, Expr> rearrangeForSubstitution(Formula.Equality f) {
-		Identifier var;
+	public static Pair<Expr, Expr> rearrangeForSubstitution(Formula.Equality f) {
+		Expr candidate;
 		Expr bound;
 		if (f instanceof Formula.ArithmeticEquality) {
 			// Arithmetic equalities are a special case because we can actually
@@ -1100,20 +1119,18 @@ public class Formulae {
 			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs);
 			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs);
 			if (lhsCandidate != null && rhsCandidate != null) {
-				Identifier var1 = extractCandidateName(lhsCandidate);
-				Identifier var2 = extractCandidateName(rhsCandidate);
-				if (var1.compareTo(var2) <= 0) {
-					var = var1;
+				if (lhsCandidate.compareTo(rhsCandidate) < 0) {
+					candidate = extractCandidate(lhsCandidate);
 					bound = rhs.subtract(lhs.subtract(lhsCandidate));
 				} else {
-					var = var2;
+					candidate = extractCandidate(rhsCandidate);
 					bound = lhs.subtract(rhs.subtract(rhsCandidate));
 				}
 			} else if (lhsCandidate != null) {
-				var = extractCandidateName(lhsCandidate);
+				candidate = extractCandidate(lhsCandidate);
 				bound = rhs.subtract(lhs.subtract(lhsCandidate));
 			} else if (rhsCandidate != null) {
-				var = extractCandidateName(rhsCandidate);
+				candidate = extractCandidate(rhsCandidate);
 				bound = lhs.subtract(rhs.subtract(rhsCandidate));
 			} else {
 				return null;
@@ -1124,33 +1141,24 @@ public class Formulae {
 			Expr lhs = f.getOperand(0);
 			Expr rhs = f.getOperand(1);
 			//
-			if (lhs instanceof Expr.VariableAccess && rhs instanceof Expr.VariableAccess) {
-				Identifier v1 = ((Expr.VariableAccess) lhs).getVariableDeclaration().getVariableName();
-				Identifier v2 = ((Expr.VariableAccess) rhs).getVariableDeclaration().getVariableName();
-				if (v1.compareTo(v2) <= 0) {
-					var = v1;
-					bound = rhs;
-				} else {
-					var = v2;
-					bound = lhs;
-				}
-			} else if (lhs instanceof Expr.VariableAccess) {
-				Expr.VariableAccess v = (Expr.VariableAccess) lhs;
-				var = v.getVariableDeclaration().getVariableName();
+			if (lhs.compareTo(rhs) < 0) {
+				candidate = lhs;
 				bound = rhs;
-			} else if (rhs instanceof Expr.VariableAccess) {
-				Expr.VariableAccess v = (Expr.VariableAccess) rhs;
-				var = v.getVariableDeclaration().getVariableName();
-				bound = lhs;
 			} else {
-				// no option here
-				return null;
+				candidate = rhs;
+				bound = lhs;
 			}
 		}
 
-		System.out.print("FOUND SUBSTITUTION: " + var + " ==> ");
+		System.out.print("FOUND SUBSTITUTION: ");
+		AutomatedTheoremProver.print(candidate);
+		System.out.print(" ==> ");
 		AutomatedTheoremProver.println(bound);
-		return new Pair<>(var, bound);
+		return new Pair<>(candidate, bound);
+	}
+
+	private static Expr extractCandidate(Polynomial.Term term) {
+		return term.getAtoms()[0];
 	}
 
 	/**
@@ -1162,53 +1170,20 @@ public class Formulae {
 	 * @return
 	 */
 	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p) {
+		Expr candidateAtom = null;
 		Polynomial.Term candidate = null;
-		Identifier candidateVar = null;
 		for (int i = 0; i != p.size(); ++i) {
 			Polynomial.Term term = p.getOperand(0);
-			if (isCandidate(term)) {
-				Identifier var = extractCandidateName(term);
-				if (candidateVar == null || var.compareTo(candidateVar) < 0) {
-					candidateVar = var;
+			Expr[] atoms = term.getAtoms();
+			if (term.getAtoms().length == 1) {
+				Expr atom = atoms[0];
+				if (candidate == null || atom.compareTo(candidateAtom) < 0) {
 					candidate = term;
+					candidateAtom = atom;
 				}
 			}
 		}
 		return candidate;
-	}
-
-	/**
-	 * Determine whether a given polynomial term is a candidate for
-	 * substitution. A candidate must be a single atom with a trivial
-	 * coefficient (i.e. 1). At this time, a candidate must also be a variable
-	 * access (though this may be later relaxed).
-	 *
-	 * @param term
-	 * @return
-	 */
-	private static boolean isCandidate(Polynomial.Term term) {
-		Expr[] atoms = term.getAtoms();
-		BigInteger coefficient = term.getCoefficient().get();
-		if (atoms.length == 1 && coefficient.equals(BigInteger.ONE)) {
-			// FIXME: can we substitute for things other than a variable access?
-			// I think perhapds we should be able to.
-			return atoms[0] instanceof Expr.VariableAccess;
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * Extract the name of a candidate. That is, the variable which is being
-	 * rearranged for. This is necessary to determine whether a given candidate
-	 * is the <i>least</i> candidate or not.
-	 *
-	 * @param term
-	 * @return
-	 */
-	private static Identifier extractCandidateName(Polynomial.Term term) {
-		Expr.VariableAccess va = (Expr.VariableAccess) term.getAtoms()[0];
-		return va.getVariableDeclaration().getVariableName();
 	}
 
 	/**
@@ -1272,24 +1247,18 @@ public class Formulae {
 	 * then the original item is returned as is.
 	 * </p>
 	 *
-	 * @param substitution
+	 * @param to
 	 * @param item
 	 * @return
 	 */
-	public static <T extends SyntacticItem> SyntacticItem substitute(Identifier var, T substitution,
+	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
 			SyntacticItem item) {
 		// FIXME: this function is broken because it should not be using
 		// identifiers for substitution. Instead, is should be using variable
 		// declarations.
-		if (item instanceof Expr.VariableAccess) {
-			// In this case, we might be able to make a substitution.
-			Expr.VariableAccess v = (Expr.VariableAccess) item;
-			Identifier name = v.getVariableDeclaration().getVariableName();
-			if (name.equals(var)) {
-				// Yes, we made a substitution!
-				return substitution;
-			}
-			return item;
+		if (item.equals(from)) {
+			// Yes, we made a substitution!
+			return to;
 		} else {
 			// No immediate substitution possible. Instead, recursively traverse
 			// term looking for substitution.
@@ -1297,7 +1266,7 @@ public class Formulae {
 			SyntacticItem[] nChildren = children;
 			for (int i = 0; i != children.length; ++i) {
 				SyntacticItem child = children[i];
-				SyntacticItem nChild = substitute(var, substitution, child);
+				SyntacticItem nChild = substitute(from, to, child);
 				if (child != nChild && nChildren == children) {
 					// Clone the new children array to avoid interfering with
 					// original item.

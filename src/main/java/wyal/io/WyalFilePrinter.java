@@ -425,6 +425,13 @@ public class WyalFilePrinter {
 	}
 
 	public void writeInvoke(Expr.Invoke expr) {
+		if(expr instanceof Formula.Invoke){
+			// FIXME: this is an ugly hack
+			Formula.Invoke ivk = (Formula.Invoke) expr;
+			if(!ivk.getSign()) {
+				out.print("!");
+			}
+		}
 		writeName(expr.getName());
 		out.print("(");
 		writeArguments(expr.getArguments().getOperands());

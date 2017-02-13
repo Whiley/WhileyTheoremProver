@@ -2,7 +2,7 @@ assert:
   forall({int f,int g} x):
     if:
         x.f > x.g
-        x.f >= 0
+        x.g >= 0
     then:
-        x.g > 0
+        x.f > 0
 

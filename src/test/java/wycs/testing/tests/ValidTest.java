@@ -41,6 +41,9 @@ public class ValidTest {
 	static {
 		IGNORED.put("test_arith_12", "remainder");
 		IGNORED.put("test_arith_15", "non-linear");
+		IGNORED.put("test_arith_28", "integers");
+		IGNORED.put("test_arith_31", "non-linear");
+		IGNORED.put("test_arith_36", "infinite loop");
 		IGNORED.put("test_arith_38", "non-linear");
 		IGNORED.put("Coercion_Valid_8", "#681");
 	}

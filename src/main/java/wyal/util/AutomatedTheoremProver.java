@@ -118,6 +118,9 @@ public class AutomatedTheoremProver {
 				Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 				// Calculate the invariant
 				Formula invariant = extractDeclarationInvariant(decl,ivk.getArguments());
+				if(!ivk.getSign()) {
+					invariant = Formulae.invert(invariant);
+				}
 				// Update the state
 				state.unset(truth);
 				state.set(state.allocate(invariant));
@@ -133,6 +136,7 @@ public class AutomatedTheoremProver {
 		// Apply transitive closure over inequalities
 		System.out.println("Applying closure...");
 		closeOverInequalities(state);
+		print(state);
 		// Done
 		return state.contains(FALSE);
 	}
@@ -158,7 +162,8 @@ public class AutomatedTheoremProver {
 			// At this point, we must substitute the parameter name used in
 			// the type declaration for the name used as the invocation
 			// argument.
-			body = (Formula) Formulae.substitute(parameters[i].getVariableName(), arguments[i], body);
+			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
+			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
 		return Formulae.simplify(body);
 	}
@@ -175,8 +180,8 @@ public class AutomatedTheoremProver {
 		// At this point, we must substitute the variable name used in
 		// the type declaration for the name used as the invocation
 		// argument.
-		result = (Formula) Formulae.substitute(td.getVariableDeclaration().getVariableName(), argument,
-				result);
+		Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
+		result = (Formula) Formulae.substitute(parameter, argument, result);
 		return Formulae.simplify(result);
 	}
 
@@ -189,7 +194,7 @@ public class AutomatedTheoremProver {
 				if (ith instanceof Formula.Equality) {
 					Formula.Equality eq = (Formula.Equality) ith;
 					if (eq.getSign()) {
-						Pair<Identifier, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
+						Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
 						changed |= applySubstitution(substitution, i, state);
 					}
 				}
@@ -197,7 +202,7 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySubstitution(Pair<Identifier, Expr> substitution, int ignored, State state) {
+	private boolean applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state) {
 		boolean nochange = true;
 
 		if (substitution != null) {
@@ -212,7 +217,8 @@ public class AutomatedTheoremProver {
 						System.out.print("REWROTE: ");
 						AutomatedTheoremProver.print(before);
 						System.out.print(" -----> ");
-						AutomatedTheoremProver.print(Formulae.simplify(after));
+						AutomatedTheoremProver.println(Formulae.simplify(after));
+						println(state);
 					}
 					if (before != after) {
 						state.unset(before);
@@ -314,6 +320,26 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	public static void println(State state) {
+		print(state);
+		System.out.println();
+	}
+
+	public static void print(State state) {
+		boolean firstTime=true;
+		for(int i=0;i!=state.size();++i) {
+			Formula f = state.get(i);
+			if(f != null) {
+				if(!firstTime) {
+					System.out.print("; ");
+				} else {
+					firstTime = false;
+				}
+				print(f);
+			}
+		}
+	}
+
 	/**
 	 * A simple helper method for debugging expressions which just prints them
 	 * to stdout.
@@ -330,6 +356,7 @@ public class AutomatedTheoremProver {
 		new WyalFilePrinter(out).writeExpression(item);
 		out.flush();
 	}
+
 
 	/**
 	 * Check whether a given expression represents a contradiction (i.e. is
