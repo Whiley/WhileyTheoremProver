@@ -1,7 +1,12 @@
 package wyal.util;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import wyal.io.WyalFilePrinter;
 import wyal.lang.Formula;
@@ -9,6 +14,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
 
 public class AutomatedTheoremProver {
@@ -76,69 +82,85 @@ public class AutomatedTheoremProver {
 		// Assume the formula holds
 		state.set(formula);
 		//
-		return checkUnsat(state, FALSE);
+		return checkUnsat(state, 0, FALSE);
 	}
 
-	private boolean checkUnsat(State state, Formula.Truth FALSE) {
-		// The following loop is *very* primitive in nature.
-		for (int i = 0; i != state.size(); ++i) {
-			Formula truth = state.get(i);
-			if (truth instanceof Formula.Conjunct) {
-				Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-				state.unset(conjunct);
-				state.set(conjunct.getOperands());
-				return checkUnsat(state, FALSE);
-			} else if (truth instanceof Formula.Disjunct) {
-				Formula.Disjunct disjunct = (Formula.Disjunct) truth;
-				state.unset(disjunct);
-				State[] splits = state.split(disjunct.getOperands());
-				for (int j = 0; j != splits.length; ++j) {
-					if (!checkUnsat(splits[j], FALSE)) {
-						return false;
-					}
-				}
-				return true;
-			} else if (truth instanceof Formula.Quantifier) {
-				Formula.Quantifier quantifier = (Formula.Quantifier) truth;
-				if (!quantifier.getSign()) {
-					// existential
-					state.unset(quantifier);
-					state.set(quantifier.getBody());
-					return checkUnsat(state, FALSE);
-				}
-			} else if (truth instanceof Formula.Invoke) {
-				// FIXME: this is broken in the case of recursive macros. The
-				// reason for this is simply that it will expand forever :)
-				// FIXME: also broken because assume this is a type invariant
-				// invocation
-				Formula.Invoke ivk = (Formula.Invoke) truth;
-				// Determine the type declaration in question
-				Type.AbstractFunction af = ivk.getSignatureType();
-				// FIXME: this resolution should have already been performed elsewhere
-				Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
-				// Calculate the invariant
-				Formula invariant = extractDeclarationInvariant(decl,ivk.getArguments());
-				if(!ivk.getSign()) {
-					invariant = Formulae.invert(invariant);
-				}
-				// Update the state
-				state.unset(truth);
-				state.set(state.allocate(invariant));
-				return checkUnsat(state, FALSE);
-			}
+	private static final int MAX_DEPTH=2;
+
+	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
+		for(int i=0;i!=depth;++i) {
+			System.out.print("\t>");
 		}
-		// If we get here, then we have a fully expanded state which contains
-		// only primitive formulae.
-		//
-		// Apply congurence closure
-		System.out.println("Applying congruence...");
-		closeOverCongruence(state);
-		// Apply transitive closure over inequalities
-		System.out.println("Applying closure...");
-		closeOverInequalities(state);
-		print(state);
-		// Done
-		return state.contains(FALSE);
+		println(state);
+		if(state.contains(FALSE)) {
+			System.out.println("FALSE");
+			return true;
+		} else if(depth == MAX_DEPTH) {
+			return false;
+		} else {
+			// The following loop is *very* primitive in nature.
+			for (int i = 0; i != state.size(); ++i) {
+				Formula truth = state.get(i);
+				if (truth instanceof Formula.Conjunct) {
+					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
+					state.unset(conjunct);
+					state.set(conjunct.getOperands());
+					return checkUnsat(state, depth, FALSE);
+				} else if (truth instanceof Formula.Disjunct) {
+					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
+					state.unset(disjunct);
+					State[] splits = state.split(disjunct.getOperands());
+					for (int j = 0; j != splits.length; ++j) {
+						if (!checkUnsat(splits[j], depth, FALSE)) {
+							return false;
+						}
+					}
+					return true;
+				} else if (truth instanceof Formula.Quantifier) {
+					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
+					if (!quantifier.getSign()) {
+						// existential
+						state.unset(quantifier);
+						state.set(quantifier.getBody());
+						return checkUnsat(state, depth, FALSE);
+					}
+				} else if (truth instanceof Formula.Invoke) {
+					// FIXME: this is broken in the case of recursive macros.
+					// The reason for this is simply that it will expand forever :)
+					// FIXME: also broken because assume this is a type
+					// invariant invocation
+					Formula.Invoke ivk = (Formula.Invoke) truth;
+					// Determine the type declaration in question
+					Type.AbstractFunction af = ivk.getSignatureType();
+					// FIXME: this resolution should have already been performed
+					// elsewhere
+					Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
+					// Calculate the invariant
+					Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
+					if (!ivk.getSign()) {
+						invariant = Formulae.invert(invariant);
+					}
+					// Update the state
+					// FIXME: this should be a subsume operation, since
+					// otherwise we end up repeating ourselves a lot.
+					state.unset(truth);
+					state.set(state.allocate(invariant));
+					return checkUnsat(state, depth, FALSE);
+				}
+			}
+			// If we get here, then we have a fully expanded state which
+			// contains
+			// only primitive formulae.
+			//
+			// Apply congruence closure
+			closeOverCongruence(state);
+			// Apply transitive closure over inequalities
+			closeOverInequalities(state);
+			// Instantiate any quantified formulae
+			instantiateUniversalQuantifiers(state);
+			// Done
+			return checkUnsat(state, depth + 1, FALSE);
+		}
 	}
 
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
@@ -260,6 +282,84 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	private void instantiateUniversalQuantifiers(State state) {
+		Expr[] grounds = determineGroundTerms(state);
+		for (int i = 0; i != state.size(); ++i) {
+			Formula ith = state.get(i);
+			if (ith instanceof Formula.Quantifier) {
+				Formula.Quantifier qf = (Formula.Quantifier) ith;
+				if (qf.getSign()) {
+					// This is a universal quantifier
+					instantiateUniversalQuantifier(qf, new Expr[0], grounds, state);
+				}
+			}
+		}
+	}
+
+	private Expr[] determineGroundTerms(State state) {
+		HashSet<Expr> grounds = new HashSet<>();
+		for (int i = 0; i != state.size(); ++i) {
+			Formula ith = state.get(i);
+			if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
+				Expr lhs = (Expr) ith.getOperand(0);
+				Expr rhs = (Expr) ith.getOperand(1);
+				extractGrounds(lhs, grounds);
+				extractGrounds(rhs, grounds);
+			}
+		}
+		return grounds.toArray(new Expr[grounds.size()]);
+	}
+
+	private boolean extractGrounds(Expr e, Set<Expr> grounds) {
+		for (int i = 0; i != e.size(); ++i) {
+			SyntacticItem child = e.getOperand(i);
+			if (child instanceof Expr && !extractGrounds((Expr) child, grounds)) {
+				return false;
+			}
+		}
+		if(e instanceof Polynomial) {
+			grounds.add(e);
+		}
+		return true;
+	}
+
+	private void instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds,
+			State state) {
+		VariableDeclaration[] parameters = qf.getParameters().getOperands();
+		if (parameters.length == binding.length) {
+			// Binding now complete, so proceed to instantiate quantifier.
+			// First, substitute body through for the binding obtained for each
+			// parameter.
+			Formula body = qf.getBody();
+			// FIXME: there is a bug of sorts here related to skolems
+			System.out.print("INSTANTIATING: ");
+			for (int i = 0; i != parameters.length; ++i) {
+				VariableDeclaration parameter = parameters[i];
+				// FIXME: I'm assuming integer only quantification!!
+				System.out.print("[" + parameter.getVariableName() + " / ");
+				print(binding[i]);
+				System.out.print("]");
+				Expr.VariableAccess access = new Expr.VariableAccess(parameter);
+				body = (Formula) Formulae.substitute(access, binding[i], body);
+			}
+			// Second, instantiate the ground body
+			System.out.print(" ");
+			print(qf.getBody());
+			body = state.allocate(Formulae.simplify(body));
+			System.out.print(" ===> ");
+			println(body);
+			state.set(body);
+		} else {
+			// Exhaustively instantiate this variable with all possible ground
+			// terms.
+			for (int i = 0; i != grounds.length; ++i) {
+				Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
+				nBinding[binding.length] = grounds[i];
+				instantiateUniversalQuantifier(qf, nBinding, grounds, state);
+			}
+		}
+	}
+
 	private static class State {
 		private final SyntacticHeap heap;
 		private final BitSet truths;
@@ -276,6 +376,10 @@ public class AutomatedTheoremProver {
 
 		public int size() {
 			return truths.length();
+		}
+
+		public SyntacticHeap getHeap() {
+			return heap;
 		}
 
 		public boolean contains(Formula truth) {

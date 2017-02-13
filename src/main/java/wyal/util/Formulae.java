@@ -2,6 +2,7 @@ package wyal.util;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Set;
 
 import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
@@ -1116,8 +1117,8 @@ public class Formulae {
 			Formula.ArithmeticEquality e = (Formula.ArithmeticEquality) f;
 			Polynomial lhs = e.getOperand(0);
 			Polynomial rhs = e.getOperand(1);
-			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs);
-			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs);
+			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs,rhs);
+			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs,lhs);
 			if (lhsCandidate != null && rhsCandidate != null) {
 				if (lhsCandidate.compareTo(rhsCandidate) < 0) {
 					candidate = extractCandidate(lhsCandidate);
@@ -1169,21 +1170,50 @@ public class Formulae {
 	 * @param p
 	 * @return
 	 */
-	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p) {
+	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
 		Expr candidateAtom = null;
 		Polynomial.Term candidate = null;
 		for (int i = 0; i != p.size(); ++i) {
-			Polynomial.Term term = p.getOperand(0);
+			Polynomial.Term term = p.getOperand(i);
 			Expr[] atoms = term.getAtoms();
 			if (term.getAtoms().length == 1) {
 				Expr atom = atoms[0];
-				if (candidate == null || atom.compareTo(candidateAtom) < 0) {
+				// FIXME: the problem here is thatthe given polynomial is not
+				// taking into account the other side of the equation, which may
+				// contain a recursive reference.
+				if ((candidate == null || atom.compareTo(candidateAtom) < 0) && !recursive(atom, i, p) && !recursive(atom, -1, other)) {
 					candidate = term;
 					candidateAtom = atom;
 				}
 			}
 		}
 		return candidate;
+	}
+
+	private static boolean recursive(Expr atom, int i, Polynomial p) {
+		for (int j = 0; j != p.size(); ++j) {
+			if (i != j) {
+				Polynomial.Term term = p.getOperand(j);
+				if (isParentOf(term,atom)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static boolean isParentOf(Expr parent, Expr child) {
+		if (parent.equals(child)) {
+			return true;
+		} else {
+			for (int i = 0; i != parent.size(); ++i) {
+				SyntacticItem pChild = parent.getOperand(i);
+				if (pChild instanceof Expr && isParentOf((Expr) pChild, child)) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 	/**
