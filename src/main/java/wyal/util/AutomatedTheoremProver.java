@@ -82,16 +82,14 @@ public class AutomatedTheoremProver {
 		// Assume the formula holds
 		state.set(formula);
 		//
+		System.out.println("==== BEGIN CHECK UNSAT ====");
 		return checkUnsat(state, 0, FALSE);
 	}
 
 	private static final int MAX_DEPTH=2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		for(int i=0;i!=depth;++i) {
-			System.out.print("\t>");
-		}
-		println(state);
+		println(depth,state);
 		if(state.contains(FALSE)) {
 			System.out.println("FALSE");
 			return true;
@@ -191,6 +189,7 @@ public class AutomatedTheoremProver {
 	}
 
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
+		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
 		Formula result = null;
 		for (int i = 0; i != invariant.size(); ++i) {
@@ -208,6 +207,7 @@ public class AutomatedTheoremProver {
 	}
 
 	private void closeOverCongruence(State state) {
+		int count = 10;
 		boolean changed = true;
 		while (changed) {
 			changed = false;
@@ -218,6 +218,9 @@ public class AutomatedTheoremProver {
 					if (eq.getSign()) {
 						Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
 						changed |= applySubstitution(substitution, i, state);
+						if(--count == 0) {
+							throw new RuntimeException("trip count reached");
+						}
 					}
 				}
 			}
@@ -240,7 +243,7 @@ public class AutomatedTheoremProver {
 						AutomatedTheoremProver.print(before);
 						System.out.print(" -----> ");
 						AutomatedTheoremProver.println(Formulae.simplify(after));
-						println(state);
+						println(0,state);
 					}
 					if (before != after) {
 						state.unset(before);
@@ -256,6 +259,7 @@ public class AutomatedTheoremProver {
 
 	private void closeOverInequalities(State state) {
 		boolean nochange = false;
+		int count = 50;
 		while (!nochange) {
 			nochange = true;
 			//
@@ -269,6 +273,9 @@ public class AutomatedTheoremProver {
 							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
 							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq);
 							if (inferred != null) {
+								if(--count == 0) {
+									throw new RuntimeException("trip count reached");
+								}
 								inferred = state.allocate(inferred);
 								System.out.print("INFERRED: ");
 								println(inferred);
@@ -284,6 +291,8 @@ public class AutomatedTheoremProver {
 
 	private void instantiateUniversalQuantifiers(State state) {
 		Expr[] grounds = determineGroundTerms(state);
+		System.out.print("GROUNDS: ");
+		println(grounds);
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.get(i);
 			if (ith instanceof Formula.Quantifier) {
@@ -310,17 +319,16 @@ public class AutomatedTheoremProver {
 		return grounds.toArray(new Expr[grounds.size()]);
 	}
 
-	private boolean extractGrounds(Expr e, Set<Expr> grounds) {
+	private void extractGrounds(Expr e, Set<Expr> grounds) {
 		for (int i = 0; i != e.size(); ++i) {
 			SyntacticItem child = e.getOperand(i);
-			if (child instanceof Expr && !extractGrounds((Expr) child, grounds)) {
-				return false;
+			if(child instanceof Expr) {
+				extractGrounds((Expr) child, grounds);
 			}
 		}
 		if(e instanceof Polynomial) {
 			grounds.add(e);
 		}
-		return true;
 	}
 
 	private void instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds,
@@ -424,23 +432,40 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	public static void println(State state) {
-		print(state);
+	public static void println(int indent, State state) {
+		print(indent,state);
 		System.out.println();
 	}
 
-	public static void print(State state) {
-		boolean firstTime=true;
+	public static void print(int indent, State state) {
 		for(int i=0;i!=state.size();++i) {
-			Formula f = state.get(i);
-			if(f != null) {
-				if(!firstTime) {
-					System.out.print("; ");
-				} else {
-					firstTime = false;
-				}
-				print(f);
+			Formula ith = state.get(i);
+			if(ith != null) {
+				println(indent,ith);
 			}
+		}
+	}
+	public static void println(int indent, Formula f) {
+		print(indent,f);
+		System.out.println();
+	}
+	public static void print(int indent, Formula f) {
+		if(f instanceof Formula.Conjunct) {
+			Formula.Conjunct conjunct = (Formula.Conjunct) f;
+			for(int i=0;i!=conjunct.size();++i) {
+				println(indent, conjunct.getOperand(i));
+			}
+		} else if(f instanceof Formula.Disjunct) {
+			Formula.Disjunct disjunct = (Formula.Disjunct) f;
+			for(int i=0;i!=disjunct.size();++i) {
+				if(i != 0) {
+					System.out.println("==========");
+				}
+				println(indent+1, disjunct.getOperand(i));
+			}
+		} else {
+			tab(indent);
+			print(f);
 		}
 	}
 
@@ -450,31 +475,26 @@ public class AutomatedTheoremProver {
 	 *
 	 * @param item
 	 */
-	public static void println(WyalFile.Expr item) {
-		print(item);
+	public static void println(WyalFile.Expr... items) {
+		print(items);
 		System.out.println();
 	}
 
-	public static void print(WyalFile.Expr item) {
+	public static void print(WyalFile.Expr... items) {
 		PrintWriter out = new PrintWriter(System.out);
-		new WyalFilePrinter(out).writeExpression(item);
+		WyalFilePrinter printer = new WyalFilePrinter(out);
+		for(int i=0;i!=items.length;++i) {
+			if(i != 0) {
+				out.print(", ");
+			}
+			printer.writeExpression(items[i]);
+		}
 		out.flush();
 	}
 
-
-	/**
-	 * Check whether a given expression represents a contradiction (i.e. is
-	 * false).
-	 *
-	 * @param item
-	 * @return
-	 */
-	private static boolean isContradiction(WyalFile.Expr item) {
-		if (item instanceof Expr.Constant) {
-			Expr.Constant c = (Expr.Constant) item;
-			Value.Bool b = (Value.Bool) c.getValue();
-			return !b.get();
+	public static void tab(int indent) {
+		for(int i=0;i!=indent;++i) {
+			System.out.print("\t");
 		}
-		return false;
 	}
 }

@@ -323,19 +323,22 @@ public class Formulae {
 		}
 		case TYPE_arr: {
 			Type.Array t = (Type.Array) type;
-			Formula inv = extractTypeInvariant(t.getElement(), root, types);
+			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+					new Identifier("i:" + skolem++));
+			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+			Formula inv = extractTypeInvariant(t.getElement(), va, types);
+			Polynomial zero = toPolynomial(0);
+			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
+			// The following axiom simply states that the length of every array
+			// type is greater than or equal to zero.
+			Formula axiom = greaterOrEqual(len, zero);
 			if (inv == null) {
-				return null;
+				return axiom;
 			} else {
 				// forall i.(0 <= i && i <|root|) ==> inv
-				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-						new Identifier("i:" + skolem++));
-				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-				Polynomial zero = toPolynomial(0);
-				Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
 				Formula gt = greaterOrEqual(va, zero);
 				Formula lt = lessThan(va, len);
-				return new Quantifier(true, var, implies(and(gt, lt), inv));
+				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
 			}
 		}
 		case TYPE_or: {
@@ -852,14 +855,15 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArrayIndex(Expr.Operator e) {
-		Expr[] children = e.getOperands();
-		Expr[] nChildren = simplify(children);
-		Expr source = nChildren[0];
-		Expr index = nChildren[1];
-		if (source instanceof Expr.Operator && index instanceof Expr.Polynomial) {
+		Expr source = e.getOperand(0);
+		Expr index = e.getOperand(1);
+		Expr nSource = simplify(source);
+		Expr.Polynomial nIndex = toPolynomial(simplify(index));
+		//
+		if (nSource instanceof Expr.Operator && nIndex instanceof Expr.Polynomial) {
 			// We may have a constant index value into a constant array
-			Expr.Operator arr = (Expr.Operator) source;
-			Expr.Polynomial idx = (Expr.Polynomial) index;
+			Expr.Operator arr = (Expr.Operator) nSource;
+			Expr.Polynomial idx = (Expr.Polynomial) nIndex;
 			if (arr.getOpcode() == Opcode.EXPR_arrinit && idx.isConstant()) {
 				// We definitely have a constant index value into a constant
 				// array
@@ -872,10 +876,10 @@ public class Formulae {
 		}
 		// If we get here, then no simplification of the array access expression
 		// was possible.
-		if (children == nChildren) {
+		if (source == nSource && index == nIndex) {
 			return e;
 		} else {
-			return e.clone(nChildren);
+			return new Expr.Operator(Opcode.EXPR_arridx, nSource, nIndex);
 		}
 	}
 
@@ -1312,9 +1316,7 @@ public class Formulae {
 	 */
 	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
 			SyntacticItem item) {
-		// FIXME: this function is broken because it should not be using
-		// identifiers for substitution. Instead, is should be using variable
-		// declarations.
+
 		if (item.equals(from)) {
 			// Yes, we made a substitution!
 			return to;
@@ -1325,13 +1327,15 @@ public class Formulae {
 			SyntacticItem[] nChildren = children;
 			for (int i = 0; i != children.length; ++i) {
 				SyntacticItem child = children[i];
-				SyntacticItem nChild = substitute(from, to, child);
-				if (child != nChild && nChildren == children) {
-					// Clone the new children array to avoid interfering with
-					// original item.
-					nChildren = Arrays.copyOf(children, children.length);
+				if(child != null) {
+					SyntacticItem nChild = substitute(from, to, child);
+					if (child != nChild && nChildren == children) {
+						// Clone the new children array to avoid interfering with
+						// original item.
+						nChildren = Arrays.copyOf(children, children.length);
+					}
+					nChildren[i] = nChild;
 				}
-				nChildren[i] = nChild;
 			}
 			if (nChildren == children) {
 				// No children were updated, hence simply return the original
