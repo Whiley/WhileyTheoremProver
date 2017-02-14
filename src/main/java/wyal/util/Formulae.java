@@ -801,6 +801,7 @@ public class Formulae {
 		case EXPR_invoke:
 			return simplify((Expr.Invoke) e);
 		case EXPR_arridx:
+			return simplifyArrayIndex((Expr.Operator) e);
 		case EXPR_arrlen:
 		case EXPR_arrinit:
 		case EXPR_arrgen:
@@ -847,6 +848,34 @@ public class Formulae {
 			return ivk;
 		} else {
 			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
+		}
+	}
+
+	private static Expr simplifyArrayIndex(Expr.Operator e) {
+		Expr[] children = e.getOperands();
+		Expr[] nChildren = simplify(children);
+		Expr source = nChildren[0];
+		Expr index = nChildren[1];
+		if (source instanceof Expr.Operator && index instanceof Expr.Polynomial) {
+			// We may have a constant index value into a constant array
+			Expr.Operator arr = (Expr.Operator) source;
+			Expr.Polynomial idx = (Expr.Polynomial) index;
+			if (arr.getOpcode() == Opcode.EXPR_arrinit && idx.isConstant()) {
+				// We definitely have a constant index value into a constant
+				// array
+				BigInteger i = ((Value.Int) idx.toConstant()).get();
+				if (i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(arr.size())) < 0) {
+					// The constant index is within bounds
+					return arr.getOperand(i.intValue());
+				}
+			}
+		}
+		// If we get here, then no simplification of the array access expression
+		// was possible.
+		if (children == nChildren) {
+			return e;
+		} else {
+			return e.clone(nChildren);
 		}
 	}
 
