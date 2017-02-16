@@ -121,6 +121,12 @@ public class Formulae {
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
+			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+				Formula lhs_f = toFormula(lhs,types);
+				Formula rhs_f = toFormula(rhs,types);
+				Formula l = new Conjunct(lhs_f,rhs_f);
+				Formula r = new Conjunct(invert(lhs_f),invert(rhs_f));
+				return new Formula.Disjunct(l,r);
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -135,6 +141,12 @@ public class Formulae {
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
+			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+				Formula lhs_f = toFormula(lhs,types);
+				Formula rhs_f = toFormula(rhs,types);
+				Formula l = new Conjunct(invert(lhs_f),rhs_f);
+				Formula r = new Conjunct(lhs_f,invert(rhs_f));
+				return new Formula.Disjunct(l,r);
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
