@@ -98,15 +98,14 @@ public class AutomatedTheoremProver {
 		} else {
 			// The following loop is *very* primitive in nature.
 			for (int i = 0; i != state.size(); ++i) {
-				Formula truth = state.get(i);
+				Formula truth = state.getActive(i);
 				if (truth instanceof Formula.Conjunct) {
 					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state.unset(conjunct);
-					state.set(conjunct.getOperands());
+					state.subsume(conjunct,conjunct.getOperands());
 					return checkUnsat(state, depth, FALSE);
 				} else if (truth instanceof Formula.Disjunct) {
 					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
-					state.unset(disjunct);
+					state.subsume(disjunct);
 					State[] splits = state.split(disjunct.getOperands());
 					for (int j = 0; j != splits.length; ++j) {
 						if (!checkUnsat(splits[j], depth, FALSE)) {
@@ -118,8 +117,7 @@ public class AutomatedTheoremProver {
 					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
 					if (!quantifier.getSign()) {
 						// existential
-						state.unset(quantifier);
-						state.set(quantifier.getBody());
+						state.subsume(quantifier,quantifier.getBody());
 						return checkUnsat(state, depth, FALSE);
 					}
 				} else if (truth instanceof Formula.Invoke) {
@@ -139,11 +137,17 @@ public class AutomatedTheoremProver {
 						invariant = Formulae.invert(invariant);
 					}
 					// Update the state
-					// FIXME: this should be a subsume operation, since
-					// otherwise we end up repeating ourselves a lot.
-					state.unset(truth);
-					state.set(state.allocate(invariant));
+					state.subsume(truth,state.allocate(invariant));
 					return checkUnsat(state, depth, FALSE);
+				} else if(truth != null){
+					Formula invariant = generateImplicitAxioms(truth);
+					if(invariant != null) {
+						invariant = state.allocate(Formulae.simplify(invariant));
+						if(!state.contains(invariant)) {
+							state.set(invariant);
+							return checkUnsat(state, depth, FALSE);
+						}
+					}
 				}
 			}
 			// If we get here, then we have a fully expanded state which
@@ -159,6 +163,45 @@ public class AutomatedTheoremProver {
 			// Done
 			return checkUnsat(state, depth + 1, FALSE);
 		}
+	}
+
+	private Formula generateImplicitAxioms(Expr e) {
+		Formula axiom = null;
+		switch(e.getOpcode()) {
+		case EXPR_invoke: {
+			Expr.Invoke ivk = (Expr.Invoke) e;
+			// Determine the type declaration in question
+			Type.AbstractFunction af = ivk.getSignatureType();
+			// FIXME: this resolution should have already been performed
+			// elsewhere
+			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
+			Declaration.Named.Function md = (Declaration.Named.Function) decl;
+			VariableDeclaration[] params = md.getParameters().getOperands();
+			VariableDeclaration[] returns = md.getReturns().getOperands();
+			if(returns.length > 1) {
+				throw new IllegalArgumentException("problem");
+			} else {
+				axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
+			}
+			break;
+		}
+		case EXPR_div: {
+			Expr.Operator op = (Expr.Operator) e;
+			axiom= new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
+			break;
+		}
+		}
+		//
+		for(int i=0;i!=e.size();++i) {
+			SyntacticItem item = e.getOperand(i);
+			if(item instanceof Expr) {
+				Formula cf = generateImplicitAxioms((Expr) item);
+				if(cf != null) {
+					axiom = axiom == null ? cf : new Formula.Conjunct(axiom,cf);
+				}
+			}
+		}
+		return axiom;
 	}
 
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
@@ -212,7 +255,7 @@ public class AutomatedTheoremProver {
 		while (changed) {
 			changed = false;
 			for (int i = 0; i != state.size(); ++i) {
-				Formula ith = state.get(i);
+				Formula ith = state.getActive(i);
 				if (ith instanceof Formula.Equality) {
 					Formula.Equality eq = (Formula.Equality) ith;
 					if (eq.getSign()) {
@@ -233,7 +276,7 @@ public class AutomatedTheoremProver {
 		if (substitution != null) {
 			// We've found a suitable substitution
 			for (int j = 0; j < state.size(); ++j) {
-				Formula before = state.get(j);
+				Formula before = state.getActive(j);
 				if (j != ignored && before != null) {
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
@@ -246,10 +289,9 @@ public class AutomatedTheoremProver {
 						println(0,state);
 					}
 					if (before != after) {
-						state.unset(before);
 						after = state.allocate(Formulae.simplify(after));
 						nochange &= state.contains(after);
-						state.set(after);
+						state.subsume(before,after);
 					}
 				}
 			}
@@ -264,11 +306,11 @@ public class AutomatedTheoremProver {
 			nochange = true;
 			//
 			for (int i = 0; i != state.size(); ++i) {
-				Formula ith = state.get(i);
+				Formula ith = state.getActive(i);
 				if (ith instanceof Formula.Inequality) {
 					Formula.Inequality ith_ieq = (Formula.Inequality) ith;
 					for (int j = i + 1; j != state.size(); ++j) {
-						Formula jth = state.get(j);
+						Formula jth = state.getActive(j);
 						if (jth instanceof Formula.Inequality) {
 							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
 							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq);
@@ -294,7 +336,7 @@ public class AutomatedTheoremProver {
 		System.out.print("GROUNDS: ");
 		println(grounds);
 		for (int i = 0; i != state.size(); ++i) {
-			Formula ith = state.get(i);
+			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Quantifier) {
 				Formula.Quantifier qf = (Formula.Quantifier) ith;
 				if (qf.getSign()) {
@@ -308,7 +350,7 @@ public class AutomatedTheoremProver {
 	private Expr[] determineGroundTerms(State state) {
 		HashSet<Expr> grounds = new HashSet<>();
 		for (int i = 0; i != state.size(); ++i) {
-			Formula ith = state.get(i);
+			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
 				Expr lhs = (Expr) ith.getOperand(0);
 				Expr rhs = (Expr) ith.getOperand(1);
@@ -370,51 +412,77 @@ public class AutomatedTheoremProver {
 
 	private static class State {
 		private final SyntacticHeap heap;
-		private final BitSet truths;
+		/**
+		 * The set of all known truths, including those which are subsumed.
+		 * Always a superset of activeTruths.
+		 */
+		private final BitSet allTruths;
+		/**
+		 * The set of all known truths, excluding those which are subsumed.
+		 * Always a subset of allTruths.
+		 */
+		private final BitSet activeTruths;
 
 		public State(SyntacticHeap heap) {
 			this.heap = heap;
-			this.truths = new BitSet();
+			this.allTruths = new BitSet();
+			this.activeTruths = new BitSet();
 		}
 
 		public State(State state) {
 			this.heap = state.heap;
-			this.truths = (BitSet) state.truths.clone();
+			this.allTruths = (BitSet) state.allTruths.clone();
+			this.activeTruths = (BitSet) state.activeTruths.clone();
 		}
 
 		public int size() {
-			return truths.length();
+			return activeTruths.length();
 		}
 
 		public SyntacticHeap getHeap() {
 			return heap;
 		}
 
+		/**
+		 * Determine whether a given truth is known or not.
+		 *
+		 * @param truth
+		 * @return
+		 */
 		public boolean contains(Formula truth) {
-			return truths.get(truth.getIndex());
+			return allTruths.get(truth.getIndex());
 		}
 
-		public Formula get(int index) {
-			if (truths.get(index)) {
+		public Formula getActive(int index) {
+			if (activeTruths.get(index)) {
 				return (Formula) heap.getSyntacticItem(index);
 			} else {
 				return null;
 			}
 		}
 
-		public void set(Formula truth) {
-			final int index = truth.getIndex();
-			truths.set(index);
-		}
-
-		public void set(Formula... truths) {
-			for (int i = 0; i != truths.length; ++i) {
-				this.truths.set(truths[i].getIndex());
+		/**
+		 * Subume one formula with one or more formulae. This implication is
+		 * that latter "cover" the former. The former is no longer active,
+		 * though it remains a known truth. The new formula are active.
+		 *
+		 * @param from
+		 * @param to
+		 */
+		public void subsume(Formula from, Formula... tos) {
+			final int fromIndex = from.getIndex();
+			activeTruths.clear(fromIndex);
+			for(int i=0;i!=tos.length;++i) {
+				final int toIndex = tos[i].getIndex();
+				allTruths.set(toIndex);
+				activeTruths.set(toIndex);
 			}
 		}
 
-		public void unset(Formula formula) {
-			this.truths.clear(formula.getIndex());
+		public void set(Formula truth) {
+			final int index = truth.getIndex();
+			allTruths.set(index);
+			activeTruths.set(index);
 		}
 
 		public State[] split(Formula... cases) {
@@ -439,7 +507,7 @@ public class AutomatedTheoremProver {
 
 	public static void print(int indent, State state) {
 		for(int i=0;i!=state.size();++i) {
-			Formula ith = state.get(i);
+			Formula ith = state.getActive(i);
 			if(ith != null) {
 				println(indent,ith);
 			}

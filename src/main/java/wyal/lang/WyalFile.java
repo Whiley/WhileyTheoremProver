@@ -721,9 +721,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				super(Opcode.TYPE_inv, parameters, new Tuple<Type>(new Bool()));
 			}
 
+			private Invariant(Tuple<Type> parameters, Tuple<Type> returns) {
+				super(Opcode.TYPE_inv, parameters, returns);
+			}
+
 			@Override
-			public Macro clone(SyntacticItem[] operands) {
-				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			public Invariant clone(SyntacticItem[] operands) {
+				return new Invariant((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
 			}
 		}
 	}

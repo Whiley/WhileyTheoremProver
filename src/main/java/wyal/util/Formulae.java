@@ -296,7 +296,7 @@ public class Formulae {
 	 * @param types
 	 * @return
 	 */
-	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:
