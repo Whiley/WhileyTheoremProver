@@ -133,12 +133,14 @@ public class AutomatedTheoremProver {
 					Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 					// Calculate the invariant
 					Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
-					if (!ivk.getSign()) {
-						invariant = Formulae.invert(invariant);
+					if(invariant != null) {
+						if (!ivk.getSign()) {
+							invariant = Formulae.invert(invariant);
+						}
+						// Update the state
+						state.subsume(truth,state.allocate(invariant));
+						return checkUnsat(state, depth, FALSE);
 					}
-					// Update the state
-					state.subsume(truth,state.allocate(invariant));
-					return checkUnsat(state, depth, FALSE);
 				} else if(truth != null){
 					Formula invariant = generateImplicitAxioms(truth);
 					if(invariant != null) {
@@ -155,10 +157,13 @@ public class AutomatedTheoremProver {
 			// only primitive formulae.
 			//
 			// Apply congruence closure
-			closeOverCongruence(state);
+			System.out.println("STAGE 1");
+			closeOverCongruence(state,FALSE);
 			// Apply transitive closure over inequalities
-			closeOverInequalities(state);
+			System.out.println("STAGE 2");
+			closeOverInequalities(state, FALSE);
 			// Instantiate any quantified formulae
+			System.out.println("STAGE 3");
 			instantiateUniversalQuantifiers(state);
 			// Done
 			return checkUnsat(state, depth + 1, FALSE);
@@ -234,33 +239,38 @@ public class AutomatedTheoremProver {
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
-		Formula result = null;
+		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(),argument,types);
 		for (int i = 0; i != invariant.size(); ++i) {
 			// Convert the invariant clause into a formula
 			Formula ith = Formulae.toFormula(invariant.getOperand(i), types);
 			//
-			result = i == 0 ? ith : new Formula.Conjunct(result, ith);
+			result = result == null ? ith : new Formula.Conjunct(result, ith);
 		}
-		// At this point, we must substitute the variable name used in
-		// the type declaration for the name used as the invocation
-		// argument.
-		Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
-		result = (Formula) Formulae.substitute(parameter, argument, result);
-		return Formulae.simplify(result);
+		if(result == null) {
+			return null;
+		} else {
+			// At this point, we must substitute the variable name used in
+			// the type declaration for the name used as the invocation
+			// argument.
+			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
+			result = (Formula) Formulae.substitute(parameter, argument, result);
+			return Formulae.simplify(result);
+		}
 	}
 
-	private void closeOverCongruence(State state) {
+	private void closeOverCongruence(State state, Formula.Truth FALSE) {
 		int count = 10;
 		boolean changed = true;
-		while (changed) {
+		while (changed && !state.contains(FALSE)) {
+			int size = state.size();
 			changed = false;
-			for (int i = 0; i != state.size(); ++i) {
+			for (int i = 0; i != size && !state.contains(FALSE); ++i) {
 				Formula ith = state.getActive(i);
 				if (ith instanceof Formula.Equality) {
 					Formula.Equality eq = (Formula.Equality) ith;
 					if (eq.getSign()) {
 						Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-						changed |= applySubstitution(substitution, i, state);
+						changed |= applySubstitution(substitution, i, state, FALSE);
 						if(--count == 0) {
 							throw new RuntimeException("trip count reached");
 						}
@@ -270,12 +280,12 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state) {
+	private boolean applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
 		boolean nochange = true;
 
 		if (substitution != null) {
 			// We've found a suitable substitution
-			for (int j = 0; j < state.size(); ++j) {
+			for (int j = 0; j < state.size() && !state.contains(FALSE); ++j) {
 				Formula before = state.getActive(j);
 				if (j != ignored && before != null) {
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
@@ -286,7 +296,6 @@ public class AutomatedTheoremProver {
 						AutomatedTheoremProver.print(before);
 						System.out.print(" -----> ");
 						AutomatedTheoremProver.println(Formulae.simplify(after));
-						println(0,state);
 					}
 					if (before != after) {
 						after = state.allocate(Formulae.simplify(after));
@@ -299,17 +308,18 @@ public class AutomatedTheoremProver {
 		return !nochange;
 	}
 
-	private void closeOverInequalities(State state) {
+	private void closeOverInequalities(State state, Formula.Truth FALSE) {
 		boolean nochange = false;
 		int count = 50;
-		while (!nochange) {
+		while (!nochange && !state.contains(FALSE)) {
 			nochange = true;
+			int size = state.size();
 			//
-			for (int i = 0; i != state.size(); ++i) {
+			for (int i = 0; i != size; ++i) {
 				Formula ith = state.getActive(i);
 				if (ith instanceof Formula.Inequality) {
 					Formula.Inequality ith_ieq = (Formula.Inequality) ith;
-					for (int j = i + 1; j != state.size(); ++j) {
+					for (int j = i + 1; j != size; ++j) {
 						Formula jth = state.getActive(j);
 						if (jth instanceof Formula.Inequality) {
 							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
@@ -320,7 +330,16 @@ public class AutomatedTheoremProver {
 								}
 								inferred = state.allocate(inferred);
 								System.out.print("INFERRED: ");
-								println(inferred);
+								print(inferred);
+								System.out.print("\t\t\t(");
+								print(ith);
+								System.out.print(", ");
+								print(jth);
+								if(!state.contains(inferred)) {
+									System.out.println(")*");
+								} else {
+									System.out.println(")");
+								}
 								nochange &= state.contains(inferred);
 								state.set(inferred);
 							}
@@ -382,23 +401,24 @@ public class AutomatedTheoremProver {
 			// parameter.
 			Formula body = qf.getBody();
 			// FIXME: there is a bug of sorts here related to skolems
-			System.out.print("INSTANTIATING: ");
+			String dbg = "";
 			for (int i = 0; i != parameters.length; ++i) {
 				VariableDeclaration parameter = parameters[i];
 				// FIXME: I'm assuming integer only quantification!!
-				System.out.print("[" + parameter.getVariableName() + " / ");
-				print(binding[i]);
-				System.out.print("]");
+				dbg += ("[" + parameter.getVariableName() + " / ??? ]");
 				Expr.VariableAccess access = new Expr.VariableAccess(parameter);
 				body = (Formula) Formulae.substitute(access, binding[i], body);
 			}
 			// Second, instantiate the ground body
-			System.out.print(" ");
-			print(qf.getBody());
 			body = state.allocate(Formulae.simplify(body));
-			System.out.print(" ===> ");
-			println(body);
-			state.set(body);
+			if(!state.contains(body)) {
+//				System.out.print("INSTANTIATED: " + dbg);
+//				System.out.print(" ");
+//				print(qf.getBody());
+//				System.out.print(" ===> ");
+//				println(body);
+				state.set(body);
+			}
 		} else {
 			// Exhaustively instantiate this variable with all possible ground
 			// terms.
@@ -501,6 +521,7 @@ public class AutomatedTheoremProver {
 	}
 
 	public static void println(int indent, State state) {
+		System.out.println("*** STATE ***");
 		print(indent,state);
 		System.out.println();
 	}
@@ -509,7 +530,9 @@ public class AutomatedTheoremProver {
 		for(int i=0;i!=state.size();++i) {
 			Formula ith = state.getActive(i);
 			if(ith != null) {
-				println(indent,ith);
+				//println(indent,ith);
+				print(indent,ith);
+				System.out.println(" " + ith.getIndex());
 			}
 		}
 	}

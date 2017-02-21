@@ -338,7 +338,8 @@ public class Formulae {
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-			Formula inv = extractTypeInvariant(t.getElement(), va, types);
+			Polynomial el = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, root, va));
+			Formula inv = extractTypeInvariant(t.getElement(), el, types);
 			Polynomial zero = toPolynomial(0);
 			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
 			// The following axiom simply states that the length of every array
@@ -1062,15 +1063,21 @@ public class Formulae {
 		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
 		Polynomial lhs;
 		Polynomial rhs;
-		if (lCandidate != null) {
+		if (lCandidate != null && rCandidate == null) {
 			// FIXME: should be selecting the least candidate
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-		} else if (rCandidate != null) {
+		} else if (lCandidate == null && rCandidate != null) {
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-		} else {
+		} else if(lCandidate == null && rCandidate == null) {
 			return null;
+		} else if(lCandidate.compareTo(rCandidate) <= 0){
+			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+		} else {
+			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 		}
 		if (ith.getSign() && jth.getSign()) {
 			// Result is *very* strict as had something like ... < x < ...

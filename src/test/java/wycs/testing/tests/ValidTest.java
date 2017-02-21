@@ -45,7 +45,9 @@ public class ValidTest {
 		IGNORED.put("test_arith_31", "non-linear");
 		IGNORED.put("test_arith_36", "infinite loop");
 		IGNORED.put("test_arith_38", "non-linear");
+		IGNORED.put("test_array_15", "infinte loop");
 		IGNORED.put("Coercion_Valid_8", "#681");
+		IGNORED.put("test_type_09", "recursive type");
 	}
 
 	// ======================================================================
