@@ -11,6 +11,7 @@ import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
+import wyal.util.AutomatedTheoremProver;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
 import wybs.lang.CompilationUnit;

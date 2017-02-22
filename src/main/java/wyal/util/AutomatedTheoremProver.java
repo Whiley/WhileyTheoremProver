@@ -1,6 +1,7 @@
 package wyal.util;
 
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -156,12 +157,19 @@ public class AutomatedTheoremProver {
 			// contains
 			// only primitive formulae.
 			//
-			// Apply congruence closure
-			System.out.println("STAGE 1");
-			closeOverCongruence(state,FALSE);
-			// Apply transitive closure over inequalities
-			System.out.println("STAGE 2");
-			closeOverInequalities(state, FALSE);
+			boolean change = true;
+			int count = 5;
+			while(change && !state.contains(FALSE)) {
+				change = false;
+				// Apply congruence closure
+				change |= closeOverCongruence(state,FALSE);
+				// Apply transitive closure over inequalities
+				change |= closeOverInequalities(state, FALSE);
+				//
+				if(count-- == 0) {
+					throw new IllegalArgumentException("trip count reached");
+				}
+			}
 			// Instantiate any quantified formulae
 			System.out.println("STAGE 3");
 			instantiateUniversalQuantifiers(state);
@@ -188,6 +196,16 @@ public class AutomatedTheoremProver {
 			} else {
 				axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
 			}
+			break;
+		}
+		case EXPR_arridx: {
+			Expr.Operator idx = (Expr.Operator) e;
+			Expr src = idx.getOperand(0);
+			Polynomial index = Formulae.toPolynomial(idx.getOperand(1));
+			Polynomial srclen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, src));
+			Formula.Inequality lb = new Formula.Inequality(true,index,srclen);
+			Formula.Inequality gb = new Formula.Inequality(false,index,new Polynomial(BigInteger.ZERO));
+			axiom = new Formula.Conjunct(lb,gb);
 			break;
 		}
 		case EXPR_div: {
@@ -258,26 +276,20 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private void closeOverCongruence(State state, Formula.Truth FALSE) {
-		int count = 10;
-		boolean changed = true;
-		while (changed && !state.contains(FALSE)) {
-			int size = state.size();
-			changed = false;
-			for (int i = 0; i != size && !state.contains(FALSE); ++i) {
-				Formula ith = state.getActive(i);
-				if (ith instanceof Formula.Equality) {
-					Formula.Equality eq = (Formula.Equality) ith;
-					if (eq.getSign()) {
-						Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-						changed |= applySubstitution(substitution, i, state, FALSE);
-						if(--count == 0) {
-							throw new RuntimeException("trip count reached");
-						}
-					}
+	private boolean closeOverCongruence(State state, Formula.Truth FALSE) {
+		int size = state.size();
+		boolean changed = false;
+		for (int i = 0; i != size && !state.contains(FALSE); ++i) {
+			Formula ith = state.getActive(i);
+			if (ith instanceof Formula.Equality) {
+				Formula.Equality eq = (Formula.Equality) ith;
+				if (eq.getSign()) {
+					Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
+					changed |= applySubstitution(substitution, i, state, FALSE);
 				}
 			}
 		}
+		return changed;
 	}
 
 	private boolean applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
@@ -308,39 +320,38 @@ public class AutomatedTheoremProver {
 		return !nochange;
 	}
 
-	private void closeOverInequalities(State state, Formula.Truth FALSE) {
-		boolean nochange = false;
-		int count = 50;
-		while (!nochange && !state.contains(FALSE)) {
-			nochange = true;
-			int size = state.size();
-			//
-			for (int i = 0; i != size; ++i) {
-				Formula ith = state.getActive(i);
-				if (ith instanceof Formula.Inequality) {
-					Formula.Inequality ith_ieq = (Formula.Inequality) ith;
-					for (int j = i + 1; j != size; ++j) {
-						Formula jth = state.getActive(j);
-						if (jth instanceof Formula.Inequality) {
-							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
-							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
-							if (inferred != null) {
-								if(--count == 0) {
-									throw new RuntimeException("trip count reached");
-								}
-								inferred = state.allocate(inferred);
-								System.out.print("INFERRED: ");
-								print(inferred);
-								System.out.print("\t\t\t(");
-								print(ith);
-								System.out.print(", ");
-								print(jth);
-								if(!state.contains(inferred)) {
-									System.out.println(")*");
-								} else {
-									System.out.println(")");
-								}
-								nochange &= state.contains(inferred);
+	private boolean closeOverInequalities(State state, Formula.Truth FALSE) {
+		boolean change = false;
+		int size = state.size();
+		//
+		for (int i = 0; i != size; ++i) {
+			Formula ith = state.getActive(i);
+			if (ith instanceof Formula.Inequality) {
+				Formula.Inequality ith_ieq = (Formula.Inequality) ith;
+				for (int j = i + 1; j != size; ++j) {
+					Formula jth = state.getActive(j);
+					if (jth instanceof Formula.Inequality) {
+						Formula.Inequality jth_ieq = (Formula.Inequality) jth;
+						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
+						if (inferred != null) {
+							inferred = state.allocate(inferred);
+							System.out.print("INFERRED: ");
+							print(inferred);
+							System.out.print("\t\t\t(");
+							print(ith);
+							System.out.print(", ");
+							print(jth);
+							if (!state.contains(inferred)) {
+								System.out.println(")*");
+							} else {
+								System.out.println(")");
+							}
+							change |= !state.contains(inferred);
+							if (inferred instanceof Formula.Equality) {
+								state.subsume(ith, inferred);
+								state.subsume(jth, inferred);
+								break;
+							} else {
 								state.set(inferred);
 							}
 						}
@@ -348,6 +359,7 @@ public class AutomatedTheoremProver {
 				}
 			}
 		}
+		return change;
 	}
 
 	private void instantiateUniversalQuantifiers(State state) {
@@ -412,11 +424,11 @@ public class AutomatedTheoremProver {
 			// Second, instantiate the ground body
 			body = state.allocate(Formulae.simplify(body, types));
 			if(!state.contains(body)) {
-//				System.out.print("INSTANTIATED: " + dbg);
-//				System.out.print(" ");
-//				print(qf.getBody());
-//				System.out.print(" ===> ");
-//				println(body);
+				System.out.print("INSTANTIATED: " + dbg);
+				System.out.print(" ");
+				print(qf.getBody());
+				System.out.print(" ===> ");
+				println(body);
 				state.set(body);
 			}
 		} else {

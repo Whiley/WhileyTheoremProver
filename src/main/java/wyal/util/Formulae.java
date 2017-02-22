@@ -223,7 +223,7 @@ public class Formulae {
 	 *            The expression to be converted
 	 * @return
 	 */
-	private static Polynomial toPolynomial(Expr e) {
+	public static Polynomial toPolynomial(Expr e) {
 		if (e instanceof Polynomial) {
 			return (Polynomial) e;
 		} else {
@@ -821,6 +821,7 @@ public class Formulae {
 		case EXPR_is:
 			return simplify((Expr.Is) e, types);
 		case EXPR_arrlen:
+			return simplifyArrayLength((Expr.Operator)e, types);
 		case EXPR_arrinit:
 		case EXPR_arrgen:
 		case EXPR_rem: // temporary for now
@@ -942,6 +943,19 @@ public class Formulae {
 		} else {
 			return new Expr.Operator(Opcode.EXPR_arridx, nSource, nIndex);
 		}
+	}
+
+	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) {
+		Expr r = simplifyNonArithmetic(e, types);
+		if(r instanceof Expr.Operator) {
+			Expr src = (Expr) r.getOperand(0);
+			if(src.getOpcode() == Opcode.EXPR_arrinit) {
+				return new Polynomial(BigInteger.valueOf(src.size()));
+			} else if(src.getOpcode() == Opcode.EXPR_arrgen) {
+				return (Expr) src.getOperand(1);
+			}
+		}
+		return r;
 	}
 
 	private static Expr simplifyNonArithmetic(Expr.Operator e, TypeSystem types) {
@@ -1109,25 +1123,43 @@ public class Formulae {
 
 		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
 		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
+		Polynomial.Term lhsCandidate;
 		Polynomial lhs;
 		Polynomial rhs;
 		if (lCandidate != null && rCandidate == null) {
-			// FIXME: should be selecting the least candidate
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lhsCandidate = lCandidate.getFirst();
 		} else if (lCandidate == null && rCandidate != null) {
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lhsCandidate = rCandidate.getSecond();
 		} else if(lCandidate == null && rCandidate == null) {
 			return null;
 		} else if(lCandidate.compareTo(rCandidate) <= 0){
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lhsCandidate = lCandidate.getFirst();
 		} else {
 			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
 			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lhsCandidate = rCandidate.getSecond();
 		}
-		if (ith.getSign() && jth.getSign()) {
+		if(lhs.equals(rhs)) {
+			if(ith.getSign() || jth.getSign()) {
+				// y < x < y ==> false
+				return new Formula.Truth(false);
+			} else {
+				System.out.print("*** INFERRING EQUALITY: ");
+				Formula f = simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lhs),types);
+				AutomatedTheoremProver.print(f);
+				System.out.print(" FROM: ");
+				AutomatedTheoremProver.print(ith);
+				System.out.print(" AND: ");
+				AutomatedTheoremProver.println(jth);
+				return f;
+			}
+		} else if (ith.getSign() && jth.getSign()) {
 			// Result is *very* strict as had something like ... < x < ...
 			lhs = lhs.add(new Polynomial.Term(BigInteger.ONE));
 			return simplify(new Formula.Inequality(true, lhs, rhs), types);

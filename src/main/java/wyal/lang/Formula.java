@@ -214,6 +214,16 @@ public interface Formula extends Expr {
 		}
 
 		@Override
+		public boolean equals(Object o) {
+			// FIXME: the need for this method is something of a hack.
+			if(o instanceof Formula.Invoke) {
+				Formula.Invoke i = (Formula.Invoke) o;
+				return sign == i.sign && super.equals(o);
+			}
+			return false;
+		}
+
+		@Override
 		public Formula.Invoke clone(SyntacticItem[] children) {
 			return new Formula.Invoke(sign,(Type.AbstractFunction) children[0], (Name) children[1],
 					(Tuple) children[2]);

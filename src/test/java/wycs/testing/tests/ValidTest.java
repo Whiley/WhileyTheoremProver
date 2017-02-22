@@ -43,9 +43,9 @@ public class ValidTest {
 		IGNORED.put("test_arith_15", "non-linear");
 		IGNORED.put("test_arith_28", "integers");
 		IGNORED.put("test_arith_31", "non-linear");
-		IGNORED.put("test_arith_36", "infinite loop");
 		IGNORED.put("test_arith_38", "non-linear");
-		IGNORED.put("test_array_15", "infinte loop");
+		IGNORED.put("test_array_15", "infinite loop");
+		IGNORED.put("test_array_31", "unsupported syntax");
 		IGNORED.put("Coercion_Valid_8", "#681");
 		IGNORED.put("test_type_09", "recursive type");
 		IGNORED.put("test_type_20", "hard?");
@@ -54,6 +54,7 @@ public class ValidTest {
 		IGNORED.put("test_type_27", "type simplification");
 		IGNORED.put("test_type_28", "type simplification");
 		IGNORED.put("test_type_29", "type simplification");
+		IGNORED.put("test_macro_03", "macro overloading");
 	}
 
 	// ======================================================================
