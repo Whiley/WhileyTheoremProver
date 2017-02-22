@@ -576,6 +576,7 @@ public class WyalFilePrinter {
 		switch (type.getOpcode()) {
 		case TYPE_or:
 		case TYPE_and:
+		case TYPE_arr:
 			out.print("(");
 			writeType(type);
 			out.print(")");

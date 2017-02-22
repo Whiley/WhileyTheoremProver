@@ -72,7 +72,7 @@ public class AutomatedTheoremProver {
 		println(formula);
 		System.out.println("--------------------------");
 		// Simplify the formula, since inversion does not do this.
-		formula = Formulae.simplify(formula);
+		formula = Formulae.simplify(formula, types);
 		println(formula);
 		System.out.println("--------------------------");
 		// Allocate initial formula to the heap
@@ -144,7 +144,7 @@ public class AutomatedTheoremProver {
 				} else if(truth != null){
 					Formula invariant = generateImplicitAxioms(truth);
 					if(invariant != null) {
-						invariant = state.allocate(Formulae.simplify(invariant));
+						invariant = state.allocate(Formulae.simplify(invariant, types));
 						if(!state.contains(invariant)) {
 							state.set(invariant);
 							return checkUnsat(state, depth, FALSE);
@@ -233,7 +233,7 @@ public class AutomatedTheoremProver {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
 			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
-		return Formulae.simplify(body);
+		return Formulae.simplify(body, types);
 	}
 
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
@@ -254,7 +254,7 @@ public class AutomatedTheoremProver {
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) Formulae.substitute(parameter, argument, result);
-			return Formulae.simplify(result);
+			return Formulae.simplify(result, types);
 		}
 	}
 
@@ -295,10 +295,10 @@ public class AutomatedTheoremProver {
 						System.out.print("REWROTE: ");
 						AutomatedTheoremProver.print(before);
 						System.out.print(" -----> ");
-						AutomatedTheoremProver.println(Formulae.simplify(after));
+						AutomatedTheoremProver.println(Formulae.simplify(after, types));
 					}
 					if (before != after) {
-						after = state.allocate(Formulae.simplify(after));
+						after = state.allocate(Formulae.simplify(after, types));
 						nochange &= state.contains(after);
 						state.subsume(before,after);
 					}
@@ -323,7 +323,7 @@ public class AutomatedTheoremProver {
 						Formula jth = state.getActive(j);
 						if (jth instanceof Formula.Inequality) {
 							Formula.Inequality jth_ieq = (Formula.Inequality) jth;
-							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq);
+							Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 							if (inferred != null) {
 								if(--count == 0) {
 									throw new RuntimeException("trip count reached");
@@ -410,7 +410,7 @@ public class AutomatedTheoremProver {
 				body = (Formula) Formulae.substitute(access, binding[i], body);
 			}
 			// Second, instantiate the ground body
-			body = state.allocate(Formulae.simplify(body));
+			body = state.allocate(Formulae.simplify(body, types));
 			if(!state.contains(body)) {
 //				System.out.print("INSTANTIATED: " + dbg);
 //				System.out.print(" ");
