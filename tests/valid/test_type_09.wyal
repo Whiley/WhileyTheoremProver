@@ -1,7 +1,7 @@
-type Recursive is [Recursive|null]
+type Recursive is ((Recursive|null)[] r)
 
 assert:
-    forall(Recursive x, [int] y):
+    forall(Recursive x, int[] y):
         if:
             x == y
         then:

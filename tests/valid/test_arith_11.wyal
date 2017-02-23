@@ -1,4 +1,7 @@
 assert:
    forall (int x, int y):
-       (x == y) ==> (x + y == 2 * x)
+    if:
+        x == y
+    then:
+        (x + y) == (2 * x)
 

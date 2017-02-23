@@ -1,2 +1,2 @@
 assert:
-    (1,true) is (int,bool)
+    { x:1, y:true} is {int x,bool y}

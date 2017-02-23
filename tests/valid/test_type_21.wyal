@@ -15,7 +15,7 @@ assert:
 assert:
     forall(any x):
         if:
-            x == (1,1)
+            x == {f:1, g:1}
         then:
             !(x is bool)
 

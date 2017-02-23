@@ -1,7 +1,10 @@
-function indexOf([int] src, int i) -> (int r)
+function indexOf(int[] src, int i) -> (int r)
 ensures:
     src[i] == r
 
 assert:
-  forall ([int] xs, int i):
-    indexOf(xs,i) > 0 ==> indexOf(xs,i) >= 0
+  forall (int[] xs, int i):
+    if:
+        indexOf(xs,i) > 0
+    then:
+        indexOf(xs,i) >= 0

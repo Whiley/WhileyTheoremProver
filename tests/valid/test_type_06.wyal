@@ -2,7 +2,7 @@ type nat is (int x) where:
     x >= 0
 
 assert:
-    forall([nat] xs, nat i):
+    forall(nat[] xs, nat i):
         if:
            i < |xs|
         then:

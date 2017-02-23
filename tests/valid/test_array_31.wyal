@@ -1,0 +1,10 @@
+assert:
+  forall(int[] xs):
+    if:
+      forall (int i):
+        xs[i] >= 0
+    then:
+      not:
+        exists(int i):
+            xs[i] < 0
+

@@ -1,3 +1,6 @@
 assert:
   forall (int x, int y, int z):
-    z == x - y && 0 <= x - y ==> 0 <= z
+    if:
+        (z == (x - y)) && (0 <= (x - y))
+    then:
+        0 <= z

@@ -1,0 +1,23 @@
+function lastIndexOf(int[] r0, int r1) -> (null|int r)
+
+define invariant(int[] items, int i, int x, int last) is:
+    either:
+        last != -1
+        items[last] == x
+    or:
+        last == -1
+
+assert:
+    forall (int i, int[] xs, int last, int nlast, int x):
+        if:
+            either:
+                invariant(xs, i, x, last)
+                xs[i] == x
+                nlast == i
+            or:
+                invariant(xs, i, x, last)
+                xs[i] != x
+                nlast == last
+        then:
+            invariant(xs, i + 1, x, nlast)
+

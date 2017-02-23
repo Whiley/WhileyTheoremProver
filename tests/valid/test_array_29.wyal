@@ -1,0 +1,6 @@
+define In(int x, int[] xs) is:
+  exists(int i):
+     xs[i] == x
+
+assert:
+  In(1,[1,2])

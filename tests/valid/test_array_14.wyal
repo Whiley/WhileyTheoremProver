@@ -1,0 +1,16 @@
+assert:
+    forall (int[] xs):
+        if:
+            exists (int i1):
+                xs[i1] < 0
+            either:
+                false == true
+                exists (int i2):
+                    xs[i2] < 0
+            or:
+                forall (int i3):
+                    xs[i3] >= 0
+        then:
+            false
+
+

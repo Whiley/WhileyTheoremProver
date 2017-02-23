@@ -1,3 +1,7 @@
 assert:
-  forall({int} ys, {int} xs):
-    xs ⊆ ys ==> |xs| < |ys|
+  forall(int[] ys, int[] xs):
+    if:
+        forall(int i):
+            xs[i] == ys[i]
+    then:
+        |xs| < |ys|

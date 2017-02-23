@@ -1,3 +1,22 @@
+define subsequence(int[] xs, int[] ys) is:
+   |xs| < |ys|
+   forall (int i):
+     if:
+        i >= 0
+        i < |xs|
+     then:
+        xs[i] == ys[i]
+
+define contains(int[] xs, int x) is:
+    exists(int i):
+        i >= 0
+        i < |xs|
+        xs[i] == x
+
 assert:
-   forall(int x, {int} xs, {int} ys):
-       (x in xs && ys ⊆ xs) ==> x in ys
+   forall(int x, int[] xs, int[] ys):
+      if:
+        subsequence(xs,ys)
+        contains(ys,x)
+      then:
+        contains(xs,x)

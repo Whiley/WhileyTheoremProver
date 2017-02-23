@@ -1,0 +1,13 @@
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
+
+assert:
+    forall (int[] items, int[] nitems, int i, int n):
+        if:
+            update(items,nitems,n)
+            nitems[n] == 0
+            items[i] != 0
+        then:
+            (n != i) ==> (nitems[i] != 0)
