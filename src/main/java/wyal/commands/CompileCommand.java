@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.VerificationError;
 import wyal.tasks.CompileTask;
 import wyal.util.AbstractProjectCommand;
 import wybs.lang.SyntaxError;
@@ -145,7 +146,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	@Override
 	public Result execute(String... args) {
 		try {
-			ArrayList<File> delta = new ArrayList<File>();
+			ArrayList<File> delta = new ArrayList<>();
 			for (String arg : args) {
 				delta.add(new File(arg));
 			}
@@ -238,6 +239,9 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		CompileTask wyalBuildTask = new CompileTask(project);
 		if(verbose) {
 			wyalBuildTask.setLogger(logger);
+		}
+		if(verify) {
+			wyalBuildTask.setVerify(true);
 		}
 		project.add(new StdBuildRule(wyalBuildTask, wyaldir, wyalIncludes, wyalExcludes, wycsdir));
 	}

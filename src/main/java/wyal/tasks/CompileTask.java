@@ -34,11 +34,14 @@ public class CompileTask implements Build.Task {
 	 */
 	private Logger logger;
 
+	/**
+	 * Signals whether or not verification should be enabled.
+	 */
+	private boolean verify;
 
 	public CompileTask(Build.Project project) {
 		this.logger = Logger.NULL;
 		this.project = project;
-
 	}
 
 	@Override
@@ -48,6 +51,10 @@ public class CompileTask implements Build.Task {
 
 	public void setLogger(Logger logger) {
 		this.logger = logger;
+	}
+
+	public void setVerify(boolean flag) {
+		this.verify = flag;
 	}
 
 	@Override
@@ -84,16 +91,16 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		ArrayList<WyalFile> files = new ArrayList<WyalFile>();
+		ArrayList<WyalFile> files = new ArrayList<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> entry = p.first();
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
-				// FIXME: temporary
-				new WyalFilePrinter(System.out).write(wf);
 				new TypeChecker(wf).check();
-				new AutomatedTheoremProver(wf).check();
+				if(verify) {
+					new AutomatedTheoremProver(wf).check();
+				}
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary
@@ -108,12 +115,6 @@ public class CompileTask implements Build.Task {
 			}
 		}
 
-//		TypeChecker typeChecker = new TypeChecker(this);
-//		typeChecker.propagate(files);
-//
-//		logger.logTimedMessage("Typed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
-//				tmpMemory - runtime.freeMemory());
-
 		// ========================================================================
 		// Code Generation
 		// ========================================================================
@@ -122,7 +123,7 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		HashSet<Path.Entry<?>> generatedFiles = new HashSet<Path.Entry<?>>();
+		HashSet<Path.Entry<?>> generatedFiles = new HashSet<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> src = p.first();
 			Path.Root dst = p.second();

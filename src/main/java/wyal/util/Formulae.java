@@ -1150,14 +1150,7 @@ public class Formulae {
 				// y < x < y ==> false
 				return new Formula.Truth(false);
 			} else {
-				System.out.print("*** INFERRING EQUALITY: ");
-				Formula f = simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lhs),types);
-				AutomatedTheoremProver.print(f);
-				System.out.print(" FROM: ");
-				AutomatedTheoremProver.print(ith);
-				System.out.print(" AND: ");
-				AutomatedTheoremProver.println(jth);
-				return f;
+				return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lhs),types);
 			}
 		} else if (ith.getSign() && jth.getSign()) {
 			// Result is *very* strict as had something like ... < x < ...
@@ -1283,10 +1276,6 @@ public class Formulae {
 			}
 		}
 
-		System.out.print("FOUND SUBSTITUTION: ");
-		AutomatedTheoremProver.print(candidate);
-		System.out.print(" ==> ");
-		AutomatedTheoremProver.println(bound);
 		return new Pair<>(candidate, bound);
 	}
 

@@ -36,10 +36,23 @@ public class InvalidTest {
 	/**
 	 * Ignored tests and a reason why we ignore them.
 	 */
-	public final static Map<String, String> IGNORED = new HashMap<String, String>();
+	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-		//IGNORED.put("Coercion_Valid_8", "#681");
+		IGNORED.put("test_014", "unknown");
+		IGNORED.put("test_019", "unknown");
+		IGNORED.put("test_053", "unknown");
+		IGNORED.put("test_057", "unknown");
+		IGNORED.put("test_058", "unknown");
+		IGNORED.put("test_059", "unknown");
+		IGNORED.put("test_060", "unknown");
+		IGNORED.put("test_061", "infinite loop");
+		IGNORED.put("test_062", "unknown");
+		IGNORED.put("test_065", "unknown");
+		IGNORED.put("test_066", "unknown");
+		IGNORED.put("test_101", "infinite loop");
+		IGNORED.put("test_103", "infinite loop");
+		IGNORED.put("test_104", "unknown");
 	}
 
 	// ======================================================================
@@ -54,8 +67,8 @@ public class InvalidTest {
 
 			Pair<CompileCommand.Result,String> p = compile(
 					WYAL_SRC_DIR,      // location of source directory
-					false,               // no verification
-					whileyFilename);     // name of test to compile
+					true,              // use verification
+					whileyFilename);   // name of test to compile
 
 			CompileCommand.Result r = p.first();
 
@@ -84,7 +97,7 @@ public class InvalidTest {
 		byte[] errBytes = syserr.toByteArray();
 		byte[] outBytes = sysout.toByteArray();
 		String output = new String(errBytes) + new String(outBytes);
-		return new Pair<CompileCommand.Result,String>(result,output);
+		return new Pair<>(result,output);
 	}
 
 	// ======================================================================
@@ -137,7 +150,7 @@ public class InvalidTest {
 		final String suffix = ".wyal";
 		String containsFilter = System.getProperty("test.name.contains");
 
-		ArrayList<Object[]> testcases = new ArrayList<Object[]>();
+		ArrayList<Object[]> testcases = new ArrayList<>();
 		for (File f : new File(srcDir).listFiles()) {
 			// Check it's a file
 			if (!f.isFile()) {

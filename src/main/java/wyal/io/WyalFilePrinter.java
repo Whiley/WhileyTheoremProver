@@ -300,6 +300,9 @@ public class WyalFilePrinter {
 		case EXPR_invoke:
 			writeInvoke((Expr.Invoke)expr);
 			break;
+		case EXPR_arrgen:
+			writeArrayGenerator((Expr.Operator)expr);
+			break;
 		case EXPR_arridx:
 			writeArrayAccess((Expr.Operator)expr);
 			break;
@@ -436,6 +439,14 @@ public class WyalFilePrinter {
 		out.print("(");
 		writeArguments(expr.getArguments().getOperands());
 		out.print(")");
+	}
+
+	public void writeArrayGenerator(Expr.Operator expr) {
+		out.print("[");
+		writeExpression(expr.getOperand(0));
+		out.print(";");
+		writeExpression(expr.getOperand(1));
+		out.print("]");
 	}
 
 	public void writeArrayAccess(Expr.Operator expr) {

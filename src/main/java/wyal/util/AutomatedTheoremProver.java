@@ -17,6 +17,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
+import wybs.lang.SyntaxError;
 
 public class AutomatedTheoremProver {
 	/**
@@ -36,25 +37,25 @@ public class AutomatedTheoremProver {
 	}
 
 	public void check() {
+		ArrayList<VerificationError> errors = new ArrayList<>();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
-				check((WyalFile.Declaration.Assert) item);
+				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
+				if(!check(ast)) {
+					throw new SyntaxError("verification failure",parent.getEntry(),item);
+				}
 			}
 		}
 	}
 
-	private void check(WyalFile.Declaration.Assert decl) {
+	private boolean check(WyalFile.Declaration.Assert decl) {
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
 		Formula root = Formulae.toFormula(decl.getBody(), types);
 		// Check whether or not this formula is valid.
-		boolean valid = checkValidity(decl.getParent(), root);
+		return checkValidity(decl.getParent(), root);
 		//
-		if (!valid) {
-			// FIXME: throw proper error here
-			throw new IllegalArgumentException("Verification error!");
-		}
 	}
 
 	/**
@@ -70,12 +71,8 @@ public class AutomatedTheoremProver {
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
-		println(formula);
-		System.out.println("--------------------------");
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplify(formula, types);
-		println(formula);
-		System.out.println("--------------------------");
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		// Create initial state
@@ -83,16 +80,14 @@ public class AutomatedTheoremProver {
 		// Assume the formula holds
 		state.set(formula);
 		//
-		System.out.println("==== BEGIN CHECK UNSAT ====");
 		return checkUnsat(state, 0, FALSE);
 	}
 
 	private static final int MAX_DEPTH=2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		println(depth,state);
+
 		if(state.contains(FALSE)) {
-			System.out.println("FALSE");
 			return true;
 		} else if(depth == MAX_DEPTH) {
 			return false;
@@ -171,7 +166,6 @@ public class AutomatedTheoremProver {
 				}
 			}
 			// Instantiate any quantified formulae
-			System.out.println("STAGE 3");
 			instantiateUniversalQuantifiers(state);
 			// Done
 			return checkUnsat(state, depth + 1, FALSE);
@@ -304,12 +298,6 @@ public class AutomatedTheoremProver {
 							before);
 					//
 					if (before != after) {
-						System.out.print("REWROTE: ");
-						AutomatedTheoremProver.print(before);
-						System.out.print(" -----> ");
-						AutomatedTheoremProver.println(Formulae.simplify(after, types));
-					}
-					if (before != after) {
 						after = state.allocate(Formulae.simplify(after, types));
 						nochange &= state.contains(after);
 						state.subsume(before,after);
@@ -335,17 +323,6 @@ public class AutomatedTheoremProver {
 						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 						if (inferred != null) {
 							inferred = state.allocate(inferred);
-							System.out.print("INFERRED: ");
-							print(inferred);
-							System.out.print("\t\t\t(");
-							print(ith);
-							System.out.print(", ");
-							print(jth);
-							if (!state.contains(inferred)) {
-								System.out.println(")*");
-							} else {
-								System.out.println(")");
-							}
 							change |= !state.contains(inferred);
 							if (inferred instanceof Formula.Equality) {
 								state.subsume(ith, inferred);
@@ -364,8 +341,7 @@ public class AutomatedTheoremProver {
 
 	private void instantiateUniversalQuantifiers(State state) {
 		Expr[] grounds = determineGroundTerms(state);
-		System.out.print("GROUNDS: ");
-		println(grounds);
+
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Quantifier) {
@@ -424,11 +400,6 @@ public class AutomatedTheoremProver {
 			// Second, instantiate the ground body
 			body = state.allocate(Formulae.simplify(body, types));
 			if(!state.contains(body)) {
-				System.out.print("INSTANTIATED: " + dbg);
-				System.out.print(" ");
-				print(qf.getBody());
-				System.out.print(" ===> ");
-				println(body);
 				state.set(body);
 			}
 		} else {

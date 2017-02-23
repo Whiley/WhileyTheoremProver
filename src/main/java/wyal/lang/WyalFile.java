@@ -106,6 +106,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		DECL_type(110),
 		DECL_fun(111),
 		DECL_macro(112),
+		// ERRORS
+		ERR_verify(113),
 		// TYPES
 		TYPE_void(0),
 		TYPE_any(1),
@@ -1241,8 +1243,18 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	}
 
 	// ===========================================================
-	// Constants
+	// Errors
 	// ===========================================================
-	public final static int STAR = -2;
-	public final static int UNKNOWN_TYPE = -1;
+	public static class VerificationError extends AbstractSyntacticItem {
+
+		public VerificationError(Declaration.Assert parent) {
+			super(Opcode.ERR_verify, parent);
+		}
+
+		@Override
+		public SyntacticItem clone(SyntacticItem[] operands) {
+			return new VerificationError((Declaration.Assert) operands[0]);
+		}
+
+	}
 }
