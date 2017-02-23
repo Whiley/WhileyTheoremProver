@@ -1,0 +1,17 @@
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
+
+assert:
+    forall(int[] xs, int[] ys):
+       if:
+          forall (int i):
+            xs[i] >= 0
+          update(xs,ys,0)
+          ys[0] == 1
+       then:           
+          forall (int j):
+             ys[j] >= 0
+
+

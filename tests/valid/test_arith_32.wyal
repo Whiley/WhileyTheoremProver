@@ -1,6 +1,6 @@
 assert:
     forall (int i, int r):
         if:
-            r == 2 * i
+            r == (2 * i)
         then:
-            r + 2 == 2 * (i + 1)
+            (r + 2) == (2 * (i + 1))

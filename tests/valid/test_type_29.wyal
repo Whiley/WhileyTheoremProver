@@ -1,0 +1,8 @@
+type nint is (null|int t)
+
+assert:
+    forall(nint&!null x):
+        if:
+            x >= 1
+        then:
+            x >= 0

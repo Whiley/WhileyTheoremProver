@@ -1,3 +1,12 @@
+define subsequence(int[] xs, int[] ys) is:
+   |xs| < |ys|
+   forall (int i):
+     if:
+        i >= 0
+        i < |xs|
+     then:
+        xs[i] == ys[i]
+
 assert:
-  forall({int} xs, {int} ys):
-       xs ⊆ ys ==> |ys| > 0
+  forall(int[] xs, int[] ys):
+       subsequence(xs,ys) ==> (|ys| > 0)

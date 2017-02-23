@@ -1,0 +1,19 @@
+define update(int[] items, int[] nitems, int i) is:
+    |items| == |nitems|
+    forall(int j):
+        (j != i) ==> (items[j] == nitems[j])
+
+define invariant(int[] items) is:
+    forall (int i):
+        items[i] == 0
+            
+assert:
+    forall (int[] items, int[] nitems, int n):
+        if:
+            invariant(items)
+            update(items,nitems,n)
+            nitems[n] == 0
+        then:
+            invariant(nitems)
+
+

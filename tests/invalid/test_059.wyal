@@ -1,11 +1,11 @@
-define NatSet({int} xs) is:
-   forall (int x):
-     x in xs ==> x >= 0
+define NatArray(int[] xs) is:
+   forall (int i):
+     xs[i] >= 0
 
 assert:
-  forall(int x, {int} xs):
+  forall(int x, int[] xs):
     if:
-       NatSet(xs)
-       x in xs
+       NatArray(xs)
+       xs[0] == x
     then:
        x > 0
