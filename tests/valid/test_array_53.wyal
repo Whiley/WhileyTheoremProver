@@ -1,0 +1,7 @@
+assert:
+   forall(int[] xs, int[] ys, int i, int j):
+      if:
+          i != j
+          ys == xs[i:=0]
+      then:
+          ys[j] == xs[j]

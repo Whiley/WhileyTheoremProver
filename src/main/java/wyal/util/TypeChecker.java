@@ -120,6 +120,8 @@ public class TypeChecker {
 			return checkArrayGenerator((Expr.Operator) expr);
 		case EXPR_arridx:
 			return checkArrayAccess((Expr.Operator) expr);
+		case EXPR_arrupdt:
+			return checkArrayUpdate((Expr.Operator) expr);
 		// Reference expressions
 		default:
 			throw new RuntimeException("unknown bytecode encountered: " + expr);
@@ -357,6 +359,16 @@ public class TypeChecker {
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
+	}
+
+	private Type checkArrayUpdate(Expr.Operator expr) {
+		Type src = check(expr.getOperand(0));
+		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type indexType = check(expr.getOperand(1));
+		checkIsSubtype(new Type.Int(), indexType);
+		Type valueType = check(expr.getOperand(2));
+		checkIsSubtype(effectiveArray.getElement(), valueType);
+		return effectiveArray;
 	}
 
 	/**

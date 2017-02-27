@@ -73,7 +73,7 @@ public class ValidTest {
 
 			Pair<CompileCommand.Result,String> p = compile(
 					WYAL_SRC_DIR,      // location of source directory
-					false,               // no verification
+					true,               // no verification
 					whileyFilename);     // name of test to compile
 
 			CompileCommand.Result r = p.first();

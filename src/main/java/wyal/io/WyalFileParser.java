@@ -622,10 +622,18 @@ public class WyalFileParser {
 			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
 				Expr rhs = parseUnitExpression(scope, true);
-				// This is a plain old array access expression
-				match(RightSquare);
-				lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
-				lhs.attributes().add(sourceAttr(start, index - 1));
+				if(tryAndMatchOnLine(ColonEquals) != null) {
+					// This is an array update expression
+					Expr mhs = parseUnitExpression(scope, true);
+					match(RightSquare);
+					lhs = new Expr.Operator(Opcode.EXPR_arrupdt, lhs, rhs, mhs);
+					lhs.attributes().add(sourceAttr(start, index - 1));
+				} else {
+					// This is a plain old array access expression
+					match(RightSquare);
+					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
+					lhs.attributes().add(sourceAttr(start, index - 1));
+				}
 				break;
 			}
 			case Dot: {
