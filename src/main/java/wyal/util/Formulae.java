@@ -397,19 +397,19 @@ public class Formulae {
 		}
 	}
 
-	private static Formula lessThan(Polynomial lhs, Polynomial rhs) {
+	public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
 		return new Formula.Inequality(true, lhs, rhs);
 	}
 
-	private static Formula greaterOrEqual(Polynomial lhs, Polynomial rhs) {
+	public static Formula greaterOrEqual(Polynomial lhs, Polynomial rhs) {
 		return new Formula.Inequality(false, lhs, rhs);
 	}
 
-	private static Formula implies(Formula lhs, Formula rhs) {
+	public static Formula implies(Formula lhs, Formula rhs) {
 		return new Formula.Disjunct(invert(lhs),rhs);
 	}
 
-	private static Formula and(Formula lhs, Formula rhs) {
+	public static Formula and(Formula lhs, Formula rhs) {
 		return new Formula.Conjunct(lhs,rhs);
 	}
 
@@ -818,6 +818,8 @@ public class Formulae {
 			return simplify((Expr.Invoke) e, types);
 		case EXPR_arridx:
 			return simplifyArrayIndex((Expr.Operator) e, types);
+		case EXPR_arrupdt:
+			return simplifyArrayUpdate((Expr.Operator) e, types);
 		case EXPR_is:
 			return simplify((Expr.Is) e, types);
 		case EXPR_arrlen:
@@ -945,6 +947,23 @@ public class Formulae {
 		}
 	}
 
+	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) {
+		Expr source = e.getOperand(0);
+		Expr index = e.getOperand(1);
+		Expr value = e.getOperand(2);
+		Expr nSource = simplify(source,types);
+		Expr.Polynomial nIndex = toPolynomial(simplify(index,types));
+		Expr nValue = simplify(value,types);
+		//
+		// If we get here, then no simplification of the array access expression
+		// was possible.
+		if (source == nSource && index == nIndex && value == nValue) {
+			return e;
+		} else {
+			return new Expr.Operator(Opcode.EXPR_arrupdt, nSource, nIndex, nValue);
+		}
+	}
+
 	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) {
 		Expr r = simplifyNonArithmetic(e, types);
 		if(r instanceof Expr.Operator) {
@@ -953,6 +972,8 @@ public class Formulae {
 				return new Polynomial(BigInteger.valueOf(src.size()));
 			} else if(src.getOpcode() == Opcode.EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
+			} else if(src.getOpcode() == Opcode.EXPR_arrupdt) {
+				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen,(Expr) src.getOperand(0)),types);
 			}
 		}
 		return r;

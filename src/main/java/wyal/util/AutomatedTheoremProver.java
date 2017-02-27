@@ -42,8 +42,8 @@ public class AutomatedTheoremProver {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
-				if(!check(ast)) {
-					throw new SyntaxError("verification failure",parent.getEntry(),item);
+				if (!check(ast)) {
+					throw new SyntaxError("verification failure", parent.getEntry(), item);
 				}
 			}
 		}
@@ -83,13 +83,14 @@ public class AutomatedTheoremProver {
 		return checkUnsat(state, 0, FALSE);
 	}
 
-	private static final int MAX_DEPTH=2;
+	private static final int MAX_DEPTH = 2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-
-		if(state.contains(FALSE)) {
+		//print(depth, state);
+		//
+		if (state.contains(FALSE)) {
 			return true;
-		} else if(depth == MAX_DEPTH) {
+		} else if (depth == MAX_DEPTH) {
 			return false;
 		} else {
 			// The following loop is *very* primitive in nature.
@@ -97,7 +98,7 @@ public class AutomatedTheoremProver {
 				Formula truth = state.getActive(i);
 				if (truth instanceof Formula.Conjunct) {
 					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state.subsume(conjunct,conjunct.getOperands());
+					state.subsume(conjunct, conjunct.getOperands());
 					return checkUnsat(state, depth, FALSE);
 				} else if (truth instanceof Formula.Disjunct) {
 					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
@@ -113,12 +114,13 @@ public class AutomatedTheoremProver {
 					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
 					if (!quantifier.getSign()) {
 						// existential
-						state.subsume(quantifier,quantifier.getBody());
+						state.subsume(quantifier, quantifier.getBody());
 						return checkUnsat(state, depth, FALSE);
 					}
 				} else if (truth instanceof Formula.Invoke) {
 					// FIXME: this is broken in the case of recursive macros.
-					// The reason for this is simply that it will expand forever :)
+					// The reason for this is simply that it will expand forever
+					// :)
 					// FIXME: also broken because assume this is a type
 					// invariant invocation
 					Formula.Invoke ivk = (Formula.Invoke) truth;
@@ -129,22 +131,30 @@ public class AutomatedTheoremProver {
 					Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 					// Calculate the invariant
 					Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
-					if(invariant != null) {
+					if (invariant != null) {
 						if (!ivk.getSign()) {
 							invariant = Formulae.invert(invariant);
 						}
 						// Update the state
-						state.subsume(truth,state.allocate(invariant));
+						state.subsume(truth, state.allocate(invariant));
 						return checkUnsat(state, depth, FALSE);
 					}
-				} else if(truth != null){
+				} else if (truth != null) {
 					Formula invariant = generateImplicitAxioms(truth);
-					if(invariant != null) {
+					if (invariant != null) {
 						invariant = state.allocate(Formulae.simplify(invariant, types));
-						if(!state.contains(invariant)) {
+						if (!state.contains(invariant)) {
 							state.set(invariant);
 							return checkUnsat(state, depth, FALSE);
 						}
+					}
+					//
+					Expr split = findSplitPoint(truth);
+					if(split != null) {
+						Formula[] cases = generateSplitCases(split,truth);
+						Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases),types));
+						state.subsume(truth, disjunct);
+						return checkUnsat(state, depth, FALSE);
 					}
 				}
 			}
@@ -154,14 +164,14 @@ public class AutomatedTheoremProver {
 			//
 			boolean change = true;
 			int count = 5;
-			while(change && !state.contains(FALSE)) {
+			while (change && !state.contains(FALSE)) {
 				change = false;
 				// Apply congruence closure
-				change |= closeOverCongruence(state,FALSE);
+				change |= closeOverCongruence(state, FALSE);
 				// Apply transitive closure over inequalities
 				change |= closeOverInequalities(state, FALSE);
 				//
-				if(count-- == 0) {
+				if (count-- == 0) {
 					throw new IllegalArgumentException("trip count reached");
 				}
 			}
@@ -172,9 +182,64 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	/**
+	 * A split point is a subexpression which can be divided into two or more
+	 * "options". For example, the expression <code>xs[i:=0][j] >= 0</code> is
+	 * broken down into
+	 * <code>(j == i && 0 >= 0) || (j != i && xs[j] >= 0)</code>.
+	 *
+	 * @param e
+	 * @return
+	 */
+	private Expr findSplitPoint(Expr e) {
+		switch (e.getOpcode()) {
+		case EXPR_arridx: {
+			if (e.getOperand(0).getOpcode() == Opcode.EXPR_arrupdt) {
+				// This represents a split point.
+				return e;
+			}
+		}
+		}
+		// Generic traversal, returning first split point encountered.
+		for (int i = 0; i != e.size(); ++i) {
+			SyntacticItem item = e.getOperand(i);
+			if (item instanceof Expr) {
+				Expr cf = findSplitPoint((Expr) item);
+				if (cf != null) {
+					return cf;
+				}
+			}
+		}
+		// No split points found
+		return null;
+	}
+
+	private Formula[] generateSplitCases(Expr split, Formula truth) {
+		Formula[] result;
+		switch(split.getOpcode()) {
+		case EXPR_arridx: {
+			// xs[i:=v][j]
+			Expr.Operator src = (Expr.Operator) split.getOperand(0);
+			Expr xs = src.getOperand(0);
+			Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
+			Expr v = src.getOperand(2);
+			Expr.Polynomial j = (Expr.Polynomial) split.getOperand(1);
+			result = new Formula[2];
+			Formula case1 = (Formula) Formulae.substitute(split, v, truth);
+			Formula case2 = (Formula) Formulae.substitute(split, new Expr.Operator(Opcode.EXPR_arridx, xs, j), truth);
+			result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
+			result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
+			break;
+		}
+		default:
+			throw new IllegalArgumentException("unknown split kind encountered");
+		}
+		return result;
+	}
+
 	private Formula generateImplicitAxioms(Expr e) {
 		Formula axiom = null;
-		switch(e.getOpcode()) {
+		switch (e.getOpcode()) {
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) e;
 			// Determine the type declaration in question
@@ -185,7 +250,7 @@ public class AutomatedTheoremProver {
 			Declaration.Named.Function md = (Declaration.Named.Function) decl;
 			VariableDeclaration[] params = md.getParameters().getOperands();
 			VariableDeclaration[] returns = md.getReturns().getOperands();
-			if(returns.length > 1) {
+			if (returns.length > 1) {
 				throw new IllegalArgumentException("problem");
 			} else {
 				axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
@@ -197,24 +262,24 @@ public class AutomatedTheoremProver {
 			Expr src = idx.getOperand(0);
 			Polynomial index = Formulae.toPolynomial(idx.getOperand(1));
 			Polynomial srclen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, src));
-			Formula.Inequality lb = new Formula.Inequality(true,index,srclen);
-			Formula.Inequality gb = new Formula.Inequality(false,index,new Polynomial(BigInteger.ZERO));
-			axiom = new Formula.Conjunct(lb,gb);
+			Formula.Inequality lb = new Formula.Inequality(true, index, srclen);
+			Formula.Inequality gb = new Formula.Inequality(false, index, new Polynomial(BigInteger.ZERO));
+			axiom = new Formula.Conjunct(lb, gb);
 			break;
 		}
 		case EXPR_div: {
 			Expr.Operator op = (Expr.Operator) e;
-			axiom= new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
+			axiom = new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
 			break;
 		}
 		}
 		//
-		for(int i=0;i!=e.size();++i) {
+		for (int i = 0; i != e.size(); ++i) {
 			SyntacticItem item = e.getOperand(i);
-			if(item instanceof Expr) {
+			if (item instanceof Expr) {
 				Formula cf = generateImplicitAxioms((Expr) item);
-				if(cf != null) {
-					axiom = axiom == null ? cf : new Formula.Conjunct(axiom,cf);
+				if (cf != null) {
+					axiom = axiom == null ? cf : new Formula.Conjunct(axiom, cf);
 				}
 			}
 		}
@@ -222,7 +287,7 @@ public class AutomatedTheoremProver {
 	}
 
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
-		if(decl instanceof Declaration.Named.Type) {
+		if (decl instanceof Declaration.Named.Type) {
 			// This is a type invariant macro call. In such case, we
 			// need to first determine what the invariant actually is.
 			Declaration.Named.Type td = (Declaration.Named.Type) decl;
@@ -251,14 +316,14 @@ public class AutomatedTheoremProver {
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
-		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(),argument,types);
+		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(), argument, types);
 		for (int i = 0; i != invariant.size(); ++i) {
 			// Convert the invariant clause into a formula
 			Formula ith = Formulae.toFormula(invariant.getOperand(i), types);
 			//
 			result = result == null ? ith : new Formula.Conjunct(result, ith);
 		}
-		if(result == null) {
+		if (result == null) {
 			return null;
 		} else {
 			// At this point, we must substitute the variable name used in
@@ -300,7 +365,7 @@ public class AutomatedTheoremProver {
 					if (before != after) {
 						after = state.allocate(Formulae.simplify(after, types));
 						nochange &= state.contains(after);
-						state.subsume(before,after);
+						state.subsume(before, after);
 					}
 				}
 			}
@@ -371,17 +436,16 @@ public class AutomatedTheoremProver {
 	private void extractGrounds(Expr e, Set<Expr> grounds) {
 		for (int i = 0; i != e.size(); ++i) {
 			SyntacticItem child = e.getOperand(i);
-			if(child instanceof Expr) {
+			if (child instanceof Expr) {
 				extractGrounds((Expr) child, grounds);
 			}
 		}
-		if(e instanceof Polynomial) {
+		if (e instanceof Polynomial) {
 			grounds.add(e);
 		}
 	}
 
-	private void instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds,
-			State state) {
+	private void instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds, State state) {
 		VariableDeclaration[] parameters = qf.getParameters().getOperands();
 		if (parameters.length == binding.length) {
 			// Binding now complete, so proceed to instantiate quantifier.
@@ -399,7 +463,7 @@ public class AutomatedTheoremProver {
 			}
 			// Second, instantiate the ground body
 			body = state.allocate(Formulae.simplify(body, types));
-			if(!state.contains(body)) {
+			if (!state.contains(body)) {
 				state.set(body);
 			}
 		} else {
@@ -475,7 +539,7 @@ public class AutomatedTheoremProver {
 		public void subsume(Formula from, Formula... tos) {
 			final int fromIndex = from.getIndex();
 			activeTruths.clear(fromIndex);
-			for(int i=0;i!=tos.length;++i) {
+			for (int i = 0; i != tos.length; ++i) {
 				final int toIndex = tos[i].getIndex();
 				allTruths.set(toIndex);
 				activeTruths.set(toIndex);
@@ -505,37 +569,39 @@ public class AutomatedTheoremProver {
 
 	public static void println(int indent, State state) {
 		System.out.println("*** STATE ***");
-		print(indent,state);
+		print(indent, state);
 		System.out.println();
 	}
 
 	public static void print(int indent, State state) {
-		for(int i=0;i!=state.size();++i) {
+		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
-			if(ith != null) {
-				//println(indent,ith);
-				print(indent,ith);
+			if (ith != null) {
+				// println(indent,ith);
+				print(indent, ith);
 				System.out.println(" " + ith.getIndex());
 			}
 		}
 	}
+
 	public static void println(int indent, Formula f) {
-		print(indent,f);
+		print(indent, f);
 		System.out.println();
 	}
+
 	public static void print(int indent, Formula f) {
-		if(f instanceof Formula.Conjunct) {
+		if (f instanceof Formula.Conjunct) {
 			Formula.Conjunct conjunct = (Formula.Conjunct) f;
-			for(int i=0;i!=conjunct.size();++i) {
+			for (int i = 0; i != conjunct.size(); ++i) {
 				println(indent, conjunct.getOperand(i));
 			}
-		} else if(f instanceof Formula.Disjunct) {
+		} else if (f instanceof Formula.Disjunct) {
 			Formula.Disjunct disjunct = (Formula.Disjunct) f;
-			for(int i=0;i!=disjunct.size();++i) {
-				if(i != 0) {
+			for (int i = 0; i != disjunct.size(); ++i) {
+				if (i != 0) {
 					System.out.println("==========");
 				}
-				println(indent+1, disjunct.getOperand(i));
+				println(indent + 1, disjunct.getOperand(i));
 			}
 		} else {
 			tab(indent);
@@ -557,8 +623,8 @@ public class AutomatedTheoremProver {
 	public static void print(WyalFile.Expr... items) {
 		PrintWriter out = new PrintWriter(System.out);
 		WyalFilePrinter printer = new WyalFilePrinter(out);
-		for(int i=0;i!=items.length;++i) {
-			if(i != 0) {
+		for (int i = 0; i != items.length; ++i) {
+			if (i != 0) {
 				out.print(", ");
 			}
 			printer.writeExpression(items[i]);
@@ -567,7 +633,7 @@ public class AutomatedTheoremProver {
 	}
 
 	public static void tab(int indent) {
-		for(int i=0;i!=indent;++i) {
+		for (int i = 0; i != indent; ++i) {
 			System.out.print("\t");
 		}
 	}

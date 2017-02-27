@@ -161,10 +161,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_div(54),
 		EXPR_rem(55),
 		// ARRAY
-		EXPR_arrinit(60),
-		EXPR_arrlen(61),
-		EXPR_arrgen(62),
-		EXPR_arridx(63),
+		EXPR_arrinit(59),
+		EXPR_arrlen(60),
+		EXPR_arrgen(61),
+		EXPR_arridx(62),
+		EXPR_arrupdt(63),
 		// RECORDS
 		EXPR_recinit(64),
 		EXPR_recfield(65),

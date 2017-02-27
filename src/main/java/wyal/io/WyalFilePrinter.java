@@ -313,6 +313,9 @@ public class WyalFilePrinter {
 		case EXPR_arrinit:
 			writeArrayInitialiser((Expr.Operator)expr);
 			break;
+		case EXPR_arrupdt:
+			writeArrayUpdate((Expr.Operator)expr);
+			break;
 		case EXPR_recfield:
 			writeRecordAccess((Expr.RecordAccess)expr);
 			break;
@@ -463,6 +466,15 @@ public class WyalFilePrinter {
 	public void writeArrayInitialiser(Expr.Operator expr) {
 		out.print("[");
 		writeArguments(expr.getOperands());
+		out.print("]");
+	}
+
+	public void writeArrayUpdate(Expr.Operator expr) {
+		writeExpressionWithBrackets(expr.getOperand(0));
+		out.print("[");
+		writeExpression(expr.getOperand(1));
+		out.print(":=");
+		writeExpression(expr.getOperand(2));
 		out.print("]");
 	}
 
