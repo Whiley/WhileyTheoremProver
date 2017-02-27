@@ -879,10 +879,21 @@ public class Formulae {
 	private static Expr simplify(Expr.RecordAccess e, TypeSystem types) {
 		Expr source = e.getSource();
 		Expr nSource = simplify(source,types);
-		if (source == nSource) {
+		if(nSource instanceof Expr.RecordInitialiser) {
+			Expr.RecordInitialiser ri = (Expr.RecordInitialiser) nSource;
+			WyalFile.Pair<Identifier, Expr>[] fields = ri.getFields();
+			for(int i=0;i!=fields.length;++i) {
+				WyalFile.Pair<Identifier, Expr> field = fields[i];
+				if(e.getField().equals(field.getFirst())) {
+					return field.getSecond();
+				}
+			}
+		}
+		//
+		if(source == nSource) {
 			return e;
 		} else {
-			return new Expr.RecordAccess(source, e.getField());
+			return new Expr.RecordAccess(nSource, e.getField());
 		}
 	}
 
@@ -948,6 +959,7 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) {
+		System.out.println("SIMPLIFYING ARRAY UPDATE");
 		Expr source = e.getOperand(0);
 		Expr index = e.getOperand(1);
 		Expr value = e.getOperand(2);
@@ -965,6 +977,7 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) {
+		System.out.println("SIMPLIFYING ARRAY LENGTH");
 		Expr r = simplifyNonArithmetic(e, types);
 		if(r instanceof Expr.Operator) {
 			Expr src = (Expr) r.getOperand(0);
@@ -1288,7 +1301,15 @@ public class Formulae {
 			Expr lhs = f.getOperand(0);
 			Expr rhs = f.getOperand(1);
 			//
-			if (lhs.compareTo(rhs) < 0) {
+			if(lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
+				return null;
+			} else if(lhs instanceof Expr.Constant) {
+				candidate = rhs;
+				bound = lhs;
+			} else if(rhs instanceof Expr.Constant) {
+				candidate = lhs;
+				bound = rhs;
+			} else if (lhs.compareTo(rhs) < 0) {
 				candidate = lhs;
 				bound = rhs;
 			} else {
@@ -1425,7 +1446,6 @@ public class Formulae {
 	 */
 	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
 			SyntacticItem item) {
-
 		if (item.equals(from)) {
 			// Yes, we made a substitution!
 			return to;

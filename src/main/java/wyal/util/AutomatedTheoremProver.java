@@ -86,7 +86,7 @@ public class AutomatedTheoremProver {
 	private static final int MAX_DEPTH = 2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		//print(depth, state);
+		print(depth, state);
 		//
 		if (state.contains(FALSE)) {
 			return true;
@@ -356,11 +356,23 @@ public class AutomatedTheoremProver {
 
 		if (substitution != null) {
 			// We've found a suitable substitution
+			AutomatedTheoremProver.print(substitution.getFirst());
+			System.out.print(" ==> ");
+			AutomatedTheoremProver.print(substitution.getSecond());
+			System.out.println();
 			for (int j = 0; j < state.size() && !state.contains(FALSE); ++j) {
 				Formula before = state.getActive(j);
 				if (j != ignored && before != null) {
+					System.out.print("SUBSTITUTING: ");
+					AutomatedTheoremProver.print(before);
+					System.out.print("[" );
+					AutomatedTheoremProver.print(substitution.getFirst());
+					System.out.print(" / " );
+					AutomatedTheoremProver.print(substitution.getSecond());
+					System.out.print("] ==> ");
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
+					AutomatedTheoremProver.println(after);
 					//
 					if (before != after) {
 						after = state.allocate(Formulae.simplify(after, types));

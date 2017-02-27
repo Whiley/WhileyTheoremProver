@@ -122,13 +122,15 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 			return left == right;
 		} else if (left.length != right.length) {
 			return false;
-		} else {
+		} else if(left.getClass().equals(right.getClass())){
 			for (int j = 0; j != left.length; ++j) {
 				if (left[j] != right[j]) {
 					return false;
 				}
 			}
 			return true;
+		} else {
+			return false;
 		}
 	}
 }
