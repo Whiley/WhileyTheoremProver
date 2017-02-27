@@ -461,17 +461,15 @@ public class TypeSystem {
 
 	public Declaration.Named resolveAsDeclaration(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length-1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named) {
 				Declaration.Named nd = (Declaration.Named) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					return nd;
 				}
 			}
@@ -490,17 +488,15 @@ public class TypeSystem {
 	 */
 	public Declaration.Named.Type resolveAsDeclaredType(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length-1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named.Type) {
 				Declaration.Named.Type nd = (Declaration.Named.Type) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					return nd;
 				}
 			}

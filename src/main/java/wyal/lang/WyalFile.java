@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
+import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
@@ -43,7 +44,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		@Override
 		public void write(OutputStream output, WyalFile module) throws IOException {
-			throw new RuntimeException("Implement me");
+			new WyalFilePrinter(output).write(module);
 		}
 
 		@Override
@@ -1201,6 +1202,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			public Type.AbstractFunction getSignatureType() {
 				return (Type.AbstractFunction) getOperand(0);
+			}
+
+			public void setSignatureType(Type.Function type) {
+				this.setOperand(0, type);
 			}
 
 			public Name getName() {

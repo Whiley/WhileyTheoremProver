@@ -101,8 +101,9 @@ public class WyalFilePrinter {
 	public void write(WyalFile wf, Declaration.Named.Function s) {
 		out.print("function ");
 		out.print(s.getName().get());
-		// out.print("(" + s.getType().element(0) + ") => " +
-		// s.getType().element(1));
+		writeVariableDeclarations(s.getParameters());
+		out.print(" -> ");
+		writeVariableDeclarations(s.getReturns());
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Macro s) {
@@ -161,6 +162,9 @@ public class WyalFilePrinter {
 
 	public void writeStatement(WyalFile.Stmt loc, int indent) {
 		switch (loc.getOpcode()) {
+		case STMT_block:
+			writeBlock((Stmt.Block) loc, indent);
+			break;
 		case STMT_ifthen:
 			writeIfThen((Stmt.IfThen) loc, indent);
 			break;

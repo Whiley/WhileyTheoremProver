@@ -6,8 +6,10 @@
 package wyal.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
@@ -189,6 +191,7 @@ public class TypeChecker {
 	}
 
 	private Type checkInvocation(Expr.Invoke expr) {
+		WyalFile parent = (WyalFile) expr.getParent();
 		// Determine the argument types
 		WyalFile.Tuple<Expr> arguments = expr.getArguments();
 		Type[] types = new Type[arguments.size()];
@@ -197,19 +200,41 @@ public class TypeChecker {
 		}
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
+		// Replace old object with fully resolved object
+		WyalFile.Type.Function type = constructFunctionType(sig);
+		expr.setSignatureType(type);
 		// Finally, return the declared returns
-		if (sig instanceof Named.Function) {
-			Named.Function fn = (Named.Function) sig;
-			// Functions have specific return values
-			WyalFile.Tuple<VariableDeclaration> d = fn.getReturns();
-			if (d.size() != 1) {
-				throw new RuntimeException("invalid number of returns");
-			} else {
-				return d.getOperand(0).getType();
-			}
+		if(type.getReturns().size() != 1) {
+			throw new RuntimeException("invalid number of returns");
 		} else {
-			return new Type.Bool();
+			return type.getReturns().getOperand(0);
 		}
+	}
+
+	/**
+	 * Convert a declaration into a type signature.
+	 *
+	 * @param declaration
+	 * @return
+	 */
+	private Type.Function constructFunctionType(Named.FunctionOrMacro declaration) {
+		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
+		Type[] returns;
+		if (declaration instanceof Named.Function) {
+			Named.Function nf = (Named.Function) declaration;
+			returns = toTypeArray(nf.getReturns().getOperands());
+		} else {
+			returns = new Type[] { new WyalFile.Type.Bool() };
+		}
+		return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
+	}
+
+	private Type[] toTypeArray(VariableDeclaration... declarations) {
+		Type[] types = new Type[declarations.length];
+		for (int i = 0; i != types.length; ++i) {
+			types[i] = declarations[i].getType();
+		}
+		return types;
 	}
 
 	private Type checkIsOperator(Expr.Is expr) {
@@ -237,7 +262,7 @@ public class TypeChecker {
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
-		Pair<Identifier,Expr>[] fields = expr.getFields();
+		Pair<Identifier, Expr>[] fields = expr.getFields();
 		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = fields[i].getFirst();
@@ -390,16 +415,15 @@ public class TypeChecker {
 	 */
 	private List<Named.FunctionOrMacro> findCandidateFunctionOrMacroDeclarations(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length - 1];
+		//
 		ArrayList<Named.FunctionOrMacro> candidates = new ArrayList<>();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Named.FunctionOrMacro) {
 				Named.FunctionOrMacro nd = (Named.FunctionOrMacro) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					candidates.add(nd);
 				}
 			}

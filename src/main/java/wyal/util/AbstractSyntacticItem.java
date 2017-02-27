@@ -44,7 +44,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 	public AbstractSyntacticItem(Opcode opcode, SyntacticItem... operands) {
 		this.opcode = opcode;
 		this.operands = operands;
-		this.data = null;;
+		this.data = null;
 	}
 
 	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {
