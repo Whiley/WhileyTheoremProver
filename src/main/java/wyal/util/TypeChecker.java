@@ -88,6 +88,9 @@ public class TypeChecker {
 		case EXPR_implies:
 		case EXPR_iff:
 			return checkLogicalOperator((Expr.Operator) expr);
+		case EXPR_forall:
+		case EXPR_exists:
+			return checkQuantifier((Expr.Quantifier) expr);
 		// Arithmetic operators
 		case EXPR_eq:
 		case EXPR_neq:
@@ -153,6 +156,12 @@ public class TypeChecker {
 	}
 
 	private Type checkQuantifier(Stmt.Quantifier stmt) {
+		Type body = check(stmt.getBody());
+		checkIsSubtype(new Type.Bool(), body);
+		return new Type.Bool();
+	}
+
+	private Type checkQuantifier(Expr.Quantifier stmt) {
 		Type body = check(stmt.getBody());
 		checkIsSubtype(new Type.Bool(), body);
 		return new Type.Bool();

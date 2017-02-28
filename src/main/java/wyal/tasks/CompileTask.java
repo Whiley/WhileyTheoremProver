@@ -97,6 +97,7 @@ public class CompileTask implements Build.Task {
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
+				new WyalFilePrinter(System.out).write(wf);
 				new TypeChecker(wf).check();
 				if(verify) {
 					new AutomatedTheoremProver(wf).check();

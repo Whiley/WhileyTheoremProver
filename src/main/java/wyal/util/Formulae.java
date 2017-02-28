@@ -95,6 +95,32 @@ public class Formulae {
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
+		case EXPR_forall: {
+			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
+			// Convert body of quantifier
+			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Disjunct(invert(invariant), body);
+			}
+			// Done
+			return new Formula.Quantifier(true, q.getParameters(), body);
+		}
+		case EXPR_exists: {
+			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
+			// Convert body of quantifier
+			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Conjunct(invariant, body);
+			}
+			// Done
+			return new Formula.Quantifier(false, q.getParameters(), body);
+		}
 		case EXPR_and: {
 			Expr.Operator b = (Expr.Operator) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
@@ -718,28 +744,32 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(ArithmeticEquality eq, TypeSystem types) {
-		Polynomial lhs = simplify(eq.getOperand(0), types);
-		Polynomial rhs = simplify(eq.getOperand(1), types);
-		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
-		lhs = bs.getFirst();
-		rhs = bs.getSecond();
-		if (lhs.isConstant() && rhs.isConstant()) {
-			Value lhs_v = lhs.toConstant();
-			Value rhs_v = rhs.toConstant();
+		Expr.Polynomial lhs = eq.getOperand(0);
+		Expr.Polynomial rhs = eq.getOperand(1);
+		Polynomial nLhs = simplify(lhs, types);
+		Polynomial nRhs = simplify(rhs, types);
+		Pair<Polynomial, Polynomial> bs = normaliseBounds(nLhs, nRhs);
+		nLhs = bs.getFirst();
+		nRhs = bs.getSecond();
+		if (nLhs.isConstant() && nRhs.isConstant()) {
+			Value lhs_v = nLhs.toConstant();
+			Value rhs_v = nRhs.toConstant();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
-		} else if (lhs.equals(rhs)) {
+		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
 		} else if (eq.getSign()) {
-			// FIXME: need to ensure identical object returned if no
-			// simplification applied.
-			return new ArithmeticEquality(true, lhs, rhs);
+			if(nLhs == lhs && nRhs == rhs) {
+				return eq;
+			} else {
+				return new ArithmeticEquality(true, nLhs, nRhs);
+			}
 		} else {
 			// For an arithmetic equality of the form x != y, we return a
 			// disjunction of the form (x < y) || (x > y). This is not
 			// necessarily the most efficient thing to do. However, for our
 			// purposes, this works well enough for now.
-			Inequality lt = new Inequality(true, lhs, rhs);
-			Inequality gt = new Inequality(true, rhs, lhs);
+			Inequality lt = new Inequality(true, nLhs, nRhs);
+			Inequality gt = new Inequality(true, nRhs, nLhs);
 			return new Formula.Disjunct(lt, gt);
 		}
 	}
@@ -754,18 +784,20 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(Equality eq, TypeSystem types) {
-		Expr lhs = simplify(eq.getOperand(0), types);
-		Expr rhs = simplify(eq.getOperand(1), types);
-		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
-			Value lhs_v = ((Expr.Constant) lhs).getValue();
-			Value rhs_v = ((Expr.Constant) rhs).getValue();
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		Expr nLhs = simplify(lhs, types);
+		Expr nRhs = simplify(rhs, types);
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value lhs_v = ((Expr.Constant) nLhs).getValue();
+			Value rhs_v = ((Expr.Constant) nRhs).getValue();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
-		} else if (lhs.equals(rhs)) {
+		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else {
-			// FIXME: need to ensure new object returned if simplification
-			// applied.
+		} else if(nLhs == lhs && nRhs == rhs) {
 			return eq;
+		} else {
+			return new Equality(eq.getSign(),nLhs,nRhs);
 		}
 	}
 
@@ -826,6 +858,7 @@ public class Formulae {
 			return simplifyArrayLength((Expr.Operator)e, types);
 		case EXPR_arrinit:
 		case EXPR_arrgen:
+		case EXPR_div: // temporary for now
 		case EXPR_rem: // temporary for now
 			return simplifyNonArithmetic((Expr.Operator) e, types);
 		case EXPR_neg:
@@ -959,7 +992,6 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) {
-		System.out.println("SIMPLIFYING ARRAY UPDATE");
 		Expr source = e.getOperand(0);
 		Expr index = e.getOperand(1);
 		Expr value = e.getOperand(2);
@@ -967,8 +999,16 @@ public class Formulae {
 		Expr.Polynomial nIndex = toPolynomial(simplify(index,types));
 		Expr nValue = simplify(value,types);
 		//
-		// If we get here, then no simplification of the array access expression
-		// was possible.
+		if(nIndex.isConstant() && nSource.getOpcode() == Opcode.EXPR_arrinit) {
+			Expr.Operator src = (Expr.Operator) nSource;
+			BigInteger b = nIndex.toConstant().get();
+			if(b.compareTo(BigInteger.ZERO) >= 0 && b.compareTo(BigInteger.valueOf(nSource.size())) < 0) {
+				int idx = b.intValue();
+				Expr[] nChildren = Arrays.copyOf(src.getOperands(),src.size());
+				nChildren[idx] = nValue;
+				return src.clone(nChildren);
+			}
+		}
 		if (source == nSource && index == nIndex && value == nValue) {
 			return e;
 		} else {
@@ -977,7 +1017,6 @@ public class Formulae {
 	}
 
 	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) {
-		System.out.println("SIMPLIFYING ARRAY LENGTH");
 		Expr r = simplifyNonArithmetic(e, types);
 		if(r instanceof Expr.Operator) {
 			Expr src = (Expr) r.getOperand(0);
@@ -1454,16 +1493,18 @@ public class Formulae {
 			// term looking for substitution.
 			SyntacticItem[] children = item.getOperands();
 			SyntacticItem[] nChildren = children;
-			for (int i = 0; i != children.length; ++i) {
-				SyntacticItem child = children[i];
-				if(child != null) {
-					SyntacticItem nChild = substitute(from, to, child);
-					if (child != nChild && nChildren == children) {
-						// Clone the new children array to avoid interfering with
-						// original item.
-						nChildren = Arrays.copyOf(children, children.length);
+			if(children != null) {
+				for (int i = 0; i != children.length; ++i) {
+					SyntacticItem child = children[i];
+					if(child != null) {
+						SyntacticItem nChild = substitute(from, to, child);
+						if (child != nChild && nChildren == children) {
+							// Clone the new children array to avoid interfering with
+							// original item.
+							nChildren = Arrays.copyOf(children, children.length);
+						}
+						nChildren[i] = nChild;
 					}
-					nChildren[i] = nChild;
 				}
 			}
 			if (nChildren == children) {
