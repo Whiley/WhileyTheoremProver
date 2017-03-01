@@ -413,18 +413,24 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Assert extends AbstractSyntacticItem implements Declaration {
+			private String message;
 
-			public Assert(Stmt.Block body) {
+			public Assert(Stmt.Block body, String message) {
 				super(Opcode.DECL_assert, body);
+				this.message = message;
 			}
 
 			public Stmt.Block getBody() {
 				return (Stmt.Block) getOperand(0);
 			}
 
+			public String getMessage() {
+				return message;
+			}
+
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
-				return new Assert((Stmt.Block) operands[0]);
+				return new Assert((Stmt.Block) operands[0], message);
 			}
 		}
 

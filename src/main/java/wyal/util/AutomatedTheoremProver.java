@@ -18,6 +18,7 @@ import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
 import wybs.lang.SyntaxError;
+import wyfs.lang.Path;
 
 public class AutomatedTheoremProver {
 	/**
@@ -36,14 +37,14 @@ public class AutomatedTheoremProver {
 		this.types = new TypeSystem(parent);
 	}
 
-	public void check() {
+	public void check(Path.Entry<?> originalSource) {
 		ArrayList<VerificationError> errors = new ArrayList<>();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
 				if (!check(ast)) {
-					throw new SyntaxError("verification failure", parent.getEntry(), item);
+					throw new SyntaxError(ast.getMessage(), originalSource, item);
 				}
 			}
 		}

@@ -154,7 +154,7 @@ public class WyalFileParser {
 		match(Colon);
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body);
+		Declaration.Assert declaration = new Declaration.Assert(body,null);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 		return declaration;
 	}

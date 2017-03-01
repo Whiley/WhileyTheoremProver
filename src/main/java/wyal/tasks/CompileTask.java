@@ -97,10 +97,11 @@ public class CompileTask implements Build.Task {
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
-				new WyalFilePrinter(System.out).write(wf);
+				//new WyalFilePrinter(System.out).write(wf);
 				new TypeChecker(wf).check();
 				if(verify) {
-					new AutomatedTheoremProver(wf).check();
+					Path.Entry<?> original = determineSource(source,graph);
+					new AutomatedTheoremProver(wf).check(original);
 				}
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
@@ -149,6 +150,15 @@ public class CompileTask implements Build.Task {
 		return generatedFiles;
 	}
 
+	private static Path.Entry<?> determineSource(Path.Entry<?> child, Build.Graph graph) {
+		// FIXME: this is a temporary hack
+		Path.Entry<?> parent = graph.parent(child);
+		while(parent != null) {
+			child = parent;
+			parent = graph.parent(child);
+		}
+		return child;
+}
 
 	// ======================================================================
 	// Private Implementation
