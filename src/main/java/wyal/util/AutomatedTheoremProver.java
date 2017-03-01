@@ -295,10 +295,12 @@ public class AutomatedTheoremProver {
 			Declaration.Named.Type td = (Declaration.Named.Type) decl;
 			// Expand the corresponding type invariant
 			return expandTypeInvariant(td, arguments.getOperand(0));
-		} else {
+		} else if(decl instanceof Declaration.Named.Macro) {
 			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
 			// Expand the macro body with appropriate substitutions
 			return expandMacroBody(md, arguments.getOperands());
+		} else {
+			return null;
 		}
 	}
 

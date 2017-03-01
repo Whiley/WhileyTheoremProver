@@ -417,7 +417,7 @@ public class WyalFileParser {
 			matchEndLine();
 			body = parseStatementBlock(scope, indent);
 		} else {
-			match(SemiColon);
+			match(Dot);
 			Stmt unit = parseUnitExpression(scope, false);
 			body = new Stmt.Block(unit);
 		}

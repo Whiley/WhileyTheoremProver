@@ -128,6 +128,20 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		return "Compile and verify one or more WyAL files";
 	}
 
+	@Override
+	public void set(String option, Object value) throws ConfigurationError {
+		switch(option) {
+		case "verbose":
+			setVerbose();
+			break;
+		case "verify":
+			setVerify();
+			break;
+		default:
+			super.set(option, value);
+		}
+	}
+
 	// =======================================================================
 	// Execute
 	// =======================================================================
