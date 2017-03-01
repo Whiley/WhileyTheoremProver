@@ -133,7 +133,14 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf, Declaration.Assert s) {
-		out.println("assert:");
+		out.print("assert");
+		String message = s.getMessage();
+		if(message != null) {
+			out.print(" \"");
+			out.print(message);
+			out.print("\"");
+		}
+		out.println();
 		writeBlock(s.getBody(), 1);
 	}
 

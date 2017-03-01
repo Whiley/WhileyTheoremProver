@@ -88,7 +88,8 @@ public class AutomatedTheoremProver {
 	private static final int MAX_DEPTH = 2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		//print(depth, state);
+		System.out.println("===========");
+		print(depth, state);
 		//
 		if (state.contains(FALSE)) {
 			return true;
@@ -161,8 +162,7 @@ public class AutomatedTheoremProver {
 				}
 			}
 			// If we get here, then we have a fully expanded state which
-			// contains
-			// only primitive formulae.
+			// contains only primitive formulae.
 			//
 			boolean change = true;
 			int count = 5;
@@ -403,6 +403,12 @@ public class AutomatedTheoremProver {
 						Formula.Inequality jth_ieq = (Formula.Inequality) jth;
 						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 						if (inferred != null) {
+//							System.out.print("INFERRED: ");
+//							print(inferred);
+//							System.out.print("FROM: ");
+//							print(ith_ieq);
+//							System.out.print("AND: ");
+//							println(jth_ieq);
 							inferred = state.allocate(inferred);
 							change |= !state.contains(inferred);
 							if (inferred instanceof Formula.Equality) {
@@ -422,7 +428,6 @@ public class AutomatedTheoremProver {
 
 	private void instantiateUniversalQuantifiers(State state) {
 		Expr[] grounds = determineGroundTerms(state);
-
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Quantifier) {

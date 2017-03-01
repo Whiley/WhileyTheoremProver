@@ -1234,7 +1234,7 @@ public class Formulae {
 			return simplify(new Formula.Inequality(true, lhs, rhs), types);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return simplify(new Formula.Inequality(false, lhs, rhs), types);
+			return simplify(new Formula.Inequality(false, rhs, lhs), types);
 		}
 	}
 
