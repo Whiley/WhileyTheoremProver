@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import wybs.util.StdProject;
-import wycc.util.AbstractCommand;
+import wycc.lang.Command;
+import wycc.lang.Feature.ConfigurationError;
 import wycc.util.ArrayUtils;
 import wycc.util.Logger;
 import wyfs.lang.Content;
@@ -28,7 +29,7 @@ import wyfs.util.VirtualRoot;
  * @author David J. Pearce
  *
  */
-public abstract class AbstractProjectCommand<T> extends AbstractCommand<T> {
+public abstract class AbstractProjectCommand<T> implements Command<T> {
 
 	/**
 	 * The master project content type registry. This is needed for the build
@@ -62,8 +63,7 @@ public abstract class AbstractProjectCommand<T> extends AbstractCommand<T> {
 	 *            types.
 	 * @throws IOException
 	 */
-	public AbstractProjectCommand(Content.Registry registry, Logger logger, String... options) {
-		super(ArrayUtils.append(options,"wyaldir"));
+	public AbstractProjectCommand(Content.Registry registry, Logger logger) {
 		this.registry = registry;
 		this.logger = logger;
 	}
@@ -84,6 +84,47 @@ public abstract class AbstractProjectCommand<T> extends AbstractCommand<T> {
 		this.wyaldir = new DirectoryRoot(dir, registry);
 	}
 
+	private static final String[] SCHEMA = {
+		"wyaldir"
+
+	};
+
+	@Override
+	public String[] getOptions() {
+		return SCHEMA;
+	}
+
+	@Override
+	public String describe(String option) {
+		switch(option) {
+		case "wyaldir":
+			return "Specify where to place generated verification (WyAL) files";
+		default:
+			throw new IllegalArgumentException("invalid option \"" + option + "\"");
+		}
+	}
+
+	@Override
+	public void set(String option, Object value) throws ConfigurationError {
+		try {
+			switch(option) {
+			case "wyaldir":
+				wyaldir = new DirectoryRoot((String) option,registry);
+				break;
+			default:
+				throw new IllegalArgumentException("invalid option \"" + option + "\"");
+			}
+		} catch(IOException e) {
+			throw new ConfigurationError(e);
+		}
+	}
+
+	@Override
+	public Object get(String name) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	// =======================================================================
 	// Configuration
 	// =======================================================================
@@ -99,7 +140,7 @@ public abstract class AbstractProjectCommand<T> extends AbstractCommand<T> {
 		// Finalise configuration
 		finaliseConfiguration();
 		// Add roots and construct project
-		ArrayList<Path.Root> roots = new ArrayList<Path.Root>();
+		ArrayList<Path.Root> roots = new ArrayList<>();
 
 		roots.add(wyaldir);
 		roots.add(wycsdir);
