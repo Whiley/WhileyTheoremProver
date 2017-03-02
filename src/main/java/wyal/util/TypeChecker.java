@@ -15,6 +15,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Pair;
@@ -259,10 +260,10 @@ public class TypeChecker {
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
 		Type.Record effectiveRecord = types.extractReadableRecordType(src);
-		VariableDeclaration[] fields = effectiveRecord.getFields();
+		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
 		for (int i = 0; i != fields.length; ++i) {
-			VariableDeclaration vd = fields[i];
+			FieldDeclaration vd = fields[i];
 			String declaredFieldName = vd.getVariableName().get();
 			if (declaredFieldName.equals(actualFieldName)) {
 				return vd.getType();
@@ -274,11 +275,11 @@ public class TypeChecker {
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
 		Pair<Identifier, Expr>[] fields = expr.getFields();
-		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+		FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = fields[i].getFirst();
 			Type fieldType = check(fields[i].getSecond());
-			decls[i] = new VariableDeclaration(fieldType, fieldName);
+			decls[i] = new FieldDeclaration(fieldType, fieldName);
 		}
 		//
 		return new Type.Record(decls);

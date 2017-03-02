@@ -161,6 +161,12 @@ public class WyalFilePrinter {
 		out.print(decl.getVariableName().get());
 	}
 
+	public void writeFieldDeclaration(FieldDeclaration decl) {
+		writeType(decl.getType());
+		out.print(" ");
+		out.print(decl.getVariableName().get());
+	}
+
 	public void writeBlock(Stmt.Block block, int indent) {
 		for (int i = 0; i != block.size(); i = i + 1) {
 			writeStatement(block.getOperand(i), indent);
@@ -340,9 +346,12 @@ public class WyalFilePrinter {
 
 	public void writeVariableAccess(Expr.VariableAccess expr) {
 		// Determine variable declaration to which this access refers
-		Identifier ident = expr.getVariableDeclaration().getVariableName();
+		VariableDeclaration decl = expr.getVariableDeclaration();
+		Identifier ident = decl.getVariableName();
 		// Print out the declared variable name
 		out.print(ident.get());
+		//
+		out.print("'" + decl.getIndex());
 	}
 
 	public void writeCast(Expr.Cast expr) {
@@ -564,13 +573,13 @@ public class WyalFilePrinter {
 		}
 		case TYPE_rec: {
 			Type.Record t = (Type.Record) type;
-			VariableDeclaration[] fields = t.getFields();
+			FieldDeclaration[] fields = t.getFields();
 			out.print("{");
 			for (int i = 0; i != fields.length; ++i) {
 				if (i != 0) {
 					out.print(", ");
 				}
-				writeVariableDeclaration(fields[i]);
+				writeFieldDeclaration(fields[i]);
 			}
 			out.print("}");
 			break;

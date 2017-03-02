@@ -343,10 +343,10 @@ public class Formulae {
 		}
 		case TYPE_rec: {
 			Type.Record r = (Type.Record) type;
-			VariableDeclaration[] fields = r.getFields();
+			FieldDeclaration[] fields = r.getFields();
 			Formula inv = null;
 			for(int i=0;i!=fields.length;++i) {
-				VariableDeclaration fieldDecl = (VariableDeclaration) fields[i];
+				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
 				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types);
 				if(fieldInv != null) {
@@ -981,6 +981,9 @@ public class Formulae {
 					return arr.getOperand(i.intValue());
 				}
 			}
+		}
+		if(nSource.getOpcode() == Opcode.EXPR_arrgen) {
+			return (Expr) nSource.getOperand(0);
 		}
 		// If we get here, then no simplification of the array access expression
 		// was possible.

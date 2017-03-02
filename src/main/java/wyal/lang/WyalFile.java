@@ -614,17 +614,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Record extends Atom {
-			public Record(VariableDeclaration... fields) {
+			public Record(FieldDeclaration... fields) {
 				super(Opcode.TYPE_rec, fields);
 			}
 
-			public VariableDeclaration[] getFields() {
-				return ArrayUtils.toArray(VariableDeclaration.class, getOperands());
+			public FieldDeclaration[] getFields() {
+				return ArrayUtils.toArray(FieldDeclaration.class, getOperands());
 			}
 
 			@Override
 			public Record clone(SyntacticItem[] operands) {
-				return new Record((VariableDeclaration[]) operands);
+				return new Record((FieldDeclaration[]) operands);
 			}
 		}
 
@@ -761,8 +761,35 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		@Override
+		public boolean equals(Object o) {
+			// The reason for this is that we want to treat variable
+			// declarations specially. The only way that two variable
+			// declarations can be considered equal is if they are the same.
+			return o == this;
+		}
+
+		@Override
 		public VariableDeclaration clone(SyntacticItem[] operands) {
 			return new VariableDeclaration((Type) operands[0], (Identifier) operands[1]);
+		}
+	}
+
+	public static class FieldDeclaration extends AbstractSyntacticItem {
+		public FieldDeclaration(Type type, Identifier name) {
+			super(Opcode.STMT_vardecl, type, name);
+		}
+
+		public Type getType() {
+			return (Type) getOperand(0);
+		}
+
+		public Identifier getVariableName() {
+			return (Identifier) getOperand(1);
+		}
+
+		@Override
+		public FieldDeclaration clone(SyntacticItem[] operands) {
+			return new FieldDeclaration((Type) operands[0], (Identifier) operands[1]);
 		}
 	}
 
@@ -1083,10 +1110,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
 				Type.Record effectiveRecord = types.extractReadableRecordType(src);
-				VariableDeclaration[] fields = effectiveRecord.getFields();
+				FieldDeclaration[] fields = effectiveRecord.getFields();
 				String actualFieldName = getField().get();
 				for (int i = 0; i != fields.length; ++i) {
-					VariableDeclaration vd = fields[i];
+					FieldDeclaration vd = fields[i];
 					String declaredFieldName = vd.getVariableName().get();
 					if (declaredFieldName.equals(actualFieldName)) {
 						return vd.getType();
@@ -1115,11 +1142,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Type getReturnType(TypeSystem types) {
 				Pair<Identifier, Expr>[] fields = getFields();
-				VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+				FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 				for (int i = 0; i != fields.length; ++i) {
 					Identifier fieldName = fields[i].getFirst();
 					Type fieldType = fields[i].getSecond().getReturnType(types);
-					decls[i] = new VariableDeclaration(fieldType, fieldName);
+					decls[i] = new FieldDeclaration(fieldType, fieldName);
 				}
 				//
 				return new Type.Record(decls);

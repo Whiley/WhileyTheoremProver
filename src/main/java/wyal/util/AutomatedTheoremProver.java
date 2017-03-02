@@ -376,7 +376,7 @@ public class AutomatedTheoremProver {
 //					System.out.print("] ==> ");
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
-					//AutomatedTheoremProver.println(after);
+//					AutomatedTheoremProver.println(after);
 					//
 					if (before != after) {
 						after = state.allocate(Formulae.simplify(after, types));

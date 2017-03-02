@@ -1482,7 +1482,7 @@ public class WyalFileParser {
 	private Type parseRecordType(EnclosingScope scope) {
 		int start = index;
 		match(LeftCurly);
-		List<VariableDeclaration> fields = new ArrayList<>();
+		List<FieldDeclaration> fields = new ArrayList<>();
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
 			if (!firstTime) {
@@ -1493,11 +1493,11 @@ public class WyalFileParser {
 			int fieldStart = index;
 			Type fieldType = parseType(scope);
 			Identifier fieldName = parseIdentifier(scope);
-			VariableDeclaration var = new VariableDeclaration(fieldType, fieldName);
+			FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
 			var.attributes().add(sourceAttr(fieldStart, index - 1));
 			fields.add(var);
 		}
-		VariableDeclaration[] arr = fields.toArray(new VariableDeclaration[fields.size()]);
+		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
 		Type type = new Type.Record(arr);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
