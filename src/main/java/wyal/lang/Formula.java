@@ -1,5 +1,7 @@
 package wyal.lang;
 
+import java.util.Arrays;
+
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
@@ -98,7 +100,8 @@ public interface Formula extends Expr {
 		}
 
 		public Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
-			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameters), body);
+			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists,
+					new Tuple<>(parameters), body);
 		}
 
 		public Quantifier(boolean sign, Tuple<VariableDeclaration> parameters, Formula body) {

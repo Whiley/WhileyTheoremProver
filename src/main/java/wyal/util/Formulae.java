@@ -658,7 +658,7 @@ public class Formulae {
 		for (int i = 0; i != nChildren.length; ++i) {
 			Formula child = children[i];
 			Formula nChild = simplify(child, types);
-			if (child != nChild && children != nChildren) {
+			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
 			nChildren[i] = nChild;

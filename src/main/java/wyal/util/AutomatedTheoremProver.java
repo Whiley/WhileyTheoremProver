@@ -88,8 +88,8 @@ public class AutomatedTheoremProver {
 	private static final int MAX_DEPTH = 2;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		System.out.println("===========");
-		print(depth, state);
+//		System.out.println("===========");
+//		print(depth, state);
 		//
 		if (state.contains(FALSE)) {
 			return true;

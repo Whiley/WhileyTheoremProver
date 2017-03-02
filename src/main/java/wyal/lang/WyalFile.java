@@ -679,7 +679,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Union clone(SyntacticItem[] operands) {
-				return new Union();
+				return new Union((Type[]) operands);
 			}
 		}
 

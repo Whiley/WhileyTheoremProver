@@ -63,6 +63,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 		if(parent != null) {
 			throw new IllegalArgumentException("item already allocated to heap");
 		}
+
 		this.parent = heap;
 		this.index = index;
 	}

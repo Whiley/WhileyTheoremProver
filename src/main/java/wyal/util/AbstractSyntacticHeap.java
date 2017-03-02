@@ -7,8 +7,10 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
+import wyal.lang.WyalFile;
 import wybs.lang.Attribute;
 
 public abstract class AbstractSyntacticHeap implements SyntacticHeap {
