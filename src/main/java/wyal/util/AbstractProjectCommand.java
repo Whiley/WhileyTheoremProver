@@ -109,7 +109,7 @@ public abstract class AbstractProjectCommand<T> implements Command<T> {
 		try {
 			switch(option) {
 			case "wyaldir":
-				wyaldir = new DirectoryRoot((String) option,registry);
+				wyaldir = new DirectoryRoot((String) value,registry);
 				break;
 			default:
 				throw new IllegalArgumentException("invalid option \"" + option + "\"");

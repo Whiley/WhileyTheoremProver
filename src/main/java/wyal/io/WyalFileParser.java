@@ -149,12 +149,18 @@ public class WyalFileParser {
 	protected Declaration parseAssertDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
+		String message = null;
 		//
 		match(Assert);
-		match(Colon);
+		if(tryAndMatch(false,Colon) == null) {
+			Token token = match(StringValue);
+			message = parseString(token.text);
+			match(Colon);
+		}
+
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body,null);
+		Declaration.Assert declaration = new Declaration.Assert(body,message);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 		return declaration;
 	}

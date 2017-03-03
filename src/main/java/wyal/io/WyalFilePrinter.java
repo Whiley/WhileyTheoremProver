@@ -23,6 +23,7 @@ import wyfs.util.Trie;
 public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
+	private boolean nonces = false;
 
 	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
 		this(new OutputStreamWriter(writer, "UTF-8"));
@@ -140,7 +141,7 @@ public class WyalFilePrinter {
 			out.print(message);
 			out.print("\"");
 		}
-		out.println();
+		out.println(":");
 		writeBlock(s.getBody(), 1);
 	}
 
@@ -351,7 +352,9 @@ public class WyalFilePrinter {
 		// Print out the declared variable name
 		out.print(ident.get());
 		//
-		out.print("'" + decl.getIndex());
+		if(nonces) {
+			out.print("'" + decl.getIndex());
+		}
 	}
 
 	public void writeCast(Expr.Cast expr) {
