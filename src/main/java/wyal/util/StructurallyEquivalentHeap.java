@@ -1,6 +1,8 @@
 package wyal.util;
 
 import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import wyal.lang.SyntacticHeap;
@@ -39,8 +41,14 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 
 	@Override
 	public <T extends SyntacticItem> T allocate(T item) {
+		return allocate(item,new IdentityHashMap<>());
+	}
+	private <T extends SyntacticItem> T allocate(T item, Map<SyntacticItem,SyntacticItem> map) {
 		SyntacticHeap parent = item.getParent();
-		if (parent == this || parent == this.parent) {
+		T allocated = (T) map.get(item);
+		if(allocated != null) {
+			return allocated;
+		} else if (parent == this || parent == this.parent) {
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return item;
@@ -77,20 +85,23 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 					}
 				}
 			}
-			// Look for any structural equivalents that exist
-			// already in this heap. If we find one, then we can
-			// just return the directly.
-			T equivalent = (T) findStructuralEquivalent(item.getOpcode(), item.getData(), nChildren, item.getClass());
-			if (equivalent != null) {
-				return equivalent;
-			} else if (children != nChildren) {
+			T equivalent = item;
+			if (children != nChildren) {
 				// No equivalent was found, but the child array was
 				// updated in some way. Therefore, we need to clone
 				// the item in order reflect this change.
-				item = (T) item.clone(nChildren);
+				equivalent = (T) item.clone(nChildren);
 			}
-			// Allocate the item (or its clone) into this heap.
-			return this.parent.allocate(item);
+			// Look for any structural equivalents that exist
+			// already in this heap. If we find one, then we can
+			// just return the directly.
+			equivalent = (T) findStructuralEquivalent(equivalent, item.getClass());
+			if (equivalent == null) {
+				// Allocate the item (or its clone) into this heap.
+				equivalent = this.parent.allocate(item);
+			}
+			map.put(item,equivalent);
+			return equivalent;
 		}
 	}
 
@@ -104,14 +115,17 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 	 * @param children
 	 * @return
 	 */
-	private SyntacticItem findStructuralEquivalent(WyalFile.Opcode opcode, Object data, SyntacticItem[] children, Class<?> clazz) {
+	private SyntacticItem findStructuralEquivalent(SyntacticItem item, Class<?> clazz) {
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem candidate = parent.getSyntacticItem(i);
-			if (opcode == candidate.getOpcode() && Objects.equals(data, candidate.getData())
-					&& candidate.getClass() == clazz) {
-				if (haveIdenticalChildren(children, candidate.getOperands())) {
-					return candidate;
-				}
+//			if (opcode == candidate.getOpcode() && Objects.equals(data, candidate.getData())
+//					&& candidate.getClass() == clazz) {
+//				if (haveIdenticalChildren(children, candidate.getOperands())) {
+//					return candidate;
+//				}
+//			}
+			if(candidate.getClass() == clazz && item.equals(candidate)) {
+				return candidate;
 			}
 		}
 		return null;

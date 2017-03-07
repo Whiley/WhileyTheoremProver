@@ -6,6 +6,7 @@ import java.util.Map;
 
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
+import wyal.lang.WyalFile;
 
 public class SyntacticHeaps {
 	/**
@@ -55,6 +56,35 @@ public class SyntacticHeaps {
 			// Now, create new item and store that for later.
 			clonedItem = item.clone(operands);
 			mapping.put(item, clonedItem);
+		}
+		return (T) clonedItem;
+	}
+
+	public static <T extends SyntacticItem> T cloneOnly(T item, Map<SyntacticItem, SyntacticItem> mapping, Class<?> clazz) {
+		SyntacticItem clonedItem = mapping.get(item);
+		if (clonedItem == null) {
+			// Item not previously cloned. Therefore, first create new item
+			SyntacticItem[] operands = item.getOperands();
+			SyntacticItem[] nOperands = operands;
+			if (operands != null) {
+				for (int i = 0; i != operands.length; ++i) {
+					SyntacticItem operand = operands[i];
+					if (operand != null) {
+						SyntacticItem nOperand = cloneOnly(operand, mapping,clazz);
+						if(nOperand != operand && operands == nOperands) {
+							nOperands = Arrays.copyOf(operands, operands.length);
+						}
+						nOperands[i] = nOperand;
+					}
+				}
+			}
+			// Now, create new item and store that for later.
+			if(nOperands != operands || clazz.isInstance(item)) {
+				clonedItem = item.clone(nOperands);
+				mapping.put(item, clonedItem);
+			} else {
+				clonedItem = item;
+			}
 		}
 		return (T) clonedItem;
 	}

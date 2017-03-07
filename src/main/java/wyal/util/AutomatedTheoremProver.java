@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import wyal.io.WyalFilePrinter;
@@ -77,6 +79,8 @@ public class AutomatedTheoremProver {
 		//
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
+//		System.out.print("STARTING :: ");
+//		println(formula);
 		// Create initial state
 		State state = new State(heap);
 		// Assume the formula holds
@@ -155,6 +159,7 @@ public class AutomatedTheoremProver {
 						}
 						// Update the state
 						state.subsume(truth, state.allocate(invariant));
+
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth != null) {
@@ -322,7 +327,16 @@ public class AutomatedTheoremProver {
 
 	private Formula expandMacroBody(Declaration.Named.Macro md, Expr[] arguments) {
 		VariableDeclaration[] parameters = md.getParameters().getOperands();
-		Formula body = Formulae.toFormula(md.getBody(), types);
+		// Initialise the map with the identity for parameters to ensure they
+		// are preserved as is, and can then be substituted.
+		Map<SyntacticItem,SyntacticItem> map = new IdentityHashMap<>();
+		for (int i = 0; i != arguments.length; ++i) {
+			map.put(parameters[i], parameters[i]);
+		}
+		// Clone is required at this point to ensure that any variable
+		// declarations are distinguished appropriately.
+		WyalFile.Stmt.Block block = SyntacticHeaps.cloneOnly(md.getBody(),map,WyalFile.VariableDeclaration.class);
+		Formula body = Formulae.toFormula(block, types);
 		for (int i = 0; i != arguments.length; ++i) {
 			// At this point, we must substitute the parameter name used in
 			// the type declaration for the name used as the invocation
@@ -351,12 +365,12 @@ public class AutomatedTheoremProver {
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
-			System.out.print("EXPANDING TYPE INVARIANT: ");
-			AutomatedTheoremProver.print(parameter);
-			System.out.print(" FOR: ");
-			AutomatedTheoremProver.print(argument);
-			System.out.print(" IN: ");
-			AutomatedTheoremProver.println(result);
+//			System.out.print("EXPANDING TYPE INVARIANT: ");
+//			AutomatedTheoremProver.print(parameter);
+//			System.out.print(" FOR: ");
+//			AutomatedTheoremProver.print(argument);
+//			System.out.print(" IN: ");
+//			AutomatedTheoremProver.println(result);
 			result = (Formula) Formulae.substitute(parameter, argument, result);
 			return Formulae.simplify(result, types);
 		}

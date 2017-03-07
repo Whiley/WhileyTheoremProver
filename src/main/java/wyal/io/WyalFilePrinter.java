@@ -23,7 +23,7 @@ import wyfs.util.Trie;
 public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
-	private boolean nonces = false;
+	private boolean nonces = true;
 
 	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
 		this(new OutputStreamWriter(writer, "UTF-8"));
@@ -160,6 +160,10 @@ public class WyalFilePrinter {
 		writeType(decl.getType());
 		out.print(" ");
 		out.print(decl.getVariableName().get());
+		if(nonces) {
+			out.print("'");
+			out.print(decl.getIndex());
+		}
 	}
 
 	public void writeFieldDeclaration(FieldDeclaration decl) {
