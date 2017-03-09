@@ -142,12 +142,13 @@ public class Formulae {
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t)) {
+			Type rhs_t = rhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
 				Formula lhs_f = toFormula(lhs,types);
 				Formula rhs_f = toFormula(rhs,types);
 				Formula l = new Conjunct(lhs_f,rhs_f);
@@ -172,12 +173,13 @@ public class Formulae {
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t)) {
+			Type rhs_t = rhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
 				Formula lhs_f = toFormula(lhs,types);
 				Formula rhs_f = toFormula(rhs,types);
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);

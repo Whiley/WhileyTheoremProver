@@ -129,6 +129,10 @@ public class ProofPrinter {
 
 	private String title(Proof.Step step) {
 		String title = " (";
+		if(step.getRule() != null) {
+			title += step.getRule();
+			title += " ";
+		}
 		List<WyalFile.Expr> deps = step.getDependencies();
 		for(int j=0;j!=deps.size();++j) {
 			if(j != 0) {

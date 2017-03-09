@@ -10,6 +10,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
 import wyal.util.AbstractProof;
 import wyal.util.AbstractProof.AbstractStep;
+import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.Declaration.Assert;
 
 public class BitSetProof extends AbstractProof<BitSetProof.State> {
@@ -18,7 +19,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 		super(assertion);
 		// Initialise the proof with the root state
 		State root = new State(this,heap);
-		states.add(root.set(formula));
+		states.add(root.set("init",formula));
 	}
 
 	public static class State extends AbstractStep<State> {
@@ -35,14 +36,14 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 		private final BitSet activeTruths;
 
 		public State(Proof proof, SyntacticHeap heap) {
-			super(proof,null);
+			super(proof,null,null);
 			this.heap = heap;
 			this.allTruths = new BitSet();
 			this.activeTruths = new BitSet();
 		}
 
-		private State(State state, WyalFile.Expr... dependencies) {
-			super(state.getProof(),state,dependencies);
+		private State(State state, String rule, WyalFile.Expr... dependencies) {
+			super(state.getProof(),state,rule,dependencies);
 			this.heap = state.heap;
 			this.allTruths = (BitSet) state.allTruths.clone();
 			this.activeTruths = (BitSet) state.activeTruths.clone();
@@ -93,6 +94,9 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			}
 		}
 
+		public State subsume(String rule, Formula from, Formula to, Formula... deps) {
+			return subsume(rule,from,new Formula[]{to},deps);
+		}
 		/**
 		 * Subume one formula with one or more formulae. This implication is
 		 * that latter "cover" the former. The former is no longer active,
@@ -101,10 +105,10 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 		 * @param from
 		 * @param to
 		 */
-		public State subsume(Formula from, Formula... tos) {
+		public State subsume(String rule, Formula from, Formula[] tos, Formula... deps) {
 			final int fromIndex = from.getIndex();
 			if(activeTruths.get(fromIndex)) {
-				State next = new State(this,from);
+				State next = new State(this,rule,ArrayUtils.append(from,deps));
 				next.activeTruths.clear(fromIndex);
 				for (int i = 0; i != tos.length; ++i) {
 					final int toIndex = tos[i].getIndex();
@@ -119,10 +123,10 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			}
 		}
 
-		public State set(Formula truth, WyalFile.Expr... dependencies) {
+		public State set(String rule, Formula truth, WyalFile.Expr... dependencies) {
 			final int index = truth.getIndex();
 			if(!allTruths.get(index)) {
-				State next = new State(this,dependencies);
+				State next = new State(this,rule,dependencies);
 				next.allTruths.set(index);
 				next.activeTruths.set(index);
 				return next;
@@ -135,7 +139,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			Formula[] cases = disjunct.getOperands();
 			State[] result = new State[cases.length];
 			for (int i = 0; i != cases.length; ++i) {
-				result[i] = this.subsume(disjunct,cases[i]);
+				result[i] = this.subsume("split",disjunct,cases[i]);
 			}
 			return result;
 		}

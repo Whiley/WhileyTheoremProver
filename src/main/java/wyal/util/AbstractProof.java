@@ -42,12 +42,14 @@ public class AbstractProof<T extends Proof.Step> implements Proof {
 		protected final Proof proof;
 		protected  final T parent;
 		protected final List<WyalFile.Expr> dependencies;
+		protected final String rule;
 		protected final ArrayList<T> children;
 
-		public AbstractStep(Proof proof, T parent, WyalFile.Expr... dependencies) {
+		public AbstractStep(Proof proof, T parent, String rule, WyalFile.Expr... dependencies) {
 			this.proof = proof;
 			this.parent = parent;
 			this.dependencies = Arrays.asList(dependencies);
+			this.rule = rule;
 			this.children = new ArrayList<>();
 		}
 
@@ -59,6 +61,11 @@ public class AbstractProof<T extends Proof.Step> implements Proof {
 		@Override
 		public T getParent() {
 			return parent;
+		}
+
+		@Override
+		public String getRule() {
+			return rule;
 		}
 
 		@Override

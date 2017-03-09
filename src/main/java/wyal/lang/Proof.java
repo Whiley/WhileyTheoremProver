@@ -65,6 +65,13 @@ public interface Proof {
 		List<Formula> getIntroductions();
 
 		/**
+		 * Get the name of the rule used for this step.
+		 *
+		 * @return
+		 */
+		String getRule();
+
+		/**
 		 * Get the formulae on which this step depends
 		 *
 		 * @return

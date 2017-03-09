@@ -107,7 +107,9 @@ public class AutomatedTheoremProver {
 			count = count - 1;
 		} while(state != nState && !nState.contains(FALSE) && count > 0);
 		//
-		if (nState.contains(FALSE)) {
+		state = nState;
+		//
+		if (state.contains(FALSE)) {
 			return true;
 		} else if (depth == MAX_DEPTH) {
 			throw new IllegalArgumentException("Max depth reached");
@@ -118,7 +120,7 @@ public class AutomatedTheoremProver {
 				Formula truth = state.getActive(i);
 				if (truth instanceof Formula.Conjunct) {
 					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state = state.subsume(conjunct, conjunct.getOperands());
+					state = state.subsume("and",conjunct, conjunct.getOperands());
 					return checkUnsat(state, depth + 1, FALSE);
 				} else if (truth instanceof Formula.Disjunct) {
 					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
@@ -133,7 +135,7 @@ public class AutomatedTheoremProver {
 					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
 					if (!quantifier.getSign()) {
 						// existential
-						state = state.subsume(quantifier, quantifier.getBody());
+						state = state.subsume("exists",quantifier, quantifier.getBody());
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth instanceof Formula.Invoke) {
@@ -155,7 +157,7 @@ public class AutomatedTheoremProver {
 							invariant = Formulae.simplify(Formulae.invert(invariant),types);
 						}
 						// Update the state
-						state = state.subsume(truth, state.allocate(invariant));
+						state = state.subsume("expand",truth, state.allocate(invariant));
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth != null) {
@@ -163,7 +165,7 @@ public class AutomatedTheoremProver {
 					if (invariant != null) {
 						invariant = state.allocate(Formulae.simplify(invariant, types));
 						if (!state.contains(invariant)) {
-							state = state.set(invariant,truth);
+							state = state.set("implicit",invariant,truth);
 							return checkUnsat(state, depth + 1, FALSE);
 						}
 					}
@@ -172,7 +174,7 @@ public class AutomatedTheoremProver {
 					if(split != null) {
 						Formula[] cases = generateSplitCases(split,truth);
 						Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases),types));
-						state = state.subsume(truth, disjunct);
+						state = state.subsume("reduct",truth, disjunct);
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				}
@@ -377,17 +379,16 @@ public class AutomatedTheoremProver {
 			if (ith instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) ith;
 				if (eq.getSign()) {
-					Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-					nState = applySubstitution(substitution, i, nState, FALSE);
+					nState = applySubstitution(eq, i, nState, FALSE);
 				}
 			}
 		}
 		return nState;
 	}
 
-	private State applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
+	private State applySubstitution(Formula.Equality eq, int ignored, State state, Formula.Truth FALSE) {
 		State nState = state;
-
+		Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
 		if (substitution != null) {
 			// We've found a suitable substitution
 			for (int j = 0; j < state.size() && !nState.contains(FALSE); ++j) {
@@ -397,8 +398,15 @@ public class AutomatedTheoremProver {
 							before);
 					//
 					if (before != after) {
-						after = nState.allocate(Formulae.simplify(after, types));
-						nState = nState.subsume(before, after);
+						after = Formulae.simplify(after, types);
+						// The following is needed because substitution can
+						// produce a different looking term which, after
+						// simplification, is the same. To avoid this, we need
+						// to avoid "recursive substitutions" somehow.
+						if(!before.equals(after)) {
+							after = nState.allocate(after);
+							nState = nState.subsume("substitution",before, after, eq);
+						}
 					}
 				}
 			}
@@ -421,7 +429,7 @@ public class AutomatedTheoremProver {
 						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 						if (inferred != null) {
 							inferred = nState.allocate(inferred);
-							nState = nState.set(inferred, ith_ieq, jth_ieq);
+							nState = nState.set("closure",inferred, ith_ieq, jth_ieq);
 						}
 					}
 				}
@@ -490,7 +498,7 @@ public class AutomatedTheoremProver {
 			body = state.allocate(Formulae.simplify(body, types));
 			Expr[] dependencies = Arrays.copyOf(binding, binding.length+1);
 			dependencies[binding.length] = qf;
-			state = state.set(body,dependencies);
+			state = state.set("instantiate",body,dependencies);
 		} else {
 			// Exhaustively instantiate this variable with all possible ground
 			// terms.

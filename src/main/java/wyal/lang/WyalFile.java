@@ -950,6 +950,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					Type.Array effectiveArray = types.extractReadableArrayType(src);
 					return effectiveArray.getElement();
 				}
+				case EXPR_arrupdt: {
+					Type src = getOperand(0).getReturnType(types);
+					Type.Array effectiveArray = types.extractReadableArrayType(src);
+					return effectiveArray.getElement();
+				}
 				default:
 					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());
 				}
