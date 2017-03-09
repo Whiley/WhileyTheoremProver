@@ -91,7 +91,7 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 30;
+	private static final int MAX_DEPTH = 20;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
@@ -248,7 +248,7 @@ public class AutomatedTheoremProver {
 				for(int i=0;i!=src.size();++i) {
 					// a >= 0 && j == 0
 					Formula lhs = (Formula) Formulae.substitute(split, src.getOperand(i), truth);
-					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(0));
+					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(i));
 					result[i] = Formulae.and(lhs,rhs);
 				}
 				break;

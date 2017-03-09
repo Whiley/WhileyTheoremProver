@@ -14,7 +14,7 @@ import wyal.lang.WyalFile;
 
 public class ProofPrinter {
 	private final PrintWriter out;
-	private final int width = 200;
+	private final int width = 80;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -33,41 +33,37 @@ public class ProofPrinter {
 	}
 
 	public void print(Proof p) {
-		print(p.getStep(0));
+		print(0, p.getStep(0));
 	}
 
-	public void print(Proof.Step...steps) {
-		printLine(width);
-		String[][] lines = new String[steps.length][];
-		for(int i=0;i!=steps.length;++i) {
-			Proof.Step step = steps[i];
-			lines[i] = toLines(step);
-		}
-		int depth = maxDepth(lines);
-		for(int i=0;i!=depth;++i) {
-			for(int j=0;j!=steps.length;++j) {
-				Proof.Step step = steps[j];
-				String title = (i == 0) ? title(step) : "";
-				String line;
-				if(i < lines[j].length) {
-					line = lines[j][i];
-				} else {
-					line = "";
-				}
-				int colwidth = calculateColumnWidth(step,width);
-				line = pad(line,title,colwidth-1);
-				out.print(line);
-				out.print("|");
-			}
-			out.println();
+	public void print(int depth, Proof.Step step) {
+		tab(depth);
+		String[] lines = toLines(step);
+		String title = title(step);
+		int indent = depth*3;
+		for(int i=0;i!=lines.length;++i) {
+			String t = i == 0 ? title : "";
+			out.println(pad(lines[i],t,width - indent));
 		}
 		// now print any children
-		steps = expandFrontier(steps);
-		if(steps.length > 0) {
-			print(steps);
+		if(step.numberOfChildren() == 1) {
+			print(depth,step.getChild(0));
+		} else {
+			printLine(width);
+			for(int i=0;i!=step.numberOfChildren();++i) {
+				print(depth+1,step.getChild(i));
+			}
 		}
 	}
 
+	public void tab(int indent) {
+		if(indent > 0) {
+			for (int i = 0; i < (indent-1); ++i) {
+				out.print("---");
+			}
+			out.print("-> ");
+		}
+	}
 	private Proof.Step[] expandFrontier(Proof.Step[] steps) {
 		ArrayList<Proof.Step> nSteps = new ArrayList<>();
 		boolean allLeaf = true;
