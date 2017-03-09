@@ -32,6 +32,26 @@ public class TypeSystem {
 		this.rewrites = new ArrayList<>();
 	}
 
+	public boolean isEffectiveRecord(Type type) {
+		if(type instanceof Type.Record) {
+			return true;
+		} else if(type instanceof Type.Union) {
+			Type.Union ut = (Type.Union) type;
+			for (int i = 0; i != ut.size(); ++i) {
+				if(!isEffectiveRecord(ut.getOperand(i))) {
+					return false;
+				}
+			}
+			return true;
+		} else if(type instanceof Type.Nominal){
+			Type.Nominal nom = (Type.Nominal) type;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			return isEffectiveRecord(decl.getVariableDeclaration().getType());
+		} else {
+			return false;
+		}
+	}
+
 	/**
 	 * For a given type, extract its effective record type. For example, the
 	 * type <code>({int x, int y}|{int x, int z})</code> has effective record

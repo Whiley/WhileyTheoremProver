@@ -153,6 +153,16 @@ public class Formulae {
 				Formula l = new Conjunct(lhs_f,rhs_f);
 				Formula r = new Conjunct(invert(lhs_f),invert(rhs_f));
 				return new Formula.Disjunct(l,r);
+			} else if(types.isEffectiveRecord(lhs_t)) {
+				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				FieldDeclaration[] fields = lhs_r.getFields();
+				Formula[] clauses = new Formula[fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
+				}
+				return new Formula.Conjunct(clauses);
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -173,6 +183,16 @@ public class Formulae {
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
+			} else if(types.isEffectiveRecord(lhs_t)) {
+				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				FieldDeclaration[] fields = lhs_r.getFields();
+				Formula[] clauses = new Formula[fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
+				}
+				return new Formula.Disjunct(clauses);
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
