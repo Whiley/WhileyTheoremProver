@@ -87,11 +87,12 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
+		System.out.println("******************* PROOF ******************");
 		print(proof);
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 20;
+	private static final int MAX_DEPTH = 30;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
@@ -103,15 +104,14 @@ public class AutomatedTheoremProver {
 			// Apply transitive closure over inequalities
 			nState = closeOverInequalities(nState, FALSE);
 			//
-			if (count-- == 0) {
-				throw new IllegalArgumentException("trip count reached");
-			}
-		} while(state != nState && !nState.contains(FALSE));
+			count = count - 1;
+		} while(state != nState && !nState.contains(FALSE) && count > 0);
 		//
 		if (nState.contains(FALSE)) {
 			return true;
 		} else if (depth == MAX_DEPTH) {
 			throw new IllegalArgumentException("Max depth reached");
+			//return false;
 		} else {
 			// The following loop is *very* primitive in nature.
 			for (int i = 0; i != state.size(); ++i) {
@@ -184,7 +184,7 @@ public class AutomatedTheoremProver {
 			nState = instantiateUniversalQuantifiers(state);
 			// Done
 			if(nState != state) {
-				return checkUnsat(state, depth + 1, FALSE);
+				return checkUnsat(nState, depth + 1, FALSE);
 			} else {
 				return false;
 			}
@@ -285,8 +285,8 @@ public class AutomatedTheoremProver {
 			Expr src = idx.getOperand(0);
 			Polynomial index = Formulae.toPolynomial(idx.getOperand(1));
 			Polynomial srclen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, src));
-			Formula.Inequality lb = new Formula.Inequality(true, index, srclen);
-			Formula.Inequality gb = new Formula.Inequality(false, index, new Polynomial(BigInteger.ZERO));
+			Formula.Inequality lb = Formulae.lessThan(index, srclen);
+			Formula.Inequality gb = Formulae.greaterOrEqual(index, new Polynomial(BigInteger.ZERO));
 			axiom = new Formula.Conjunct(lb, gb);
 			break;
 		}
@@ -372,7 +372,7 @@ public class AutomatedTheoremProver {
 	private State closeOverCongruence(State state, Formula.Truth FALSE) {
 		int size = state.size();
 		State nState = state;
-		for (int i = 0; i != size && !state.contains(FALSE); ++i) {
+		for (int i = 0; i <size && !nState.contains(FALSE); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) ith;
@@ -386,23 +386,24 @@ public class AutomatedTheoremProver {
 	}
 
 	private State applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
+		State nState = state;
 
 		if (substitution != null) {
 			// We've found a suitable substitution
-			for (int j = 0; j < state.size() && !state.contains(FALSE); ++j) {
+			for (int j = 0; j < state.size() && !nState.contains(FALSE); ++j) {
 				Formula before = state.getActive(j);
 				if (j != ignored && before != null) {
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
 					//
 					if (before != after) {
-						after = state.allocate(Formulae.simplify(after, types));
-						state = state.subsume(before, after);
+						after = nState.allocate(Formulae.simplify(after, types));
+						nState = nState.subsume(before, after);
 					}
 				}
 			}
 		}
-		return state;
+		return nState;
 	}
 
 	private State closeOverInequalities(State state, Formula.Truth FALSE) {

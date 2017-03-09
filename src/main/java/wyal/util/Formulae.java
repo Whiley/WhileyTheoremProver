@@ -201,25 +201,26 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(true, lhs, rhs);
+			return lessThan(lhs,rhs);
 		}
 		case EXPR_lteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(false, rhs, lhs);
+			return greaterOrEqual(rhs,lhs);
 		}
 		case EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(true, rhs, lhs);
+			// lhs > rhs ==> lhs+1 >= rhs
+			return lessThan(rhs,lhs);
 		}
 		case EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(false, lhs, rhs);
+			return greaterOrEqual(lhs,rhs);
 		}
 		case EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -443,12 +444,14 @@ public class Formulae {
 		}
 	}
 
-	public static Formula lessThan(Polynomial lhs, Polynomial rhs) {
-		return new Formula.Inequality(true, lhs, rhs);
+	public static Formula.Inequality lessThan(Polynomial lhs, Polynomial rhs) {
+		// lhs < rhs ===> rhs >= (lhs+1)
+		Polynomial lhsP1 = lhs.add(new Polynomial(BigInteger.ONE));
+		return new Formula.Inequality(rhs, lhsP1);
 	}
 
-	public static Formula greaterOrEqual(Polynomial lhs, Polynomial rhs) {
-		return new Formula.Inequality(false, lhs, rhs);
+	public static Formula.Inequality greaterOrEqual(Polynomial lhs, Polynomial rhs) {
+		return new Formula.Inequality(lhs, rhs);
 	}
 
 	public static Formula implies(Formula lhs, Formula rhs) {
@@ -509,10 +512,12 @@ public class Formulae {
 				return new Equality(!e.getSign(), e.getOperand(0), e.getOperand(1));
 			}
 		}
-		case EXPR_lt:
 		case EXPR_gteq: {
+			// !(lhs >= rhs) => lhs < rhs
 			Inequality e = (Inequality) f;
-			return new Inequality(!e.getSign(), e.getOperand(0), e.getOperand(1));
+			Polynomial lhs = e.getOperand(0);
+			Polynomial rhs = e.getOperand(1);
+			return lessThan(lhs,rhs);
 		}
 		case EXPR_invoke: {
 			Invoke e = (Invoke) f;
@@ -735,11 +740,11 @@ public class Formulae {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			return evaluateInequality(ieq.getOpcode(), lhs.toConstant(), rhs.toConstant());
 		} else if (lhs.equals(rhs)) {
-			return new Formula.Truth(false);
+			return new Formula.Truth(true);
 		} else {
 			// FIXME: need to ensure identical object returned if no
 			// simplification applied.
-			return new Inequality(ieq.getSign(), bs.getFirst(), bs.getSecond());
+			return new Inequality(bs.getFirst(), bs.getSecond());
 		}
 	}
 
@@ -788,8 +793,8 @@ public class Formulae {
 			// disjunction of the form (x < y) || (x > y). This is not
 			// necessarily the most efficient thing to do. However, for our
 			// purposes, this works well enough for now.
-			Inequality lt = new Inequality(true, nLhs, nRhs);
-			Inequality gt = new Inequality(true, nRhs, nLhs);
+			Inequality lt = lessThan(nLhs,nRhs);
+			Inequality gt = lessThan(nRhs,nLhs);
 			return new Formula.Disjunct(lt, gt);
 		}
 	}
@@ -1220,44 +1225,32 @@ public class Formulae {
 		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
 		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
 		Polynomial.Term lhsCandidate;
-		Polynomial lhs;
-		Polynomial rhs;
+		Polynomial lower;
+		Polynomial upper;
 		if (lCandidate != null && rCandidate == null) {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 			lhsCandidate = lCandidate.getFirst();
 		} else if (lCandidate == null && rCandidate != null) {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 			lhsCandidate = rCandidate.getSecond();
 		} else if(lCandidate == null && rCandidate == null) {
 			return null;
 		} else if(lCandidate.compareTo(rCandidate) <= 0){
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 			lhsCandidate = lCandidate.getFirst();
 		} else {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 			lhsCandidate = rCandidate.getSecond();
 		}
-		if(lhs.equals(rhs)) {
-			if(ith.getSign() || jth.getSign()) {
-				// y < x < y ==> false
-				return new Formula.Truth(false);
-			} else {
-				return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lhs),types);
-			}
-		} else if (ith.getSign() && jth.getSign()) {
-			// Result is *very* strict as had something like ... < x < ...
-			lhs = lhs.add(new Polynomial.Term(BigInteger.ONE));
-			return simplify(new Formula.Inequality(true, lhs, rhs), types);
-		} else if (ith.getSign() || jth.getSign()) {
-			// Result is strict as had something like ... <= x < ...
-			return simplify(new Formula.Inequality(true, lhs, rhs), types);
+		if(lower.equals(upper)) {
+			return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lower), types);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return simplify(new Formula.Inequality(false, rhs, lhs), types);
+			return simplify(greaterOrEqual(upper,lower), types);
 		}
 	}
 
@@ -1270,17 +1263,7 @@ public class Formulae {
 	 * @return
 	 */
 	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
-		int i;
-		switch (inequality.getOpcode()) {
-		case EXPR_lt:
-			i = sign ? 1 : 0;
-			break;
-		case EXPR_gteq:
-			i = sign ? 0 : 1;
-			break;
-		default:
-			throw new IllegalArgumentException("Invalid inequality");
-		}
+		int i = sign ? 0 : 1;
 		return (Polynomial) inequality.getOperand(i);
 	}
 

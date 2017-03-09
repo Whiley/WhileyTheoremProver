@@ -14,7 +14,7 @@ import wyal.lang.WyalFile;
 
 public class ProofPrinter {
 	private final PrintWriter out;
-	private final int width = 80;
+	private final int width = 120;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
