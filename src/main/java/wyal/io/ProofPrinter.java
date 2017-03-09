@@ -14,7 +14,7 @@ import wyal.lang.WyalFile;
 
 public class ProofPrinter {
 	private final PrintWriter out;
-	private final int width = 120;
+	private final int width = 200;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -38,7 +38,6 @@ public class ProofPrinter {
 
 	public void print(Proof.Step...steps) {
 		printLine(width);
-		int colwidth = width / steps.length;
 		String[][] lines = new String[steps.length][];
 		for(int i=0;i!=steps.length;++i) {
 			Proof.Step step = steps[i];
@@ -47,13 +46,15 @@ public class ProofPrinter {
 		int depth = maxDepth(lines);
 		for(int i=0;i!=depth;++i) {
 			for(int j=0;j!=steps.length;++j) {
-				String title = (i == 0) ? title(steps[j]) : "";
+				Proof.Step step = steps[j];
+				String title = (i == 0) ? title(step) : "";
 				String line;
 				if(i < lines[j].length) {
 					line = lines[j][i];
 				} else {
 					line = "";
 				}
+				int colwidth = calculateColumnWidth(step,width);
 				line = pad(line,title,colwidth-1);
 				out.print(line);
 				out.print("|");
@@ -69,13 +70,33 @@ public class ProofPrinter {
 
 	private Proof.Step[] expandFrontier(Proof.Step[] steps) {
 		ArrayList<Proof.Step> nSteps = new ArrayList<>();
+		boolean allLeaf = true;
 		for(int i=0;i!=steps.length;++i) {
 			Proof.Step step = steps[i];
-			for(int j=0;j!=step.numberOfChildren();++j) {
-				nSteps.add(step.getChild(j));
+			if(step.numberOfChildren() == 0) {
+				nSteps.add(step);
+			} else {
+				for(int j=0;j!=step.numberOfChildren();++j) {
+					nSteps.add(step.getChild(j));
+				}
+				allLeaf = false;
 			}
 		}
-		return nSteps.toArray(new Proof.Step[nSteps.size()]);
+		if(allLeaf) {
+			return new Proof.Step[0];
+		} else {
+			return nSteps.toArray(new Proof.Step[nSteps.size()]);
+		}
+	}
+
+	private int calculateColumnWidth(Proof.Step step, int maxWidth) {
+		Proof.Step parent = step.getParent();
+		if(parent == null) {
+			return maxWidth;
+		} else {
+			int parentWidth = calculateColumnWidth(parent,maxWidth);
+			return parentWidth / parent.numberOfChildren();
+		}
 	}
 
 	private int maxDepth(String[][] lines) {

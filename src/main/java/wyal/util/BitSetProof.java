@@ -135,8 +135,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			Formula[] cases = disjunct.getOperands();
 			State[] result = new State[cases.length];
 			for (int i = 0; i != cases.length; ++i) {
-				State child = new State(this);
-				result[i] = child.subsume(disjunct,cases[i]);
+				result[i] = this.subsume(disjunct,cases[i]);
 			}
 			return result;
 		}

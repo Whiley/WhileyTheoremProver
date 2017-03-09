@@ -111,7 +111,7 @@ public class AutomatedTheoremProver {
 		if (nState.contains(FALSE)) {
 			return true;
 		} else if (depth == MAX_DEPTH) {
-			return false;
+			throw new IllegalArgumentException("Max depth reached");
 		} else {
 			// The following loop is *very* primitive in nature.
 			for (int i = 0; i != state.size(); ++i) {
@@ -181,9 +181,13 @@ public class AutomatedTheoremProver {
 			// contains only primitive formulae.
 			//
 			// Instantiate any quantified formulae
-			state = instantiateUniversalQuantifiers(state);
+			nState = instantiateUniversalQuantifiers(state);
 			// Done
-			return checkUnsat(state, depth + 1, FALSE);
+			if(nState != state) {
+				return checkUnsat(state, depth + 1, FALSE);
+			} else {
+				return false;
+			}
 		}
 	}
 
