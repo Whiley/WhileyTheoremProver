@@ -11,14 +11,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import wyal.io.ProofPrinter;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.Formula;
+import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
+import wyal.util.AbstractProof.AbstractStep;
+import wyal.util.BitSetProof.State;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
@@ -76,41 +80,35 @@ public class AutomatedTheoremProver {
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplify(formula, types);
-		//
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
-//		System.out.print("STARTING :: ");
-//		println(formula);
 		// Create initial state
-		State state = new State(heap);
-		// Assume the formula holds
-		state.set(formula);
+		BitSetProof proof = new BitSetProof(null,heap,formula);
+		State state = proof.getStep(0);
 		//
-		return checkUnsat(state, 0, FALSE);
+		boolean r = checkUnsat(state, 0, FALSE);
+		print(proof);
+		return r;
 	}
 
-	private static final int MAX_DEPTH = 20;
+	private static final int MAX_DEPTH = 30;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
-		System.out.println("============================================================================");
-		print(depth, state);
 		//
-		boolean change = true;
-		int count = 5;
-		while (change && !state.contains(FALSE)) {
-			change = false;
-			// Apply congruence closure
-			change |= closeOverCongruence(state, FALSE);
+		int count = 10;
+		State nState = state;
+		do {
+			state = nState;
+			nState = closeOverCongruence(state, FALSE);
 			// Apply transitive closure over inequalities
-			change |= closeOverInequalities(state, FALSE);
+			nState = closeOverInequalities(nState, FALSE);
 			//
 			if (count-- == 0) {
 				throw new IllegalArgumentException("trip count reached");
 			}
-		}
+		} while(state != nState && !nState.contains(FALSE));
 		//
-		if (state.contains(FALSE)) {
-			tab(depth);System.out.println("FALSE");
+		if (nState.contains(FALSE)) {
 			return true;
 		} else if (depth == MAX_DEPTH) {
 			return false;
@@ -120,12 +118,11 @@ public class AutomatedTheoremProver {
 				Formula truth = state.getActive(i);
 				if (truth instanceof Formula.Conjunct) {
 					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state.subsume(conjunct, conjunct.getOperands());
+					state = state.subsume(conjunct, conjunct.getOperands());
 					return checkUnsat(state, depth + 1, FALSE);
 				} else if (truth instanceof Formula.Disjunct) {
 					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
-					state.subsume(disjunct);
-					State[] splits = state.split(disjunct.getOperands());
+					State[] splits = state.split(disjunct);
 					for (int j = 0; j != splits.length; ++j) {
 						if (!checkUnsat(splits[j], depth + 1, FALSE)) {
 							return false;
@@ -136,7 +133,7 @@ public class AutomatedTheoremProver {
 					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
 					if (!quantifier.getSign()) {
 						// existential
-						state.subsume(quantifier, quantifier.getBody());
+						state = state.subsume(quantifier, quantifier.getBody());
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth instanceof Formula.Invoke) {
@@ -158,8 +155,7 @@ public class AutomatedTheoremProver {
 							invariant = Formulae.simplify(Formulae.invert(invariant),types);
 						}
 						// Update the state
-						state.subsume(truth, state.allocate(invariant));
-
+						state = state.subsume(truth, state.allocate(invariant));
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth != null) {
@@ -167,7 +163,7 @@ public class AutomatedTheoremProver {
 					if (invariant != null) {
 						invariant = state.allocate(Formulae.simplify(invariant, types));
 						if (!state.contains(invariant)) {
-							state.set(invariant);
+							state = state.set(invariant,truth);
 							return checkUnsat(state, depth + 1, FALSE);
 						}
 					}
@@ -176,7 +172,7 @@ public class AutomatedTheoremProver {
 					if(split != null) {
 						Formula[] cases = generateSplitCases(split,truth);
 						Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases),types));
-						state.subsume(truth, disjunct);
+						state = state.subsume(truth, disjunct);
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				}
@@ -185,7 +181,7 @@ public class AutomatedTheoremProver {
 			// contains only primitive formulae.
 			//
 			// Instantiate any quantified formulae
-			instantiateUniversalQuantifiers(state);
+			state = instantiateUniversalQuantifiers(state);
 			// Done
 			return checkUnsat(state, depth + 1, FALSE);
 		}
@@ -344,7 +340,6 @@ public class AutomatedTheoremProver {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
 			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
-		System.out.println("EXPANDING MACRO BODY");
 		return Formulae.simplify(body, types);
 	}
 
@@ -365,72 +360,51 @@ public class AutomatedTheoremProver {
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
-//			System.out.print("EXPANDING TYPE INVARIANT: ");
-//			AutomatedTheoremProver.print(parameter);
-//			System.out.print(" FOR: ");
-//			AutomatedTheoremProver.print(argument);
-//			System.out.print(" IN: ");
-//			AutomatedTheoremProver.println(result);
 			result = (Formula) Formulae.substitute(parameter, argument, result);
 			return Formulae.simplify(result, types);
 		}
 	}
 
-	private boolean closeOverCongruence(State state, Formula.Truth FALSE) {
+	private State closeOverCongruence(State state, Formula.Truth FALSE) {
 		int size = state.size();
-		boolean changed = false;
+		State nState = state;
 		for (int i = 0; i != size && !state.contains(FALSE); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) ith;
 				if (eq.getSign()) {
 					Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-					changed |= applySubstitution(substitution, i, state, FALSE);
+					nState = applySubstitution(substitution, i, nState, FALSE);
 				}
 			}
 		}
-		return changed;
+		return nState;
 	}
 
-	private boolean applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
-		boolean nochange = true;
+	private State applySubstitution(Pair<Expr, Expr> substitution, int ignored, State state, Formula.Truth FALSE) {
 
 		if (substitution != null) {
 			// We've found a suitable substitution
-//			AutomatedTheoremProver.print(substitution.getFirst());
-//			System.out.print(" ==> ");
-//			AutomatedTheoremProver.print(substitution.getSecond());
-//			System.out.println();
 			for (int j = 0; j < state.size() && !state.contains(FALSE); ++j) {
 				Formula before = state.getActive(j);
 				if (j != ignored && before != null) {
-					System.out.print("SUBSTITUTING: ");
-					AutomatedTheoremProver.print(before);
-					System.out.print("[" );
-					AutomatedTheoremProver.print(substitution.getFirst());
-					System.out.print(" / " );
-					AutomatedTheoremProver.print(substitution.getSecond());
-					System.out.print("] ==> ");
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
-					AutomatedTheoremProver.print(after);
 					//
 					if (before != after) {
 						after = state.allocate(Formulae.simplify(after, types));
-						nochange &= state.contains(after);
-						state.subsume(before, after);
+						state = state.subsume(before, after);
 					}
-					System.out.println(" : " + !nochange);
 				}
 			}
 		}
-		return !nochange;
+		return state;
 	}
 
-	private boolean closeOverInequalities(State state, Formula.Truth FALSE) {
-		boolean change = false;
+	private State closeOverInequalities(State state, Formula.Truth FALSE) {
 		int size = state.size();
 		//
+		State nState = state;
 		for (int i = 0; i != size; ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Inequality) {
@@ -441,25 +415,17 @@ public class AutomatedTheoremProver {
 						Formula.Inequality jth_ieq = (Formula.Inequality) jth;
 						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 						if (inferred != null) {
-							System.out.print("INFERRED: ");
-							print(inferred);
-							System.out.print("FROM: ");
-							print(ith_ieq);
-							System.out.print("AND: ");
-							print(jth_ieq);
-							inferred = state.allocate(inferred);
-							change |= !state.contains(inferred);
-							System.out.println(" : " + change);
-							state.set(inferred);
+							inferred = nState.allocate(inferred);
+							nState = nState.set(inferred, ith_ieq, jth_ieq);
 						}
 					}
 				}
 			}
 		}
-		return change;
+		return nState;
 	}
 
-	private void instantiateUniversalQuantifiers(State state) {
+	private State instantiateUniversalQuantifiers(State state) {
 		Expr[] grounds = determineGroundTerms(state);
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
@@ -467,10 +433,11 @@ public class AutomatedTheoremProver {
 				Formula.Quantifier qf = (Formula.Quantifier) ith;
 				if (qf.getSign()) {
 					// This is a universal quantifier
-					instantiateUniversalQuantifier(qf, new Expr[0], grounds, state);
+					state = instantiateUniversalQuantifier(qf, new Expr[0], grounds, state);
 				}
 			}
 		}
+		return state;
 	}
 
 	private Expr[] determineGroundTerms(State state) {
@@ -484,7 +451,9 @@ public class AutomatedTheoremProver {
 				extractGrounds(rhs, grounds);
 			}
 		}
-		return grounds.toArray(new Expr[grounds.size()]);
+		Expr[] terms = grounds.toArray(new Expr[grounds.size()]);
+		Arrays.sort(terms);
+		return terms;
 	}
 
 	private void extractGrounds(Expr e, Set<Expr> grounds) {
@@ -499,7 +468,7 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private void instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds, State state) {
+	private State instantiateUniversalQuantifier(Formula.Quantifier qf, Expr[] binding, Expr[] grounds, State state) {
 		VariableDeclaration[] parameters = qf.getParameters().getOperands();
 		if (parameters.length == binding.length) {
 			// Binding now complete, so proceed to instantiate quantifier.
@@ -507,126 +476,26 @@ public class AutomatedTheoremProver {
 			// parameter.
 			Formula body = qf.getBody();
 			// FIXME: there is a bug of sorts here related to skolems
-			String dbg = "";
 			for (int i = 0; i != parameters.length; ++i) {
 				VariableDeclaration parameter = parameters[i];
-				// FIXME: I'm assuming integer only quantification!!
-				dbg += ("[" + parameter.getVariableName() + " / ??? ]");
 				Expr.VariableAccess access = new Expr.VariableAccess(parameter);
 				body = (Formula) Formulae.substitute(access, binding[i], body);
 			}
 			// Second, instantiate the ground body
 			body = state.allocate(Formulae.simplify(body, types));
-			if(state.set(body)) {
-				System.out.print("INSTANTIATING: ");
-				println(body);
-			}
+			Expr[] dependencies = Arrays.copyOf(binding, binding.length+1);
+			dependencies[binding.length] = qf;
+			state = state.set(body,dependencies);
 		} else {
 			// Exhaustively instantiate this variable with all possible ground
 			// terms.
 			for (int i = 0; i != grounds.length; ++i) {
 				Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
 				nBinding[binding.length] = grounds[i];
-				instantiateUniversalQuantifier(qf, nBinding, grounds, state);
+				state = instantiateUniversalQuantifier(qf, nBinding, grounds, state);
 			}
 		}
-	}
-
-	private static class State {
-		private final SyntacticHeap heap;
-		/**
-		 * The set of all known truths, including those which are subsumed.
-		 * Always a superset of activeTruths.
-		 */
-		private final BitSet allTruths;
-		/**
-		 * The set of all known truths, excluding those which are subsumed.
-		 * Always a subset of allTruths.
-		 */
-		private final BitSet activeTruths;
-
-		public State(SyntacticHeap heap) {
-			this.heap = heap;
-			this.allTruths = new BitSet();
-			this.activeTruths = new BitSet();
-		}
-
-		public State(State state) {
-			this.heap = state.heap;
-			this.allTruths = (BitSet) state.allTruths.clone();
-			this.activeTruths = (BitSet) state.activeTruths.clone();
-		}
-
-		public int size() {
-			return activeTruths.length();
-		}
-
-		public SyntacticHeap getHeap() {
-			return heap;
-		}
-
-		/**
-		 * Determine whether a given truth is known or not.
-		 *
-		 * @param truth
-		 * @return
-		 */
-		public boolean contains(Formula truth) {
-			return allTruths.get(truth.getIndex());
-		}
-
-		public Formula getActive(int index) {
-			if (activeTruths.get(index)) {
-				return (Formula) heap.getSyntacticItem(index);
-			} else {
-				return null;
-			}
-		}
-
-		/**
-		 * Subume one formula with one or more formulae. This implication is
-		 * that latter "cover" the former. The former is no longer active,
-		 * though it remains a known truth. The new formula are active.
-		 *
-		 * @param from
-		 * @param to
-		 */
-		public void subsume(Formula from, Formula... tos) {
-			final int fromIndex = from.getIndex();
-			activeTruths.clear(fromIndex);
-			for (int i = 0; i != tos.length; ++i) {
-				final int toIndex = tos[i].getIndex();
-				if(!allTruths.get(toIndex)) {
-					allTruths.set(toIndex);
-					activeTruths.set(toIndex);
-				}
-			}
-		}
-
-		public boolean set(Formula truth) {
-			final int index = truth.getIndex();
-			if(!allTruths.get(index)) {
-				allTruths.set(index);
-				activeTruths.set(index);
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		public State[] split(Formula... cases) {
-			State[] result = new State[cases.length];
-			for (int i = 0; i != cases.length; ++i) {
-				State child = new State(this);
-				result[i] = child;
-				child.set(cases[i]);
-			}
-			return result;
-		}
-
-		public Formula allocate(Formula f) {
-			return heap.allocate(f);
-		}
+		return state;
 	}
 
 	public static void println(int indent, State state) {
@@ -639,9 +508,8 @@ public class AutomatedTheoremProver {
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith != null) {
-				// println(indent,ith);
-				print(indent, ith);
-				System.out.println(" " + ith.getIndex());
+				System.out.print("[" + i + "] ");
+				println(indent, ith);
 			}
 		}
 	}
@@ -693,6 +561,12 @@ public class AutomatedTheoremProver {
 			printer.writeExpression(items[i]);
 		}
 		out.flush();
+	}
+
+	public static void print(Proof proof) {
+		ProofPrinter printer = new ProofPrinter(System.out);
+		printer.print(proof);
+		printer.flush();
 	}
 
 	public static void tab(int indent) {

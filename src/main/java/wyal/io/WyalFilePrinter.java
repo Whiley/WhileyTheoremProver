@@ -23,10 +23,10 @@ import wyfs.util.Trie;
 public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
-	private boolean nonces = true;
+	private boolean nonces = false;
 
-	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
-		this(new OutputStreamWriter(writer, "UTF-8"));
+	public WyalFilePrinter(OutputStream writer) {
+		this(new OutputStreamWriter(writer));
 	}
 
 	public WyalFilePrinter(Writer writer) {
@@ -35,6 +35,10 @@ public class WyalFilePrinter {
 
 	public WyalFilePrinter(PrintWriter writer) {
 		this.out = writer;
+	}
+
+	public void flush() {
+		out.flush();
 	}
 
 	public void write(WyalFile wf) {
