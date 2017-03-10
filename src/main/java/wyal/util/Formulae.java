@@ -164,6 +164,23 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
 				}
 				return new Formula.Conjunct(clauses);
+			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i:" + skolem++));
+				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+				Polynomial lhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, lhs, va));
+				Polynomial rhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, rhs, va));
+				Formula inv = toFormula(new Expr.Operator(Opcode.EXPR_eq, lhsAccess, rhsAccess), types);
+				Polynomial zero = toPolynomial(0);
+				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+				// The following axiom simply states that the length of every array
+				// type is greater than or equal to zero.
+				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				// forall i.(0 <= i && i <|root|) ==> inv
+				Formula gt = greaterOrEqual(va, zero);
+				Formula lt = lessThan(va, lhsLen);
+				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -195,6 +212,23 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
 				}
 				return new Formula.Disjunct(clauses);
+			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i:" + skolem++));
+				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+				Polynomial lhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, lhs, va));
+				Polynomial rhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, rhs, va));
+				Formula inv = toFormula(new Expr.Operator(Opcode.EXPR_eq, lhsAccess, rhsAccess), types);
+				Polynomial zero = toPolynomial(0);
+				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+				// The following axiom simply states that the length of every array
+				// type is greater than or equal to zero.
+				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				// forall i.(0 <= i && i <|root|) ==> inv
+				Formula gt = greaterOrEqual(va, zero);
+				Formula lt = lessThan(va, lhsLen);
+				return invert(and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv))));
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
@@ -1380,7 +1414,7 @@ public class Formulae {
 	 * @param p
 	 * @return
 	 */
-	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
+	public static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
 		Expr candidateAtom = null;
 		Polynomial.Term candidate = null;
 		for (int i = 0; i != p.size(); ++i) {

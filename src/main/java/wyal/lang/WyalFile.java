@@ -10,9 +10,11 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
 import wyal.util.AutomatedTheoremProver;
+import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
 import wybs.lang.CompilationUnit;
@@ -953,7 +955,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
 					Type.Array effectiveArray = types.extractReadableArrayType(src);
-					return effectiveArray.getElement();
+					return effectiveArray;
 				}
 				default:
 					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());

@@ -162,9 +162,6 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public int compareTo(SyntacticItem other) {
-//		if (other == null) {
-//			return 1;
-//		}
 		int diff = opcode.ordinal() - other.getOpcode().ordinal();
 		if (diff != 0) {
 			return diff;

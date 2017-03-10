@@ -23,7 +23,7 @@ import wyfs.util.Trie;
 public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
-	private boolean nonces = true;
+	private boolean nonces = false;
 
 	public WyalFilePrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));

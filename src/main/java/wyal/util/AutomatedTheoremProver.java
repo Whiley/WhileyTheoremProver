@@ -372,18 +372,22 @@ public class AutomatedTheoremProver {
 	}
 
 	private State closeOverCongruence(State state, Formula.Truth FALSE) {
-		int size = state.size();
-		State nState = state;
-		for (int i = 0; i <size && !nState.contains(FALSE); ++i) {
+		// Observe, we must always use the most up-to-date version of state
+		// here. This is because, once a substitution is applied, we must ensure
+		// that only ever use the substituted terms.
+		//
+		// I believe that this loop should now terminate. I don't think it's
+		// possible for us to witness the counting problem here.
+		for (int i = 0; i < state.size() && !state.contains(FALSE); ++i) {
 			Formula ith = state.getActive(i);
 			if (ith instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) ith;
 				if (eq.getSign()) {
-					nState = applySubstitution(eq, i, nState, FALSE);
+					state = applySubstitution(eq, i, state, FALSE);
 				}
 			}
 		}
-		return nState;
+		return state;
 	}
 
 	private State applySubstitution(Formula.Equality eq, int ignored, State state, Formula.Truth FALSE) {
@@ -404,7 +408,15 @@ public class AutomatedTheoremProver {
 						// simplification, is the same. To avoid this, we need
 						// to avoid "recursive substitutions" somehow.
 						if(!before.equals(after)) {
+//							System.out.print("SUBSUMING: ");
+//							print(before);
+//							System.out.print("(" + before.getIndex() + ")");
+//							System.out.print(" WITH: ");
+//							print(after);
 							after = nState.allocate(after);
+//							System.out.print("(" + after.getIndex() + ")");
+//							System.out.print(" FROM: ");
+//							println(eq);
 							nState = nState.subsume("substitution",before, after, eq);
 						}
 					}
