@@ -104,18 +104,22 @@ public class ProofPrinter {
 	}
 
 	private String pad(String left, String right, int width) {
-		if(right.length() > width) {
-			right = right.substring(0, width);
-		}
-		width -= right.length();
-		if(left.length() > width) {
-			left = left.substring(0, width);
+		if(width <= 0) {
+			return "";
 		} else {
-			while(left.length() < width) {
-				left = left + " ";
+			if(right.length() > width) {
+				right = right.substring(0, width);
 			}
+			width -= right.length();
+			if(left.length() > width) {
+				left = left.substring(0, width);
+			} else {
+				while(left.length() < width) {
+					left = left + " ";
+				}
+			}
+			return left + right;
 		}
-		return left + right;
 	}
 
 	private String[] toLines(Proof.Step s) {
