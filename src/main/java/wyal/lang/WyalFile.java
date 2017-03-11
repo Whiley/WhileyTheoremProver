@@ -187,8 +187,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// =========================================================================
 	// State
 	// =========================================================================
-	private final ArrayList<SyntacticItem> syntacticItems;
-
 	protected final Path.Entry<WyalFile> entry;
 
 	// =========================================================================
@@ -197,7 +195,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 	public WyalFile(Path.Entry<WyalFile> entry) {
 		this.entry = entry;
-		this.syntacticItems = new ArrayList<>();
 	}
 
 	@Override

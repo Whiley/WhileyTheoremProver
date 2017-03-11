@@ -49,6 +49,10 @@ public abstract class AbstractSyntacticHeap implements SyntacticHeap {
 
 	@Override
 	public <T extends SyntacticItem> T allocate(T item) {
+		return internalAllocate(item);
+	}
+
+	private <T extends SyntacticItem> T internalAllocate(T item) {
 		SyntacticHeap parent = item.getParent();
 		if (parent == this) {
 			// Item already allocated to this heap, hence nothing to do.
@@ -61,7 +65,7 @@ public abstract class AbstractSyntacticHeap implements SyntacticHeap {
 			for (int i = 0; i != item.size(); ++i) {
 				SyntacticItem child = item.getOperand(i);
 				if (child != null) {
-					allocate(child);
+					internalAllocate(child);
 				}
 			}
 			// ... and allocate item itself

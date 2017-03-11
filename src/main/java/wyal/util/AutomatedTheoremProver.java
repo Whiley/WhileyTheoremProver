@@ -92,7 +92,7 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 5;
+	private static final int MAX_DEPTH = 10;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
@@ -104,6 +104,8 @@ public class AutomatedTheoremProver {
 			// The following loop is *very* primitive in nature. Basically it
 			// keeps going in a "fair" fashion ensuring that all rules get a
 			// chance to be activated.
+			int trip = 1000;
+
 			do {
 				original = state;
 				// Apply transitive closure over inequalities
@@ -120,7 +122,7 @@ public class AutomatedTheoremProver {
 						return applySplitDisjunct((Formula.Disjunct) truth, state, depth, FALSE);
 					}
 				}
-			} while (original != state && !state.contains(FALSE));
+			} while (original != state && !state.contains(FALSE) && --trip > 0);
 			//
 			return state.contains(FALSE);
 		}
@@ -677,12 +679,18 @@ public class AutomatedTheoremProver {
 		} else {
 			// Exhaustively instantiate this variable with all possible ground
 			// terms.
+			Type pt = parameters[binding.length].getType();
+			//
 			for (int i = 0; i != grounds.length; ++i) {
-				Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
-				// FIXME: should check whether a ground term is applicable to
-				// this particular slot based on its type.
-				nBinding[binding.length] = grounds[i];
-				state = instantiateUniversalQuantifier(qf, nBinding, grounds, state);
+				Type gt = grounds[i].getReturnType(types);
+				// Make sure ground term is compatible with parameter in
+				// question. If not, then it's not a valid substitution and
+				// should be skipped.
+				if(types.isSubtype(pt, gt)) {
+					Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
+					nBinding[binding.length] = grounds[i];
+					state = instantiateUniversalQuantifier(qf, nBinding, grounds, state);
+				}
 			}
 		}
 		return state;
