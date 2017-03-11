@@ -1,5 +1,6 @@
 package wyal.lang;
 
+import java.util.BitSet;
 import java.util.List;
 
 import wyal.lang.WyalFile.Declaration;
@@ -70,6 +71,14 @@ public interface Proof {
 		 * @return
 		 */
 		String getRule();
+
+		/**
+		 * Get all formulae on which the proof-of-contradiction for this state
+		 * depends
+		 *
+		 * @return
+		 */
+		BitSet getDependencyCone();
 
 		/**
 		 * Get the formulae on which this step depends

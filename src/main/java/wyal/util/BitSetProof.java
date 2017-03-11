@@ -58,6 +58,41 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			return heap;
 		}
 
+		@Override
+		public BitSet getDependencyCone() {
+			BitSet cone = new BitSet();
+
+			// Compute dependency cone for children
+			for (int i = 0; i != children.size(); ++i) {
+				State child = children.get(i);
+				cone.or(child.getDependencyCone());
+			}
+			// Add all dependencies for this rule, if the rule
+			boolean include = false;
+
+			for(Formula f : getIntroductions()) {
+				if(cone.get(f.getIndex()) ) {
+					include = true;
+					break;
+				} else if(f instanceof Formula.Truth) {
+					Formula.Truth t = (Formula.Truth) f;
+					if(!t.holds()) {
+						include = true;
+						break;
+					}
+				}
+			}
+			if(include) {
+				// yes, should include dependencies for this step
+				for (WyalFile.Expr e : dependencies) {
+					if (e instanceof Formula) {
+						cone.set(e.getIndex());
+					}
+				}
+			}
+			return cone;
+		}
+
 		/**
 		 * Return the list of formulae introduced by this step.
 		 *

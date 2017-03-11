@@ -92,89 +92,112 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 30;
+	private static final int MAX_DEPTH = 5;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
-		int count = 2;
-		State nState = state;
-		do {
-			state = nState;
-			//nState = closeOverCongruence(state, FALSE);
-			// Apply transitive closure over inequalities
-			nState = closeOverInequalities(nState, FALSE);
-			//
-			count = count - 1;
-		} while (state != nState && !nState.contains(FALSE) && count > 0);
-		//
-		state = nState;
-		//
-		if (state.contains(FALSE)) {
-			return true;
-		} else if (depth == MAX_DEPTH) {
+		if (depth == MAX_DEPTH) {
 			throw new IllegalArgumentException("Max depth reached");
-			//return false;
+			// return false;
 		} else {
-			// The following loop is *very* primitive in nature.
-			for (int i = 0; i != state.size(); ++i) {
-				Formula truth = state.getActive(i);
-				if (truth instanceof Formula.Conjunct) {
-					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state = state.subsume("and", conjunct, conjunct.getOperands());
-					return checkUnsat(state, depth + 1, FALSE);
-				} else if (truth instanceof Formula.Disjunct) {
-					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
-					State[] splits = state.split(disjunct);
-					for (int j = 0; j != splits.length; ++j) {
-						if (!checkUnsat(splits[j], depth + 1, FALSE)) {
-							return false;
-						}
-					}
-					return true;
-				} else if (truth instanceof Formula.Quantifier) {
-					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
-					if (!quantifier.getSign()) {
-						// existential
-						state = state.subsume("exists", quantifier, quantifier.getBody());
-						return checkUnsat(state, depth + 1, FALSE);
-					}
-				} else if (truth instanceof Formula.Invoke) {
-					State oldState = state;
-					state = expandInvocation((Formula.Invoke) truth, state);
-					if (oldState != state) {
-						return checkUnsat(state, depth + 1, FALSE);
-					}
-				} else if (truth instanceof Formula.Equality) {
-					State oldState = state;
-					state = applyCongruenceClosure((Formula.Equality) truth, state);
-					if (oldState != state) {
-						return checkUnsat(state, depth + 1, FALSE);
+			State original;
+			// The following loop is *very* primitive in nature. Basically it
+			// keeps going in a "fair" fashion ensuring that all rules get a
+			// chance to be activated.
+			do {
+				original = state;
+				// Apply transitive closure over inequalities
+				state = closeOverInequalities(state, FALSE);
+				// Apply all simple linear rules
+				for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
+					Formula truth = state.getActive(i);
+					state = applyLinearRules(truth, state);
+				}
+				// Apply split rule for disjuncts
+				for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
+					Formula truth = state.getActive(i);
+					if (truth instanceof Formula.Disjunct) {
+						return applySplitDisjunct((Formula.Disjunct) truth, state, depth, FALSE);
 					}
 				}
-				if (truth != null) {
-					// Apply
-					State oldState = state;
-					state = applyImplicitAxioms(truth, state);
-					state = applyCaseSplitters(truth, state);
-					if (oldState != state) {
-						return checkUnsat(state, depth + 1, FALSE);
-					}
-				}
-			}
-			// If we get here, then we have a fully expanded state which
-			// contains only primitive formulae.
+			} while (original != state && !state.contains(FALSE));
 			//
-			// Instantiate any quantified formulae
-			nState = instantiateUniversalQuantifiers(state);
-			// Done
-			if (nState != state) {
-				return checkUnsat(nState, depth + 1, FALSE);
-			} else {
-				return false;
-			}
+			return state.contains(FALSE);
 		}
 	}
 
+	private State applyLinearRules(Formula truth, State state) {
+		if (truth == null) {
+			return state;
+		} else {
+			switch (truth.getOpcode()) {
+			case EXPR_or:
+				// disjunctions are a special case because they are non-linear.
+				return state;
+			case EXPR_and:
+				state = applyFlatternConjunct((Formula.Conjunct) truth, state);
+				break;
+			case EXPR_forall:
+			case EXPR_exists:
+				state = applyQuantifierInstantiation((Formula.Quantifier) truth, state);
+				break;
+			case EXPR_invoke:
+				state = applyExpandInvocation((Formula.Invoke) truth, state);
+				break;
+			case EXPR_eq:
+				state = applyCongruenceClosure((Formula.Equality) truth, state);
+				break;
+			}
+			// Apply generic rules
+			state = applyImplicitAxioms(truth, state);
+			return applyCaseSplitters(truth, state);
+		}
+	}
+
+	// ===========================================================================
+	// Apply split disjunct
+	// ===========================================================================
+
+	private boolean applySplitDisjunct(Formula.Disjunct disjunct, State state, int depth, Formula.Truth FALSE) {
+		// Split the disjunct into multiple states where, on each, exactly one
+		// of the clauses is asserted.
+		State[] splits = state.split(disjunct);
+		// Now, try to find a contradiction for each case
+		for (int j = 0; j != splits.length; ++j) {
+			State split = splits[j];
+			if (!checkUnsat(split, depth + 1, FALSE)) {
+				// Unable to find a proof down this branch, therefore done.
+				return false;
+			} else {
+				// We did find a proof for this branch. At this point, we need
+				// to analyse the proof and see whether or not this disjunct
+				// actually had a part to play or not. If not, then we can
+				// terminate this disjunct early (which can lead to significant
+				// reductions in the state space).
+				BitSet cone = split.getDependencyCone();
+				//
+				if(cone.get(disjunct.getIndex()) == false) {
+					// The disjunct is not relevant to this proof. Therefore, we
+					// can bypass the remainder.
+
+					// FIXME: implement actual bypass!
+
+					System.out.print("FOUND BYPASS: ");
+					println(disjunct);
+					break;
+				}
+			}
+		}
+		return true;
+	}
+
+	// ===========================================================================
+	// Apply flatten conjunct
+	// ===========================================================================
+
+	private State applyFlatternConjunct(Formula.Conjunct conjunct, State state) {
+		return state.subsume("and", conjunct, conjunct.getOperands());
+	}
 
 	// ===========================================================================
 	// Apply case splitters
@@ -331,13 +354,15 @@ public class AutomatedTheoremProver {
 			// FIXME: this resolution should have already been performed
 			// elsewhere
 			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
-			Declaration.Named.Function md = (Declaration.Named.Function) decl;
-			VariableDeclaration[] params = md.getParameters().getOperands();
-			VariableDeclaration[] returns = md.getReturns().getOperands();
-			if (returns.length > 1) {
-				throw new IllegalArgumentException("problem");
-			} else {
-				axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
+			if (decl instanceof Declaration.Named.Function) {
+				Declaration.Named.Function md = (Declaration.Named.Function) decl;
+				VariableDeclaration[] params = md.getParameters().getOperands();
+				VariableDeclaration[] returns = md.getReturns().getOperands();
+				if (returns.length > 1) {
+					throw new IllegalArgumentException("problem");
+				} else {
+					axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
+				}
 			}
 			break;
 		}
@@ -378,7 +403,7 @@ public class AutomatedTheoremProver {
 	// Expand macros / type invariants
 	// ===========================================================================
 
-	private State expandInvocation(Formula.Invoke ivk, State state) {
+	private State applyExpandInvocation(Formula.Invoke ivk, State state) {
 		// FIXME: this is broken in the case of recursive macros.
 		// The reason for this is simply that it will expand forever
 		// :)
@@ -565,6 +590,10 @@ public class AutomatedTheoremProver {
 		return nState;
 	}
 
+	// ===========================================================================
+	// Quantifier Instantiation
+	// ===========================================================================
+
 	private State instantiateUniversalQuantifiers(State state) {
 		Expr[] grounds = determineGroundTerms(state);
 		for (int i = 0; i != state.size(); ++i) {
@@ -580,10 +609,29 @@ public class AutomatedTheoremProver {
 		return state;
 	}
 
+	private State applyQuantifierInstantiation(Formula.Quantifier qf, State state) {
+		//
+		if (qf.getSign()) {
+			// Universal Quantifier
+			//
+			// In principle, thinking more carefully about which ground terms to
+			// instantiation would be helpful.
+			Expr[] grounds = determineGroundTerms(state);
+			return instantiateUniversalQuantifier(qf, new Expr[0], grounds, state);
+		} else {
+			// Existential Quantifier
+			//
+			// FIXME: there might be a problem here when instantiation
+			// existentials nested in universal quantifiers.
+			return state.subsume("exists", qf, qf.getBody());
+		}
+	}
+
 	private Expr[] determineGroundTerms(State state) {
 		HashSet<Expr> grounds = new HashSet<>();
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
+			// FIXME: should really search for all possible ground terms I think
 			if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
 				Expr lhs = (Expr) ith.getOperand(0);
 				Expr rhs = (Expr) ith.getOperand(1);
@@ -631,6 +679,8 @@ public class AutomatedTheoremProver {
 			// terms.
 			for (int i = 0; i != grounds.length; ++i) {
 				Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
+				// FIXME: should check whether a ground term is applicable to
+				// this particular slot based on its type.
 				nBinding[binding.length] = grounds[i];
 				state = instantiateUniversalQuantifier(qf, nBinding, grounds, state);
 			}
