@@ -168,9 +168,9 @@ public class Formulae {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-				Polynomial lhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, lhs, va));
-				Polynomial rhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, rhs, va));
-				Formula inv = toFormula(new Expr.Operator(Opcode.EXPR_eq, lhsAccess, rhsAccess), types);
+				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
+				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+				Formula inv = equals(lhsAccess,rhsAccess,types);
 				Polynomial zero = toPolynomial(0);
 				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
 				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
@@ -216,9 +216,9 @@ public class Formulae {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-				Polynomial lhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, lhs, va));
-				Polynomial rhsAccess = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, rhs, va));
-				Formula inv = toFormula(new Expr.Operator(Opcode.EXPR_eq, lhsAccess, rhsAccess), types);
+				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
+				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+				Formula inv = notEquals(lhsAccess,rhsAccess,types);
 				Polynomial zero = toPolynomial(0);
 				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
 				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
@@ -477,6 +477,26 @@ public class Formulae {
 		case TYPE_macro:
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
+		}
+	}
+
+	public static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
+		Type lhs_t = lhs.getReturnType(types);
+		Type rhs_t = rhs.getReturnType(types);
+		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			return new ArithmeticEquality(false, toPolynomial(lhs), toPolynomial(rhs));
+		} else {
+			return new Formula.Equality(false, lhs, rhs);
+		}
+	}
+
+	public static Formula equals(Expr lhs, Expr rhs, TypeSystem types) {
+		Type lhs_t = lhs.getReturnType(types);
+		Type rhs_t = rhs.getReturnType(types);
+		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			return new ArithmeticEquality(true, toPolynomial(lhs), toPolynomial(rhs));
+		} else {
+			return new Formula.Equality(true, lhs, rhs);
 		}
 	}
 

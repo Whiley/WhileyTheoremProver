@@ -42,9 +42,16 @@ public class ProofPrinter {
 		String title = title(step);
 		int indent = depth*3;
 		for(int i=0;i!=lines.length;++i) {
-			String t = i == 0 ? title : "";
-			out.println(pad(lines[i],t,width - indent));
+			String t;
+			if(i == 0) {
+				t = title;
+			} else {
+				out.println();
+				t = "";
+			}
+			out.print(pad(lines[i],t,width - indent));
 		}
+		out.println();
 		// now print any children
 		if(step.numberOfChildren() == 1) {
 			print(depth,step.getChild(0));

@@ -83,7 +83,7 @@ public class AutomatedTheoremProver {
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		// Create initial state
-		BitSetProof proof = new BitSetProof(null,heap,formula);
+		BitSetProof proof = new BitSetProof(null, heap, formula);
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
@@ -96,16 +96,16 @@ public class AutomatedTheoremProver {
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
-		int count = 10;
+		int count = 2;
 		State nState = state;
 		do {
 			state = nState;
-			nState = closeOverCongruence(state, FALSE);
+			//nState = closeOverCongruence(state, FALSE);
 			// Apply transitive closure over inequalities
 			nState = closeOverInequalities(nState, FALSE);
 			//
 			count = count - 1;
-		} while(state != nState && !nState.contains(FALSE) && count > 0);
+		} while (state != nState && !nState.contains(FALSE) && count > 0);
 		//
 		state = nState;
 		//
@@ -120,7 +120,7 @@ public class AutomatedTheoremProver {
 				Formula truth = state.getActive(i);
 				if (truth instanceof Formula.Conjunct) {
 					Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-					state = state.subsume("and",conjunct, conjunct.getOperands());
+					state = state.subsume("and", conjunct, conjunct.getOperands());
 					return checkUnsat(state, depth + 1, FALSE);
 				} else if (truth instanceof Formula.Disjunct) {
 					Formula.Disjunct disjunct = (Formula.Disjunct) truth;
@@ -135,46 +135,28 @@ public class AutomatedTheoremProver {
 					Formula.Quantifier quantifier = (Formula.Quantifier) truth;
 					if (!quantifier.getSign()) {
 						// existential
-						state = state.subsume("exists",quantifier, quantifier.getBody());
+						state = state.subsume("exists", quantifier, quantifier.getBody());
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				} else if (truth instanceof Formula.Invoke) {
-					// FIXME: this is broken in the case of recursive macros.
-					// The reason for this is simply that it will expand forever
-					// :)
-					// FIXME: also broken because assume this is a type
-					// invariant invocation
-					Formula.Invoke ivk = (Formula.Invoke) truth;
-					// Determine the type declaration in question
-					Type.AbstractFunction af = ivk.getSignatureType();
-					// FIXME: this resolution should have already been performed
-					// elsewhere
-					Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
-					// Calculate the invariant
-					Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
-					if (invariant != null) {
-						if (!ivk.getSign()) {
-							invariant = Formulae.simplify(Formulae.invert(invariant),types);
-						}
-						// Update the state
-						state = state.subsume("expand",truth, state.allocate(invariant));
+					State oldState = state;
+					state = expandInvocation((Formula.Invoke) truth, state);
+					if (oldState != state) {
 						return checkUnsat(state, depth + 1, FALSE);
 					}
-				} else if (truth != null) {
-					Formula invariant = generateImplicitAxioms(truth);
-					if (invariant != null) {
-						invariant = state.allocate(Formulae.simplify(invariant, types));
-						if (!state.contains(invariant)) {
-							state = state.set("implicit",invariant,truth);
-							return checkUnsat(state, depth + 1, FALSE);
-						}
+				} else if (truth instanceof Formula.Equality) {
+					State oldState = state;
+					state = applyCongruenceClosure((Formula.Equality) truth, state);
+					if (oldState != state) {
+						return checkUnsat(state, depth + 1, FALSE);
 					}
-					//
-					Expr split = findSplitPoint(truth);
-					if(split != null) {
-						Formula[] cases = generateSplitCases(split,truth);
-						Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases),types));
-						state = state.subsume("reduct",truth, disjunct);
+				}
+				if (truth != null) {
+					// Apply
+					State oldState = state;
+					state = applyImplicitAxioms(truth, state);
+					state = applyCaseSplitters(truth, state);
+					if (oldState != state) {
 						return checkUnsat(state, depth + 1, FALSE);
 					}
 				}
@@ -185,12 +167,41 @@ public class AutomatedTheoremProver {
 			// Instantiate any quantified formulae
 			nState = instantiateUniversalQuantifiers(state);
 			// Done
-			if(nState != state) {
+			if (nState != state) {
 				return checkUnsat(nState, depth + 1, FALSE);
 			} else {
 				return false;
 			}
 		}
+	}
+
+
+	// ===========================================================================
+	// Apply case splitters
+	// ===========================================================================
+
+	/**
+	 * "Case splitters" are situations where we can reduce a given formula to a
+	 * number of distinct cases to explore. We can think these (in some sense)
+	 * as being like applying "guesses" to make further progress. As an example,
+	 * the formula <code>[1,2][i] >= 0</code> leads to a "case split",
+	 * corresponding to <code>(i == 0 && 1 >= 0) || (i == 1 && 2 >= 0)</code>.
+	 * In some sense, a case split occurs when we've narrowed the options down
+	 * so much that there is a finite number of choices remaining. Therefore, we
+	 * can make progress simply by enumerating these choices.
+	 *
+	 * @param truth
+	 * @param state
+	 * @return
+	 */
+	private State applyCaseSplitters(Formula truth, State state) {
+		Expr split = findSplitPoint(truth);
+		if (split != null) {
+			Formula[] cases = generateSplitCases(split, truth);
+			Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases), types));
+			state = state.subsume("reduct", truth, disjunct);
+		}
+		return state;
 	}
 
 	/**
@@ -208,10 +219,14 @@ public class AutomatedTheoremProver {
 			if (e.getOperand(0).getOpcode() == Opcode.EXPR_arrupdt) {
 				// This represents a split point.
 				return e;
-			} else if(e.getOperand(0).getOpcode() == Opcode.EXPR_arrinit) {
+			} else if (e.getOperand(0).getOpcode() == Opcode.EXPR_arrinit) {
 				return e;
 			}
 		}
+		case EXPR_forall:
+			// Don't extract case splitters from quantified formulae. There's
+			// no point until they are instantiated!
+			return null;
 		}
 		// Generic traversal, returning first split point encountered.
 		for (int i = 0; i != e.size(); ++i) {
@@ -229,29 +244,30 @@ public class AutomatedTheoremProver {
 
 	private Formula[] generateSplitCases(Expr split, Formula truth) {
 		Formula[] result;
-		switch(split.getOpcode()) {
+		switch (split.getOpcode()) {
 		case EXPR_arridx: {
 			Expr.Operator src = (Expr.Operator) split.getOperand(0);
 			Expr.Polynomial j = (Expr.Polynomial) split.getOperand(1);
-			if(src.getOpcode() == Opcode.EXPR_arrupdt) {
+			if (src.getOpcode() == Opcode.EXPR_arrupdt) {
 				// xs[i:=v][j]
 				Expr xs = src.getOperand(0);
 				Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
 				Expr v = src.getOperand(2);
 				result = new Formula[2];
 				Formula case1 = (Formula) Formulae.substitute(split, v, truth);
-				Formula case2 = (Formula) Formulae.substitute(split, new Expr.Operator(Opcode.EXPR_arridx, xs, j), truth);
+				Formula case2 = (Formula) Formulae.substitute(split, new Expr.Operator(Opcode.EXPR_arridx, xs, j),
+						truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
 				break;
-			} else if(src.getOpcode() == Opcode.EXPR_arrinit){
+			} else if (src.getOpcode() == Opcode.EXPR_arrinit) {
 				// [a,b,c][j] >= 0
 				result = new Formula[src.size()];
-				for(int i=0;i!=src.size();++i) {
+				for (int i = 0; i != src.size(); ++i) {
 					// a >= 0 && j == 0
 					Formula lhs = (Formula) Formulae.substitute(split, src.getOperand(i), truth);
 					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(i));
-					result[i] = Formulae.and(lhs,rhs);
+					result[i] = Formulae.and(lhs, rhs);
 				}
 				break;
 			}
@@ -262,6 +278,49 @@ public class AutomatedTheoremProver {
 		return result;
 	}
 
+	// ===========================================================================
+	// Apply implicit axioms
+	// ===========================================================================
+
+	/**
+	 * <p>
+	 * For a given truth, search for and apply any implicit axioms that may
+	 * exist. For example, in the formula <code>A[i] >= 0</code> there is an
+	 * implicit axiom that <code>0 <= i && i < |A|</code>. Likewise, in the
+	 * division <code>x / y</code>, there is an implicit axiom that
+	 * <code>y != 0</code>.
+	 * </p>
+	 * <p>
+	 * Implicit axioms are necessary in some cases for proving a contradiction.
+	 * For example, <code>i < 0 && A[i] == 1</code> should yield a
+	 * contradiction.
+	 * </p>
+	 *
+	 * @param truth
+	 *            The formula in which to look for and apply any implicit axioms
+	 * @param state
+	 *            The current prover state
+	 * @return
+	 */
+	private State applyImplicitAxioms(Formula truth, State state) {
+		// First, recursively search for any implicit axioms
+		Formula axiom = generateImplicitAxioms(truth);
+
+		if (axiom != null) {
+			// Such an axiom was indeed found and we simply need to apply it.
+			axiom = state.allocate(Formulae.simplify(axiom, types));
+			state = state.set("implicit", axiom, truth);
+		}
+		return state;
+	}
+
+	/**
+	 * Recursively explore a given expression looking for sub-expressions which
+	 * give rise to implicit axioms.
+	 *
+	 * @param e
+	 * @return
+	 */
 	private Formula generateImplicitAxioms(Expr e) {
 		Formula axiom = null;
 		switch (e.getOpcode()) {
@@ -297,6 +356,10 @@ public class AutomatedTheoremProver {
 			axiom = new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
 			break;
 		}
+		case EXPR_forall:
+			// Don't extract implicit axioms from quantified formulae. There's
+			// no point until they are instantiated.
+			return null;
 		}
 		//
 		for (int i = 0; i != e.size(); ++i) {
@@ -311,6 +374,32 @@ public class AutomatedTheoremProver {
 		return axiom;
 	}
 
+	// ===========================================================================
+	// Expand macros / type invariants
+	// ===========================================================================
+
+	private State expandInvocation(Formula.Invoke ivk, State state) {
+		// FIXME: this is broken in the case of recursive macros.
+		// The reason for this is simply that it will expand forever
+		// :)
+
+		// Determine the type declaration in question
+		Type.AbstractFunction af = ivk.getSignatureType();
+		// FIXME: this resolution should have already been performed
+		// elsewhere
+		Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
+		// Calculate the invariant
+		Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
+		if (invariant != null) {
+			if (!ivk.getSign()) {
+				invariant = Formulae.simplify(Formulae.invert(invariant), types);
+			}
+			// Update the state
+			state = state.subsume("expand", ivk, state.allocate(invariant));
+		}
+		return state;
+	}
+
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
 		if (decl instanceof Declaration.Named.Type) {
 			// This is a type invariant macro call. In such case, we
@@ -318,7 +407,7 @@ public class AutomatedTheoremProver {
 			Declaration.Named.Type td = (Declaration.Named.Type) decl;
 			// Expand the corresponding type invariant
 			return expandTypeInvariant(td, arguments.getOperand(0));
-		} else if(decl instanceof Declaration.Named.Macro) {
+		} else if (decl instanceof Declaration.Named.Macro) {
 			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
 			// Expand the macro body with appropriate substitutions
 			return expandMacroBody(md, arguments.getOperands());
@@ -331,13 +420,13 @@ public class AutomatedTheoremProver {
 		VariableDeclaration[] parameters = md.getParameters().getOperands();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
-		Map<SyntacticItem,SyntacticItem> map = new IdentityHashMap<>();
+		Map<SyntacticItem, SyntacticItem> map = new IdentityHashMap<>();
 		for (int i = 0; i != arguments.length; ++i) {
 			map.put(parameters[i], parameters[i]);
 		}
 		// Clone is required at this point to ensure that any variable
 		// declarations are distinguished appropriately.
-		WyalFile.Stmt.Block block = SyntacticHeaps.cloneOnly(md.getBody(),map,WyalFile.VariableDeclaration.class);
+		WyalFile.Stmt.Block block = SyntacticHeaps.cloneOnly(md.getBody(), map, WyalFile.VariableDeclaration.class);
 		Formula body = Formulae.toFormula(block, types);
 		for (int i = 0; i != arguments.length; ++i) {
 			// At this point, we must substitute the parameter name used in
@@ -371,6 +460,10 @@ public class AutomatedTheoremProver {
 		}
 	}
 
+	// ===========================================================================
+	// Congruence Closure
+	// ===========================================================================
+
 	private State closeOverCongruence(State state, Formula.Truth FALSE) {
 		// Observe, we must always use the most up-to-date version of state
 		// here. This is because, once a substitution is applied, we must ensure
@@ -383,21 +476,47 @@ public class AutomatedTheoremProver {
 			if (ith instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) ith;
 				if (eq.getSign()) {
-					state = applySubstitution(eq, i, state, FALSE);
+					state = applyCongruenceClosure(eq, state);
 				}
 			}
 		}
 		return state;
 	}
 
-	private State applySubstitution(Formula.Equality eq, int ignored, State state, Formula.Truth FALSE) {
-		State nState = state;
+	/**
+	 * <p>
+	 * Congruence closure is the act of simplifying formula using equalities.
+	 * For example, consider <code>i==(j+1) && A[i] >= 0 && A[j+1] < 0</code>.
+	 * To obtain the contradiction we substitute <code>i</code> for
+	 * <code>j+1</code> in all formulae (except the equality itself). This gives
+	 * <code>i==(j+1) && A[j+1] >= 0 && A[j+1] < 0</code> and from there the
+	 * contradiction is easy to obtain.
+	 * </p>
+	 * <p>
+	 * An important point when applying congruence closure is to make a decision
+	 * over which way to normalise. For example, in the expression
+	 * <code>i==(j+1)</code> we can substitute through for either <code>i</code>
+	 * or <code>j</code> (after rearranging). There are benefits in exploiting a
+	 * fixed order of terms to determine which to choose in any given situation.
+	 * </p>
+	 *
+	 *
+	 * @param eq
+	 * @param state
+	 * @return
+	 */
+	private State applyCongruenceClosure(Formula.Equality eq, State state) {
+		// COUNTING. this is possible in congruence closure when you have
+		// recursive predicates. For example, x == f(x) can ultimately give rise
+		// to a sequence of applications end up with f(f(f(f(x)))), etc.
 		Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
-		if (substitution != null) {
+		if (eq.getSign() && substitution != null) {
 			// We've found a suitable substitution
-			for (int j = 0; j < state.size() && !nState.contains(FALSE); ++j) {
-				Formula before = state.getActive(j);
-				if (j != ignored && before != null) {
+			State original = state;
+			int size = original.size();
+			for (int j = 0; j < size; ++j) {
+				Formula before = original.getActive(j);
+				if (before != eq && before != null) {
 					Formula after = (Formula) Formulae.substitute(substitution.getFirst(), substitution.getSecond(),
 							before);
 					//
@@ -407,24 +526,20 @@ public class AutomatedTheoremProver {
 						// produce a different looking term which, after
 						// simplification, is the same. To avoid this, we need
 						// to avoid "recursive substitutions" somehow.
-						if(!before.equals(after)) {
-//							System.out.print("SUBSUMING: ");
-//							print(before);
-//							System.out.print("(" + before.getIndex() + ")");
-//							System.out.print(" WITH: ");
-//							print(after);
-							after = nState.allocate(after);
-//							System.out.print("(" + after.getIndex() + ")");
-//							System.out.print(" FROM: ");
-//							println(eq);
-							nState = nState.subsume("substitution",before, after, eq);
+						if (!before.equals(after)) {
+							after = state.allocate(after);
+							state = state.subsume("substitution", before, after, eq);
 						}
 					}
 				}
 			}
 		}
-		return nState;
+		return state;
 	}
+
+	// ===========================================================================
+	// Inequality Closure
+	// ===========================================================================
 
 	private State closeOverInequalities(State state, Formula.Truth FALSE) {
 		int size = state.size();
@@ -441,7 +556,7 @@ public class AutomatedTheoremProver {
 						Formula inferred = Formulae.closeOver(ith_ieq, jth_ieq, types);
 						if (inferred != null) {
 							inferred = nState.allocate(inferred);
-							nState = nState.set("closure",inferred, ith_ieq, jth_ieq);
+							nState = nState.set("closure", inferred, ith_ieq, jth_ieq);
 						}
 					}
 				}
@@ -508,9 +623,9 @@ public class AutomatedTheoremProver {
 			}
 			// Second, instantiate the ground body
 			body = state.allocate(Formulae.simplify(body, types));
-			Expr[] dependencies = Arrays.copyOf(binding, binding.length+1);
+			Expr[] dependencies = Arrays.copyOf(binding, binding.length + 1);
 			dependencies[binding.length] = qf;
-			state = state.set("instantiate",body,dependencies);
+			state = state.set("instantiate", body, dependencies);
 		} else {
 			// Exhaustively instantiate this variable with all possible ground
 			// terms.
