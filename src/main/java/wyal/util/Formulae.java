@@ -178,9 +178,12 @@ public class Formulae {
 				// type is greater than or equal to zero.
 				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
 				// forall i.(0 <= i && i <|root|) ==> inv
-				Formula gt = greaterOrEqual(va, zero);
-				Formula lt = lessThan(va, lhsLen);
-				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
+				// NOTE: the reason I don't include the implication is that it
+				// only serves to introduce further split points.
+				// Formula gt = greaterOrEqual(va, zero);
+				// Formula lt = lessThan(va, lhsLen);
+				// return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
+				return and(axiom, new Quantifier(true, var, inv));
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -226,9 +229,12 @@ public class Formulae {
 				// type is greater than or equal to zero.
 				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
 				// forall i.(0 <= i && i <|root|) ==> inv
-				Formula gt = greaterOrEqual(va, zero);
-				Formula lt = lessThan(va, lhsLen);
-				return invert(and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv))));
+				// NOTE: the reason I don't include the implication is that it
+				// only serves to introduce further split points.
+				// Formula gt = greaterOrEqual(va, zero);
+				// Formula lt = lessThan(va, lhsLen);
+				// return invert(and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv))));
+				return invert(and(axiom, new Quantifier(true, var, inv)));
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}

@@ -93,13 +93,13 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 20;
+	private static final int MAX_DEPTH = 50;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
-		if (depth == MAX_DEPTH) {
-			throw new IllegalArgumentException("Max depth reached");
-			// return false;
+		if (depth >= MAX_DEPTH) {
+			//throw new IllegalArgumentException("Max depth reached");
+			return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it
@@ -109,13 +109,19 @@ public class AutomatedTheoremProver {
 
 			do {
 				original = state;
-				// Apply transitive closure over inequalities
-				state = closeOverInequalities(state, FALSE);
-				// Apply all simple linear rules
-				for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
-					Formula truth = state.getActive(i);
-					state = applyLinearRules(truth, state);
-				}
+				int innerTrip = 5;
+				State local;
+				do {
+					local = state;
+					// Apply transitive closure over inequalities
+					state = closeOverInequalities(state, FALSE);
+					// Apply all simple linear rules
+					for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
+						Formula truth = state.getActive(i);
+						state = applyLinearRules(truth, state);
+					}
+				} while(local != state && !state.contains(FALSE) && --innerTrip > 0);
+
 				// Apply split rule for disjuncts
 				for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
 					Formula truth = state.getActive(i);
@@ -168,7 +174,7 @@ public class AutomatedTheoremProver {
 		// Now, try to find a contradiction for each case
 		for (int j = 0; j != splits.length; ++j) {
 			State split = splits[j];
-			if (!checkUnsat(split, depth + 1, FALSE)) {
+			if (!checkUnsat(split, depth + splits.length, FALSE)) {
 				// Unable to find a proof down this branch, therefore done.
 				return false;
 			} else {
@@ -634,8 +640,12 @@ public class AutomatedTheoremProver {
 		HashSet<Expr> grounds = new HashSet<>();
 		for (int i = 0; i != state.size(); ++i) {
 			Formula ith = state.getActive(i);
-			// FIXME: should really search for all possible ground terms I think
-			if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
+			// The reason we restrict the search here is to focus only on things
+			// which could potentially lead to a contradiction. The choice of
+			// what to instantiate is critically important and certainly
+			// requires further thought.
+			//if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
+			if (ith instanceof Formula.Inequality) {
 				Expr lhs = (Expr) ith.getOperand(0);
 				Expr rhs = (Expr) ith.getOperand(1);
 				extractGrounds(lhs, grounds);
