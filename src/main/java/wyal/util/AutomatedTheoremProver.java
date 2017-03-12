@@ -74,6 +74,7 @@ public class AutomatedTheoremProver {
 	 */
 	private boolean checkValidity(SyntacticHeap parent, Formula formula) {
 		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
+		System.out.println("SIZE: "+ parent.size() + " VERSUS: " + heap.size());
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
@@ -87,12 +88,12 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-		System.out.println("******************* PROOF ******************");
+		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
 		print(proof);
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 10;
+	private static final int MAX_DEPTH = 20;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
@@ -104,7 +105,7 @@ public class AutomatedTheoremProver {
 			// The following loop is *very* primitive in nature. Basically it
 			// keeps going in a "fair" fashion ensuring that all rules get a
 			// chance to be activated.
-			int trip = 1000;
+			int trip = 10;
 
 			do {
 				original = state;

@@ -35,6 +35,11 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 		 */
 		private final BitSet activeTruths;
 
+		/**
+		 * A cache of the cone for this state
+		 */
+		private BitSet cone;
+
 		public State(Proof proof, SyntacticHeap heap) {
 			super(proof,null,null);
 			this.heap = heap;
@@ -60,33 +65,34 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 
 		@Override
 		public BitSet getDependencyCone() {
-			BitSet cone = new BitSet();
+			if(cone == null) {
+				cone = new BitSet();
+				// Compute dependency cone for children
+				for (int i = 0; i != children.size(); ++i) {
+					State child = children.get(i);
+					cone.or(child.getDependencyCone());
+				}
+				// Add all dependencies for this rule, if the rule
+				boolean include = false;
 
-			// Compute dependency cone for children
-			for (int i = 0; i != children.size(); ++i) {
-				State child = children.get(i);
-				cone.or(child.getDependencyCone());
-			}
-			// Add all dependencies for this rule, if the rule
-			boolean include = false;
-
-			for(Formula f : getIntroductions()) {
-				if(cone.get(f.getIndex()) ) {
-					include = true;
-					break;
-				} else if(f instanceof Formula.Truth) {
-					Formula.Truth t = (Formula.Truth) f;
-					if(!t.holds()) {
+				for(Formula f : getIntroductions()) {
+					if(cone.get(f.getIndex()) ) {
 						include = true;
 						break;
+					} else if(f instanceof Formula.Truth) {
+						Formula.Truth t = (Formula.Truth) f;
+						if(!t.holds()) {
+							include = true;
+							break;
+						}
 					}
 				}
-			}
-			if(include) {
-				// yes, should include dependencies for this step
-				for (WyalFile.Expr e : dependencies) {
-					if (e instanceof Formula) {
-						cone.set(e.getIndex());
+				if(include) {
+					// yes, should include dependencies for this step
+					for (WyalFile.Expr e : dependencies) {
+						if (e instanceof Formula) {
+							cone.set(e.getIndex());
+						}
 					}
 				}
 			}

@@ -43,22 +43,23 @@ public class ValidTest {
 		IGNORED.put("test_arith_15", "non-linear");
 		IGNORED.put("test_arith_28", "integers");
 		IGNORED.put("test_arith_31", "non-linear");
+		IGNORED.put("test_arith_36", "non-linear");
 		IGNORED.put("test_arith_38", "non-linear");
-		IGNORED.put("test_array_15", "infinite loop");
-		IGNORED.put("test_array_23", "xs != [] versus |xs| == 0");
 		IGNORED.put("test_array_29", "array access");
 		IGNORED.put("test_array_31", "unsupported syntax");
-		IGNORED.put("test_array_38", "array access");
 		IGNORED.put("test_fun_01", "unsupported syntax");
 		IGNORED.put("test_fun_02", "unsupported syntax");
+		IGNORED.put("test_macro_03", "macro overloading");
 		IGNORED.put("test_type_09", "recursive type");
 		IGNORED.put("test_type_20", "hard?");
 		IGNORED.put("test_type_22", "constrained type test");
+		IGNORED.put("test_type_23", "type tests?");
+		IGNORED.put("test_type_24", "type tests?");
 		IGNORED.put("test_type_26", "type simplification");
 		IGNORED.put("test_type_27", "type simplification");
 		IGNORED.put("test_type_28", "type simplification");
 		IGNORED.put("test_type_29", "type simplification");
-		IGNORED.put("test_macro_03", "macro overloading");
+
 	}
 
 	// ======================================================================

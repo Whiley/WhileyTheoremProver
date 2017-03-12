@@ -19,12 +19,13 @@ import wyal.lang.WyalFile;
  *
  */
 public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements SyntacticHeap {
-
+	private final SyntacticHeap parent;
 	public StructurallyEquivalentHeap(SyntacticHeap parent) {
-		Map<SyntacticItem,SyntacticItem> map = new IdentityHashMap<>();
-		for(int i=0;i!=parent.size();++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			allocate(SyntacticHeaps.clone(item),map);
+		this.parent = parent;
+		//
+		for(int i=0;i<parent.size();i++) {
+			// dummy
+			syntacticItems.add(parent.getSyntacticItem(i));
 		}
 	}
 
@@ -38,7 +39,7 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 		T allocated = (T) map.get(item);
 		if(allocated != null) {
 			return allocated;
-		} else if (parent == this) {
+		} else if (parent == this || parent == this.parent) {
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return item;
@@ -88,12 +89,39 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 			equivalent = (T) findStructuralEquivalent(equivalent, item.getClass());
 			if (equivalent == null) {
 				// Allocate the item (or its clone) into this heap.
-				equivalent = super.allocate(item);
+				equivalent = internalAllocate(item);
 			}
 
 			map.put(item,equivalent);
 			return equivalent;
 		}
+	}
+
+	private <T extends SyntacticItem> T internalAllocate(T item) {
+		SyntacticHeap parent = item.getParent();
+		if (parent == this || parent == this.parent) {
+			// Item already allocated to this heap, hence nothing to do.
+		} else if (parent != null) {
+			throw new IllegalArgumentException(
+					"Cannot allocate item since a descendent is already allocated to another heap");
+		} else {
+			// Item not allocated to this heap. Therefore, recursively allocate
+			// all children ...
+			for (int i = 0; i != item.size(); ++i) {
+				SyntacticItem child = item.getOperand(i);
+				if (child != null) {
+					internalAllocate(child);
+				}
+			}
+			// ... and allocate item itself
+			int index = syntacticItems.size();
+			syntacticItems.add(item);
+			item.allocate(this, index);
+		}
+		// We just return the original item here since, in the abstract case,
+		// we're not doing anything fancy. Subclasses may choose to do more,
+		// which is why we have this hook here.
+		return item;
 	}
 
 	/**

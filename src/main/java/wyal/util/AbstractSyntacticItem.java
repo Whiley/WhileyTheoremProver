@@ -60,8 +60,10 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public void allocate(SyntacticHeap heap, int index) {
-		if(parent != null) {
-			throw new IllegalArgumentException("item already allocated to heap");
+		if(parent != null && parent != heap) {
+			throw new IllegalArgumentException(
+					"item already allocated to different heap (" + getClass().getName() + ";" + parent + ", " + heap
+							+ ")");
 		}
 
 		this.parent = heap;
