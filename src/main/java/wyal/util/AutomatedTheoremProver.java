@@ -93,13 +93,13 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 50;
+	private static final int MAX_DEPTH = 100;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
 		if (depth >= MAX_DEPTH) {
-			//throw new IllegalArgumentException("Max depth reached");
-			return false;
+			throw new IllegalArgumentException("Max depth reached");
+			//return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it
@@ -121,12 +121,21 @@ public class AutomatedTheoremProver {
 						state = applyLinearRules(truth, state);
 					}
 				} while(local != state && !state.contains(FALSE) && --innerTrip > 0);
-
-				// Apply split rule for disjuncts
-				for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
+				//
+				// Apply split rule for disjuncts. Do this after linear rules
+				// because splitting is potentially expensive.
+				for (int i = 0; i != state.size() && !state.contains(FALSE); ++i) {
 					Formula truth = state.getActive(i);
 					if (truth instanceof Formula.Disjunct) {
 						return applySplitDisjunct((Formula.Disjunct) truth, state, depth, FALSE);
+					}
+				}
+				// Apply quantifier instantiation. We do this after the other
+				// options because it is really expensive.
+				for (int i = 0; i != local.size() && !state.contains(FALSE); ++i) {
+					Formula truth = state.getActive(i);
+					if (truth instanceof Formula.Quantifier) {
+						state = applyQuantifierInstantiation((Formula.Quantifier) truth, state);
 					}
 				}
 			} while (original != state && !state.contains(FALSE) && --trip > 0);
@@ -148,8 +157,9 @@ public class AutomatedTheoremProver {
 				break;
 			case EXPR_forall:
 			case EXPR_exists:
-				state = applyQuantifierInstantiation((Formula.Quantifier) truth, state);
-				break;
+				//state = applyQuantifierInstantiation((Formula.Quantifier) truth, state);
+				return state;
+				//break;
 			case EXPR_invoke:
 				state = applyExpandInvocation((Formula.Invoke) truth, state);
 				break;
@@ -644,8 +654,8 @@ public class AutomatedTheoremProver {
 			// which could potentially lead to a contradiction. The choice of
 			// what to instantiate is critically important and certainly
 			// requires further thought.
-			//if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
-			if (ith instanceof Formula.Inequality) {
+			if (ith instanceof Formula.Equality || ith instanceof Formula.Inequality) {
+			//if (ith instanceof Formula.Inequality) {
 				Expr lhs = (Expr) ith.getOperand(0);
 				Expr rhs = (Expr) ith.getOperand(1);
 				extractGrounds(lhs, grounds);
