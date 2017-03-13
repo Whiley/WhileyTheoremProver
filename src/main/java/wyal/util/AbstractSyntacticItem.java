@@ -44,7 +44,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 	public AbstractSyntacticItem(Opcode opcode, SyntacticItem... operands) {
 		this.opcode = opcode;
 		this.operands = operands;
-		this.data = null;;
+		this.data = null;
 	}
 
 	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {
@@ -60,9 +60,12 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public void allocate(SyntacticHeap heap, int index) {
-		if(parent != null) {
-			throw new IllegalArgumentException("item already allocated to heap");
+		if(parent != null && parent != heap) {
+			throw new IllegalArgumentException(
+					"item already allocated to different heap (" + getClass().getName() + ";" + parent + ", " + heap
+							+ ")");
 		}
+
 		this.parent = heap;
 		this.index = index;
 	}
@@ -161,9 +164,6 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 
 	@Override
 	public int compareTo(SyntacticItem other) {
-//		if (other == null) {
-//			return 1;
-//		}
 		int diff = opcode.ordinal() - other.getOpcode().ordinal();
 		if (diff != 0) {
 			return diff;

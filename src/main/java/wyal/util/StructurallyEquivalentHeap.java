@@ -1,6 +1,9 @@
 package wyal.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import wyal.lang.SyntacticHeap;
@@ -15,32 +18,28 @@ import wyal.lang.WyalFile;
  * @author David J. Pearce
  *
  */
-public class StructurallyEquivalentHeap implements SyntacticHeap {
+public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements SyntacticHeap {
 	private final SyntacticHeap parent;
-
 	public StructurallyEquivalentHeap(SyntacticHeap parent) {
 		this.parent = parent;
-	}
-
-	@Override
-	public int size() {
-		return parent.size();
-	}
-
-	@Override
-	public SyntacticItem getSyntacticItem(int ith) {
-		return parent.getSyntacticItem(ith);
-	}
-
-	@Override
-	public int getIndexOf(SyntacticItem item) {
-		return parent.getIndexOf(item);
+		//
+		for(int i=0;i<parent.size();i++) {
+			// dummy
+			syntacticItems.add(parent.getSyntacticItem(i));
+		}
 	}
 
 	@Override
 	public <T extends SyntacticItem> T allocate(T item) {
+		return allocate(item,new IdentityHashMap<>());
+	}
+
+	private <T extends SyntacticItem> T allocate(T item, Map<SyntacticItem,SyntacticItem> map) {
 		SyntacticHeap parent = item.getParent();
-		if (parent == this || parent == this.parent) {
+		T allocated = (T) map.get(item);
+		if(allocated != null) {
+			return allocated;
+		} else if (parent == this || parent == this.parent) {
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return item;
@@ -63,7 +62,7 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 					// substitute into null.
 					if (child != null) {
 						// Perform the substitution in the given child
-						SyntacticItem nChild = allocate(child);
+						SyntacticItem nChild = allocate(child, map);
 						// Check whether anything was actually changed by
 						// the substitution.
 						if (nChild != child && children == nChildren) {
@@ -77,21 +76,52 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 					}
 				}
 			}
-			// Look for any structural equivalents that exist
-			// already in this heap. If we find one, then we can
-			// just return the directly.
-			T equivalent = (T) findStructuralEquivalent(item.getOpcode(), item.getData(), nChildren, item.getClass());
-			if (equivalent != null) {
-				return equivalent;
-			} else if (children != nChildren) {
+			T equivalent = item;
+			if (children != nChildren) {
 				// No equivalent was found, but the child array was
 				// updated in some way. Therefore, we need to clone
 				// the item in order reflect this change.
-				item = (T) item.clone(nChildren);
+				equivalent = (T) item.clone(nChildren);
 			}
-			// Allocate the item (or its clone) into this heap.
-			return this.parent.allocate(item);
+			// Look for any structural equivalents that exist
+			// already in this heap. If we find one, then we can
+			// just return the directly.
+			equivalent = (T) findStructuralEquivalent(equivalent, item.getClass());
+			if (equivalent == null) {
+				// Allocate the item (or its clone) into this heap.
+				equivalent = internalAllocate(item);
+			}
+
+			map.put(item,equivalent);
+			return equivalent;
 		}
+	}
+
+	private <T extends SyntacticItem> T internalAllocate(T item) {
+		SyntacticHeap parent = item.getParent();
+		if (parent == this || parent == this.parent) {
+			// Item already allocated to this heap, hence nothing to do.
+		} else if (parent != null) {
+			throw new IllegalArgumentException(
+					"Cannot allocate item since a descendent is already allocated to another heap");
+		} else {
+			// Item not allocated to this heap. Therefore, recursively allocate
+			// all children ...
+			for (int i = 0; i != item.size(); ++i) {
+				SyntacticItem child = item.getOperand(i);
+				if (child != null) {
+					internalAllocate(child);
+				}
+			}
+			// ... and allocate item itself
+			int index = syntacticItems.size();
+			syntacticItems.add(item);
+			item.allocate(this, index);
+		}
+		// We just return the original item here since, in the abstract case,
+		// we're not doing anything fancy. Subclasses may choose to do more,
+		// which is why we have this hook here.
+		return item;
 	}
 
 	/**
@@ -104,14 +134,11 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 	 * @param children
 	 * @return
 	 */
-	private SyntacticItem findStructuralEquivalent(WyalFile.Opcode opcode, Object data, SyntacticItem[] children, Class<?> clazz) {
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem candidate = parent.getSyntacticItem(i);
-			if (opcode == candidate.getOpcode() && Objects.equals(data, candidate.getData())
-					&& candidate.getClass() == clazz) {
-				if (haveIdenticalChildren(children, candidate.getOperands())) {
-					return candidate;
-				}
+	private SyntacticItem findStructuralEquivalent(SyntacticItem item, Class<?> clazz) {
+		for (int i = 0; i != syntacticItems.size(); ++i) {
+			SyntacticItem candidate = getSyntacticItem(i);
+			if(candidate.getClass() == clazz && item.equals(candidate)) {
+				return candidate;
 			}
 		}
 		return null;
@@ -122,13 +149,15 @@ public class StructurallyEquivalentHeap implements SyntacticHeap {
 			return left == right;
 		} else if (left.length != right.length) {
 			return false;
-		} else {
+		} else if(left.getClass().equals(right.getClass())){
 			for (int j = 0; j != left.length; ++j) {
 				if (left[j] != right[j]) {
 					return false;
 				}
 			}
 			return true;
+		} else {
+			return false;
 		}
 	}
 }

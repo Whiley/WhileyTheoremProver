@@ -149,12 +149,18 @@ public class WyalFileParser {
 	protected Declaration parseAssertDeclaration(WyalFile parent) {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
+		String message = null;
 		//
 		match(Assert);
-		match(Colon);
+		if(tryAndMatch(false,Colon) == null) {
+			Token token = match(StringValue);
+			message = parseString(token.text);
+			match(Colon);
+		}
+
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body);
+		Declaration.Assert declaration = new Declaration.Assert(body,message);
 		declaration.attributes().add(sourceAttr(start, index - 1));
 		return declaration;
 	}
@@ -417,7 +423,7 @@ public class WyalFileParser {
 			matchEndLine();
 			body = parseStatementBlock(scope, indent);
 		} else {
-			match(SemiColon);
+			match(Dot);
 			Stmt unit = parseUnitExpression(scope, false);
 			body = new Stmt.Block(unit);
 		}
@@ -622,10 +628,18 @@ public class WyalFileParser {
 			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
 				Expr rhs = parseUnitExpression(scope, true);
-				// This is a plain old array access expression
-				match(RightSquare);
-				lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
-				lhs.attributes().add(sourceAttr(start, index - 1));
+				if(tryAndMatchOnLine(ColonEquals) != null) {
+					// This is an array update expression
+					Expr mhs = parseUnitExpression(scope, true);
+					match(RightSquare);
+					lhs = new Expr.Operator(Opcode.EXPR_arrupdt, lhs, rhs, mhs);
+					lhs.attributes().add(sourceAttr(start, index - 1));
+				} else {
+					// This is a plain old array access expression
+					match(RightSquare);
+					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
+					lhs.attributes().add(sourceAttr(start, index - 1));
+				}
 				break;
 			}
 			case Dot: {
@@ -1474,7 +1488,7 @@ public class WyalFileParser {
 	private Type parseRecordType(EnclosingScope scope) {
 		int start = index;
 		match(LeftCurly);
-		List<VariableDeclaration> fields = new ArrayList<>();
+		List<FieldDeclaration> fields = new ArrayList<>();
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
 			if (!firstTime) {
@@ -1485,11 +1499,11 @@ public class WyalFileParser {
 			int fieldStart = index;
 			Type fieldType = parseType(scope);
 			Identifier fieldName = parseIdentifier(scope);
-			VariableDeclaration var = new VariableDeclaration(fieldType, fieldName);
+			FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
 			var.attributes().add(sourceAttr(fieldStart, index - 1));
 			fields.add(var);
 		}
-		VariableDeclaration[] arr = fields.toArray(new VariableDeclaration[fields.size()]);
+		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
 		Type type = new Type.Record(arr);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;

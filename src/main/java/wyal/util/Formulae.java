@@ -95,6 +95,32 @@ public class Formulae {
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
+		case EXPR_forall: {
+			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
+			// Convert body of quantifier
+			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Disjunct(invert(invariant), body);
+			}
+			// Done
+			return new Formula.Quantifier(true, q.getParameters(), body);
+		}
+		case EXPR_exists: {
+			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
+			// Convert body of quantifier
+			Formula body = toFormula(q.getBody(), types);
+			// Expand any type invariants
+			Formula invariant = expandTypeInvariants(q.getParameters(),types);
+			// Add type invariants (if appropriate)
+			if (invariant != null) {
+				body = new Conjunct(invariant, body);
+			}
+			// Done
+			return new Formula.Quantifier(false, q.getParameters(), body);
+		}
 		case EXPR_and: {
 			Expr.Operator b = (Expr.Operator) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
@@ -116,17 +142,45 @@ public class Formulae {
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t)) {
+			Type rhs_t = rhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
 				Formula lhs_f = toFormula(lhs,types);
 				Formula rhs_f = toFormula(rhs,types);
 				Formula l = new Conjunct(lhs_f,rhs_f);
 				Formula r = new Conjunct(invert(lhs_f),invert(rhs_f));
 				return new Formula.Disjunct(l,r);
+			} else if(types.isEffectiveRecord(lhs_t)) {
+				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				FieldDeclaration[] fields = lhs_r.getFields();
+				Formula[] clauses = new Formula[fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
+				}
+				return new Formula.Conjunct(clauses);
+			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i:" + skolem++));
+				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
+				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+				Formula inv = equals(lhsAccess,rhsAccess,types);
+				Polynomial zero = toPolynomial(0);
+				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+				// The following axiom simply states that the length of every array
+				// type is greater than or equal to zero.
+				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				// forall i.(0 <= i && i <|root|) ==> inv
+				Formula gt = greaterOrEqual(va, zero);
+				Formula lt = lessThan(va, lhsLen);
+				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -136,17 +190,45 @@ public class Formulae {
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t)) {
+			Type rhs_t = rhs.getReturnType(types);
+			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t)) {
+			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
 				Formula lhs_f = toFormula(lhs,types);
 				Formula rhs_f = toFormula(rhs,types);
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
+			} else if(types.isEffectiveRecord(lhs_t)) {
+				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				FieldDeclaration[] fields = lhs_r.getFields();
+				Formula[] clauses = new Formula[fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
+				}
+				return new Formula.Disjunct(clauses);
+			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i:" + skolem++));
+				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
+				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+				Formula inv = notEquals(lhsAccess,rhsAccess,types);
+				Polynomial zero = toPolynomial(0);
+				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+				// The following axiom simply states that the length of every array
+				// type is greater than or equal to zero.
+				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				// forall i.(0 <= i && i <|root|) ==> inv
+				Formula gt = greaterOrEqual(va, zero);
+				Formula lt = lessThan(va, lhsLen);
+				return invert(and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv))));
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
@@ -155,25 +237,26 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(true, lhs, rhs);
+			return lessThan(lhs,rhs);
 		}
 		case EXPR_lteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(false, rhs, lhs);
+			return greaterOrEqual(rhs,lhs);
 		}
 		case EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(true, rhs, lhs);
+			// lhs > rhs ==> lhs+1 >= rhs
+			return lessThan(rhs,lhs);
 		}
 		case EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Polynomial lhs = toPolynomial(operator.getOperand(0));
 			Polynomial rhs = toPolynomial(operator.getOperand(1));
-			return new Formula.Inequality(false, lhs, rhs);
+			return greaterOrEqual(lhs,rhs);
 		}
 		case EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
@@ -317,10 +400,10 @@ public class Formulae {
 		}
 		case TYPE_rec: {
 			Type.Record r = (Type.Record) type;
-			VariableDeclaration[] fields = r.getFields();
+			FieldDeclaration[] fields = r.getFields();
 			Formula inv = null;
 			for(int i=0;i!=fields.length;++i) {
-				VariableDeclaration fieldDecl = (VariableDeclaration) fields[i];
+				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
 				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types);
 				if(fieldInv != null) {
@@ -397,19 +480,41 @@ public class Formulae {
 		}
 	}
 
-	private static Formula lessThan(Polynomial lhs, Polynomial rhs) {
-		return new Formula.Inequality(true, lhs, rhs);
+	public static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
+		Type lhs_t = lhs.getReturnType(types);
+		Type rhs_t = rhs.getReturnType(types);
+		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			return new ArithmeticEquality(false, toPolynomial(lhs), toPolynomial(rhs));
+		} else {
+			return new Formula.Equality(false, lhs, rhs);
+		}
 	}
 
-	private static Formula greaterOrEqual(Polynomial lhs, Polynomial rhs) {
-		return new Formula.Inequality(false, lhs, rhs);
+	public static Formula equals(Expr lhs, Expr rhs, TypeSystem types) {
+		Type lhs_t = lhs.getReturnType(types);
+		Type rhs_t = rhs.getReturnType(types);
+		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			return new ArithmeticEquality(true, toPolynomial(lhs), toPolynomial(rhs));
+		} else {
+			return new Formula.Equality(true, lhs, rhs);
+		}
 	}
 
-	private static Formula implies(Formula lhs, Formula rhs) {
+	public static Formula.Inequality lessThan(Polynomial lhs, Polynomial rhs) {
+		// lhs < rhs ===> rhs >= (lhs+1)
+		Polynomial lhsP1 = lhs.add(new Polynomial(BigInteger.ONE));
+		return new Formula.Inequality(rhs, lhsP1);
+	}
+
+	public static Formula.Inequality greaterOrEqual(Polynomial lhs, Polynomial rhs) {
+		return new Formula.Inequality(lhs, rhs);
+	}
+
+	public static Formula implies(Formula lhs, Formula rhs) {
 		return new Formula.Disjunct(invert(lhs),rhs);
 	}
 
-	private static Formula and(Formula lhs, Formula rhs) {
+	public static Formula and(Formula lhs, Formula rhs) {
 		return new Formula.Conjunct(lhs,rhs);
 	}
 
@@ -463,10 +568,12 @@ public class Formulae {
 				return new Equality(!e.getSign(), e.getOperand(0), e.getOperand(1));
 			}
 		}
-		case EXPR_lt:
 		case EXPR_gteq: {
+			// !(lhs >= rhs) => lhs < rhs
 			Inequality e = (Inequality) f;
-			return new Inequality(!e.getSign(), e.getOperand(0), e.getOperand(1));
+			Polynomial lhs = e.getOperand(0);
+			Polynomial rhs = e.getOperand(1);
+			return lessThan(lhs,rhs);
 		}
 		case EXPR_invoke: {
 			Invoke e = (Invoke) f;
@@ -632,7 +739,7 @@ public class Formulae {
 		for (int i = 0; i != nChildren.length; ++i) {
 			Formula child = children[i];
 			Formula nChild = simplify(child, types);
-			if (child != nChild && children != nChildren) {
+			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
 			nChildren[i] = nChild;
@@ -689,11 +796,11 @@ public class Formulae {
 		if (lhs.isConstant() && rhs.isConstant()) {
 			return evaluateInequality(ieq.getOpcode(), lhs.toConstant(), rhs.toConstant());
 		} else if (lhs.equals(rhs)) {
-			return new Formula.Truth(false);
+			return new Formula.Truth(true);
 		} else {
 			// FIXME: need to ensure identical object returned if no
 			// simplification applied.
-			return new Inequality(ieq.getSign(), bs.getFirst(), bs.getSecond());
+			return new Inequality(bs.getFirst(), bs.getSecond());
 		}
 	}
 
@@ -718,28 +825,32 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(ArithmeticEquality eq, TypeSystem types) {
-		Polynomial lhs = simplify(eq.getOperand(0), types);
-		Polynomial rhs = simplify(eq.getOperand(1), types);
-		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
-		lhs = bs.getFirst();
-		rhs = bs.getSecond();
-		if (lhs.isConstant() && rhs.isConstant()) {
-			Value lhs_v = lhs.toConstant();
-			Value rhs_v = rhs.toConstant();
+		Expr.Polynomial lhs = eq.getOperand(0);
+		Expr.Polynomial rhs = eq.getOperand(1);
+		Polynomial nLhs = simplify(lhs, types);
+		Polynomial nRhs = simplify(rhs, types);
+		Pair<Polynomial, Polynomial> bs = normaliseBounds(nLhs, nRhs);
+		nLhs = bs.getFirst();
+		nRhs = bs.getSecond();
+		if (nLhs.isConstant() && nRhs.isConstant()) {
+			Value lhs_v = nLhs.toConstant();
+			Value rhs_v = nRhs.toConstant();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
-		} else if (lhs.equals(rhs)) {
+		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
 		} else if (eq.getSign()) {
-			// FIXME: need to ensure identical object returned if no
-			// simplification applied.
-			return new ArithmeticEquality(true, lhs, rhs);
+			if(nLhs == lhs && nRhs == rhs) {
+				return eq;
+			} else {
+				return new ArithmeticEquality(true, nLhs, nRhs);
+			}
 		} else {
 			// For an arithmetic equality of the form x != y, we return a
 			// disjunction of the form (x < y) || (x > y). This is not
 			// necessarily the most efficient thing to do. However, for our
 			// purposes, this works well enough for now.
-			Inequality lt = new Inequality(true, lhs, rhs);
-			Inequality gt = new Inequality(true, rhs, lhs);
+			Inequality lt = lessThan(nLhs,nRhs);
+			Inequality gt = lessThan(nRhs,nLhs);
 			return new Formula.Disjunct(lt, gt);
 		}
 	}
@@ -754,18 +865,20 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula simplify(Equality eq, TypeSystem types) {
-		Expr lhs = simplify(eq.getOperand(0), types);
-		Expr rhs = simplify(eq.getOperand(1), types);
-		if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
-			Value lhs_v = ((Expr.Constant) lhs).getValue();
-			Value rhs_v = ((Expr.Constant) rhs).getValue();
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		Expr nLhs = simplify(lhs, types);
+		Expr nRhs = simplify(rhs, types);
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value lhs_v = ((Expr.Constant) nLhs).getValue();
+			Value rhs_v = ((Expr.Constant) nRhs).getValue();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
-		} else if (lhs.equals(rhs)) {
+		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else {
-			// FIXME: need to ensure new object returned if simplification
-			// applied.
+		} else if(nLhs == lhs && nRhs == rhs) {
 			return eq;
+		} else {
+			return new Equality(eq.getSign(),nLhs,nRhs);
 		}
 	}
 
@@ -818,12 +931,15 @@ public class Formulae {
 			return simplify((Expr.Invoke) e, types);
 		case EXPR_arridx:
 			return simplifyArrayIndex((Expr.Operator) e, types);
+		case EXPR_arrupdt:
+			return simplifyArrayUpdate((Expr.Operator) e, types);
 		case EXPR_is:
 			return simplify((Expr.Is) e, types);
 		case EXPR_arrlen:
 			return simplifyArrayLength((Expr.Operator)e, types);
 		case EXPR_arrinit:
 		case EXPR_arrgen:
+		case EXPR_div: // temporary for now
 		case EXPR_rem: // temporary for now
 			return simplifyNonArithmetic((Expr.Operator) e, types);
 		case EXPR_neg:
@@ -877,10 +993,21 @@ public class Formulae {
 	private static Expr simplify(Expr.RecordAccess e, TypeSystem types) {
 		Expr source = e.getSource();
 		Expr nSource = simplify(source,types);
-		if (source == nSource) {
+		if(nSource instanceof Expr.RecordInitialiser) {
+			Expr.RecordInitialiser ri = (Expr.RecordInitialiser) nSource;
+			WyalFile.Pair<Identifier, Expr>[] fields = ri.getFields();
+			for(int i=0;i!=fields.length;++i) {
+				WyalFile.Pair<Identifier, Expr> field = fields[i];
+				if(e.getField().equals(field.getFirst())) {
+					return field.getSecond();
+				}
+			}
+		}
+		//
+		if(source == nSource) {
 			return e;
 		} else {
-			return new Expr.RecordAccess(source, e.getField());
+			return new Expr.RecordAccess(nSource, e.getField());
 		}
 	}
 
@@ -936,12 +1063,40 @@ public class Formulae {
 				}
 			}
 		}
+		if(nSource.getOpcode() == Opcode.EXPR_arrgen) {
+			return (Expr) nSource.getOperand(0);
+		}
 		// If we get here, then no simplification of the array access expression
 		// was possible.
 		if (source == nSource && index == nIndex) {
 			return e;
 		} else {
 			return new Expr.Operator(Opcode.EXPR_arridx, nSource, nIndex);
+		}
+	}
+
+	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) {
+		Expr source = e.getOperand(0);
+		Expr index = e.getOperand(1);
+		Expr value = e.getOperand(2);
+		Expr nSource = simplify(source,types);
+		Expr.Polynomial nIndex = toPolynomial(simplify(index,types));
+		Expr nValue = simplify(value,types);
+		//
+		if(nIndex.isConstant() && nSource.getOpcode() == Opcode.EXPR_arrinit) {
+			Expr.Operator src = (Expr.Operator) nSource;
+			BigInteger b = nIndex.toConstant().get();
+			if(b.compareTo(BigInteger.ZERO) >= 0 && b.compareTo(BigInteger.valueOf(nSource.size())) < 0) {
+				int idx = b.intValue();
+				Expr[] nChildren = Arrays.copyOf(src.getOperands(),src.size());
+				nChildren[idx] = nValue;
+				return src.clone(nChildren);
+			}
+		}
+		if (source == nSource && index == nIndex && value == nValue) {
+			return e;
+		} else {
+			return new Expr.Operator(Opcode.EXPR_arrupdt, nSource, nIndex, nValue);
 		}
 	}
 
@@ -953,6 +1108,8 @@ public class Formulae {
 				return new Polynomial(BigInteger.valueOf(src.size()));
 			} else if(src.getOpcode() == Opcode.EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
+			} else if(src.getOpcode() == Opcode.EXPR_arrupdt) {
+				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen,(Expr) src.getOperand(0)),types);
 			}
 		}
 		return r;
@@ -1124,44 +1281,32 @@ public class Formulae {
 		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
 		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
 		Polynomial.Term lhsCandidate;
-		Polynomial lhs;
-		Polynomial rhs;
+		Polynomial lower;
+		Polynomial upper;
 		if (lCandidate != null && rCandidate == null) {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 			lhsCandidate = lCandidate.getFirst();
 		} else if (lCandidate == null && rCandidate != null) {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 			lhsCandidate = rCandidate.getSecond();
 		} else if(lCandidate == null && rCandidate == null) {
 			return null;
 		} else if(lCandidate.compareTo(rCandidate) <= 0){
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 			lhsCandidate = lCandidate.getFirst();
 		} else {
-			lhs = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			rhs = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
 			lhsCandidate = rCandidate.getSecond();
 		}
-		if(lhs.equals(rhs)) {
-			if(ith.getSign() || jth.getSign()) {
-				// y < x < y ==> false
-				return new Formula.Truth(false);
-			} else {
-				return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lhs),types);
-			}
-		} else if (ith.getSign() && jth.getSign()) {
-			// Result is *very* strict as had something like ... < x < ...
-			lhs = lhs.add(new Polynomial.Term(BigInteger.ONE));
-			return simplify(new Formula.Inequality(true, lhs, rhs), types);
-		} else if (ith.getSign() || jth.getSign()) {
-			// Result is strict as had something like ... <= x < ...
-			return simplify(new Formula.Inequality(true, lhs, rhs), types);
+		if(lower.equals(upper)) {
+			return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lower), types);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return simplify(new Formula.Inequality(false, lhs, rhs), types);
+			return simplify(greaterOrEqual(upper,lower), types);
 		}
 	}
 
@@ -1174,17 +1319,7 @@ public class Formulae {
 	 * @return
 	 */
 	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
-		int i;
-		switch (inequality.getOpcode()) {
-		case EXPR_lt:
-			i = sign ? 1 : 0;
-			break;
-		case EXPR_gteq:
-			i = sign ? 0 : 1;
-			break;
-		default:
-			throw new IllegalArgumentException("Invalid inequality");
-		}
+		int i = sign ? 0 : 1;
 		return (Polynomial) inequality.getOperand(i);
 	}
 
@@ -1267,7 +1402,15 @@ public class Formulae {
 			Expr lhs = f.getOperand(0);
 			Expr rhs = f.getOperand(1);
 			//
-			if (lhs.compareTo(rhs) < 0) {
+			if(lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
+				return null;
+			} else if(lhs instanceof Expr.Constant) {
+				candidate = rhs;
+				bound = lhs;
+			} else if(rhs instanceof Expr.Constant) {
+				candidate = lhs;
+				bound = rhs;
+			} else if (lhs.compareTo(rhs) < 0) {
 				candidate = lhs;
 				bound = rhs;
 			} else {
@@ -1291,7 +1434,7 @@ public class Formulae {
 	 * @param p
 	 * @return
 	 */
-	private static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
+	public static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
 		Expr candidateAtom = null;
 		Polynomial.Term candidate = null;
 		for (int i = 0; i != p.size(); ++i) {
@@ -1404,7 +1547,6 @@ public class Formulae {
 	 */
 	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
 			SyntacticItem item) {
-
 		if (item.equals(from)) {
 			// Yes, we made a substitution!
 			return to;
@@ -1413,16 +1555,18 @@ public class Formulae {
 			// term looking for substitution.
 			SyntacticItem[] children = item.getOperands();
 			SyntacticItem[] nChildren = children;
-			for (int i = 0; i != children.length; ++i) {
-				SyntacticItem child = children[i];
-				if(child != null) {
-					SyntacticItem nChild = substitute(from, to, child);
-					if (child != nChild && nChildren == children) {
-						// Clone the new children array to avoid interfering with
-						// original item.
-						nChildren = Arrays.copyOf(children, children.length);
+			if(children != null) {
+				for (int i = 0; i != children.length; ++i) {
+					SyntacticItem child = children[i];
+					if(child != null) {
+						SyntacticItem nChild = substitute(from, to, child);
+						if (child != nChild && nChildren == children) {
+							// Clone the new children array to avoid interfering with
+							// original item.
+							nChildren = Arrays.copyOf(children, children.length);
+						}
+						nChildren[i] = nChild;
 					}
-					nChildren[i] = nChild;
 				}
 			}
 			if (nChildren == children) {

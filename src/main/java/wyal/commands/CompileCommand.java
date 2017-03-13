@@ -31,17 +31,6 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		INTERNAL_FAILURE
 	}
 
-
-	/**
-	 * List of configuration options recognised by this command
-	 */
-	private static String[] configOptions = {
-			"verbose",
-			"verify",
-			"includes",
-			"excludes"
-	};
-
 	/**
 	 * Provides a generic place to which normal output should be directed. This
 	 * should eventually be replaced.
@@ -79,13 +68,13 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	protected Content.Filter<WyalFile> wyalExcludes = null;
 
 	public CompileCommand(Registry registry, Logger logger) {
-		super(registry, logger, configOptions);
+		super(registry, logger);
 		this.sysout = System.out;
 		this.syserr = System.err;
 	}
 
 	public CompileCommand(Registry registry, Logger logger, OutputStream sysout, OutputStream syserr) {
-		super(registry, logger, configOptions);
+		super(registry, logger);
 		this.sysout = new PrintStream(sysout);
 		this.syserr = new PrintStream(syserr);
 	}
@@ -137,6 +126,20 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	@Override
 	public String getDescription() {
 		return "Compile and verify one or more WyAL files";
+	}
+
+	@Override
+	public void set(String option, Object value) throws ConfigurationError {
+		switch(option) {
+		case "verbose":
+			setVerbose();
+			break;
+		case "verify":
+			setVerify();
+			break;
+		default:
+			super.set(option, value);
+		}
 	}
 
 	// =======================================================================
@@ -263,5 +266,10 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			out.print("Caused by: ");
 			printStackTrace(out,err.getCause());
 		}
+	}
+
+	@Override
+	public String getName() {
+		return "verify";
 	}
 }

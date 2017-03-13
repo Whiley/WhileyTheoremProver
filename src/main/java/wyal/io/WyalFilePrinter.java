@@ -23,9 +23,10 @@ import wyfs.util.Trie;
 public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
+	private boolean nonces = false;
 
-	public WyalFilePrinter(OutputStream writer) throws UnsupportedEncodingException {
-		this(new OutputStreamWriter(writer, "UTF-8"));
+	public WyalFilePrinter(OutputStream writer) {
+		this(new OutputStreamWriter(writer));
 	}
 
 	public WyalFilePrinter(Writer writer) {
@@ -34,6 +35,10 @@ public class WyalFilePrinter {
 
 	public WyalFilePrinter(PrintWriter writer) {
 		this.out = writer;
+	}
+
+	public void flush() {
+		out.flush();
 	}
 
 	public void write(WyalFile wf) {
@@ -101,8 +106,9 @@ public class WyalFilePrinter {
 	public void write(WyalFile wf, Declaration.Named.Function s) {
 		out.print("function ");
 		out.print(s.getName().get());
-		// out.print("(" + s.getType().element(0) + ") => " +
-		// s.getType().element(1));
+		writeVariableDeclarations(s.getParameters());
+		out.print(" -> ");
+		writeVariableDeclarations(s.getReturns());
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Macro s) {
@@ -132,7 +138,14 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf, Declaration.Assert s) {
-		out.println("assert:");
+		out.print("assert");
+		String message = s.getMessage();
+		if(message != null) {
+			out.print(" \"");
+			out.print(message);
+			out.print("\"");
+		}
+		out.println(":");
 		writeBlock(s.getBody(), 1);
 	}
 
@@ -151,6 +164,16 @@ public class WyalFilePrinter {
 		writeType(decl.getType());
 		out.print(" ");
 		out.print(decl.getVariableName().get());
+		if(nonces) {
+			out.print("'");
+			out.print(decl.getIndex());
+		}
+	}
+
+	public void writeFieldDeclaration(FieldDeclaration decl) {
+		writeType(decl.getType());
+		out.print(" ");
+		out.print(decl.getVariableName().get());
 	}
 
 	public void writeBlock(Stmt.Block block, int indent) {
@@ -161,6 +184,9 @@ public class WyalFilePrinter {
 
 	public void writeStatement(WyalFile.Stmt loc, int indent) {
 		switch (loc.getOpcode()) {
+		case STMT_block:
+			writeBlock((Stmt.Block) loc, indent);
+			break;
 		case STMT_ifthen:
 			writeIfThen((Stmt.IfThen) loc, indent);
 			break;
@@ -309,6 +335,9 @@ public class WyalFilePrinter {
 		case EXPR_arrinit:
 			writeArrayInitialiser((Expr.Operator)expr);
 			break;
+		case EXPR_arrupdt:
+			writeArrayUpdate((Expr.Operator)expr);
+			break;
 		case EXPR_recfield:
 			writeRecordAccess((Expr.RecordAccess)expr);
 			break;
@@ -326,9 +355,14 @@ public class WyalFilePrinter {
 
 	public void writeVariableAccess(Expr.VariableAccess expr) {
 		// Determine variable declaration to which this access refers
-		Identifier ident = expr.getVariableDeclaration().getVariableName();
+		VariableDeclaration decl = expr.getVariableDeclaration();
+		Identifier ident = decl.getVariableName();
 		// Print out the declared variable name
 		out.print(ident.get());
+		//
+		if(nonces) {
+			out.print("'" + decl.getIndex());
+		}
 	}
 
 	public void writeCast(Expr.Cast expr) {
@@ -462,6 +496,15 @@ public class WyalFilePrinter {
 		out.print("]");
 	}
 
+	public void writeArrayUpdate(Expr.Operator expr) {
+		writeExpressionWithBrackets(expr.getOperand(0));
+		out.print("[");
+		writeExpression(expr.getOperand(1));
+		out.print(":=");
+		writeExpression(expr.getOperand(2));
+		out.print("]");
+	}
+
 	public void writeRecordAccess(Expr.RecordAccess expr) {
 		writeExpressionWithBrackets(expr.getSource());
 		out.print(".");
@@ -541,13 +584,13 @@ public class WyalFilePrinter {
 		}
 		case TYPE_rec: {
 			Type.Record t = (Type.Record) type;
-			VariableDeclaration[] fields = t.getFields();
+			FieldDeclaration[] fields = t.getFields();
 			out.print("{");
 			for (int i = 0; i != fields.length; ++i) {
 				if (i != 0) {
 					out.print(", ");
 				}
-				writeVariableDeclaration(fields[i]);
+				writeFieldDeclaration(fields[i]);
 			}
 			out.print("}");
 			break;

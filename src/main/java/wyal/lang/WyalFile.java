@@ -8,10 +8,13 @@ import java.util.ArrayList;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
+import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.AbstractSyntacticHeap;
 import wyal.util.AbstractSyntacticItem;
 import wyal.util.AutomatedTheoremProver;
+import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
 import wybs.lang.CompilationUnit;
@@ -43,7 +46,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		@Override
 		public void write(OutputStream output, WyalFile module) throws IOException {
-			throw new RuntimeException("Implement me");
+			new WyalFilePrinter(output).write(module);
 		}
 
 		@Override
@@ -160,10 +163,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_div(54),
 		EXPR_rem(55),
 		// ARRAY
-		EXPR_arrinit(60),
-		EXPR_arrlen(61),
-		EXPR_arrgen(62),
-		EXPR_arridx(63),
+		EXPR_arrinit(59),
+		EXPR_arrlen(60),
+		EXPR_arrgen(61),
+		EXPR_arridx(62),
+		EXPR_arrupdt(63),
 		// RECORDS
 		EXPR_recinit(64),
 		EXPR_recfield(65),
@@ -183,8 +187,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// =========================================================================
 	// State
 	// =========================================================================
-	private final ArrayList<SyntacticItem> syntacticItems;
-
 	protected final Path.Entry<WyalFile> entry;
 
 	// =========================================================================
@@ -193,7 +195,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 	public WyalFile(Path.Entry<WyalFile> entry) {
 		this.entry = entry;
-		this.syntacticItems = new ArrayList<>();
 	}
 
 	@Override
@@ -411,18 +412,24 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Assert extends AbstractSyntacticItem implements Declaration {
+			private String message;
 
-			public Assert(Stmt.Block body) {
+			public Assert(Stmt.Block body, String message) {
 				super(Opcode.DECL_assert, body);
+				this.message = message;
 			}
 
 			public Stmt.Block getBody() {
 				return (Stmt.Block) getOperand(0);
 			}
 
+			public String getMessage() {
+				return message;
+			}
+
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
-				return new Assert((Stmt.Block) operands[0]);
+				return new Assert((Stmt.Block) operands[0], message);
 			}
 		}
 
@@ -606,17 +613,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Record extends Atom {
-			public Record(VariableDeclaration... fields) {
+			public Record(FieldDeclaration... fields) {
 				super(Opcode.TYPE_rec, fields);
 			}
 
-			public VariableDeclaration[] getFields() {
-				return ArrayUtils.toArray(VariableDeclaration.class, getOperands());
+			public FieldDeclaration[] getFields() {
+				return ArrayUtils.toArray(FieldDeclaration.class, getOperands());
 			}
 
 			@Override
 			public Record clone(SyntacticItem[] operands) {
-				return new Record((VariableDeclaration[]) operands);
+				return new Record((FieldDeclaration[]) operands);
 			}
 		}
 
@@ -671,7 +678,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Union clone(SyntacticItem[] operands) {
-				return new Union();
+				return new Union((Type[]) operands);
 			}
 		}
 
@@ -753,8 +760,35 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		@Override
+		public boolean equals(Object o) {
+			// The reason for this is that we want to treat variable
+			// declarations specially. The only way that two variable
+			// declarations can be considered equal is if they are the same.
+			return o == this;
+		}
+
+		@Override
 		public VariableDeclaration clone(SyntacticItem[] operands) {
 			return new VariableDeclaration((Type) operands[0], (Identifier) operands[1]);
+		}
+	}
+
+	public static class FieldDeclaration extends AbstractSyntacticItem {
+		public FieldDeclaration(Type type, Identifier name) {
+			super(Opcode.STMT_vardecl, type, name);
+		}
+
+		public Type getType() {
+			return (Type) getOperand(0);
+		}
+
+		public Identifier getVariableName() {
+			return (Identifier) getOperand(1);
+		}
+
+		@Override
+		public FieldDeclaration clone(SyntacticItem[] operands) {
+			return new FieldDeclaration((Type) operands[0], (Identifier) operands[1]);
 		}
 	}
 
@@ -914,6 +948,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					Type src = getOperand(0).getReturnType(types);
 					Type.Array effectiveArray = types.extractReadableArrayType(src);
 					return effectiveArray.getElement();
+				}
+				case EXPR_arrupdt: {
+					Type src = getOperand(0).getReturnType(types);
+					Type.Array effectiveArray = types.extractReadableArrayType(src);
+					return effectiveArray;
 				}
 				default:
 					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());
@@ -1075,10 +1114,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
 				Type.Record effectiveRecord = types.extractReadableRecordType(src);
-				VariableDeclaration[] fields = effectiveRecord.getFields();
+				FieldDeclaration[] fields = effectiveRecord.getFields();
 				String actualFieldName = getField().get();
 				for (int i = 0; i != fields.length; ++i) {
-					VariableDeclaration vd = fields[i];
+					FieldDeclaration vd = fields[i];
 					String declaredFieldName = vd.getVariableName().get();
 					if (declaredFieldName.equals(actualFieldName)) {
 						return vd.getType();
@@ -1107,11 +1146,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Type getReturnType(TypeSystem types) {
 				Pair<Identifier, Expr>[] fields = getFields();
-				VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+				FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 				for (int i = 0; i != fields.length; ++i) {
 					Identifier fieldName = fields[i].getFirst();
 					Type fieldType = fields[i].getSecond().getReturnType(types);
-					decls[i] = new VariableDeclaration(fieldType, fieldName);
+					decls[i] = new FieldDeclaration(fieldType, fieldName);
 				}
 				//
 				return new Type.Record(decls);
@@ -1201,6 +1240,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			public Type.AbstractFunction getSignatureType() {
 				return (Type.AbstractFunction) getOperand(0);
+			}
+
+			public void setSignatureType(Type.Function type) {
+				this.setOperand(0, type);
 			}
 
 			public Name getName() {

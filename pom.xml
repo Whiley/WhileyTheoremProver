@@ -3,11 +3,11 @@
 
   <!-- ============================================== -->
   <!-- Configuration -->
-  <!-- ============================================== -->  
-  
+  <!-- ============================================== -->
+
   <groupId>org.whiley</groupId>
   <artifactId>wytp</artifactId>
-  <version>0.5.0</version>
+  <version>0.5.1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -19,7 +19,7 @@
 
   <!-- ============================================== -->
   <!-- Description -->
-  <!-- ============================================== -->  
+  <!-- ============================================== -->
 
   <name>Whiley Theorem Prover (WyTP)</name>
   <description>
@@ -28,7 +28,7 @@
   </description>
 
   <url>http://whiley.org</url>
-  
+
   <scm>
     <url>https://github.com/Whiley/WhileyCompiler</url>
   </scm>
@@ -41,16 +41,16 @@
       <url>http://www.ecs.vuw.ac.nz/~djp</url>
     </developer>
   </developers>
-  
+
   <!-- ============================================== -->
   <!-- Dependencies -->
   <!-- ============================================== -->
-  
+
   <dependencies>
     <dependency>
       <groupId>org.whiley</groupId>
       <artifactId>wycc</artifactId>
-      <version>0.5.3</version>
+      <version>0.5.4</version>
     </dependency>
     <dependency>
       <groupId>ant</groupId>
@@ -64,11 +64,11 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <!-- ============================================== -->
   <!-- Deployment -->
-  <!-- ============================================== -->  
-  
+  <!-- ============================================== -->
+
   <distributionManagement>
     <snapshotRepository>
       <id>ossrh</id>
@@ -77,15 +77,15 @@
     <repository>
       <id>ossrh</id>
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>    
-  </distributionManagement>  
-  
+    </repository>
+  </distributionManagement>
+
   <!-- ============================================== -->
   <!-- Build Config -->
   <!-- ============================================== -->
-  
+
   <build>
-    
+
     <plugins>
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
@@ -100,7 +100,7 @@
       <!-- ============================================== -->
       <!-- Sources Attachment -->
       <!-- ============================================== -->
-      
+
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-source-plugin</artifactId>
@@ -114,11 +114,11 @@
           </execution>
 	</executions>
       </plugin>
-      
+
       <!-- ============================================== -->
       <!-- JavaDoc Attachment -->
       <!-- ============================================== -->
-      
+
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-javadoc-plugin</artifactId>
@@ -135,11 +135,11 @@
           </execution>
 	</executions>
       </plugin>
-      
+
       <!-- ============================================== -->
       <!-- GPG Signing -->
       <!-- ============================================== -->
-      
+
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-gpg-plugin</artifactId>
@@ -181,10 +181,10 @@
 	  <autoReleaseAfterClose>true</autoReleaseAfterClose>
 	</configuration>
       </plugin>
-            
-    </plugins>    
+
+    </plugins>
   </build>
 
-  
+
 </project>
 

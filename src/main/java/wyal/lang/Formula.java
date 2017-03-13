@@ -1,5 +1,7 @@
 package wyal.lang;
 
+import java.util.Arrays;
+
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
@@ -98,7 +100,8 @@ public interface Formula extends Expr {
 		}
 
 		public Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
-			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameters), body);
+			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists,
+					new Tuple<>(parameters), body);
 		}
 
 		public Quantifier(boolean sign, Tuple<VariableDeclaration> parameters, Formula body) {
@@ -127,12 +130,8 @@ public interface Formula extends Expr {
 
 	public static class Inequality extends Expr.Operator implements Formula {
 
-		public Inequality(boolean sign, Polynomial lhs, Polynomial rhs) {
-			super(sign ? Opcode.EXPR_lt : Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
-		}
-
-		public boolean getSign() {
-			return getOpcode() == Opcode.EXPR_lt;
+		public Inequality(Polynomial lhs, Polynomial rhs) {
+			super(Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
 		}
 
 		@Override
@@ -147,7 +146,7 @@ public interface Formula extends Expr {
 
 		@Override
 		public Inequality clone(SyntacticItem[] children) {
-			return new Inequality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
+			return new Inequality((Polynomial) children[0],(Polynomial) children[1]);
 		}
 	}
 

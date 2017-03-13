@@ -6,13 +6,16 @@
 package wyal.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Pair;
@@ -86,6 +89,9 @@ public class TypeChecker {
 		case EXPR_implies:
 		case EXPR_iff:
 			return checkLogicalOperator((Expr.Operator) expr);
+		case EXPR_forall:
+		case EXPR_exists:
+			return checkQuantifier((Expr.Quantifier) expr);
 		// Arithmetic operators
 		case EXPR_eq:
 		case EXPR_neq:
@@ -118,6 +124,8 @@ public class TypeChecker {
 			return checkArrayGenerator((Expr.Operator) expr);
 		case EXPR_arridx:
 			return checkArrayAccess((Expr.Operator) expr);
+		case EXPR_arrupdt:
+			return checkArrayUpdate((Expr.Operator) expr);
 		// Reference expressions
 		default:
 			throw new RuntimeException("unknown bytecode encountered: " + expr);
@@ -149,6 +157,12 @@ public class TypeChecker {
 	}
 
 	private Type checkQuantifier(Stmt.Quantifier stmt) {
+		Type body = check(stmt.getBody());
+		checkIsSubtype(new Type.Bool(), body);
+		return new Type.Bool();
+	}
+
+	private Type checkQuantifier(Expr.Quantifier stmt) {
 		Type body = check(stmt.getBody());
 		checkIsSubtype(new Type.Bool(), body);
 		return new Type.Bool();
@@ -189,6 +203,7 @@ public class TypeChecker {
 	}
 
 	private Type checkInvocation(Expr.Invoke expr) {
+		WyalFile parent = (WyalFile) expr.getParent();
 		// Determine the argument types
 		WyalFile.Tuple<Expr> arguments = expr.getArguments();
 		Type[] types = new Type[arguments.size()];
@@ -197,19 +212,41 @@ public class TypeChecker {
 		}
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
+		// Replace old object with fully resolved object
+		WyalFile.Type.Function type = constructFunctionType(sig);
+		expr.setSignatureType(type);
 		// Finally, return the declared returns
-		if (sig instanceof Named.Function) {
-			Named.Function fn = (Named.Function) sig;
-			// Functions have specific return values
-			WyalFile.Tuple<VariableDeclaration> d = fn.getReturns();
-			if (d.size() != 1) {
-				throw new RuntimeException("invalid number of returns");
-			} else {
-				return d.getOperand(0).getType();
-			}
+		if(type.getReturns().size() != 1) {
+			throw new RuntimeException("invalid number of returns");
 		} else {
-			return new Type.Bool();
+			return type.getReturns().getOperand(0);
 		}
+	}
+
+	/**
+	 * Convert a declaration into a type signature.
+	 *
+	 * @param declaration
+	 * @return
+	 */
+	private Type.Function constructFunctionType(Named.FunctionOrMacro declaration) {
+		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
+		Type[] returns;
+		if (declaration instanceof Named.Function) {
+			Named.Function nf = (Named.Function) declaration;
+			returns = toTypeArray(nf.getReturns().getOperands());
+		} else {
+			returns = new Type[] { new WyalFile.Type.Bool() };
+		}
+		return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
+	}
+
+	private Type[] toTypeArray(VariableDeclaration... declarations) {
+		Type[] types = new Type[declarations.length];
+		for (int i = 0; i != types.length; ++i) {
+			types[i] = declarations[i].getType();
+		}
+		return types;
 	}
 
 	private Type checkIsOperator(Expr.Is expr) {
@@ -223,10 +260,10 @@ public class TypeChecker {
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
 		Type.Record effectiveRecord = types.extractReadableRecordType(src);
-		VariableDeclaration[] fields = effectiveRecord.getFields();
+		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
 		for (int i = 0; i != fields.length; ++i) {
-			VariableDeclaration vd = fields[i];
+			FieldDeclaration vd = fields[i];
 			String declaredFieldName = vd.getVariableName().get();
 			if (declaredFieldName.equals(actualFieldName)) {
 				return vd.getType();
@@ -237,12 +274,12 @@ public class TypeChecker {
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
-		Pair<Identifier,Expr>[] fields = expr.getFields();
-		VariableDeclaration[] decls = new VariableDeclaration[fields.length];
+		Pair<Identifier, Expr>[] fields = expr.getFields();
+		FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = fields[i].getFirst();
 			Type fieldType = check(fields[i].getSecond());
-			decls[i] = new VariableDeclaration(fieldType, fieldName);
+			decls[i] = new FieldDeclaration(fieldType, fieldName);
 		}
 		//
 		return new Type.Record(decls);
@@ -334,6 +371,16 @@ public class TypeChecker {
 		return effectiveArray.getElement();
 	}
 
+	private Type checkArrayUpdate(Expr.Operator expr) {
+		Type src = check(expr.getOperand(0));
+		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type indexType = check(expr.getOperand(1));
+		checkIsSubtype(new Type.Int(), indexType);
+		Type valueType = check(expr.getOperand(2));
+		checkIsSubtype(effectiveArray.getElement(), valueType);
+		return effectiveArray;
+	}
+
 	/**
 	 * Check whether a given instance of type is, in fact, an instance of a
 	 * given kind. For example, we might want to check whether a given type is a
@@ -390,16 +437,15 @@ public class TypeChecker {
 	 */
 	private List<Named.FunctionOrMacro> findCandidateFunctionOrMacroDeclarations(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length - 1];
+		//
 		ArrayList<Named.FunctionOrMacro> candidates = new ArrayList<>();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Named.FunctionOrMacro) {
 				Named.FunctionOrMacro nd = (Named.FunctionOrMacro) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					candidates.add(nd);
 				}
 			}

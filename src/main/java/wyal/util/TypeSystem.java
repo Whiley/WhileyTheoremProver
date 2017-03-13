@@ -21,6 +21,7 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Declaration.Named;
+import wyal.lang.WyalFile.FieldDeclaration;
 
 public class TypeSystem {
 	private final WyalFile parent;
@@ -29,6 +30,46 @@ public class TypeSystem {
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
 		this.rewrites = new ArrayList<>();
+	}
+
+	public boolean isEffectiveRecord(Type type) {
+		if(type instanceof Type.Record) {
+			return true;
+		} else if(type instanceof Type.Union) {
+			Type.Union ut = (Type.Union) type;
+			for (int i = 0; i != ut.size(); ++i) {
+				if(!isEffectiveRecord(ut.getOperand(i))) {
+					return false;
+				}
+			}
+			return true;
+		} else if(type instanceof Type.Nominal){
+			Type.Nominal nom = (Type.Nominal) type;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			return isEffectiveRecord(decl.getVariableDeclaration().getType());
+		} else {
+			return false;
+		}
+	}
+
+	public boolean isEffectiveArray(Type type) {
+		if(type instanceof Type.Array) {
+			return true;
+		} else if(type instanceof Type.Union) {
+			Type.Union ut = (Type.Union) type;
+			for (int i = 0; i != ut.size(); ++i) {
+				if(!isEffectiveArray(ut.getOperand(i))) {
+					return false;
+				}
+			}
+			return true;
+		} else if(type instanceof Type.Nominal){
+			Type.Nominal nom = (Type.Nominal) type;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			return isEffectiveArray(decl.getVariableDeclaration().getType());
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -69,12 +110,12 @@ public class TypeSystem {
 	}
 
 	private void merge(HashMap<String, Type> fields, Type.Record r) {
-		VariableDeclaration[] vds = r.getFields();
+		FieldDeclaration[] vds = r.getFields();
 		for (Map.Entry<String, Type> e : fields.entrySet()) {
 			String fieldName = e.getKey();
 			Type fieldType = null;
 			for (int i = 0; i != vds.length; ++i) {
-				VariableDeclaration fd = vds[i];
+				FieldDeclaration fd = vds[i];
 				String name = fd.getVariableName().get();
 				if (fieldName.equals(name)) {
 					fieldType = union(e.getValue(), fd.getType());
@@ -85,11 +126,11 @@ public class TypeSystem {
 	}
 
 	private Type.Record constructEffectiveRecord(Map<String, Type> fields) {
-		VariableDeclaration[] declarations = new VariableDeclaration[fields.size()];
+		FieldDeclaration[] declarations = new FieldDeclaration[fields.size()];
 		int index = 0;
 		for (Map.Entry<String, Type> e : fields.entrySet()) {
 			Identifier id = new Identifier(e.getKey());
-			declarations[index++] = new VariableDeclaration(e.getValue(), id);
+			declarations[index++] = new FieldDeclaration(e.getValue(), id);
 		}
 		return new Type.Record(declarations);
 	}
@@ -400,8 +441,8 @@ public class TypeSystem {
 	 * @return
 	 */
 	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs) {
-		VariableDeclaration[] lhsFields = lhs.getFields();
-		VariableDeclaration[] rhsFields = rhs.getFields();
+		FieldDeclaration[] lhsFields = lhs.getFields();
+		FieldDeclaration[] rhsFields = rhs.getFields();
 		// FIXME: We need to sort fields above by their name in order to
 		// eliminate the order in which they are written as being relevant.
 		if (lhsSign || rhsSign) {
@@ -422,8 +463,8 @@ public class TypeSystem {
 				// We have the same number of fields. Now, we need to check that
 				// each field as the same name, and that their types intersect.
 				for (int i = 0; i != lhsFields.length; ++i) {
-					VariableDeclaration lhsField = lhsFields[i];
-					VariableDeclaration rhsField = rhsFields[i];
+					FieldDeclaration lhsField = lhsFields[i];
+					FieldDeclaration rhsField = rhsFields[i];
 					if(!lhsField.getVariableName().equals(rhsField.getVariableName())) {
 						// The fields have different names. In the pos-pos
 						// case, this indicates no intersection is possible. For
@@ -461,17 +502,15 @@ public class TypeSystem {
 
 	public Declaration.Named resolveAsDeclaration(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length-1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named) {
 				Declaration.Named nd = (Declaration.Named) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					return nd;
 				}
 			}
@@ -490,17 +529,15 @@ public class TypeSystem {
 	 */
 	public Declaration.Named.Type resolveAsDeclaredType(Name name) {
 		Identifier[] components = name.getComponents();
-		if (components.length > 1) {
-			// FIXME: implement this
-			throw new IllegalArgumentException("Need to handle proper namespaces!");
-		}
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length-1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof Declaration.Named.Type) {
 				Declaration.Named.Type nd = (Declaration.Named.Type) item;
-				if (nd.getName().equals(components[0])) {
+				if (nd.getName().equals(last)) {
 					return nd;
 				}
 			}
