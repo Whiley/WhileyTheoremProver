@@ -45,6 +45,7 @@ public class ValidTest {
 		IGNORED.put("test_arith_31", "non-linear");
 		IGNORED.put("test_arith_36", "non-linear");
 		IGNORED.put("test_arith_38", "non-linear");
+		IGNORED.put("test_array_15", "timeout");
 		IGNORED.put("test_array_29", "array access");
 		IGNORED.put("test_array_31", "unsupported syntax");
 		IGNORED.put("test_fun_01", "unsupported syntax");

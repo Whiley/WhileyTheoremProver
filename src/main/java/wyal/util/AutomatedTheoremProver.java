@@ -74,7 +74,6 @@ public class AutomatedTheoremProver {
 	 */
 	private boolean checkValidity(SyntacticHeap parent, Formula formula) {
 		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
-		System.out.println("SIZE: "+ parent.size() + " VERSUS: " + heap.size());
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
@@ -88,8 +87,8 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-		print(proof);
+//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+//		print(proof);
 		return r;
 	}
 
@@ -201,8 +200,8 @@ public class AutomatedTheoremProver {
 
 					// FIXME: implement actual bypass!
 
-					System.out.print("FOUND BYPASS: ");
-					println(disjunct);
+//					System.out.print("FOUND BYPASS: ");
+//					println(disjunct);
 					break;
 				}
 			}
