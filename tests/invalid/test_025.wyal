@@ -1,0 +1,6 @@
+assert "postcondition not satisfied":
+    forall (int[] ls):
+        if:
+            |ls| > 1
+        then:
+            ls == [1]
