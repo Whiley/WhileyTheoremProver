@@ -1,0 +1,6 @@
+assert "postcondition not satisfied":
+    forall (int[] ls, int j):
+        if:
+            |ls| == 0
+        then:
+            ls == [0;0]

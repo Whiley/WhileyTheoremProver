@@ -82,13 +82,14 @@ public class AutomatedTheoremProver {
 		formula = Formulae.simplify(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
+		println(formula);
 		// Create initial state
 		BitSetProof proof = new BitSetProof(null, heap, formula);
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-//		print(proof);
+		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+		print(proof);
 		return r;
 	}
 
@@ -399,6 +400,11 @@ public class AutomatedTheoremProver {
 			axiom = new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
 			break;
 		}
+		case EXPR_or:
+			// Don't extract implicit axioms from disjuncts as we can be sure
+			// they hold for all cases.
+			return null;
+		case EXPR_exists:
 		case EXPR_forall:
 			// Don't extract implicit axioms from quantified formulae. There's
 			// no point until they are instantiated.
