@@ -274,7 +274,12 @@ public class Formulae {
 		}
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
-			return new Formula.Is(operator.getExpr(),operator.getTypeTest());
+			Expr lhs = operator.getExpr();
+			Type lhs_t = lhs.getReturnType(types);
+			if(types.isSubtype(new Type.Bool(), lhs_t)) {
+				lhs = toFormula(lhs,types);
+			}
+			return new Formula.Is(lhs,operator.getTypeTest());
 		}
 		default:
 			if (stmt instanceof WyalFile.Expr) {
@@ -613,38 +618,38 @@ public class Formulae {
 	 * @param f
 	 * @return
 	 */
-	public static Formula simplify(Formula f, TypeSystem types) {
+	public static Formula simplifyFormula(Formula f, TypeSystem types) {
 		switch (f.getOpcode()) {
 		case EXPR_const: {
 			return f;
 		}
 		case EXPR_and: {
-			return simplify((Formula.Conjunct) f, types);
+			return simplifyConjunct((Formula.Conjunct) f, types);
 		}
 		case EXPR_or: {
-			return simplify((Formula.Disjunct) f, types);
+			return simplifyDisjunct((Formula.Disjunct) f, types);
 		}
 		case EXPR_exists:
 		case EXPR_forall: {
-			return simplify((Formula.Quantifier) f, types);
+			return simplifyQuantifier((Formula.Quantifier) f, types);
 		}
 		case EXPR_eq:
 		case EXPR_neq: {
 			if (f instanceof ArithmeticEquality) {
-				return simplify((Formula.ArithmeticEquality) f, types);
+				return simplifyArithmeticEquality((Formula.ArithmeticEquality) f, types);
 			} else {
-				return simplify((Formula.Equality) f, types);
+				return simplifyEquality((Formula.Equality) f, types);
 			}
 		}
 		case EXPR_lt:
 		case EXPR_gteq: {
-			return simplify((Formula.Inequality) f, types);
+			return simplifyInequality((Formula.Inequality) f, types);
 		}
 		case EXPR_invoke: {
-			return simplify((Formula.Invoke) f, types);
+			return simplifyInvoke((Formula.Invoke) f, types);
 		}
 		case EXPR_is: {
-			return simplify((Formula.Is) f, types);
+			return simplifyIs((Formula.Is) f, types);
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
@@ -673,7 +678,7 @@ public class Formulae {
 	 * @author David J. Pearce
 	 *
 	 */
-	public static Formula simplify(Conjunct conjunct, TypeSystem types) {
+	public static Formula simplifyConjunct(Conjunct conjunct, TypeSystem types) {
 		Formula[] children = conjunct.getOperands();
 		Formula[] nChildren = children;
 		// Flatten nested conjuncts
@@ -720,7 +725,7 @@ public class Formulae {
 	 * That is, it will simplify all children of this formula.
 	 *
 	 */
-	public static Formula simplify(Disjunct disjunct, TypeSystem types) {
+	public static Formula simplifyDisjunct(Disjunct disjunct, TypeSystem types) {
 		Formula[] children = disjunct.getOperands();
 		Formula[] nChildren = children;
 		// Flatten nested disjuncts
@@ -750,7 +755,7 @@ public class Formulae {
 		Formula[] nChildren = children;
 		for (int i = 0; i != nChildren.length; ++i) {
 			Formula child = children[i];
-			Formula nChild = simplify(child, types);
+			Formula nChild = simplifyFormula(child, types);
 			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
@@ -767,9 +772,9 @@ public class Formulae {
 	 * @param quantifier
 	 * @return
 	 */
-	public static Formula simplify(Quantifier quantifier, TypeSystem types) {
+	public static Formula simplifyQuantifier(Quantifier quantifier, TypeSystem types) {
 		Formula body = quantifier.getBody();
-		Formula nBody = simplify(body, types);
+		Formula nBody = simplifyFormula(body, types);
 		if (nBody instanceof Truth) {
 			return nBody;
 		} else if (nBody != body) {
@@ -798,7 +803,7 @@ public class Formulae {
 	 * @param ieq
 	 * @return
 	 */
-	public static Formula simplify(Inequality ieq, TypeSystem types) {
+	public static Formula simplifyInequality(Inequality ieq, TypeSystem types) {
 		Polynomial lhs = simplify(ieq.getOperand(0), types);
 		Polynomial rhs = simplify(ieq.getOperand(1), types);
 		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
@@ -836,7 +841,7 @@ public class Formulae {
 	 * @param ieq
 	 * @return
 	 */
-	public static Formula simplify(ArithmeticEquality eq, TypeSystem types) {
+	public static Formula simplifyArithmeticEquality(ArithmeticEquality eq, TypeSystem types) {
 		Expr.Polynomial lhs = eq.getOperand(0);
 		Expr.Polynomial rhs = eq.getOperand(1);
 		Polynomial nLhs = simplify(lhs, types);
@@ -876,7 +881,7 @@ public class Formulae {
 	 * @param eq
 	 * @return
 	 */
-	public static Formula simplify(Equality eq, TypeSystem types) {
+	public static Formula simplifyEquality(Equality eq, TypeSystem types) {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		Expr nLhs = simplify(lhs, types);
@@ -894,7 +899,7 @@ public class Formulae {
 		}
 	}
 
-	public static Formula simplify(Invoke ivk, TypeSystem types) {
+	public static Formula simplifyInvoke(Invoke ivk, TypeSystem types) {
 		Tuple<Expr> args = ivk.getArguments();
 		Tuple<Expr> nArgs = simplify(args, types);
 		if(args == nArgs) {
@@ -914,7 +919,7 @@ public class Formulae {
 		}
 	}
 
-	private static Formula simplify(Formula.Is e, TypeSystem types) {
+	private static Formula simplifyIs(Formula.Is e, TypeSystem types) {
 		Expr lhs = e.getExpr();
 		Expr nLhs = simplify(lhs,types);
 		Formula invariant = extractTypeInvariant(e.getTypeTest(), nLhs, types);
@@ -923,7 +928,7 @@ public class Formulae {
 		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
 		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
 		if (isSubtype && invariant != null) {
-			return simplify(invariant,types);
+			return simplifyFormula(invariant,types);
 		} else if (isSubtype) {
 			return new Formula.Truth(true);
 		} else if (isNotSubtype && invariant != null) {
@@ -931,7 +936,7 @@ public class Formulae {
 			// problem boils down to what the subtype test is really telling us.
 			// For example, is it saying that the underlying type of the lhs is not
 			// a subtype of the negated rhs? I don't think so.
-			return simplify(invariant,types);
+			return simplifyFormula(invariant,types);
 		} else if(isNotSubtype) {
 			return new Formula.Truth(false);
 		}
@@ -940,7 +945,7 @@ public class Formulae {
 			e = new Formula.Is(nLhs, e.getTypeTest());
 		}
 		if(invariant != null) {
-			return and(simplify(invariant,types),e);
+			return and(simplifyFormula(invariant,types),e);
 		} else {
 			return e;
 		}
@@ -978,8 +983,6 @@ public class Formulae {
 			return simplifyArrayIndex((Expr.Operator) e, types);
 		case EXPR_arrupdt:
 			return simplifyArrayUpdate((Expr.Operator) e, types);
-		case EXPR_is:
-			return simplify((Expr.Is) e, types);
 		case EXPR_arrlen:
 			return simplifyArrayLength((Expr.Operator)e, types);
 		case EXPR_arrinit:
@@ -997,6 +1000,16 @@ public class Formulae {
 			return simplify((Expr.RecordInitialiser) e, types);
 		case EXPR_recfield:
 			return simplify((Expr.RecordAccess) e, types);
+		case EXPR_and:
+		case EXPR_or:
+		case EXPR_exists:
+		case EXPR_forall:
+		case EXPR_eq:
+		case EXPR_neq:
+		case EXPR_lt:
+		case EXPR_gteq:
+		case EXPR_is:
+			return simplifyFormula((Formula) e, types);
 		default:
 			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
 		}
@@ -1326,10 +1339,10 @@ public class Formulae {
 			lhsCandidate = rCandidate.getSecond();
 		}
 		if(lower.equals(upper)) {
-			return simplify(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lower), types);
+			return simplifyArithmeticEquality(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lower), types);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return simplify(greaterOrEqual(upper,lower), types);
+			return simplifyInequality(greaterOrEqual(upper,lower), types);
 		}
 	}
 

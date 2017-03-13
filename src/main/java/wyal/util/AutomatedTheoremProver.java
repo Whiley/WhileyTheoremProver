@@ -79,10 +79,10 @@ public class AutomatedTheoremProver {
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
-		formula = Formulae.simplify(formula, types);
+		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
-		//println(formula);
+//		println(formula);
 		// Create initial state
 		BitSetProof proof = new BitSetProof(null, heap, formula);
 		State state = proof.getStep(0);
@@ -240,7 +240,7 @@ public class AutomatedTheoremProver {
 		Expr split = findSplitPoint(truth);
 		if (split != null) {
 			Formula[] cases = generateSplitCases(split, truth);
-			Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases), types));
+			Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
 			state = state.subsume("reduct", truth, disjunct);
 		}
 		return state;
@@ -350,7 +350,7 @@ public class AutomatedTheoremProver {
 
 		if (axiom != null) {
 			// Such an axiom was indeed found and we simply need to apply it.
-			axiom = state.allocate(Formulae.simplify(axiom, types));
+			axiom = state.allocate(Formulae.simplifyFormula(axiom, types));
 			state = state.set("implicit", axiom, truth);
 		}
 		return state;
@@ -439,9 +439,12 @@ public class AutomatedTheoremProver {
 		Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 		// Calculate the invariant
 		Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
+		if(invariant == null) {
+			invariant = new Formula.Truth(true);
+		}
 		if (invariant != null) {
 			if (!ivk.getSign()) {
-				invariant = Formulae.simplify(Formulae.invert(invariant), types);
+				invariant = Formulae.simplifyFormula(Formulae.invert(invariant), types);
 			}
 			// Update the state
 			state = state.subsume("expand", ivk, state.allocate(invariant));
@@ -484,7 +487,7 @@ public class AutomatedTheoremProver {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
 			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
-		return Formulae.simplify(body, types);
+		return Formulae.simplifyFormula(body, types);
 	}
 
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
@@ -505,7 +508,7 @@ public class AutomatedTheoremProver {
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) Formulae.substitute(parameter, argument, result);
-			return Formulae.simplify(result, types);
+			return Formulae.simplifyFormula(result, types);
 		}
 	}
 
@@ -570,7 +573,7 @@ public class AutomatedTheoremProver {
 							before);
 					//
 					if (before != after) {
-						after = Formulae.simplify(after, types);
+						after = Formulae.simplifyFormula(after, types);
 						// The following is needed because substitution can
 						// produce a different looking term which, after
 						// simplification, is the same. To avoid this, we need
@@ -698,7 +701,7 @@ public class AutomatedTheoremProver {
 				body = (Formula) Formulae.substitute(access, binding[i], body);
 			}
 			// Second, instantiate the ground body
-			body = state.allocate(Formulae.simplify(body, types));
+			body = state.allocate(Formulae.simplifyFormula(body, types));
 			Expr[] dependencies = Arrays.copyOf(binding, binding.length + 1);
 			dependencies[binding.length] = qf;
 			state = state.set("instantiate", body, dependencies);
