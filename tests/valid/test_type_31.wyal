@@ -1,0 +1,9 @@
+type nat is (int x) where x >= 0
+type pos is (int x) where x > 0
+
+assert:
+    forall (int x):
+       if:
+          x is pos
+       then:
+          x is nat  
