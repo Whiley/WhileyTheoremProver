@@ -228,4 +228,15 @@ public interface Formula extends Expr {
 					(Tuple) children[2]);
 		}
 	}
+
+	public static class Is extends Expr.Is implements Formula {
+		public Is(Expr lhs, Type rhs) {
+			super(lhs,rhs);
+		}
+
+		@Override
+		public Formula.Is clone(SyntacticItem[] children) {
+			return new Formula.Is((Expr) children[0],(Type) children[1]);
+		}
+	}
 }

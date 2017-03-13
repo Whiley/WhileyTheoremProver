@@ -272,6 +272,10 @@ public class Formulae {
 			Expr.Invoke ivk = (Expr.Invoke) stmt;
 			return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
 		}
+		case EXPR_is: {
+			Expr.Is operator = (Expr.Is) stmt;
+			return new Formula.Is(operator.getExpr(),operator.getTypeTest());
+		}
 		default:
 			if (stmt instanceof WyalFile.Expr) {
 				Expr expr = (WyalFile.Expr) stmt;
@@ -579,6 +583,11 @@ public class Formulae {
 			Invoke e = (Invoke) f;
 			return new Formula.Invoke(!e.getSign(),e.getSignatureType(),e.getName(),e.getArguments());
 		}
+		case EXPR_is: {
+			Formula.Is c = (Formula.Is) f;
+			// FIXME: could simplify the type here I think
+			return new Is(c.getExpr(), new WyalFile.Type.Negation(c.getTypeTest()));
+		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
 		}
@@ -633,6 +642,9 @@ public class Formulae {
 		}
 		case EXPR_invoke: {
 			return simplify((Formula.Invoke) f, types);
+		}
+		case EXPR_is: {
+			return simplify((Formula.Is) f, types);
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
@@ -902,6 +914,39 @@ public class Formulae {
 		}
 	}
 
+	private static Formula simplify(Formula.Is e, TypeSystem types) {
+		Expr lhs = e.getExpr();
+		Expr nLhs = simplify(lhs,types);
+		Formula invariant = extractTypeInvariant(e.getTypeTest(), nLhs, types);
+		// FIXME: could reduce this expression to true or false in some cases.
+		// For example, if lhs is a constant.
+		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
+		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
+		if (isSubtype && invariant != null) {
+			return simplify(invariant,types);
+		} else if (isSubtype) {
+			return new Formula.Truth(true);
+		} else if (isNotSubtype && invariant != null) {
+			// FIXME: I think this is broken in the general case. The essential
+			// problem boils down to what the subtype test is really telling us.
+			// For example, is it saying that the underlying type of the lhs is not
+			// a subtype of the negated rhs? I don't think so.
+			return simplify(invariant,types);
+		} else if(isNotSubtype) {
+			return new Formula.Truth(false);
+		}
+		// At this point, we're stuck with a type test of some sort.
+		if(lhs != nLhs) {
+			e = new Formula.Is(nLhs, e.getTypeTest());
+		}
+		if(invariant != null) {
+			return and(simplify(invariant,types),e);
+		} else {
+			return e;
+		}
+	}
+
+
 	private static Expr[] simplify(Expr[] children, TypeSystem types) {
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
@@ -1018,28 +1063,6 @@ public class Formulae {
 			return ivk;
 		} else {
 			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
-		}
-	}
-
-	private static Expr simplify(Expr.Is e, TypeSystem types) {
-		Expr lhs = e.getExpr();
-		Expr nLhs = simplify(lhs,types);
-		// FIXME: could reduce this expression to true or false in some cases.
-		// For example, if lhs is a constant.
-		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
-		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
-		if(isSubtype) {
-			return new Formula.Truth(true);
-		} else if(isNotSubtype) {
-			return new Formula.Truth(false);
-		} else if(nLhs instanceof Expr.Polynomial) {
-			return new Formula.Truth(false);
-		} else if(nLhs instanceof Expr.Constant) {
-			return new Formula.Truth(false);
-		} else if (lhs == nLhs) {
-			return e;
-		} else {
-			return new Expr.Is(lhs, e.getTypeTest());
 		}
 	}
 

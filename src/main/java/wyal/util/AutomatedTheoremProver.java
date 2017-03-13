@@ -82,14 +82,14 @@ public class AutomatedTheoremProver {
 		formula = Formulae.simplify(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
-		println(formula);
+		//println(formula);
 		// Create initial state
 		BitSetProof proof = new BitSetProof(null, heap, formula);
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-		print(proof);
+//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+//		print(proof);
 		return r;
 	}
 
