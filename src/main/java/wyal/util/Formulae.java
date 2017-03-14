@@ -436,17 +436,13 @@ public class Formulae {
 			Formula inv = extractTypeInvariant(t.getElement(), el, types);
 			Polynomial zero = toPolynomial(0);
 			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
-			// The following axiom simply states that the length of every array
-			// type is greater than or equal to zero.
-			Formula axiom = greaterOrEqual(len, zero);
-			if (inv == null) {
-				return axiom;
-			} else {
+			if (inv != null) {
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
 				Formula lt = lessThan(va, len);
-				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
+				inv = new Quantifier(true, var, implies(and(gt, lt), inv));
 			}
+			return inv;
 		}
 		case TYPE_or: {
 			Type.Union t = (Type.Union) type;

@@ -1329,6 +1329,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				printer.writeStatement((Stmt) item,0);
 			} else if(item instanceof WyalFile.Type) {
 				printer.writeType((Type) item);
+			} else if(item == null) {
+				out.print("null");
 			} else {
 				throw new RuntimeException("Unsupported item category: " + item);
 			}

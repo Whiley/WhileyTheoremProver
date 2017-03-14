@@ -88,8 +88,8 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-		print(proof);
+//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+//		print(proof);
 		return r;
 	}
 
@@ -400,6 +400,13 @@ public class AutomatedTheoremProver {
 			axiom = new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
 			break;
 		}
+		case EXPR_arrlen: {
+			Expr.Operator op = (Expr.Operator) e;
+			Polynomial len = Formulae.toPolynomial(op);
+			Polynomial zero = Formulae.toPolynomial(0);
+			axiom = Formulae.greaterOrEqual(len, zero);
+			break;
+		}
 		case EXPR_or:
 			// Don't extract implicit axioms from disjuncts as we can be sure
 			// they hold for all cases.
@@ -473,7 +480,7 @@ public class AutomatedTheoremProver {
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
 		Map<SyntacticItem, SyntacticItem> map = new IdentityHashMap<>();
-		for (int i = 0; i != arguments.length; ++i) {
+		for (int i = 0; i != parameters.length; ++i) {
 			map.put(parameters[i], parameters[i]);
 		}
 		// Clone is required at this point to ensure that any variable
