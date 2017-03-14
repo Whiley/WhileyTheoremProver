@@ -541,13 +541,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// ============================================================
 	public static interface Type extends SyntacticItem {
 
+		public interface Primitive extends Type {
+
+		}
+
 		public static abstract class Atom extends AbstractSyntacticItem implements Type {
 			public Atom(Opcode opcode, SyntacticItem... items) {
 				super(opcode, items);
 			}
 		}
 
-		public static class Any extends Atom {
+		public static class Any extends Atom implements Primitive {
 			public Any() { super(Opcode.TYPE_any); }
 			@Override
 			public Any clone(SyntacticItem[] operands) {
@@ -555,7 +559,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Void extends Atom {
+		public static class Void extends Atom implements Primitive {
 			public Void() { super(Opcode.TYPE_void); }
 			@Override
 			public Void clone(SyntacticItem[] operands) {
@@ -563,7 +567,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Null extends Atom {
+		public static class Null extends Atom implements Primitive {
 			public Null() { super(Opcode.TYPE_null); }
 			@Override
 			public Null clone(SyntacticItem[] operands) {
@@ -571,7 +575,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Bool extends Atom {
+		public static class Bool extends Atom implements Primitive {
 			public Bool() { super(Opcode.TYPE_bool); }
 			@Override
 			public Bool clone(SyntacticItem[] operands) {
@@ -579,7 +583,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Int extends Atom {
+		public static class Int extends Atom implements Primitive {
 			public Int() { super(Opcode.TYPE_int); }
 			@Override
 			public Int clone(SyntacticItem[] operands) {

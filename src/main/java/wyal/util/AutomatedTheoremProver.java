@@ -88,8 +88,8 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-//		print(proof);
+		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+		print(proof);
 		return r;
 	}
 

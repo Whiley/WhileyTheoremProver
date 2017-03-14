@@ -2,6 +2,8 @@ package wyal.util;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import wyal.lang.Formula;
@@ -399,7 +401,7 @@ public class Formulae {
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
-			if(td.getInvariant() == null) {
+			if(td.getInvariant().size() == 0) {
 				return null;
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();

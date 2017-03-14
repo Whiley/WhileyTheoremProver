@@ -294,15 +294,28 @@ public class TypeSystem {
 	 */
 	public boolean isSubtype(Type parent, Type child) {
 		// A :> B iff (!A & B) == void
-		return isVoid(false, parent, true, child);
+		return isVoid(false, parent, true, child, null);
 	}
 
-	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2) {
-		ArrayList<Atom> truths = new ArrayList<>();
-		Worklist worklist = new Worklist();
-		worklist.push(t1sign, t1);
-		worklist.push(t2sign, t2);
-		return isVoid(truths, worklist);
+	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2, BitSet assumptions) {
+		assumptions = createAssumptions(t1,t2,assumptions);
+		//
+		if(isAssumedVoid(t1sign,t1,t2sign,t2,assumptions)) {
+			// This represents the "coinductive" case. That is, we have
+			// encountered a pair of recursive types whose "voidness" depends
+			// circularly on itself. In such case, we assume they are indeed
+			// void.
+			return true;
+		} else {
+			setAssumedVoid(t1sign,t1,t2sign,t2,assumptions);
+			ArrayList<Atom> truths = new ArrayList<>();
+			Worklist worklist = new Worklist();
+			worklist.push(t1sign, t1);
+			worklist.push(t2sign, t2);
+			boolean r = isVoid(truths, worklist, assumptions);
+			clearAssumedVoid(t1sign,t1,t2sign,t2,assumptions);
+			return r;
+		}
 	}
 
 	/**
@@ -319,9 +332,11 @@ public class TypeSystem {
 	 *            The set of truths which have been established.
 	 * @param worklist
 	 *            The set of types currently being expanded
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist) {
+	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist, BitSet assumptions) {
 
 		// FIXME: there is a bug in the following case which needs to be
 		// addressed:
@@ -347,7 +362,7 @@ public class TypeSystem {
 			// consistency.
 			for (int i = 0; i != truths.size(); ++i) {
 				for (int j = i + 1; j != truths.size(); ++j) {
-					if (isVoid(truths.get(i), truths.get(j))) {
+					if (isVoid(truths.get(i), truths.get(j), assumptions)) {
 						return true;
 					}
 				}
@@ -374,7 +389,7 @@ public class TypeSystem {
 					for (int i = 0; i != operands.length; ++i) {
 						Worklist tmp = (Worklist) worklist.clone();
 						tmp.push(item.sign, operands[i]);
-						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp)) {
+						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp, assumptions)) {
 							return false;
 						}
 					}
@@ -397,7 +412,7 @@ public class TypeSystem {
 			default:
 				truths.add(new Atom(item.sign, (Type.Atom) item.type));
 			}
-			return isVoid(truths, worklist);
+			return isVoid(truths, worklist, assumptions);
 		}
 	}
 
@@ -408,9 +423,10 @@ public class TypeSystem {
 	 *
 	 * @param a
 	 * @param b
+	 * @param assumptions The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoid(Atom a, Atom b) {
+	private boolean isVoid(Atom a, Atom b, BitSet assumptions) {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -435,9 +451,9 @@ public class TypeSystem {
 				// int & !int => void
 				return aSign != bSign;
 			case TYPE_arr:
-				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type);
+				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type, assumptions);
 			case TYPE_rec:
-				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type);
+				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type, assumptions);
 			case TYPE_ref:
 				throw new RuntimeException("Implement me!");
 			case TYPE_fun:
@@ -492,15 +508,17 @@ public class TypeSystem {
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs) {
+	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs, BitSet assumptions) {
 		if (lhsSign != rhsSign) {
 			// In this case, we are intersecting two array types, of which at
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
 			// and bool[] is void, whilst (int|null)[] and int[] is not.
-			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement());
+			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement(), assumptions);
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
@@ -530,9 +548,11 @@ public class TypeSystem {
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs) {
+	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs, BitSet assumptions) {
 		FieldDeclaration[] lhsFields = lhs.getFields();
 		FieldDeclaration[] rhsFields = rhs.getFields();
 		// FIXME: We need to sort fields above by their name in order to
@@ -562,7 +582,7 @@ public class TypeSystem {
 						// case, this indicates no intersection is possible. For
 						// pos-neg case, intersection exists.
 						return sign;
-					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType()) == sign) {
+					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions) == sign) {
 						// For pos-pos case, there is no intersection between
 						// these fields and, hence, no intersection overall; for
 						// pos-neg case, there is some intersection between
@@ -690,6 +710,50 @@ public class TypeSystem {
 			} else {
 				return "!" + type;
 			}
+		}
+	}
+
+	private boolean isAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if(assumptions != null) {
+			return assumptions.get(indexOf(lhsSign,lhs,rhsSign,rhs));
+		} else {
+			return false;
+		}
+	}
+
+	private void setAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if(assumptions != null) {
+			assumptions.set(indexOf(lhsSign,lhs,rhsSign,rhs));
+		}
+	}
+
+	private void clearAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if(assumptions != null) {
+			assumptions.clear(indexOf(lhsSign,lhs,rhsSign,rhs));
+		}
+	}
+
+	private int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
+		int lhsSize = lhs.getParent().size();
+		int rhsSize = rhs.getParent().size();
+		int lhsIndex = lhs.getIndex();
+		int rhsIndex = rhs.getIndex();
+		if(lhsSign) { lhsIndex += lhsSize; }
+		if(rhsSign) { rhsIndex += rhsSize; }
+		return (lhsIndex * rhsSize * 2) + rhsIndex;
+	}
+
+	private static BitSet createAssumptions(Type lhs, Type rhs, BitSet assumptions) {
+		if (assumptions != null) {
+			return assumptions;
+		} else if (lhs.getParent() != null && rhs.getParent() != null) {
+			// We multiply by 2 here because we want to encode both positive and
+			// negative signs.
+			int lhsSize = lhs.getParent().size() * 2;
+			int rhsSize = rhs.getParent().size() * 2;
+			return new BitSet(lhsSize * rhsSize);
+		} else {
+			return null;
 		}
 	}
 }
