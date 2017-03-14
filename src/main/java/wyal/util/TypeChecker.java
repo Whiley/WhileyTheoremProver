@@ -259,7 +259,7 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record effectiveRecord = types.extractReadableRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src);
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
 		for (int i = 0; i != fields.length; ++i) {
@@ -344,7 +344,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		return new Type.Int();
 	}
 
@@ -365,7 +365,7 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
@@ -373,7 +373,7 @@ public class TypeChecker {
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
@@ -404,6 +404,35 @@ public class TypeChecker {
 			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
 		}
 	}
+
+	/**
+	 * Check whether a given type is an array type of some sort.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private Type.Array checkIsArrayType(Type type) {
+		Type.Array arrT = types.extractReadableArrayType(type);
+		if(arrT == null) {
+			throw new RuntimeException("expected array type, got " + type);
+		}
+		return arrT;
+	}
+
+	/**
+	 * Check whether a given type is a record type of some sort.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private Type.Record checkIsRecordType(Type type) {
+		Type.Record recT = types.extractReadableRecordType(type);
+		if(recT == null) {
+			throw new RuntimeException("expected record type, got " + type);
+		}
+		return recT;
+	}
+
 
 	/**
 	 * Attempt to determine the declared function or macro to which a given

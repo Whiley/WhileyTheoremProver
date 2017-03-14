@@ -3,6 +3,7 @@ package wyal.lang;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
@@ -1299,5 +1300,35 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			return new VerificationError((Declaration.Assert) operands[0]);
 		}
 
+	}
+
+	// ===========================================================
+	// DEBUGGING SUPPORT
+	// ===========================================================
+
+	public static void println(SyntacticItem... items) {
+		print(items);
+		System.out.println();
+	}
+
+	public static void print(SyntacticItem... items) {
+		PrintWriter out = new PrintWriter(System.out);
+		WyalFilePrinter printer = new WyalFilePrinter(out);
+		for (int i = 0; i != items.length; ++i) {
+			if (i != 0) {
+				out.print(", ");
+			}
+			SyntacticItem item = items[i];
+			if(item instanceof WyalFile.Expr) {
+				printer.writeExpression((Expr) item);
+			} else if(item instanceof WyalFile.Stmt) {
+				printer.writeStatement((Stmt) item,0);
+			} else if(item instanceof WyalFile.Type) {
+				printer.writeType((Type) item);
+			} else {
+				throw new RuntimeException("Unsupported item category: " + item);
+			}
+		}
+		out.flush();
 	}
 }

@@ -82,46 +82,97 @@ public class TypeSystem {
 	 * @return
 	 */
 	public Type.Record extractReadableRecordType(Type type) {
-
-		// FIXME: this method is horribly broken. For example, it can't handle
-		// any of these cases:
-		// --> {int x} & {int x}
-		// --> !!{int x}
-		// --> ({int x}|null}&!null
-
+		Type.Record record = null;
+		System.out.print(">>>> ");
+		WyalFile.println(type);
 		if (type instanceof Type.Record) {
-			return (Type.Record) type;
+			System.out.println("STAGE 2 ");
+			record = (Type.Record) type;
 		} else if (type instanceof Type.Union) {
+			System.out.println("STAGE 3 ");
 			Type.Union union = (Type.Union) type;
-			HashMap<String, Type> fields = null;
 			for (int i = 0; i != union.size(); ++i) {
 				Type.Record r = extractReadableRecordType(union.getOperand(i));
-				merge(fields, r);
+				if(r == null) { return null; }
+				record = union(record, r);
 			}
 			//
-			return constructEffectiveRecord(fields);
+		} else if (type instanceof Type.Intersection) {
+			System.out.println("STAGE 4 ");
+			Type.Intersection intersection = (Type.Intersection) type;
+			for (int i = 0; i != intersection.size(); ++i) {
+				Type.Record r = extractReadableRecordType(intersection.getOperand(i));
+				if(r != null) {
+					record = intersect(record, r);
+				}
+			}
+			//
 		} else if (type instanceof Type.Nominal) {
+			System.out.println("STAGE 5 ");
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return extractReadableRecordType(decl.getVariableDeclaration().getType());
+			record = extractReadableRecordType(decl.getVariableDeclaration().getType());
 		} else {
-			throw new RuntimeException("expected record type, found: " + type);
+			System.out.println("STAGE 6 ");
+		}
+		System.out.print("<<<< ");
+		WyalFile.print(type);
+		System.out.print(" ---> ");
+		WyalFile.println(record);
+		return record;
+	}
+
+	private Type.Record union(Type.Record lhs, Type.Record rhs) {
+		if (lhs == null) {
+			return rhs;
+		} else {
+			FieldDeclaration[] lhsFields = lhs.getFields();
+			FieldDeclaration[] rhsFields = rhs.getFields();
+			ArrayList<FieldDeclaration> fields = new ArrayList<>();
+			for(int i=0;i<lhsFields.length && i < rhsFields.length;++i) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[i];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()), lhsFieldName));
+				} else {
+					break;
+				}
+			}
+			if(fields.isEmpty()) {
+				return null;
+			} else {
+				return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+			}
 		}
 	}
 
-	private void merge(HashMap<String, Type> fields, Type.Record r) {
-		FieldDeclaration[] vds = r.getFields();
-		for (Map.Entry<String, Type> e : fields.entrySet()) {
-			String fieldName = e.getKey();
-			Type fieldType = null;
-			for (int i = 0; i != vds.length; ++i) {
-				FieldDeclaration fd = vds[i];
-				String name = fd.getVariableName().get();
-				if (fieldName.equals(name)) {
-					fieldType = union(e.getValue(), fd.getType());
+	private Type.Record intersect(Type.Record lhs, Type.Record rhs) {
+		if (lhs == null) {
+			return rhs;
+		} else {
+			FieldDeclaration[] lhsFields = lhs.getFields();
+			FieldDeclaration[] rhsFields = rhs.getFields();
+			if (lhsFields.length != rhsFields.length) {
+				return null;
+			} else {
+				FieldDeclaration[] fields = new FieldDeclaration[lhsFields.length];
+				for (int i = 0; i != fields.length; ++i) {
+					FieldDeclaration lhsField = lhsFields[i];
+					FieldDeclaration rhsField = rhsFields[i];
+					Identifier lhsFieldName = lhsField.getVariableName();
+					Identifier rhsFieldName = rhsField.getVariableName();
+					if (lhsFieldName.equals(rhsFieldName)) {
+						fields[i] = new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
+								lhsFieldName);
+					} else {
+						// FIXME: this has important implications
+						return null;
+					}
 				}
+				return new Type.Record(fields);
 			}
-			fields.put(fieldName, fieldType);
 		}
 	}
 
@@ -151,16 +202,30 @@ public class TypeSystem {
 			Type[] elements = new Type[union.size()];
 			for (int i = 0; i != union.size(); ++i) {
 				Type.Array r = extractReadableArrayType(union.getOperand(i));
+				if(r == null) { return null; }
 				elements[i] = r.getElement();
 			}
 			//
 			return new Type.Array(union(elements));
+		} else if (type instanceof Type.Intersection) {
+			Type.Intersection intersection = (Type.Intersection) type;
+			Type[] elements = new Type[intersection.size()];
+			int count = 0;
+			for (int i = 0; i != intersection.size(); ++i) {
+				Type.Array r = extractReadableArrayType(intersection.getOperand(i));
+				if(r != null) { elements[count++] = r.getElement(); }
+			}
+			if (count < intersection.size()) {
+				elements = Arrays.copyOf(elements, count);
+			}
+			//
+			return new Type.Array(intersect(elements));
 		} else if (type instanceof Type.Nominal) {
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
 			return extractReadableArrayType(decl.getVariableDeclaration().getType());
 		} else {
-			throw new RuntimeException("expected array type, found: " + type);
+			return null;
 		}
 	}
 
@@ -188,6 +253,33 @@ public class TypeSystem {
 				}
 			}
 			return new Type.Union(types);
+		}
+	}
+
+	/**
+	 * Take a sequence of zero or more types and produce a minimal union of
+	 * them.
+	 *
+	 * @param types
+	 * @return
+	 */
+	public Type intersect(Type... types) {
+		if (types.length == 0) {
+			return new Type.Void();
+		} else if (types.length == 1) {
+			return types[0];
+		} else {
+			// Now going to remove duplicates; for now, that's all we can do.
+			Type[] rs = Arrays.copyOf(types, types.length);
+			for (int i = 0; i != rs.length; ++i) {
+				for (int j = i + 1; j != rs.length; ++j) {
+					// TODO: soooo broken
+					if (rs[i] == rs[j]) {
+						rs[j] = null;
+					}
+				}
+			}
+			return new Type.Intersection(types);
 		}
 	}
 
