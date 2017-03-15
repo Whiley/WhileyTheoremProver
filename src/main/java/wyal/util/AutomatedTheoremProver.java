@@ -82,6 +82,7 @@ public class AutomatedTheoremProver {
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
+		println(formula);
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);

@@ -2,6 +2,7 @@ package wyal.util;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -360,7 +361,7 @@ public class Formulae {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
-			Formula invariant = extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
+			Formula invariant = expandTypeInvariant(decl,types);
 			// FIXME: need to perform appropriate variable substitution here?
 			if (invariant != null && result == null) {
 				result = invariant;
@@ -370,7 +371,9 @@ public class Formulae {
 		}
 		return result;
 	}
-
+	private static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
+	}
 	private static int skolem = 0;
 
 	/**
@@ -396,6 +399,32 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+		return extractTypeInvariant(type,root,types,new BitSet());
+	}
+
+	/**
+	 *
+	 * @param type
+	 * @param root
+	 * @param types
+	 * @param visited
+	 *            Used to identify types previously encountered during this
+	 *            search. Such types are necessarily recursive, and should only
+	 *            be visited once to prevent infinite loops.
+	 * @return
+	 */
+	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) {
+		Formula invariant = null;
+		if(type.getParent() == null) {
+			invariant = extractTypeInvariantInner(type,root,types,visited);
+		} else if(!visited.get(type.getIndex())) {
+			visited.set(type.getIndex());
+			invariant = extractTypeInvariantInner(type,root,types,visited);
+			visited.clear(type.getIndex());
+		}
+		return invariant;
+	}
+	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:
@@ -406,7 +435,8 @@ public class Formulae {
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
-			if(td.getInvariant().size() == 0) {
+			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
+			if (td.getInvariant().size() == 0 && invariant == null) {
 				return null;
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
@@ -421,7 +451,7 @@ public class Formulae {
 			for(int i=0;i!=fields.length;++i) {
 				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
-				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types);
+				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types, visited);
 				if(fieldInv != null) {
 					if(inv == null) {
 						inv = fieldInv;
@@ -438,7 +468,7 @@ public class Formulae {
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
 			Polynomial el = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, root, va));
-			Formula inv = extractTypeInvariant(t.getElement(), el, types);
+			Formula inv = extractTypeInvariant(t.getElement(), el, types, visited);
 			Polynomial zero = toPolynomial(0);
 			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
 			if (inv != null) {
@@ -453,7 +483,7 @@ public class Formulae {
 			Type.Union t = (Type.Union) type;
 			Formula result = null;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
 				if(inv != null && result == null) {
 					result = inv;
 				} else if(inv != null) {
@@ -466,7 +496,7 @@ public class Formulae {
 			Type.Intersection t = (Type.Intersection) type;
 			Formula result = null;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
 				if(inv != null && result == null) {
 					result = inv;
 				} else if(inv != null) {
@@ -477,7 +507,7 @@ public class Formulae {
 		}
 		case TYPE_not: {
 			Type.Negation t = (Type.Negation) type;
-			Formula inv = extractTypeInvariant(t.getElement(),root,types);
+			Formula inv = extractTypeInvariant(t.getElement(),root,types, visited);
 			if(inv == null) {
 				return null;
 			} else {
