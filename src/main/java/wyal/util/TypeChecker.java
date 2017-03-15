@@ -213,7 +213,7 @@ public class TypeChecker {
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
 		// Replace old object with fully resolved object
-		WyalFile.Type.Function type = constructFunctionType(sig);
+		Type.FunctionOrMacro type = constructFunctionOrMacroType(sig);
 		expr.setSignatureType(type);
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
@@ -229,16 +229,17 @@ public class TypeChecker {
 	 * @param declaration
 	 * @return
 	 */
-	private Type.Function constructFunctionType(Named.FunctionOrMacro declaration) {
+	private Type.FunctionOrMacro constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
 		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
 		Type[] returns;
 		if (declaration instanceof Named.Function) {
 			Named.Function nf = (Named.Function) declaration;
 			returns = toTypeArray(nf.getReturns().getOperands());
+			return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 		} else {
 			returns = new Type[] { new WyalFile.Type.Bool() };
+			return new Type.Macro(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 		}
-		return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 	}
 
 	private Type[] toTypeArray(VariableDeclaration... declarations) {

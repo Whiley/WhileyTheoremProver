@@ -93,15 +93,15 @@ public class AutomatedTheoremProver {
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-		if(simplifyProofs) {
-			simplifyProof(state);
-		}
+//		if(simplifyProofs) {
+//			simplifyProof(state);
+//		}
 		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
 		print(proof);
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 100;
+	private static final int MAX_DEPTH = 20;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
@@ -437,7 +437,7 @@ public class AutomatedTheoremProver {
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) e;
 			// Determine the type declaration in question
-			Type.AbstractFunction af = ivk.getSignatureType();
+			Type.FunctionOrMacro af = ivk.getSignatureType();
 			// FIXME: this resolution should have already been performed
 			// elsewhere
 			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
@@ -508,7 +508,7 @@ public class AutomatedTheoremProver {
 		// :)
 
 		// Determine the type declaration in question
-		Type.AbstractFunction af = ivk.getSignatureType();
+		Type.FunctionOrMacro af = ivk.getSignatureType();
 		// FIXME: this resolution should have already been performed
 		// elsewhere
 		Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());

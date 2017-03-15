@@ -3,6 +3,7 @@ type Entry is ({int key, int value} r)
 define Map(Entry[] entries) is:
     forall(int i1, int i2):
         if:
+            (i1 < |entries|) && (i2 < |entries|)
             entries[i1].key == entries[i2].key
         then:
             i1 == i2
@@ -10,6 +11,7 @@ define Map(Entry[] entries) is:
 define InvMap(Entry[] entries) is:
     forall(int i1, int i2):
         if:
+            (i1 < |entries|) && (i2 < |entries|)
             entries[i1].value == entries[i2].value
         then:
             i1 == i2

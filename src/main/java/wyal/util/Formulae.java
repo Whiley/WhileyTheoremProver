@@ -272,7 +272,12 @@ public class Formulae {
 		}
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) stmt;
-			return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+			if(ivk.getSignatureType() instanceof Type.Function) {
+				Expr TRUE = new Formula.Truth(new Value.Bool(true));
+				return new Formula.Equality(true, ivk, TRUE);
+			} else {
+				return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+			}
 		}
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
@@ -289,7 +294,7 @@ public class Formulae {
 				Expr TRUE = new Formula.Truth(new Value.Bool(true));
 				return new Formula.Equality(true, expr, TRUE);
 			} else {
-				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
+				throw new IllegalArgumentException("unknown statement encountered: " + stmt.getOpcode());
 			}
 		}
 	}
