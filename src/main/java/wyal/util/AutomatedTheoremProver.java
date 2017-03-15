@@ -102,7 +102,7 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private static final int MAX_DEPTH = 20;
+	private static final int MAX_DEPTH = 100;
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//

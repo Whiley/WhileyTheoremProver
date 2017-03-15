@@ -1,0 +1,11 @@
+type Point is ({int x, int y} p)
+type ColourPoint is ({int x, int y, int colour} p)
+
+type Points is (Point | ColourPoint x)
+
+assert:
+    forall((Points&ColourPoint) p):
+       if:
+         p.x > 0
+       then:
+         p.x >= 0

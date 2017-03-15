@@ -151,13 +151,13 @@ public class Formulae {
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs,types);
-				Formula rhs_f = toFormula(rhs,types);
-				Formula l = new Conjunct(lhs_f,rhs_f);
-				Formula r = new Conjunct(invert(lhs_f),invert(rhs_f));
-				return new Formula.Disjunct(l,r);
-			} else if(types.isEffectiveRecord(lhs_t)) {
+			} else if (types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
+				Formula lhs_f = toFormula(lhs, types);
+				Formula rhs_f = toFormula(rhs, types);
+				Formula l = new Conjunct(lhs_f, rhs_f);
+				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
+				return new Formula.Disjunct(l, r);
+			} else if(types.isReadableRecord(lhs_t)) {
 				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
@@ -167,19 +167,20 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
 				}
 				return new Formula.Conjunct(clauses);
-			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+			} else if (types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
 				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-				Formula inv = equals(lhsAccess,rhsAccess,types);
+				Formula inv = equals(lhsAccess, rhsAccess, types);
 				Polynomial zero = toPolynomial(0);
 				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
 				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
-				// The following axiom simply states that the length of every array
+				// The following axiom simply states that the length of every
+				// array
 				// type is greater than or equal to zero.
-				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				Formula axiom = new ArithmeticEquality(true, lhsLen, rhsLen);
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
 				Formula lt = lessThan(va, lhsLen);
@@ -205,7 +206,7 @@ public class Formulae {
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
-			} else if(types.isEffectiveRecord(lhs_t)) {
+			} else if(types.isReadableRecord(lhs_t)) {
 				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
@@ -215,7 +216,7 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
 				}
 				return new Formula.Disjunct(clauses);
-			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+			} else if(types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
@@ -721,7 +722,7 @@ public class Formulae {
 		// Eliminate truths
 		nChildren = eliminateConstants(true, nChildren);
 		// Ensure sorted and unique
-		nChildren = sortAndRemoveDuplicates(nChildren);
+		nChildren = ArrayUtils.sortAndRemoveDuplicates(nChildren);
 		// And, finally...
 		if (nChildren.length == 0) {
 			// Return true here since the only way it's possible to get here
@@ -768,7 +769,7 @@ public class Formulae {
 		// Eliminate truths
 		nChildren = eliminateConstants(false, nChildren);
 		// Ensure sorted and unique
-		nChildren = sortAndRemoveDuplicates(nChildren);
+		nChildren = ArrayUtils.sortAndRemoveDuplicates(nChildren);
 		// And, finally...
 		if (nChildren.length == 0) {
 			// Return false here since the only way it's possible to get
@@ -1796,37 +1797,6 @@ public class Formulae {
 	}
 
 	/**
-	 * Sort and remove duplicate expressions from the given array. The concept
-	 * of a duplicate expression is based solely on the index of that expression
-	 * in the contained syntactic heap. That is, two expressions with the same
-	 * index are considered duplicates. Likewise, sorting is conducted based on
-	 * heap index, with those with lower indices coming earlier in the resulting
-	 * array.
-	 *
-	 * @param children
-	 * @return
-	 */
-	private static <T extends SyntacticItem> T[] sortAndRemoveDuplicates(T[] children) {
-		int r = isSortedAndUnique(children);
-		switch (r) {
-		case 0:
-			// In this case, the array is already sorted and no duplicates were
-			// found.
-			return children;
-		case 1:
-			// In this case, the array is already sorted, but duplicates were
-			// found
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		default:
-			// In this case, the array is not sorted and may or may not
-			// contained duplicates.
-			children = Arrays.copyOf(children, children.length);
-			Arrays.sort(children);
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		}
-	}
-
-	/**
 	 * Normalise bounds of an equation to be positive. For example, consider the
 	 * inequality <code>x < y - z</code>. In this case, the right-hand side is
 	 * not normalised because it contains a negative term. The normalised
@@ -1947,29 +1917,5 @@ public class Formulae {
 			}
 			return r;
 		}
-	}
-
-	/**
-	 * Check whether or not the children of this array are sorted according to
-	 * syntactic heap index. And, if so, whether or not there are any duplicate
-	 * elements encountered.
-	 *
-	 * @param children
-	 * @return
-	 */
-	private static <T extends SyntacticItem> int isSortedAndUnique(T[] children) {
-		int r = 0;
-		for (int i = 1; i < children.length; ++i) {
-			int c = children[i - 1].compareTo(children[i]);
-			if (c == 0) {
-				// Duplicate found, though still could be in sorted order.
-				r = 1;
-			} else if (c > 0) {
-				// NOT in sorted order
-				return -1;
-			}
-		}
-		// All good
-		return r;
 	}
 }
