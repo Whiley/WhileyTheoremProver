@@ -53,22 +53,33 @@ public class ProofPrinter {
 		}
 		out.println();
 		// now print any children
-		if(step.numberOfChildren() == 1) {
+		if(step.numberOfChildren() == 0) {
+			tab(depth);
+			out.println("_|_");
+			tab(depth);
+		} else if(step.numberOfChildren() == 1) {
+			//tab(depth);
 			print(depth,step.getChild(0));
 		} else {
-			printLine(width);
+			indent += 3;
+			tab(depth+1);
+			printLine(width-indent,">");
 			for(int i=0;i!=step.numberOfChildren();++i) {
 				print(depth+1,step.getChild(i));
+				if((i+1) != step.numberOfChildren()) {
+					printLine(width-indent,"=");
+				}
 			}
+			printLine(width-indent,"<");
 		}
 	}
 
 	public void tab(int indent) {
 		if(indent > 0) {
 			for (int i = 0; i < (indent-1); ++i) {
-				out.print("---");
+				out.print(" | ");
 			}
-			out.print("-> ");
+			out.print(" | ");
 		}
 	}
 	private Proof.Step[] expandFrontier(Proof.Step[] steps) {
@@ -164,9 +175,13 @@ public class ProofPrinter {
 		return new String(out.toByteArray());
 	}
 
-	private void printLine(int width) {
-		for(int i=0;i!=width;++i) {
-			out.print("=");
+	private void printLine(int width, String sequence) {
+		for(int i=0;i!=width;i=i+sequence.length()) {
+			int end = i+sequence.length();
+			if(end > width) {
+				sequence = sequence.substring(0, width-i);
+			}
+			out.print(sequence);
 		}
 		out.println();
 	}
