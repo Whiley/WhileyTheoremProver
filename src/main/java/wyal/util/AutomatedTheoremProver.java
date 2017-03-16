@@ -109,8 +109,8 @@ public class AutomatedTheoremProver {
 		if(state.contains(FALSE)) {
 			return true;
 		} else if (depth >= MAX_DEPTH) {
-//			throw new IllegalArgumentException("Max depth reached");
-			return false;
+			throw new IllegalArgumentException("Max depth reached");
+//			return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it

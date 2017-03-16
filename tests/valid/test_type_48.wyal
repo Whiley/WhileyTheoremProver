@@ -1,0 +1,13 @@
+type nat is (int x)
+where:
+    x >= 0
+
+type neg is (!nat this)
+
+function f(neg x) -> (int y)
+
+assert:
+    if:
+        f(-1) == -1
+    then:
+        f(-1) == -1

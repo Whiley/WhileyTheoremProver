@@ -1,0 +1,13 @@
+define f_ensures_0(null|int x, int r) is:
+    forall(int k):
+        if:
+            k == x
+        then:
+            (x is null) || (r == k)
+
+assert "postcondition not satisfied":
+    forall(null|int x):
+        if:
+            x is !int
+        then:
+            f_ensures_0(x, 0)

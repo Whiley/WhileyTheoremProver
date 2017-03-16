@@ -42,7 +42,6 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf) {
-		writeSyntacticItems(wf);
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
 		if (pkg != Trie.ROOT) {

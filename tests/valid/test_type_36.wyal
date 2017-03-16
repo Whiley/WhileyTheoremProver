@@ -1,0 +1,8 @@
+type BTree is (null|{int item, BTree left, BTree right} this)
+
+assert:
+    forall(int item, (BTree&(!null)) tree):
+        if:
+            item < tree.item
+        then:
+            tree.left is BTree
