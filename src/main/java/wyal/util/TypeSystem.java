@@ -1,26 +1,21 @@
 package wyal.util;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.Formula.Conjunct;
-import wyal.lang.Formula.Disjunct;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Declaration.Named;
+import wybs.util.ResolveError;
+import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.FieldDeclaration;
 
 public class TypeSystem {
@@ -32,107 +27,39 @@ public class TypeSystem {
 		this.rewrites = new ArrayList<>();
 	}
 
-	public boolean isEffectiveRecord(Type type) {
-		if(type instanceof Type.Record) {
-			return true;
-		} else if(type instanceof Type.Union) {
-			Type.Union ut = (Type.Union) type;
-			for (int i = 0; i != ut.size(); ++i) {
-				if(!isEffectiveRecord(ut.getOperand(i))) {
-					return false;
-				}
-			}
-			return true;
-		} else if(type instanceof Type.Nominal){
-			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return isEffectiveRecord(decl.getVariableDeclaration().getType());
-		} else {
-			return false;
-		}
+	public boolean isReadableRecord(Type type) {
+		return expandAsReadableRecordType(type) != null;
 	}
 
-	public boolean isEffectiveArray(Type type) {
-		if(type instanceof Type.Array) {
-			return true;
-		} else if(type instanceof Type.Union) {
-			Type.Union ut = (Type.Union) type;
-			for (int i = 0; i != ut.size(); ++i) {
-				if(!isEffectiveArray(ut.getOperand(i))) {
-					return false;
-				}
-			}
-			return true;
-		} else if(type instanceof Type.Nominal){
-			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return isEffectiveArray(decl.getVariableDeclaration().getType());
-		} else {
-			return false;
-		}
+	public boolean isReadableArray(Type type) {
+		return expandAsReadableArrayType(type) != null;
 	}
 
 	/**
 	 * For a given type, extract its effective record type. For example, the
 	 * type <code>({int x, int y}|{int x, int z})</code> has effective record
-	 * type <code>{int x,
-	 * ...}</code>.
+	 * type <code>{int x, ...}</code>. The following illustrates some more
+	 * cases:
+	 *
+	 * <pre>
+	 * {int x, int y} | null    ==> null
+	 * {int x, int y} | {int x} ==> null
+	 * {int x, int y} | {int x, bool y} ==> {int x, int|bool y}
+	 * {int x, int y} & null    ==> null
+	 * {int x, int y} & {int x} ==> null
+	 * {int x, int y} & {int x, int|bool y} ==> {int x, int y}
+	 * </pre>
 	 *
 	 * @param type
 	 * @return
 	 */
-	public Type.Record extractReadableRecordType(Type type) {
-
-		// FIXME: this method is horribly broken. For example, it can't handle
-		// any of these cases:
-		// --> {int x} & {int x}
-		// --> !!{int x}
-		// --> ({int x}|null}&!null
-
-		if (type instanceof Type.Record) {
-			return (Type.Record) type;
-		} else if (type instanceof Type.Union) {
-			Type.Union union = (Type.Union) type;
-			HashMap<String, Type> fields = null;
-			for (int i = 0; i != union.size(); ++i) {
-				Type.Record r = extractReadableRecordType(union.getOperand(i));
-				merge(fields, r);
-			}
-			//
-			return constructEffectiveRecord(fields);
-		} else if (type instanceof Type.Nominal) {
-			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return extractReadableRecordType(decl.getVariableDeclaration().getType());
+	public Type.Record expandAsReadableRecordType(Type type) {
+		Type r = expandAsReadableType(true,type);
+		if(r instanceof Type.Record) {
+			return (Type.Record) r;
 		} else {
-			throw new RuntimeException("expected record type, found: " + type);
+			return null;
 		}
-	}
-
-	private void merge(HashMap<String, Type> fields, Type.Record r) {
-		FieldDeclaration[] vds = r.getFields();
-		for (Map.Entry<String, Type> e : fields.entrySet()) {
-			String fieldName = e.getKey();
-			Type fieldType = null;
-			for (int i = 0; i != vds.length; ++i) {
-				FieldDeclaration fd = vds[i];
-				String name = fd.getVariableName().get();
-				if (fieldName.equals(name)) {
-					fieldType = union(e.getValue(), fd.getType());
-				}
-			}
-			fields.put(fieldName, fieldType);
-		}
-	}
-
-	private Type.Record constructEffectiveRecord(Map<String, Type> fields) {
-		FieldDeclaration[] declarations = new FieldDeclaration[fields.size()];
-		int index = 0;
-		for (Map.Entry<String, Type> e : fields.entrySet()) {
-			Identifier id = new Identifier(e.getKey());
-			declarations[index++] = new FieldDeclaration(e.getValue(), id);
-		}
-		return new Type.Record(declarations);
 	}
 
 	/**
@@ -143,26 +70,97 @@ public class TypeSystem {
 	 * @param type
 	 * @return
 	 */
-	public Type.Array extractReadableArrayType(Type type) {
-		if (type instanceof Type.Array) {
-			return (Type.Array) type;
-		} else if (type instanceof Type.Union) {
-			Type.Union union = (Type.Union) type;
-			Type[] elements = new Type[union.size()];
-			for (int i = 0; i != union.size(); ++i) {
-				Type.Array r = extractReadableArrayType(union.getOperand(i));
-				elements[i] = r.getElement();
-			}
-			//
-			return new Type.Array(union(elements));
-		} else if (type instanceof Type.Nominal) {
-			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return extractReadableArrayType(decl.getVariableDeclaration().getType());
+	public Type.Array expandAsReadableArrayType(Type type) {
+		Type r = expandAsReadableType(true,type);
+		if(r instanceof Type.Array) {
+			return (Type.Array) r;
 		} else {
-			throw new RuntimeException("expected array type, found: " + type);
+			return null;
 		}
 	}
+
+	/**
+	 * Expand a given type by "exactly one level". The exact meaning of this
+	 * subtle. Roughly speaking, the intuition is to expand a nominal type if
+	 * its encountered into its underlying type. But, critically, we don't
+	 * expand the underlying type itself. The reason for the latter is simply
+	 * that, in the presence of recursive types, this could lead to an infinite
+	 * expansion.
+	 *
+	 * The complicating factors here are the present of "type connectives". That
+	 * is unions, intersections or negations. These are not counted as a "level"
+	 * and, instead, their bounds are expanded. Given the following type
+	 * declarations:
+	 *
+	 * <pre>
+	 * type neg is (int x) where x < 0
+	 * type pos is (int x) where x > 0
+	 * </pre>
+	 *
+	 * Then, the following expansions are to be expected:
+	 *
+	 * <pre>
+	 * neg            ==> int
+	 * {neg x, pos y} ==> {neg x, pos y}
+	 * !neg           ==> !int
+	 * neg|pos        ==> int
+	 * </pre>
+	 *
+	 * @param type
+	 *            The type to be expanded by exactly one level
+	 * @return
+	 * @throws IOException
+	 * @throws ResolveError
+	 */
+	public Type expandAsReadableType(boolean sign, Type type) {
+		switch(type.getOpcode()) {
+		case TYPE_not: {
+			Type.Negation neg = (Type.Negation) type;
+			return expandAsReadableType(!sign,neg.getElement());
+		}
+		case TYPE_nom: {
+			Type.Nominal nom = (Type.Nominal) type;
+			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			return expandAsReadableType(sign,decl.getVariableDeclaration().getType());
+		}
+		case TYPE_and:
+		case TYPE_or: {
+			// Hmm, this is tasty line. It does exactly what I want though :)
+			boolean union = sign == (type.getOpcode() == Opcode.TYPE_or);
+			Type[] children = expandAsReadableTypes(sign,(Type[])type.getOperands());
+			if(union) {
+				return union(children);
+			} else {
+				return intersect(children);
+			}
+		}
+		default:
+			if(sign) {
+				return type;
+			} else {
+				return new Type.Negation(type);
+			}
+		}
+	}
+
+	/**
+	 * Expand a sequence of zero or more types by one level.
+	 *
+	 * @param sign
+	 * @param types
+	 * @return
+	 */
+	public Type[] expandAsReadableTypes(boolean sign, Type... types) {
+		Type[] nTypes = new Type[types.length];
+		for(int i=0;i!=types.length;++i) {
+			nTypes[i] = expandAsReadableType(sign, types[i]);
+		}
+		return nTypes;
+	}
+
+	// ======================================================================
+	// Union
+	// ======================================================================
 
 	/**
 	 * Take a sequence of zero or more types and produce a minimal union of
@@ -172,22 +170,257 @@ public class TypeSystem {
 	 * @return
 	 */
 	public Type union(Type... types) {
-		if (types.length == 0) {
+		Type[] rs = Arrays.copyOf(types, types.length);
+		// intersect atoms
+		for (int i = 0; i < rs.length; ++i) {
+			for (int j = i + 1; j < rs.length; ++j) {
+				unionAtoms(i, j, rs);
+			}
+		}
+		// Any intersection containing void equals void
+		int anyIndex = ArrayUtils.firstIndexOf(rs, new Type.Any());
+		if(anyIndex >= 0) { return rs[anyIndex]; }
+		// Any in an intersection can be dropped
+		rs = ArrayUtils.removeAll(rs, new Type.Void());
+		rs = ArrayUtils.removeAll(rs, null);
+		// remove any duplicates
+		rs = ArrayUtils.sortAndRemoveDuplicates(rs);
+		// intersect terms together
+		//
+		if(rs.length == 0) {
 			return new Type.Void();
-		} else if (types.length == 1) {
-			return types[0];
+		} else if(rs.length == 1) {
+			return rs[0];
 		} else {
-			// Now going to remove duplicates; for now, that's all we can do.
-			Type[] rs = Arrays.copyOf(types, types.length);
-			for (int i = 0; i != rs.length; ++i) {
-				for (int j = i + 1; j != rs.length; ++j) {
-					// TODO: soooo broken
-					if (rs[i] == rs[j]) {
-						rs[j] = null;
+			return new Type.Union(types);
+		}
+	}
+
+	private void unionAtoms(int i, int j, Type[] types) {
+		Type ith = types[i];
+		Type jth = types[j];
+		if(ith instanceof Type.Record && jth instanceof Type.Record) {
+			Type.Record record = unionRecords((Type.Record)ith, (Type.Record)jth);
+			if(record != null) {
+				types[i] = null;
+				types[j] = record;
+			}
+		} else if(ith instanceof Type.Array && jth instanceof Type.Array){
+			types[i] = null;
+			types[j] = unionArrays((Type.Array)ith, (Type.Array)jth);
+		}
+	}
+
+	private Type unionArrays(Type.Array lhs, Type.Array rhs) {
+		return new Type.Array(union(lhs.getElement(), rhs.getElement()));
+	}
+
+	private Type.Record unionRecords(Type.Record lhs, Type.Record rhs) {
+		FieldDeclaration[] lhsFields = lhs.getFields();
+		FieldDeclaration[] rhsFields = rhs.getFields();
+		ArrayList<FieldDeclaration> fields = new ArrayList<>();
+		for (int i = 0; i < lhsFields.length && i < rhsFields.length; ++i) {
+			FieldDeclaration lhsField = lhsFields[i];
+			FieldDeclaration rhsField = rhsFields[i];
+			Identifier lhsFieldName = lhsField.getVariableName();
+			Identifier rhsFieldName = rhsField.getVariableName();
+			if (lhsFieldName.equals(rhsFieldName)) {
+				fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()), lhsFieldName));
+			} else {
+				break;
+			}
+		}
+		if (fields.isEmpty()) {
+			return null;
+		} else {
+			return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+		}
+	}
+
+	// ======================================================================
+	// Intersection
+	// ======================================================================
+
+	/**
+	 * Take a sequence of zero or more types and produce a minimal union of
+	 * them.
+	 *
+	 * @param types
+	 * @return
+	 */
+	public Type intersect(Type... types) {
+		Type[] rs = Arrays.copyOf(types, types.length);
+		// At this point, we need to handle distribution of
+		// intersections over negations.
+		for(int i=0;i!=types.length;++i) {
+			Type child = types[i];
+			if(child instanceof Type.Union) {
+				// Distribute outer intersection over this inner
+				return distributeUnion(i,types);
+			}
+		}
+		// intersect atoms
+		for (int i = 0; i < rs.length; ++i) {
+			for (int j = i + 1; j < rs.length; ++j) {
+				intersectAtoms(i, j, rs);
+			}
+		}
+		// Any intersection containing void equals void
+		int voidIndex = ArrayUtils.firstIndexOf(rs, new Type.Void());
+		if(voidIndex >= 0) { return rs[voidIndex]; }
+		// Any in an intersection can be dropped
+		rs = ArrayUtils.removeAll(rs, new Type.Any());
+		rs = ArrayUtils.removeAll(rs, null);
+		// remove any duplicates
+		rs = ArrayUtils.sortAndRemoveDuplicates(rs);
+		// intersect terms together
+		//
+		if(rs.length == 0) {
+			return new Type.Any();
+		} else if(rs.length == 1) {
+			return rs[0];
+		} else {
+			return new Type.Intersection(types);
+		}
+	}
+
+	/**
+	 * Assumes one or more children which are to be intersected together, where
+	 * the ith is a union. Then distribute over the union.
+	 *
+	 * @param ith
+	 *            The child at this point is the union we are distrubuting over.
+	 * @param children
+	 *            One or more types which should be intersected together
+	 * @return
+	 */
+	private Type distributeUnion(int ith, Type[] children) {
+		Type.Union union = (Type.Union) children[ith];
+		Type[] clauses = new Type[union.size()];
+		for(int j=0;j!=union.size();++j) {
+			Type[] nChildren = Arrays.copyOf(children, children.length);
+			nChildren[ith] = union.getOperand(j);
+			clauses[j] = intersect(nChildren);
+		}
+		// At this point, we recursively call expand one level again. This is
+		// perhaps slightly inefficient, but is necessary to ensure that nested
+		// unions are taken care of.
+		return union(clauses);
+	}
+
+	private void intersectAtoms(int i, int j, Type[] types) {
+		Type ith = types[i];
+		Type jth = types[j];
+		boolean lhsNegative = ith instanceof Type.Negation;
+		boolean rhsNegative = jth instanceof Type.Negation;
+		if(lhsNegative && rhsNegative) {
+			intersectNegativeNegative(i,j,types);
+		} else if(lhsNegative) {
+			intersectNegativePositive(i,j,types);
+		} else if(rhsNegative) {
+			intersectNegativePositive(i,j,types);
+		} else {
+			intersectPositivePositive(i,j,types);
+		}
+	}
+
+	private void intersectNegativeNegative(int i, int j, Type[] types) {
+		// FIXME: could do more here
+	}
+
+	private void intersectNegativePositive(int i, int j, Type[] types) {
+		Type.Negation ith = (Type.Negation) types[i];
+		Type ith_element = ith.getElement();
+		Type jth = types[j];
+		if(jth instanceof Type.Any) {
+			types[i] = null;
+			types[j] = ith;
+		} else if(ith_element.equals(jth)) {
+			// FIXME: should do more here as there are other cases where we
+			// should reduce to void. For example, if jth element is
+			// supertype of ith.
+			types[i] = types[j] = new Type.Void();
+		} else if(ith_element instanceof Type.Nominal || jth instanceof Type.Nominal) {
+			// There's not much we can do here, since we can't be sure
+			// whether or not the Nominal types having anything in common.
+		} else {
+			// ith is subsumed
+			types[i] = new Type.Any();
+		}
+	}
+
+	private void intersectPositivePositive(int i, int j, Type[] types) {
+		Type ith = types[i];
+		Type jth = types[j];
+		Opcode lhsKind = ith.getOpcode();
+		Opcode rhsKind = jth.getOpcode();
+		//
+		if(lhsKind == Opcode.TYPE_any || rhsKind == Opcode.TYPE_any) {
+			// In this case, there is nothing really to do. Basically
+			// intersection something with any gives something. We don't remove
+			// the any type from the array at this stage, since it will be
+			// removed lated on.
+		} else if(lhsKind == Opcode.TYPE_nom || rhsKind == Opcode.TYPE_nom) {
+			// In this case, there is also nothing to do. That's because
+			// we don't know what a nominal is, and hence we are
+			// essentially treating it as being the same as any.
+		} else if (lhsKind != rhsKind) {
+			// There are no situations where this results in a positive
+			// outcome. Therefore, set both parties to be void. This
+			// guarantees the void will be caught at the earliest possible
+			// moment,
+			types[i] = types[j] = new Type.Void();
+		} else {
+			// Now check individual cases
+			switch (lhsKind) {
+			case TYPE_void:
+			case TYPE_bool:
+			case TYPE_int:
+				// For primitives, it's enough to know that they have
+				// the same kind.
+				types[i] = null;
+				break;
+			case TYPE_arr:
+				types[i] = null;
+				types[j] = intersectArrays((Type.Array)ith,(Type.Array)jth);
+				break;
+			case TYPE_rec:
+				types[i] = null;
+				types[j] = intersectRecords((Type.Record)ith,(Type.Record)jth);
+				break;
+			}
+			// FIXME: could do more here
+		}
+	}
+
+	private Type intersectArrays(Type.Array lhs, Type.Array rhs) {
+		return new Type.Array(intersect(lhs.getElement(), rhs.getElement()));
+	}
+
+	private Type intersectRecords(Type.Record lhs, Type.Record rhs) {
+		if (lhs == null) {
+			return rhs;
+		} else {
+			FieldDeclaration[] lhsFields = lhs.getFields();
+			FieldDeclaration[] rhsFields = rhs.getFields();
+			ArrayList<FieldDeclaration> fields = new ArrayList<>();
+			for (int i = 0; i != lhsFields.length; ++i) {
+				for(int j=0; j != rhsFields.length; ++j) {
+					FieldDeclaration lhsField = lhsFields[i];
+					FieldDeclaration rhsField = rhsFields[j];
+					Identifier lhsFieldName = lhsField.getVariableName();
+					Identifier rhsFieldName = rhsField.getVariableName();
+					if (lhsFieldName.equals(rhsFieldName)) {
+						fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
+								lhsFieldName));
 					}
 				}
 			}
-			return new Type.Union(types);
+			if(fields.isEmpty()) {
+				return new Type.Void();
+			} else {
+				return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+			}
 		}
 	}
 
@@ -202,15 +435,28 @@ public class TypeSystem {
 	 */
 	public boolean isSubtype(Type parent, Type child) {
 		// A :> B iff (!A & B) == void
-		return isVoid(false, parent, true, child);
+		return isVoid(false, parent, true, child, null);
 	}
 
-	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2) {
-		ArrayList<Atom> truths = new ArrayList<>();
-		Worklist worklist = new Worklist();
-		worklist.push(t1sign, t1);
-		worklist.push(t2sign, t2);
-		return isVoid(truths, worklist);
+	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2, BitSet assumptions) {
+		assumptions = createAssumptions(t1, t2, assumptions);
+		//
+		if (isAssumedVoid(t1sign, t1, t2sign, t2, assumptions)) {
+			// This represents the "coinductive" case. That is, we have
+			// encountered a pair of recursive types whose "voidness" depends
+			// circularly on itself. In such case, we assume they are indeed
+			// void.
+			return true;
+		} else {
+			setAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
+			ArrayList<Atom> truths = new ArrayList<>();
+			Worklist worklist = new Worklist();
+			worklist.push(t1sign, t1);
+			worklist.push(t2sign, t2);
+			boolean r = isVoid(truths, worklist, assumptions);
+			clearAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
+			return r;
+		}
 	}
 
 	/**
@@ -227,9 +473,11 @@ public class TypeSystem {
 	 *            The set of truths which have been established.
 	 * @param worklist
 	 *            The set of types currently being expanded
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist) {
+	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist, BitSet assumptions) {
 
 		// FIXME: there is a bug in the following case which needs to be
 		// addressed:
@@ -238,7 +486,8 @@ public class TypeSystem {
 		//
 		// The problem is that we need the "pairwise consistency property" in
 		// order for this algorithm to be complete. To get that, we must expand
-		// records containing union types.  Thus, the above should be expanded to:
+		// records containing union types. Thus, the above should be expanded
+		// to:
 		//
 		// ({int f} & !{int f} & !{null f}) || ({null f} & !{int f} & !{null f})
 		//
@@ -255,7 +504,7 @@ public class TypeSystem {
 			// consistency.
 			for (int i = 0; i != truths.size(); ++i) {
 				for (int j = i + 1; j != truths.size(); ++j) {
-					if (isVoid(truths.get(i), truths.get(j))) {
+					if (isVoid(truths.get(i), truths.get(j), assumptions)) {
 						return true;
 					}
 				}
@@ -282,7 +531,7 @@ public class TypeSystem {
 					for (int i = 0; i != operands.length; ++i) {
 						Worklist tmp = (Worklist) worklist.clone();
 						tmp.push(item.sign, operands[i]);
-						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp)) {
+						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp, assumptions)) {
 							return false;
 						}
 					}
@@ -305,7 +554,7 @@ public class TypeSystem {
 			default:
 				truths.add(new Atom(item.sign, (Type.Atom) item.type));
 			}
-			return isVoid(truths, worklist);
+			return isVoid(truths, worklist, assumptions);
 		}
 	}
 
@@ -316,9 +565,11 @@ public class TypeSystem {
 	 *
 	 * @param a
 	 * @param b
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoid(Atom a, Atom b) {
+	private boolean isVoid(Atom a, Atom b, BitSet assumptions) {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -343,9 +594,9 @@ public class TypeSystem {
 				// int & !int => void
 				return aSign != bSign;
 			case TYPE_arr:
-				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type);
+				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type, assumptions);
 			case TYPE_rec:
-				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type);
+				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type, assumptions);
 			case TYPE_ref:
 				throw new RuntimeException("Implement me!");
 			case TYPE_fun:
@@ -400,15 +651,17 @@ public class TypeSystem {
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs) {
+	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs, BitSet assumptions) {
 		if (lhsSign != rhsSign) {
 			// In this case, we are intersecting two array types, of which at
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
 			// and bool[] is void, whilst (int|null)[] and int[] is not.
-			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement());
+			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement(), assumptions);
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
@@ -438,9 +691,12 @@ public class TypeSystem {
 	 * @param rhs
 	 *            The second type being intersected, referred to as the
 	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
 	 * @return
 	 */
-	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs) {
+	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs,
+			BitSet assumptions) {
 		FieldDeclaration[] lhsFields = lhs.getFields();
 		FieldDeclaration[] rhsFields = rhs.getFields();
 		// FIXME: We need to sort fields above by their name in order to
@@ -465,17 +721,17 @@ public class TypeSystem {
 				for (int i = 0; i != lhsFields.length; ++i) {
 					FieldDeclaration lhsField = lhsFields[i];
 					FieldDeclaration rhsField = rhsFields[i];
-					if(!lhsField.getVariableName().equals(rhsField.getVariableName())) {
+					if (!lhsField.getVariableName().equals(rhsField.getVariableName())) {
 						// The fields have different names. In the pos-pos
 						// case, this indicates no intersection is possible. For
 						// pos-neg case, intersection exists.
 						return sign;
-					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType()) == sign) {
+					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions) == sign) {
 						// For pos-pos case, there is no intersection between
 						// these fields and, hence, no intersection overall; for
 						// pos-neg case, there is some intersection between
 						// these fields which means that some intersections
-						// exists overall.  For example, consider the case
+						// exists overall. For example, consider the case
 						// {int f, int|null g} & !{int f, int g}. There is no
 						// intersection for field f (i.e. since int & !int =
 						// void), whilst there is an intersection for field g
@@ -503,7 +759,7 @@ public class TypeSystem {
 	public Declaration.Named resolveAsDeclaration(Name name) {
 		Identifier[] components = name.getComponents();
 		// FIXME: need to handle case where more than one component
-		Identifier last = components[components.length-1];
+		Identifier last = components[components.length - 1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
@@ -530,7 +786,7 @@ public class TypeSystem {
 	public Declaration.Named.Type resolveAsDeclaredType(Name name) {
 		Identifier[] components = name.getComponents();
 		// FIXME: need to handle case where more than one component
-		Identifier last = components[components.length-1];
+		Identifier last = components[components.length - 1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
 		for (int i = 0; i != parent.size(); ++i) {
@@ -598,6 +854,54 @@ public class TypeSystem {
 			} else {
 				return "!" + type;
 			}
+		}
+	}
+
+	private boolean isAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if (assumptions != null) {
+			return assumptions.get(indexOf(lhsSign, lhs, rhsSign, rhs));
+		} else {
+			return false;
+		}
+	}
+
+	private void setAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if (assumptions != null) {
+			assumptions.set(indexOf(lhsSign, lhs, rhsSign, rhs));
+		}
+	}
+
+	private void clearAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+		if (assumptions != null) {
+			assumptions.clear(indexOf(lhsSign, lhs, rhsSign, rhs));
+		}
+	}
+
+	private int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
+		int lhsSize = lhs.getParent().size();
+		int rhsSize = rhs.getParent().size();
+		int lhsIndex = lhs.getIndex();
+		int rhsIndex = rhs.getIndex();
+		if (lhsSign) {
+			lhsIndex += lhsSize;
+		}
+		if (rhsSign) {
+			rhsIndex += rhsSize;
+		}
+		return (lhsIndex * rhsSize * 2) + rhsIndex;
+	}
+
+	private static BitSet createAssumptions(Type lhs, Type rhs, BitSet assumptions) {
+		if (assumptions != null) {
+			return assumptions;
+		} else if (lhs.getParent() != null && rhs.getParent() != null) {
+			// We multiply by 2 here because we want to encode both positive and
+			// negative signs.
+			int lhsSize = lhs.getParent().size() * 2;
+			int rhsSize = rhs.getParent().size() * 2;
+			return new BitSet(lhsSize * rhsSize);
+		} else {
+			return null;
 		}
 	}
 }

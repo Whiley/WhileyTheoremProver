@@ -40,10 +40,10 @@ public class AbstractProof<T extends Proof.Step> implements Proof {
 
 	public abstract static class AbstractStep<T extends Proof.Step> implements Proof.Step {
 		protected final Proof proof;
-		protected  final T parent;
 		protected final List<WyalFile.Expr> dependencies;
 		protected final String rule;
 		protected final ArrayList<T> children;
+		protected T parent;
 
 		public AbstractStep(Proof proof, T parent, String rule, WyalFile.Expr... dependencies) {
 			this.proof = proof;
@@ -61,6 +61,10 @@ public class AbstractProof<T extends Proof.Step> implements Proof {
 		@Override
 		public T getParent() {
 			return parent;
+		}
+
+		public void setParent(T parent) {
+			this.parent = parent;
 		}
 
 		@Override
@@ -81,6 +85,10 @@ public class AbstractProof<T extends Proof.Step> implements Proof {
 		@Override
 		public T getChild(int ith) {
 			return children.get(ith);
+		}
+
+		public void setChild(int ith, T child) {
+			children.set(ith, child);
 		}
 	}
 }

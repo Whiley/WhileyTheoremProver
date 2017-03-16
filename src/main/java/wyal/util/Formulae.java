@@ -2,6 +2,9 @@ package wyal.util;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import wyal.lang.Formula;
@@ -148,14 +151,14 @@ public class Formulae {
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs,types);
-				Formula rhs_f = toFormula(rhs,types);
-				Formula l = new Conjunct(lhs_f,rhs_f);
-				Formula r = new Conjunct(invert(lhs_f),invert(rhs_f));
-				return new Formula.Disjunct(l,r);
-			} else if(types.isEffectiveRecord(lhs_t)) {
-				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+			} else if (types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
+				Formula lhs_f = toFormula(lhs, types);
+				Formula rhs_f = toFormula(rhs, types);
+				Formula l = new Conjunct(lhs_f, rhs_f);
+				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
+				return new Formula.Disjunct(l, r);
+			} else if(types.isReadableRecord(lhs_t)) {
+				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
 				for(int i=0;i!=fields.length;++i) {
@@ -164,19 +167,20 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
 				}
 				return new Formula.Conjunct(clauses);
-			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+			} else if (types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
 				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-				Formula inv = equals(lhsAccess,rhsAccess,types);
+				Formula inv = equals(lhsAccess, rhsAccess, types);
 				Polynomial zero = toPolynomial(0);
 				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
 				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
-				// The following axiom simply states that the length of every array
+				// The following axiom simply states that the length of every
+				// array
 				// type is greater than or equal to zero.
-				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
+				Formula axiom = new ArithmeticEquality(true, lhsLen, rhsLen);
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
 				Formula lt = lessThan(va, lhsLen);
@@ -202,8 +206,8 @@ public class Formulae {
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
-			} else if(types.isEffectiveRecord(lhs_t)) {
-				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+			} else if(types.isReadableRecord(lhs_t)) {
+				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
 				for(int i=0;i!=fields.length;++i) {
@@ -212,7 +216,7 @@ public class Formulae {
 					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
 				}
 				return new Formula.Disjunct(clauses);
-			} else if(types.isEffectiveArray(lhs_t) || types.isEffectiveArray(rhs_t)) {
+			} else if(types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
 				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 						new Identifier("i:" + skolem++));
 				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
@@ -270,7 +274,12 @@ public class Formulae {
 		}
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) stmt;
-			return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+			if(ivk.getSignatureType() instanceof Type.Function) {
+				Expr TRUE = new Formula.Truth(new Value.Bool(true));
+				return new Formula.Equality(true, ivk, TRUE);
+			} else {
+				return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+			}
 		}
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
@@ -287,7 +296,7 @@ public class Formulae {
 				Expr TRUE = new Formula.Truth(new Value.Bool(true));
 				return new Formula.Equality(true, expr, TRUE);
 			} else {
-				throw new IllegalArgumentException("u)nknown statement encountered: " + stmt.getOpcode());
+				throw new IllegalArgumentException("unknown statement encountered: " + stmt.getOpcode());
 			}
 		}
 	}
@@ -353,7 +362,7 @@ public class Formulae {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
-			Formula invariant = extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
+			Formula invariant = expandTypeInvariant(decl,types);
 			// FIXME: need to perform appropriate variable substitution here?
 			if (invariant != null && result == null) {
 				result = invariant;
@@ -363,7 +372,9 @@ public class Formulae {
 		}
 		return result;
 	}
-
+	private static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
+	}
 	private static int skolem = 0;
 
 	/**
@@ -389,6 +400,32 @@ public class Formulae {
 	 * @return
 	 */
 	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+		return extractTypeInvariant(type,root,types,new BitSet());
+	}
+
+	/**
+	 *
+	 * @param type
+	 * @param root
+	 * @param types
+	 * @param visited
+	 *            Used to identify types previously encountered during this
+	 *            search. Such types are necessarily recursive, and should only
+	 *            be visited once to prevent infinite loops.
+	 * @return
+	 */
+	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) {
+		Formula invariant = null;
+		if(type.getParent() == null) {
+			invariant = extractTypeInvariantInner(type,root,types,visited);
+		} else if(!visited.get(type.getIndex())) {
+			visited.set(type.getIndex());
+			invariant = extractTypeInvariantInner(type,root,types,visited);
+			visited.clear(type.getIndex());
+		}
+		return invariant;
+	}
+	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:
@@ -399,7 +436,8 @@ public class Formulae {
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
-			if(td.getInvariant() == null) {
+			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
+			if (td.getInvariant().size() == 0 && invariant == null) {
 				return null;
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
@@ -414,7 +452,7 @@ public class Formulae {
 			for(int i=0;i!=fields.length;++i) {
 				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
-				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types);
+				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types, visited);
 				if(fieldInv != null) {
 					if(inv == null) {
 						inv = fieldInv;
@@ -431,26 +469,22 @@ public class Formulae {
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
 			Polynomial el = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, root, va));
-			Formula inv = extractTypeInvariant(t.getElement(), el, types);
+			Formula inv = extractTypeInvariant(t.getElement(), el, types, visited);
 			Polynomial zero = toPolynomial(0);
 			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
-			// The following axiom simply states that the length of every array
-			// type is greater than or equal to zero.
-			Formula axiom = greaterOrEqual(len, zero);
-			if (inv == null) {
-				return axiom;
-			} else {
+			if (inv != null) {
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
 				Formula lt = lessThan(va, len);
-				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
+				inv = new Quantifier(true, var, implies(and(gt, lt), inv));
 			}
+			return inv;
 		}
 		case TYPE_or: {
 			Type.Union t = (Type.Union) type;
 			Formula result = null;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
 				if(inv != null && result == null) {
 					result = inv;
 				} else if(inv != null) {
@@ -463,7 +497,7 @@ public class Formulae {
 			Type.Intersection t = (Type.Intersection) type;
 			Formula result = null;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types);
+				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
 				if(inv != null && result == null) {
 					result = inv;
 				} else if(inv != null) {
@@ -474,7 +508,7 @@ public class Formulae {
 		}
 		case TYPE_not: {
 			Type.Negation t = (Type.Negation) type;
-			Formula inv = extractTypeInvariant(t.getElement(),root,types);
+			Formula inv = extractTypeInvariant(t.getElement(),root,types, visited);
 			if(inv == null) {
 				return null;
 			} else {
@@ -688,7 +722,7 @@ public class Formulae {
 		// Eliminate truths
 		nChildren = eliminateConstants(true, nChildren);
 		// Ensure sorted and unique
-		nChildren = sortAndRemoveDuplicates(nChildren);
+		nChildren = ArrayUtils.sortAndRemoveDuplicates(nChildren);
 		// And, finally...
 		if (nChildren.length == 0) {
 			// Return true here since the only way it's possible to get here
@@ -735,7 +769,7 @@ public class Formulae {
 		// Eliminate truths
 		nChildren = eliminateConstants(false, nChildren);
 		// Ensure sorted and unique
-		nChildren = sortAndRemoveDuplicates(nChildren);
+		nChildren = ArrayUtils.sortAndRemoveDuplicates(nChildren);
 		// And, finally...
 		if (nChildren.length == 0) {
 			// Return false here since the only way it's possible to get
@@ -1763,37 +1797,6 @@ public class Formulae {
 	}
 
 	/**
-	 * Sort and remove duplicate expressions from the given array. The concept
-	 * of a duplicate expression is based solely on the index of that expression
-	 * in the contained syntactic heap. That is, two expressions with the same
-	 * index are considered duplicates. Likewise, sorting is conducted based on
-	 * heap index, with those with lower indices coming earlier in the resulting
-	 * array.
-	 *
-	 * @param children
-	 * @return
-	 */
-	private static <T extends SyntacticItem> T[] sortAndRemoveDuplicates(T[] children) {
-		int r = isSortedAndUnique(children);
-		switch (r) {
-		case 0:
-			// In this case, the array is already sorted and no duplicates were
-			// found.
-			return children;
-		case 1:
-			// In this case, the array is already sorted, but duplicates were
-			// found
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		default:
-			// In this case, the array is not sorted and may or may not
-			// contained duplicates.
-			children = Arrays.copyOf(children, children.length);
-			Arrays.sort(children);
-			return ArrayUtils.sortedRemoveDuplicates(children);
-		}
-	}
-
-	/**
 	 * Normalise bounds of an equation to be positive. For example, consider the
 	 * inequality <code>x < y - z</code>. In this case, the right-hand side is
 	 * not normalised because it contains a negative term. The normalised
@@ -1914,29 +1917,5 @@ public class Formulae {
 			}
 			return r;
 		}
-	}
-
-	/**
-	 * Check whether or not the children of this array are sorted according to
-	 * syntactic heap index. And, if so, whether or not there are any duplicate
-	 * elements encountered.
-	 *
-	 * @param children
-	 * @return
-	 */
-	private static <T extends SyntacticItem> int isSortedAndUnique(T[] children) {
-		int r = 0;
-		for (int i = 1; i < children.length; ++i) {
-			int c = children[i - 1].compareTo(children[i]);
-			if (c == 0) {
-				// Duplicate found, though still could be in sorted order.
-				r = 1;
-			} else if (c > 0) {
-				// NOT in sorted order
-				return -1;
-			}
-		}
-		// All good
-		return r;
 	}
 }

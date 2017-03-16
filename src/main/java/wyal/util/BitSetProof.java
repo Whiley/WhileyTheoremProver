@@ -176,6 +176,10 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			}
 		}
 
+		public void clear(Formula truth) {
+			activeTruths.clear(truth.getIndex());
+		}
+
 		public State[] split(Formula.Disjunct disjunct) {
 			Formula[] cases = disjunct.getOperands();
 			State[] result = new State[cases.length];

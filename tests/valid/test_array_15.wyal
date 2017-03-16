@@ -5,10 +5,12 @@ assert:
         if:
             test_sum(xs, x + 1) >= 0
             exists (int i1, int v1):
+                (0 <= i1) && (i1 < |xs|)
                 xs[i1] == v1
                 v1 < 0
             forall (int i2, int v2):
                 if:
+                    (0 <= i2) && (i2 < |xs|)
                     xs[i2] == v2
                 then:
                     v2 >= 0

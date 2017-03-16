@@ -192,7 +192,7 @@ public class WyalFileParser {
 
 	private Stmt.Block[] parseInvariantClauses(EnclosingScope scope) {
 		List<Stmt.Block> invariant = new ArrayList<>();
-		while ((tryAndMatch(false, Where)) != null) {
+		while ((tryAndMatch(true, Where)) != null) {
 			Stmt.Block block;
 			if (tryAndMatch(true, Colon) != null) {
 				block = parseStatementBlock(scope, ROOT_INDENT);
@@ -718,6 +718,9 @@ public class WyalFileParser {
 			return parseRecordExpression(scope, terminated);
 		case Shreak:
 			return parseLogicalNotExpression(scope, terminated);
+		case Forall:
+		case Exists:
+			return parseQuantifiedExpression(token,scope,terminated);
 		}
 
 		syntaxError("unrecognised term", token);
@@ -1254,12 +1257,33 @@ public class WyalFileParser {
 	private Expr parseLogicalNotExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(Shreak);
-		Expr expr = parseUnitExpression(scope, terminated);
+		Expr expr = parseAccessExpression(scope, terminated);
 		//
 		expr = new Expr.Operator(Opcode.EXPR_not, expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
+
+
+	private Expr parseQuantifiedExpression(Token lookahead,EnclosingScope scope, boolean terminated) {
+		int start = index - 1;
+		match(lookahead.kind);
+		// Clone the environment here, since the following type pattern may
+		// updated this and such updates should only be visible to the
+		// conditions contained within the quantified statement.
+		scope = scope.clone();
+		// Parse the parameter declarations for this block
+		VariableDeclaration[] parameters = parseParameterDeclarations(scope);
+		// Parser the body
+		match(Dot);
+		Expr body = parseUnitExpression(scope, false);
+		//
+		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.EXPR_forall : Opcode.EXPR_exists;
+		Expr expr = new Expr.Quantifier(kind, parameters, body);
+		expr.attributes().add(sourceAttr(start, index - 1));
+		return expr;
+	}
+
 
 	/**
 	 * Attempt to parse something which maybe a type, or an expression. The

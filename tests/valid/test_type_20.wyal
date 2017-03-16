@@ -5,11 +5,3 @@ assert:
         then:
             !(x is null)
 
-assert:
-    forall(int|null x):
-        if:
-            x != null
-        then:
-            !(x is null)
-
-

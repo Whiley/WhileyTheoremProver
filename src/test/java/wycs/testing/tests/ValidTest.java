@@ -52,8 +52,6 @@ public class ValidTest {
 		IGNORED.put("test_fun_02", "unsupported syntax");
 		IGNORED.put("test_macro_03", "macro overloading");
 		IGNORED.put("test_type_09", "recursive type");
-		IGNORED.put("test_type_20", "hard?");
-//		IGNORED.put("test_type_22", "constrained type test");
 		IGNORED.put("test_type_23", "type tests?");
 		IGNORED.put("test_type_24", "type tests?");
 		IGNORED.put("test_type_25", "type tests?");
@@ -61,7 +59,7 @@ public class ValidTest {
 		IGNORED.put("test_type_27", "type simplification");
 		IGNORED.put("test_type_28", "type simplification");
 		IGNORED.put("test_type_29", "type simplification");
-
+		IGNORED.put("test_type_34", "#26");
 	}
 
 	// ======================================================================

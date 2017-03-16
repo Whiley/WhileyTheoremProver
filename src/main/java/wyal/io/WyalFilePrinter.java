@@ -548,7 +548,7 @@ public class WyalFilePrinter {
 		}
 	}
 
-	private void writeType(Type type) {
+	public void writeType(Type type) {
 		switch (type.getOpcode()) {
 		case TYPE_any:
 			out.print("any");
