@@ -9,4 +9,4 @@ define subsequence(int[] xs, int[] ys) is:
 
 assert:
   forall(int[] xs, int[] ys):
-       subsequence(xs,ys) ==> (|ys| > 0)
+       subsequence(xs,ys) ==> (|ys| > 1)

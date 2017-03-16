@@ -1,0 +1,5 @@
+type pos is (int x) where x > 0
+
+assert:
+    forall (pos x):
+          x-1 is pos

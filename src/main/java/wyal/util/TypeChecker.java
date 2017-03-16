@@ -213,7 +213,7 @@ public class TypeChecker {
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
 		// Replace old object with fully resolved object
-		WyalFile.Type.Function type = constructFunctionType(sig);
+		Type.FunctionOrMacro type = constructFunctionOrMacroType(sig);
 		expr.setSignatureType(type);
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
@@ -229,16 +229,17 @@ public class TypeChecker {
 	 * @param declaration
 	 * @return
 	 */
-	private Type.Function constructFunctionType(Named.FunctionOrMacro declaration) {
+	private Type.FunctionOrMacro constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
 		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
 		Type[] returns;
 		if (declaration instanceof Named.Function) {
 			Named.Function nf = (Named.Function) declaration;
 			returns = toTypeArray(nf.getReturns().getOperands());
+			return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 		} else {
 			returns = new Type[] { new WyalFile.Type.Bool() };
+			return new Type.Macro(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 		}
-		return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 	}
 
 	private Type[] toTypeArray(VariableDeclaration... declarations) {
@@ -259,7 +260,7 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record effectiveRecord = types.extractReadableRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src);
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
 		for (int i = 0; i != fields.length; ++i) {
@@ -344,7 +345,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		return new Type.Int();
 	}
 
@@ -365,7 +366,7 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
@@ -373,7 +374,7 @@ public class TypeChecker {
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = types.extractReadableArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
@@ -404,6 +405,35 @@ public class TypeChecker {
 			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
 		}
 	}
+
+	/**
+	 * Check whether a given type is an array type of some sort.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private Type.Array checkIsArrayType(Type type) {
+		Type.Array arrT = types.expandAsReadableArrayType(type);
+		if(arrT == null) {
+			throw new RuntimeException("expected array type, got " + type);
+		}
+		return arrT;
+	}
+
+	/**
+	 * Check whether a given type is a record type of some sort.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private Type.Record checkIsRecordType(Type type) {
+		Type.Record recT = types.expandAsReadableRecordType(type);
+		if(recT == null) {
+			throw new RuntimeException("expected record type, got " + type);
+		}
+		return recT;
+	}
+
 
 	/**
 	 * Attempt to determine the declared function or macro to which a given

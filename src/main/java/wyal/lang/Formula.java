@@ -193,12 +193,12 @@ public interface Formula extends Expr {
 	public static class Invoke extends Expr.Invoke implements Formula {
 		private boolean sign;
 
-		public Invoke(boolean sign, Type.AbstractFunction type, Name name, Expr... arguments) {
+		public Invoke(boolean sign, Type.FunctionOrMacro type, Name name, Expr... arguments) {
 			super(type, name, arguments);
 			this.sign = sign;
 		}
 
-		public Invoke(boolean sign, Type.AbstractFunction type, Name name, Tuple<Expr> arguments) {
+		public Invoke(boolean sign, Type.FunctionOrMacro type, Name name, Tuple<Expr> arguments) {
 			super(type, name, arguments);
 			this.sign = sign;
 		}
@@ -224,8 +224,19 @@ public interface Formula extends Expr {
 
 		@Override
 		public Formula.Invoke clone(SyntacticItem[] children) {
-			return new Formula.Invoke(sign,(Type.AbstractFunction) children[0], (Name) children[1],
+			return new Formula.Invoke(sign,(Type.FunctionOrMacro) children[0], (Name) children[1],
 					(Tuple) children[2]);
+		}
+	}
+
+	public static class Is extends Expr.Is implements Formula {
+		public Is(Expr lhs, Type rhs) {
+			super(lhs,rhs);
+		}
+
+		@Override
+		public Formula.Is clone(SyntacticItem[] children) {
+			return new Formula.Is((Expr) children[0],(Type) children[1]);
 		}
 	}
 }

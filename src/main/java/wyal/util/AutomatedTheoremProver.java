@@ -21,7 +21,6 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
-import wyal.util.AbstractProof.AbstractStep;
 import wyal.util.BitSetProof.State;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
@@ -36,6 +35,12 @@ public class AutomatedTheoremProver {
 	 * The enclosing WyAL file being checked.
 	 */
 	private final WyalFile parent;
+
+	/**
+	 * If true, bypasses are effected in the generated proofs. Turning this off
+	 * can be useful for debugging.
+	 */
+	private boolean simplifyProofs = true;
 
 	public AutomatedTheoremProver(final WyalFile parent) {
 		this.parent = parent;
@@ -77,18 +82,23 @@ public class AutomatedTheoremProver {
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
+		println(formula);
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
-		formula = Formulae.simplify(formula, types);
+		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
+//		println(formula);
 		// Create initial state
 		BitSetProof proof = new BitSetProof(null, heap, formula);
 		State state = proof.getStep(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);
-//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-//		print(proof);
+//		if(simplifyProofs) {
+//			simplifyProof(state);
+//		}
+		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+		print(proof);
 		return r;
 	}
 
@@ -96,9 +106,11 @@ public class AutomatedTheoremProver {
 
 	private boolean checkUnsat(State state, int depth, Formula.Truth FALSE) {
 		//
-		if (depth >= MAX_DEPTH) {
-			throw new IllegalArgumentException("Max depth reached");
-			//return false;
+		if(state.contains(FALSE)) {
+			return true;
+		} else if (depth >= MAX_DEPTH) {
+//			throw new IllegalArgumentException("Max depth reached");
+			return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it
@@ -195,18 +207,76 @@ public class AutomatedTheoremProver {
 				BitSet cone = split.getDependencyCone();
 				//
 				if(cone.get(disjunct.getIndex()) == false) {
-					// The disjunct is not relevant to this proof. Therefore, we
-					// can bypass the remainder.
-
-					// FIXME: implement actual bypass!
-
-//					System.out.print("FOUND BYPASS: ");
-//					println(disjunct);
+					if(simplifyProofs) {
+						applyStateBypass(state,split);
+					}
 					break;
 				}
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * This performs a number of simple optimisations on the generated proof.
+	 * The purpose of this is to reduce the overall proof size.
+	 *
+	 * @param state
+	 */
+	private void simplifyProof(State state) {
+		// First, simply child states
+		for(int i=0;i!=state.numberOfChildren();++i) {
+			simplifyProof(state.getChild(i));
+		}
+		// Second, determine whether to bypass *this* state
+		BitSet cone = state.getDependencyCone();
+		List<Formula> introductions = state.getIntroductions();
+		//
+		boolean required = false;
+		for(int i=0;i!=introductions.size();++i) {
+			Formula f = introductions.get(i);
+			if(f instanceof Formula.Truth && !((Formula.Truth)f).holds()) {
+				required = true;
+			} else if(cone.get(f.getIndex())) {
+				required = true;
+			} else {
+				state.clear(f);
+			}
+		}
+		if(!required && state.numberOfChildren() == 1) {
+			// Picking the first child here makes sense, since for disjuncts
+			// this is the short circuit position.
+			State bypass = state.getChild(0);
+			applyStateBypass(state,bypass);
+		}
+	}
+
+	/**
+	 * This simply implements a "state bypass". That is, this state is removed
+	 * from the proof because it is not considered necessary for proving the
+	 * contradiction. This is useful for reducing the overall search space of
+	 * the algorithm, and also for reducing the size of the resulting proofs
+	 * (making them far easier to read by hand).
+	 *
+	 * @param child
+	 *            The child which is used in the bypass. The parent will now
+	 *            point to the child, rather than the formula.
+	 * @param formula
+	 * @param state
+	 */
+	private void applyStateBypass(State state, State bypass) {
+		State parent = state.getParent();
+		if (parent != null) {
+			// Must have a parent state to implement bypass
+			for (int i = 0; i != parent.numberOfChildren(); ++i) {
+				if (parent.getChild(i) == state) {
+					// found it
+					parent.setChild(i, bypass);
+					bypass.setParent(parent);
+				}
+			}
+			state.setParent(null);
+		}
 	}
 
 	// ===========================================================================
@@ -239,7 +309,7 @@ public class AutomatedTheoremProver {
 		Expr split = findSplitPoint(truth);
 		if (split != null) {
 			Formula[] cases = generateSplitCases(split, truth);
-			Formula disjunct = state.allocate(Formulae.simplify(new Formula.Disjunct(cases), types));
+			Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
 			state = state.subsume("reduct", truth, disjunct);
 		}
 		return state;
@@ -349,7 +419,7 @@ public class AutomatedTheoremProver {
 
 		if (axiom != null) {
 			// Such an axiom was indeed found and we simply need to apply it.
-			axiom = state.allocate(Formulae.simplify(axiom, types));
+			axiom = state.allocate(Formulae.simplifyFormula(axiom, types));
 			state = state.set("implicit", axiom, truth);
 		}
 		return state;
@@ -368,7 +438,7 @@ public class AutomatedTheoremProver {
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) e;
 			// Determine the type declaration in question
-			Type.AbstractFunction af = ivk.getSignatureType();
+			Type.FunctionOrMacro af = ivk.getSignatureType();
 			// FIXME: this resolution should have already been performed
 			// elsewhere
 			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
@@ -399,6 +469,18 @@ public class AutomatedTheoremProver {
 			axiom = new Formula.Equality(false, op.getOperand(1), new Expr.Constant(new Value.Int(0)));
 			break;
 		}
+		case EXPR_arrlen: {
+			Expr.Operator op = (Expr.Operator) e;
+			Polynomial len = Formulae.toPolynomial(op);
+			Polynomial zero = Formulae.toPolynomial(0);
+			axiom = Formulae.greaterOrEqual(len, zero);
+			break;
+		}
+		case EXPR_or:
+			// Don't extract implicit axioms from disjuncts as we can be sure
+			// they hold for all cases.
+			return null;
+		case EXPR_exists:
 		case EXPR_forall:
 			// Don't extract implicit axioms from quantified formulae. There's
 			// no point until they are instantiated.
@@ -427,15 +509,18 @@ public class AutomatedTheoremProver {
 		// :)
 
 		// Determine the type declaration in question
-		Type.AbstractFunction af = ivk.getSignatureType();
+		Type.FunctionOrMacro af = ivk.getSignatureType();
 		// FIXME: this resolution should have already been performed
 		// elsewhere
 		Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 		// Calculate the invariant
 		Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
+		if(invariant == null) {
+			invariant = new Formula.Truth(true);
+		}
 		if (invariant != null) {
 			if (!ivk.getSign()) {
-				invariant = Formulae.simplify(Formulae.invert(invariant), types);
+				invariant = Formulae.simplifyFormula(Formulae.invert(invariant), types);
 			}
 			// Update the state
 			state = state.subsume("expand", ivk, state.allocate(invariant));
@@ -464,7 +549,7 @@ public class AutomatedTheoremProver {
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
 		Map<SyntacticItem, SyntacticItem> map = new IdentityHashMap<>();
-		for (int i = 0; i != arguments.length; ++i) {
+		for (int i = 0; i != parameters.length; ++i) {
 			map.put(parameters[i], parameters[i]);
 		}
 		// Clone is required at this point to ensure that any variable
@@ -478,7 +563,7 @@ public class AutomatedTheoremProver {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
 			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
-		return Formulae.simplify(body, types);
+		return Formulae.simplifyFormula(body, types);
 	}
 
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
@@ -499,7 +584,7 @@ public class AutomatedTheoremProver {
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) Formulae.substitute(parameter, argument, result);
-			return Formulae.simplify(result, types);
+			return Formulae.simplifyFormula(result, types);
 		}
 	}
 
@@ -564,7 +649,7 @@ public class AutomatedTheoremProver {
 							before);
 					//
 					if (before != after) {
-						after = Formulae.simplify(after, types);
+						after = Formulae.simplifyFormula(after, types);
 						// The following is needed because substitution can
 						// produce a different looking term which, after
 						// simplification, is the same. To avoid this, we need
@@ -692,7 +777,7 @@ public class AutomatedTheoremProver {
 				body = (Formula) Formulae.substitute(access, binding[i], body);
 			}
 			// Second, instantiate the ground body
-			body = state.allocate(Formulae.simplify(body, types));
+			body = state.allocate(Formulae.simplifyFormula(body, types));
 			Expr[] dependencies = Arrays.copyOf(binding, binding.length + 1);
 			dependencies[binding.length] = qf;
 			state = state.set("instantiate", body, dependencies);
