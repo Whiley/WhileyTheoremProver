@@ -28,11 +28,11 @@ public class TypeSystem {
 	}
 
 	public boolean isReadableRecord(Type type) {
-		return extractReadableRecordType(type) != null;
+		return expandAsReadableRecordType(type) != null;
 	}
 
 	public boolean isReadableArray(Type type) {
-		return extractReadableArrayType(type) != null;
+		return expandAsReadableArrayType(type) != null;
 	}
 
 	/**
@@ -53,8 +53,8 @@ public class TypeSystem {
 	 * @param type
 	 * @return
 	 */
-	public Type.Record extractReadableRecordType(Type type) {
-		Type r = extractReadableType(true,type);
+	public Type.Record expandAsReadableRecordType(Type type) {
+		Type r = expandAsReadableType(true,type);
 		if(r instanceof Type.Record) {
 			return (Type.Record) r;
 		} else {
@@ -70,8 +70,8 @@ public class TypeSystem {
 	 * @param type
 	 * @return
 	 */
-	public Type.Array extractReadableArrayType(Type type) {
-		Type r = extractReadableType(true,type);
+	public Type.Array expandAsReadableArrayType(Type type) {
+		Type r = expandAsReadableType(true,type);
 		if(r instanceof Type.Array) {
 			return (Type.Array) r;
 		} else {
@@ -112,22 +112,22 @@ public class TypeSystem {
 	 * @throws IOException
 	 * @throws ResolveError
 	 */
-	public Type extractReadableType(boolean sign, Type type) {
+	public Type expandAsReadableType(boolean sign, Type type) {
 		switch(type.getOpcode()) {
 		case TYPE_not: {
 			Type.Negation neg = (Type.Negation) type;
-			return extractReadableType(!sign,neg.getElement());
+			return expandAsReadableType(!sign,neg.getElement());
 		}
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return extractReadableType(sign,decl.getVariableDeclaration().getType());
+			return expandAsReadableType(sign,decl.getVariableDeclaration().getType());
 		}
 		case TYPE_and:
 		case TYPE_or: {
 			// Hmm, this is tasty line. It does exactly what I want though :)
 			boolean union = sign == (type.getOpcode() == Opcode.TYPE_or);
-			Type[] children = expandOneLevel(sign,(Type[])type.getOperands());
+			Type[] children = expandAsReadableTypes(sign,(Type[])type.getOperands());
 			if(union) {
 				return union(children);
 			} else {
@@ -150,10 +150,10 @@ public class TypeSystem {
 	 * @param types
 	 * @return
 	 */
-	public Type[] expandOneLevel(boolean sign, Type... types) {
+	public Type[] expandAsReadableTypes(boolean sign, Type... types) {
 		Type[] nTypes = new Type[types.length];
 		for(int i=0;i!=types.length;++i) {
-			nTypes[i] = extractReadableType(sign, types[i]);
+			nTypes[i] = expandAsReadableType(sign, types[i]);
 		}
 		return nTypes;
 	}
@@ -403,23 +403,23 @@ public class TypeSystem {
 		} else {
 			FieldDeclaration[] lhsFields = lhs.getFields();
 			FieldDeclaration[] rhsFields = rhs.getFields();
-			if (lhsFields.length != rhsFields.length) {
-				return new Type.Void();
-			} else {
-				FieldDeclaration[] fields = new FieldDeclaration[lhsFields.length];
-				for (int i = 0; i != fields.length; ++i) {
+			ArrayList<FieldDeclaration> fields = new ArrayList<>();
+			for (int i = 0; i != lhsFields.length; ++i) {
+				for(int j=0; j != rhsFields.length; ++j) {
 					FieldDeclaration lhsField = lhsFields[i];
-					FieldDeclaration rhsField = rhsFields[i];
+					FieldDeclaration rhsField = rhsFields[j];
 					Identifier lhsFieldName = lhsField.getVariableName();
 					Identifier rhsFieldName = rhsField.getVariableName();
 					if (lhsFieldName.equals(rhsFieldName)) {
-						fields[i] = new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
-								lhsFieldName);
-					} else {
-						return new Type.Void();
+						fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
+								lhsFieldName));
 					}
 				}
-				return new Type.Record(fields);
+			}
+			if(fields.isEmpty()) {
+				return new Type.Void();
+			} else {
+				return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
 			}
 		}
 	}

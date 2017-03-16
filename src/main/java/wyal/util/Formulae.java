@@ -158,7 +158,7 @@ public class Formulae {
 				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
 				return new Formula.Disjunct(l, r);
 			} else if(types.isReadableRecord(lhs_t)) {
-				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
 				for(int i=0;i!=fields.length;++i) {
@@ -207,7 +207,7 @@ public class Formulae {
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
 			} else if(types.isReadableRecord(lhs_t)) {
-				Type.Record lhs_r = types.extractReadableRecordType(lhs_t);
+				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
 				FieldDeclaration[] fields = lhs_r.getFields();
 				Formula[] clauses = new Formula[fields.length];
 				for(int i=0;i!=fields.length;++i) {

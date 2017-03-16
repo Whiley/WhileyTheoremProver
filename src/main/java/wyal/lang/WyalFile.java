@@ -951,12 +951,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				case EXPR_arridx: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.Array effectiveArray = types.extractReadableArrayType(src);
+					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
 					return effectiveArray.getElement();
 				}
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.Array effectiveArray = types.extractReadableArrayType(src);
+					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
 					return effectiveArray;
 				}
 				default:
@@ -1118,7 +1118,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
-				Type.Record effectiveRecord = types.extractReadableRecordType(src);
+				Type.Record effectiveRecord = types.expandAsReadableRecordType(src);
 				FieldDeclaration[] fields = effectiveRecord.getFields();
 				String actualFieldName = getField().get();
 				for (int i = 0; i != fields.length; ++i) {

@@ -413,7 +413,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type.Array checkIsArrayType(Type type) {
-		Type.Array arrT = types.extractReadableArrayType(type);
+		Type.Array arrT = types.expandAsReadableArrayType(type);
 		if(arrT == null) {
 			throw new RuntimeException("expected array type, got " + type);
 		}
@@ -427,7 +427,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type.Record checkIsRecordType(Type type) {
-		Type.Record recT = types.extractReadableRecordType(type);
+		Type.Record recT = types.expandAsReadableRecordType(type);
 		if(recT == null) {
 			throw new RuntimeException("expected record type, got " + type);
 		}
