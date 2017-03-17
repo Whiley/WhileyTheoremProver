@@ -1,0 +1,8 @@
+type bop is ({int x, int y} r)
+where:
+    r.x > 0
+
+type expr is (int|bop this)
+
+assert:
+        1 is expr

@@ -39,27 +39,59 @@ public class ValidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-		IGNORED.put("test_arith_12", "remainder");
-		IGNORED.put("test_arith_15", "non-linear");
-		IGNORED.put("test_arith_28", "integers");
-		IGNORED.put("test_arith_31", "non-linear");
-		IGNORED.put("test_arith_36", "non-linear");
-		IGNORED.put("test_arith_38", "non-linear");
+
+		//
 		IGNORED.put("test_array_15", "timeout");
-		IGNORED.put("test_array_29", "array access");
-		IGNORED.put("test_array_31", "unsupported syntax");
-		IGNORED.put("test_fun_01", "unsupported syntax");
-		IGNORED.put("test_fun_02", "unsupported syntax");
-		IGNORED.put("test_macro_03", "macro overloading");
-		IGNORED.put("test_type_09", "recursive type");
-		IGNORED.put("test_type_23", "type tests?");
-		IGNORED.put("test_type_24", "type tests?");
-		IGNORED.put("test_type_25", "type tests?");
-		IGNORED.put("test_type_26", "type simplification");
-		IGNORED.put("test_type_27", "type simplification");
-		IGNORED.put("test_type_28", "type simplification");
-		IGNORED.put("test_type_29", "type simplification");
+		IGNORED.put("test_type_09", "timeout");
+		//
+		IGNORED.put("test_arith_12", "#2");
+		//
+		IGNORED.put("test_arith_15", "#12");
+		IGNORED.put("test_arith_31", "#12");
+		IGNORED.put("test_arith_36", "#12");
+		IGNORED.put("test_arith_38", "#12");
+		//
 		IGNORED.put("test_type_34", "#26");
+		IGNORED.put("test_type_47", "#26");
+		IGNORED.put("test_type_51", "#26");
+		//
+		IGNORED.put("test_type_26", "#27");
+		IGNORED.put("test_type_27", "#27");
+		IGNORED.put("test_type_28", "#27");
+		IGNORED.put("test_type_29", "#27");
+		IGNORED.put("test_type_35", "#27");
+		//
+		IGNORED.put("test_type_36", "#28");
+		//
+		IGNORED.put("test_array_59", "#29");
+		//
+		IGNORED.put("test_type_23", "#30");
+		IGNORED.put("test_type_24", "#30");
+		IGNORED.put("test_type_25", "#30");
+		IGNORED.put("test_type_37", "#30");
+		IGNORED.put("test_type_50", "#30");
+		//
+		IGNORED.put("test_type_38", "#31");
+		//
+		IGNORED.put("test_fun_03", "#32");
+		//
+		IGNORED.put("test_type_49", "#34");
+		//
+		IGNORED.put("test_type_45", "#35");
+		IGNORED.put("test_type_46", "#35");
+		//
+		IGNORED.put("test_arith_40", "#36");
+		//
+		IGNORED.put("test_macro_03", "#38");
+		IGNORED.put("test_macro_04", "#38");
+		//
+		IGNORED.put("test_type_48", "#38");
+		//
+		IGNORED.put("test_arith_28", "#40");
+		//
+		IGNORED.put("test_array_29", "#41");
+		//
+		IGNORED.put("test_array_31", "#42");
 	}
 
 	// ======================================================================

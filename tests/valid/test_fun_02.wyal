@@ -1,6 +1,4 @@
 function indexOf(int[] src, int i) -> (int r)
-ensures:
-    src[i] == r
 
 assert:
   forall (int[] xs, int i):

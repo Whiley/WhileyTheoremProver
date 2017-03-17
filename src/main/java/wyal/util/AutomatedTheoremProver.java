@@ -82,7 +82,7 @@ public class AutomatedTheoremProver {
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
-		println(formula);
+//		println(formula);
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);
@@ -97,8 +97,8 @@ public class AutomatedTheoremProver {
 //		if(simplifyProofs) {
 //			simplifyProof(state);
 //		}
-		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-		print(proof);
+//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+//		print(proof);
 		return r;
 	}
 
@@ -109,8 +109,8 @@ public class AutomatedTheoremProver {
 		if(state.contains(FALSE)) {
 			return true;
 		} else if (depth >= MAX_DEPTH) {
-//			throw new IllegalArgumentException("Max depth reached");
-			return false;
+			throw new IllegalArgumentException("Max depth reached");
+//			return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it

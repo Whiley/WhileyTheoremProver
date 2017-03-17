@@ -214,7 +214,7 @@ public class TypeChecker {
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
 		// Replace old object with fully resolved object
 		Type.FunctionOrMacro type = constructFunctionOrMacroType(sig);
-		expr.setSignatureType(type);
+		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
 			throw new RuntimeException("invalid number of returns");

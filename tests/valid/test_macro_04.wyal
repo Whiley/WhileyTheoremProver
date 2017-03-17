@@ -1,0 +1,12 @@
+define invariant(int x, int y) is:
+    x >= y
+
+define invariant(int x) is:
+    x >= 0
+
+assert:
+    forall (int x, int y):
+        if:
+            invariant(x,y)
+        then:
+            invariant(x)

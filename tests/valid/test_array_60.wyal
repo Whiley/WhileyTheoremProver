@@ -1,0 +1,10 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+assert "postcondition not satisfied":
+    forall(int[] xs):
+        if:
+            f_requires_0(xs)
+        then:
+            exists(int i):
+                (0 <= i) && (i < |xs|)

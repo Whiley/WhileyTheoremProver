@@ -1,0 +1,8 @@
+function f(int x) -> (int y)
+
+assert:
+    forall(int j, int i):
+        if:
+            f(i) != f(j)
+        then:
+            i != j

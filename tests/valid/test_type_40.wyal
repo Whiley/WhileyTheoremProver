@@ -1,0 +1,17 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+type pos is (int p)
+where:
+    p > 0
+
+type expr is ({expr lhs, expr rhs}|nat this)
+type posExpr is ({posExpr lhs, posExpr rhs}|pos this)
+
+assert:
+    if:
+        true
+    then:
+        {lhs: {lhs: 1, rhs: 2}, rhs: 1} is posExpr

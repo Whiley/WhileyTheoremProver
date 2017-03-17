@@ -1,0 +1,8 @@
+type pos is (int n) where n > 0
+type intlist is ((int[])|pos this)
+
+assert:
+    if:
+        true
+    then:
+        [1, 2, 3] is intlist

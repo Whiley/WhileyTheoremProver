@@ -1,0 +1,6 @@
+type Record1 is ({int op, int[] payload} r)
+type Record2 is ({int header, int op, int[] rest} r)
+
+assert:
+    forall(Record1|Record2 msg):
+         msg.op is any

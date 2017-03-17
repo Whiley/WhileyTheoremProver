@@ -1,0 +1,9 @@
+assert:
+    forall(int|null x):
+        if:
+            x is int
+        then:
+            x is int
+
+
+

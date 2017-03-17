@@ -1,0 +1,20 @@
+define nat(int x) is:
+    x >= 0
+
+define abs_ensures_0(int x, int y) is:
+    nat(y)
+
+assert:
+    forall(int x):
+        if:
+            x >= 0
+        then:
+            abs_ensures_0(x, x)
+
+assert:
+    forall(int x):
+        if:
+            x < 0
+        then:
+            abs_ensures_0(x, -x)
+
