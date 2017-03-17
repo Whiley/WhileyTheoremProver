@@ -39,11 +39,19 @@ public class InvalidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
+
 		IGNORED.put("test_058", "unknown");
-		IGNORED.put("test_061", "infinite loop");
 		IGNORED.put("test_067", "unknown");
-		IGNORED.put("test_068", "infinite loop");
-		IGNORED.put("test_069", "infinite loop");
+		//
+		IGNORED.put("test_053", "timeout");
+		IGNORED.put("test_061", "timeout");
+		IGNORED.put("test_065", "timeout");
+		IGNORED.put("test_066", "timeout");
+		IGNORED.put("test_068", "timeout");
+		IGNORED.put("test_069", "timeout");
+		IGNORED.put("test_103", "timeout");
+		//
+		IGNORED.put("test_029", "#43");
 	}
 
 	// ======================================================================

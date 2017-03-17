@@ -1,0 +1,16 @@
+type nat1 is (int x)
+where:
+    x >= 1
+
+type neg is (int x)
+where:
+    x < 0
+
+assert:
+    forall((null&!nat1)|(int&!nat1) y, null|int x):
+        if:
+            y == x
+            x is !nat1
+            y is neg
+        then:
+            false is null|bool
