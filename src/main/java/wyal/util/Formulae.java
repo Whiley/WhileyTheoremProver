@@ -468,7 +468,7 @@ public class Formulae {
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-			Polynomial el = toPolynomial(new Expr.Operator(Opcode.EXPR_arridx, root, va));
+			Expr el = new Expr.Operator(Opcode.EXPR_arridx, root, va);
 			Formula inv = extractTypeInvariant(t.getElement(), el, types, visited);
 			Polynomial zero = toPolynomial(0);
 			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
