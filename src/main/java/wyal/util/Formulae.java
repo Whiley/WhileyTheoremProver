@@ -483,15 +483,22 @@ public class Formulae {
 		case TYPE_or: {
 			Type.Union t = (Type.Union) type;
 			Formula result = null;
+			boolean hasInvariant = false;
 			for(int i=0;i!=t.size();++i) {
 				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
-				if(inv != null && result == null) {
-					result = inv;
-				} else if(inv != null) {
-					result = new Disjunct(result,inv);
+				Formula.Is tt = new Formula.Is(root, t.getOperand(i));
+				if(result == null) {
+					result = tt;
+				} else {
+					result = new Disjunct(result,tt);
 				}
+				hasInvariant |= inv != null;
 			}
-			return result;
+			if(hasInvariant) {
+				return result;
+			} else {
+				return null;
+			}
 		}
 		case TYPE_and: {
 			Type.Intersection t = (Type.Intersection) type;
