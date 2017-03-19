@@ -42,7 +42,6 @@ public class ValidTest {
 
 		//
 		IGNORED.put("test_array_15", "timeout");
-		IGNORED.put("test_type_09", "timeout");
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//
@@ -88,8 +87,12 @@ public class ValidTest {
 		IGNORED.put("test_arith_28", "#40");
 		//
 		IGNORED.put("test_array_29", "#41");
+		IGNORED.put("test_array_61", "#41");
 		//
 		IGNORED.put("test_array_31", "#42");
+		//
+		IGNORED.put("test_array_23", "#47");
+		IGNORED.put("test_array_54", "#47");
 	}
 
 	// ======================================================================

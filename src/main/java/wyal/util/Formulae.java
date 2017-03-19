@@ -157,35 +157,19 @@ public class Formulae {
 				Formula l = new Conjunct(lhs_f, rhs_f);
 				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
 				return new Formula.Disjunct(l, r);
-			} else if(types.isReadableRecord(lhs_t)) {
-				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-				FieldDeclaration[] fields = lhs_r.getFields();
-				Formula[] clauses = new Formula[fields.length];
-				for(int i=0;i!=fields.length;++i) {
-					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
-				}
-				return new Formula.Conjunct(clauses);
-			} else if (types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
-				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-						new Identifier("i:" + skolem++));
-				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
-				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-				Formula inv = equals(lhsAccess, rhsAccess, types);
-				Polynomial zero = toPolynomial(0);
-				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
-				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
-				// The following axiom simply states that the length of every
-				// array
-				// type is greater than or equal to zero.
-				Formula axiom = new ArithmeticEquality(true, lhsLen, rhsLen);
-				// forall i.(0 <= i && i <|root|) ==> inv
-				Formula gt = greaterOrEqual(va, zero);
-				Formula lt = lessThan(va, lhsLen);
-				return and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv)));
-			} else {
+			}
+//			else if(types.isReadableRecord(lhs_t)) {
+//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
+//				FieldDeclaration[] fields = lhs_r.getFields();
+//				Formula[] clauses = new Formula[fields.length];
+//				for(int i=0;i!=fields.length;++i) {
+//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
+//				}
+//				return new Formula.Conjunct(clauses);
+//			}
+			else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
 		}
@@ -206,34 +190,19 @@ public class Formulae {
 				Formula l = new Conjunct(invert(lhs_f),rhs_f);
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
-			} else if(types.isReadableRecord(lhs_t)) {
-				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-				FieldDeclaration[] fields = lhs_r.getFields();
-				Formula[] clauses = new Formula[fields.length];
-				for(int i=0;i!=fields.length;++i) {
-					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
-				}
-				return new Formula.Disjunct(clauses);
-			} else if(types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
-				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-						new Identifier("i:" + skolem++));
-				Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
-				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-				Formula inv = notEquals(lhsAccess,rhsAccess,types);
-				Polynomial zero = toPolynomial(0);
-				Polynomial lhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
-				Polynomial rhsLen = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
-				// The following axiom simply states that the length of every array
-				// type is greater than or equal to zero.
-				Formula axiom = new ArithmeticEquality(true,lhsLen,rhsLen);
-				// forall i.(0 <= i && i <|root|) ==> inv
-				Formula gt = greaterOrEqual(va, zero);
-				Formula lt = lessThan(va, lhsLen);
-				return invert(and(axiom, new Quantifier(true, var, implies(and(gt, lt), inv))));
-			} else {
+			}
+//			else if(types.isReadableRecord(lhs_t)) {
+//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
+//				FieldDeclaration[] fields = lhs_r.getFields();
+//				Formula[] clauses = new Formula[fields.length];
+//				for(int i=0;i!=fields.length;++i) {
+//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
+//				}
+//				return new Formula.Disjunct(clauses);
+//			}
+			else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
@@ -375,7 +344,7 @@ public class Formulae {
 	private static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
 		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
 	}
-	private static int skolem = 0;
+	public static int skolem = 0;
 
 	/**
 	 * Expand the type invariant associated with a given type (if any). For
@@ -566,6 +535,10 @@ public class Formulae {
 
 	public static Formula and(Formula lhs, Formula rhs) {
 		return new Formula.Conjunct(lhs,rhs);
+	}
+
+	public static Formula or(Formula lhs, Formula rhs) {
+		return new Formula.Disjunct(lhs,rhs);
 	}
 
 	public static Polynomial toPolynomial(int value) {

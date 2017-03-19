@@ -18,6 +18,8 @@ import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.Formula.ArithmeticEquality;
+import wyal.lang.Formula.Quantifier;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
@@ -82,7 +84,6 @@ public class AutomatedTheoremProver {
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
-//		println(formula);
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);
@@ -109,8 +110,8 @@ public class AutomatedTheoremProver {
 		if(state.contains(FALSE)) {
 			return true;
 		} else if (depth >= MAX_DEPTH) {
-			throw new IllegalArgumentException("Max depth reached");
-//			return false;
+			//throw new IllegalArgumentException("Max depth reached");
+			return false;
 		} else {
 			State original;
 			// The following loop is *very* primitive in nature. Basically it
@@ -127,7 +128,7 @@ public class AutomatedTheoremProver {
 					// Apply transitive closure over inequalities
 					state = closeOverInequalities(state, FALSE);
 					// Apply all simple linear rules
-					for (int i = 0; i != original.size() && !state.contains(FALSE); ++i) {
+					for (int i = 0; i < original.size() && !state.contains(FALSE); ++i) {
 						Formula truth = state.getActive(i);
 						state = applyLinearRules(truth, state);
 					}
@@ -135,7 +136,7 @@ public class AutomatedTheoremProver {
 				//
 				// Apply split rule for disjuncts. Do this after linear rules
 				// because splitting is potentially expensive.
-				for (int i = 0; i != state.size() && !state.contains(FALSE); ++i) {
+				for (int i = 0; i < state.size() && !state.contains(FALSE); ++i) {
 					Formula truth = state.getActive(i);
 					if (truth instanceof Formula.Disjunct) {
 						return applySplitDisjunct((Formula.Disjunct) truth, state, depth, FALSE);
@@ -143,7 +144,7 @@ public class AutomatedTheoremProver {
 				}
 				// Apply quantifier instantiation. We do this after the other
 				// options because it is really expensive.
-				for (int i = 0; i != local.size() && !state.contains(FALSE); ++i) {
+				for (int i = 0; i < local.size() && !state.contains(FALSE); ++i) {
 					Formula truth = state.getActive(i);
 					if (truth instanceof Formula.Quantifier) {
 						state = applyQuantifierInstantiation((Formula.Quantifier) truth, state);
@@ -487,6 +488,42 @@ public class AutomatedTheoremProver {
 			// Don't extract implicit axioms from quantified formulae. There's
 			// no point until they are instantiated.
 			return null;
+		case EXPR_neq: {
+			Expr.Operator operator = (Expr.Operator) e;
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
+			Type lhs_t = lhs.getReturnType(types);
+			Type rhs_t = rhs.getReturnType(types);
+			if(types.isReadableRecord(lhs_t)) {
+				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
+				FieldDeclaration[] fields = lhs_r.getFields();
+				Formula[] clauses = new Formula[fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+					clauses[i] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
+				}
+				axiom = new Formula.Disjunct(clauses);
+			} else if(types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
+				WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
+						new Identifier("i:" + Formulae.skolem++));
+				Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
+				Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
+				Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+				Formula inv = Formulae.notEquals(lhsAccess,rhsAccess,types);
+				Polynomial zero = Formulae.toPolynomial(0);
+				Polynomial lhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+				Polynomial rhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+				// The following axiom simply states that the length of every array
+				// type is greater than or equal to zero.
+				axiom = new ArithmeticEquality(false,lhsLen,rhsLen);
+				// forall i.(0 <= i && i <|root|) ==> inv
+				Formula gt = Formulae.greaterOrEqual(va, zero);
+				Formula lt = Formulae.lessThan(va, lhsLen);
+				axiom = Formulae.or(axiom, new Quantifier(false, var, Formulae.and(gt, Formulae.and(lt, inv))));
+			}
+			break;
+		}
 		}
 		//
 		for (int i = 0; i != e.size(); ++i) {

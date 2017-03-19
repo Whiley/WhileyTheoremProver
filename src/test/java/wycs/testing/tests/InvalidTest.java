@@ -40,18 +40,20 @@ public class InvalidTest {
 
 	static {
 
+		IGNORED.put("test_030", "equality");
+		//
 		IGNORED.put("test_058", "unknown");
 		IGNORED.put("test_067", "unknown");
 		//
-		IGNORED.put("test_053", "timeout");
-		IGNORED.put("test_061", "timeout");
-		IGNORED.put("test_065", "timeout");
-		IGNORED.put("test_066", "timeout");
+		IGNORED.put("test_053", "#48");
+		IGNORED.put("test_061", "#48");
+		IGNORED.put("test_065", "#48");
+		IGNORED.put("test_066", "#48");
 		IGNORED.put("test_068", "timeout");
 		IGNORED.put("test_069", "timeout");
 		IGNORED.put("test_103", "timeout");
 		//
-		IGNORED.put("test_029", "#43");
+		//IGNORED.put("test_029", "#43");
 	}
 
 	// ======================================================================
