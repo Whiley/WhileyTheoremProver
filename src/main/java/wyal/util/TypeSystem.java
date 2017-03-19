@@ -756,6 +756,24 @@ public class TypeSystem {
 	// Resolution
 	// ========================================================================
 
+	public <T extends Declaration.Named> T resolveAsDeclaration(Name name, Class<T> kind) {
+		Identifier[] components = name.getComponents();
+		// FIXME: need to handle case where more than one component
+		Identifier last = components[components.length - 1];
+		// Look through the enclosing file first!
+		SyntacticHeap parent = name.getParent();
+		for (int i = 0; i != parent.size(); ++i) {
+			SyntacticItem item = parent.getSyntacticItem(i);
+			if (item instanceof Declaration.Named) {
+				Declaration.Named nd = (Declaration.Named) item;
+				if (nd.getName().equals(last) && kind.isInstance(nd)) {
+					return (T) nd;
+				}
+			}
+		}
+		return null;
+	}
+
 	public Declaration.Named resolveAsDeclaration(Name name) {
 		Identifier[] components = name.getComponents();
 		// FIXME: need to handle case where more than one component

@@ -97,8 +97,8 @@ public class AutomatedTheoremProver {
 //		if(simplifyProofs) {
 //			simplifyProof(state);
 //		}
-//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-//		print(proof);
+		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+		print(proof);
 		return r;
 	}
 
@@ -439,17 +439,19 @@ public class AutomatedTheoremProver {
 			Expr.Invoke ivk = (Expr.Invoke) e;
 			// Determine the type declaration in question
 			Type.FunctionOrMacro af = ivk.getSignatureType();
-			// FIXME: this resolution should have already been performed
-			// elsewhere
-			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
-			if (decl instanceof Declaration.Named.Function) {
-				Declaration.Named.Function md = (Declaration.Named.Function) decl;
-				VariableDeclaration[] params = md.getParameters().getOperands();
-				VariableDeclaration[] returns = md.getReturns().getOperands();
-				if (returns.length > 1) {
-					throw new IllegalArgumentException("problem");
-				} else {
-					axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
+			if(af instanceof Type.Function) {
+				// FIXME: this resolution should have already been performed
+				// elsewhere
+				Declaration.Named decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Function.class);
+				if (decl instanceof Declaration.Named.Function) {
+					Declaration.Named.Function md = (Declaration.Named.Function) decl;
+					VariableDeclaration[] params = md.getParameters().getOperands();
+					VariableDeclaration[] returns = md.getReturns().getOperands();
+					if (returns.length > 1) {
+						throw new IllegalArgumentException("problem");
+					} else {
+						axiom = Formulae.extractTypeInvariant(returns[0].getType(), e, types);
+					}
 				}
 			}
 			break;
@@ -510,9 +512,11 @@ public class AutomatedTheoremProver {
 
 		// Determine the type declaration in question
 		Type.FunctionOrMacro af = ivk.getSignatureType();
+
 		// FIXME: this resolution should have already been performed
 		// elsewhere
 		Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
+
 		// Calculate the invariant
 		Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
 		if(invariant == null) {
