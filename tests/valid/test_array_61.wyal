@@ -1,0 +1,14 @@
+type Array is ({int f}[] xs)
+where:
+    exists(int i).(((0 <= i) && (i < |xs|)) && (xs[i].f == 1))
+
+
+function test() -> ()
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [{f: 1}] is Subtype_Valid_5.Array
+
+
