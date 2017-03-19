@@ -1,0 +1,7 @@
+type nat is (int z) where z >= 0
+
+function nat() -> (nat r)
+
+assert:
+    (1+nat()) >= 0
+
