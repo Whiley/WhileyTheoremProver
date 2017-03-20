@@ -8,6 +8,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.rules.AndElimination;
+import wyal.rules.ArrayLengthAxiom;
 import wyal.rules.EqualityCongruence;
 import wyal.rules.ExistentialElimination;
 import wyal.rules.InequalityIntroduction;
@@ -44,6 +45,7 @@ public class AutomatedTheoremProver {
 				new AndElimination(),
 				new ExistentialElimination(),
 				new MacroExpansion(types),
+				new ArrayLengthAxiom(),
 				new OrElimination(),
 				new QuantifierInstantiation(types)
 		};
