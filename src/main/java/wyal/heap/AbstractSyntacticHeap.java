@@ -1,4 +1,4 @@
-package wyal.util;
+package wyal.heap;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;

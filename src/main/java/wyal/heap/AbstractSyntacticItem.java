@@ -1,4 +1,4 @@
-package wyal.util;
+package wyal.heap;
 
 import java.math.BigInteger;
 import java.util.Arrays;

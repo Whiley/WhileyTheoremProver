@@ -9,7 +9,7 @@ import java.util.Set;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.util.AutomatedTheoremProver;
-import wyal.util.TypeChecker;
+import wyal.util.OldAutomatedTheoremProver;
 import wyal.lang.WyalFile;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;
@@ -101,6 +101,7 @@ public class CompileTask implements Build.Task {
 				new TypeChecker(wf).check();
 				if(verify) {
 					Path.Entry<?> original = determineSource(source,graph);
+					//new OldAutomatedTheoremProver(wf).check(original);
 					new AutomatedTheoremProver(wf).check(original);
 				}
 				files.add(wf);

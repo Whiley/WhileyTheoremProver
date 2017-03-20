@@ -7,14 +7,14 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+import wyal.heap.AbstractSyntacticHeap;
+import wyal.heap.AbstractSyntacticItem;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.util.AbstractSyntacticHeap;
-import wyal.util.AbstractSyntacticItem;
-import wyal.util.AutomatedTheoremProver;
+import wyal.util.OldAutomatedTheoremProver;
 import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
