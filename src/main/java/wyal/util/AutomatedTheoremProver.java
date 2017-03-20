@@ -11,7 +11,9 @@ import wyal.rules.AndElimination;
 import wyal.rules.EqualityCongruence;
 import wyal.rules.ExistentialElimination;
 import wyal.rules.InequalityIntroduction;
+import wyal.rules.MacroExpansion;
 import wyal.rules.OrElimination;
+import wyal.rules.QuantifierInstantiation;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
@@ -39,9 +41,11 @@ public class AutomatedTheoremProver {
 		this.rules = new Proof.Rule[] {
 				new EqualityCongruence(types),
 				new InequalityIntroduction(types),
-				new ExistentialElimination(),
 				new AndElimination(),
-				new OrElimination()
+				new ExistentialElimination(),
+				new MacroExpansion(types),
+				new OrElimination(),
+				new QuantifierInstantiation(types)
 		};
 	}
 
@@ -97,7 +101,7 @@ public class AutomatedTheoremProver {
 	private boolean checkUnsat(Proof.State state, Proof.Delta delta, Formula.Truth FALSE) {
 		Proof.Delta.Set additions = delta.getAdditions();
 		// Infer information from current state and delta
-		for (int i = 0; i != additions.size(); ++i) {
+		for (int i = 0; i != additions.size() && !state.isKnown(FALSE); ++i) {
 			Formula truth = additions.get(i);
 			// Check whether the given truth is actually active or not. If not,
 			// it has been subsumed at some point, and can be ignored.
@@ -136,14 +140,11 @@ public class AutomatedTheoremProver {
 					delta = delta.apply(state.getDelta(before));
 				}
 			}
-			// Check for early termination (i.e. because we found a
-			// contradiction)
-			if (state.isKnown(FALSE)) {
-				return true;
-			}
 		}
 		// If we still have some unprocessed truths then continue!
-		if (delta.getAdditions().size() > 0) {
+		if(state.isKnown(FALSE)) {
+			return true;
+		} else if (delta.getAdditions().size() > 0) {
 			return checkUnsat(state, delta, FALSE);
 		} else {
 			return false;

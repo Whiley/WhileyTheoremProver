@@ -210,6 +210,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			super(proof,null,null);
 			this.truths = new BitSet();
 			this.delta = new Delta(new Delta.Set(axiom),Delta.EMPTY_SET);
+			this.truths.set(axiom.getIndex());
 		}
 
 		private State(State state, Proof.Rule rule, Delta delta, WyalFile.Expr... dependencies) {
