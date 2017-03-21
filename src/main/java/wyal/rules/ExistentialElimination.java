@@ -2,7 +2,10 @@ package wyal.rules;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
+import wyal.lang.Formula.Conjunct;
 import wyal.lang.Proof.State;
+import wyal.util.Formulae;
+import wyal.util.TypeSystem;
 
 /**
  * <p>
@@ -23,6 +26,11 @@ import wyal.lang.Proof.State;
  *
  */
 public class ExistentialElimination implements Proof.LinearRule {
+	private final TypeSystem types;
+
+	public ExistentialElimination(TypeSystem types) {
+		this.types = types;
+	}
 
 	@Override
 	public String getName() {
@@ -34,7 +42,14 @@ public class ExistentialElimination implements Proof.LinearRule {
 		if(truth instanceof Formula.Quantifier) {
 			Formula.Quantifier qf = (Formula.Quantifier) truth;
 			if(!qf.getSign()) {
-				state = state.subsume(this, qf, qf.getBody());
+				Formula body = qf.getBody();
+				// Expand any type invariants
+				Formula invariant = Formulae.expandTypeInvariants(qf.getParameters(),types);
+				// Add type invariants (if appropriate)
+				if (invariant != null) {
+					body = state.allocate(new Conjunct(invariant, body));
+				}
+				state = state.subsume(this, qf, body);
 			}
 		}
 		// No change in the normal case

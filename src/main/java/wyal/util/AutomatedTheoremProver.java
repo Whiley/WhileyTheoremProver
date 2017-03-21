@@ -14,6 +14,7 @@ import wyal.rules.ArrayIndexCaseAnalysis;
 import wyal.rules.ArrayLengthAxiom;
 import wyal.rules.EqualityCongruence;
 import wyal.rules.ExistentialElimination;
+import wyal.rules.ExpandTypeTest;
 import wyal.rules.InequalityIntroduction;
 import wyal.rules.MacroExpansion;
 import wyal.rules.OrElimination;
@@ -22,6 +23,7 @@ import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
 public class AutomatedTheoremProver {
+
 	/**
 	 * The type system encapsulates the core algorithms for type simplification
 	 * and subtyping testing.
@@ -31,6 +33,11 @@ public class AutomatedTheoremProver {
 	 * The enclosing WyAL file being checked.
 	 */
 	private final WyalFile parent;
+
+	/**
+	 * Determines the maximum size of a proof.
+	 */
+	private final int maxProofSize = 1000;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
@@ -46,8 +53,9 @@ public class AutomatedTheoremProver {
 				new EqualityCongruence(types),
 				new InequalityIntroduction(types),
 				new AndElimination(),
-				new ExistentialElimination(),
+				new ExistentialElimination(types),
 				new MacroExpansion(types),
+				new ExpandTypeTest(types),
 				new ArrayLengthAxiom(),
 				new ArrayIndexCaseAnalysis(types),
 				new OrElimination(),
@@ -103,7 +111,16 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
+
+
 	private boolean checkUnsat(Proof.State state, Proof.Delta delta, Formula.Truth FALSE) {
+		// Sanity check whether we have reached the hard limit on the amount of
+		// computation permitted.
+		if(state.getProof().size() > maxProofSize) {
+			//throw new IllegalArgumentException("Maximum proof size reached");
+			return false;
+		}
+		// Hard limit not reached, therefore continue exploring!
 		Proof.Delta.Set additions = delta.getAdditions();
 		// Infer information from current state and delta
 		for (int i = 0; i != additions.size() && !state.isKnown(FALSE); ++i) {

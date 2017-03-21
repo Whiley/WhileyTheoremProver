@@ -76,12 +76,6 @@ public class Formulae {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Disjunct(invert(invariant), body);
-			}
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
@@ -89,12 +83,6 @@ public class Formulae {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Conjunct(invariant, body);
-			}
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
@@ -102,12 +90,6 @@ public class Formulae {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Disjunct(invert(invariant), body);
-			}
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
@@ -115,12 +97,6 @@ public class Formulae {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Conjunct(invariant, body);
-			}
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
@@ -327,7 +303,7 @@ public class Formulae {
 	 * @param types
 	 * @return
 	 */
-	private static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
+	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
@@ -341,7 +317,7 @@ public class Formulae {
 		}
 		return result;
 	}
-	private static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
 		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
 	}
 	public static int skolem = 0;
@@ -434,6 +410,7 @@ public class Formulae {
 		}
 		case TYPE_arr: {
 			Type.Array t = (Type.Array) type;
+			// FIXME: trying to get rid of this would somehow be useful
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
@@ -936,30 +913,8 @@ public class Formulae {
 	private static Formula simplifyIs(Formula.Is e, TypeSystem types) {
 		Expr lhs = e.getExpr();
 		Expr nLhs = simplify(lhs,types);
-		Formula invariant = extractTypeInvariant(e.getTypeTest(), nLhs, types);
-		// FIXME: could reduce this expression to true or false in some cases.
-		// For example, if lhs is a constant.
-		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
-		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
-		if (isSubtype && invariant != null) {
-			return simplifyFormula(invariant,types);
-		} else if (isSubtype) {
-			return new Formula.Truth(true);
-		} else if (isNotSubtype && invariant != null) {
-			// FIXME: I think this is broken in the general case. The essential
-			// problem boils down to what the subtype test is really telling us.
-			// For example, is it saying that the underlying type of the lhs is not
-			// a subtype of the negated rhs? I don't think so.
-			return simplifyFormula(invariant,types);
-		} else if(isNotSubtype) {
-			return new Formula.Truth(false);
-		}
-		// At this point, we're stuck with a type test of some sort.
 		if(lhs != nLhs) {
-			e = new Formula.Is(nLhs, e.getTypeTest());
-		}
-		if(invariant != null) {
-			return and(simplifyFormula(invariant,types),e);
+			return new Formula.Is(nLhs, e.getTypeTest());
 		} else {
 			return e;
 		}

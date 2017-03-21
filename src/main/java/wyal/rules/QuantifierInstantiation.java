@@ -8,6 +8,7 @@ import java.util.List;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.WyalFile;
+import wyal.lang.Formula.Disjunct;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
@@ -158,6 +159,12 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
 		grounded = (Formula) Formulae.substitute(access, binding, grounded);
+		// Expand any type invariant associated with this variable
+		Formula invariant = Formulae.expandTypeInvariant(variable,types);
+		// Add type invariants (if appropriate)
+		if (invariant != null) {
+			grounded = new Disjunct(Formulae.invert(invariant), grounded);
+		}
 		// Determine whether quantified variables still exist.
 		if (parameters.length > 1) {
 			// This does not represent a complete instantiation of this

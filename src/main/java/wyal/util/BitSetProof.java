@@ -1,16 +1,13 @@
 package wyal.util;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.List;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
-import wyal.lang.WyalFile;
 import wyal.util.AbstractProof;
-import wyal.util.AbstractProof.AbstractStep;
+import wyal.util.AbstractProof.AbstractState;
 import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.Declaration.Assert;
 
@@ -197,7 +194,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 
 	}
 
-	public static class State extends AbstractStep<State> {
+	public static class State extends AbstractState<State> {
 		/**
 		 * The set of all known truths, including those which are subsumed.
 		 * Always a superset of activeTruths.
@@ -206,7 +203,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 
 		private final Delta delta;
 
-		public State(Proof proof, Formula axiom) {
+		public State(BitSetProof proof, Formula axiom) {
 			super(proof,null,null);
 			this.truths = new BitSet();
 			this.delta = new Delta(new Delta.Set(axiom),Delta.EMPTY_SET);
@@ -214,7 +211,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 		}
 
 		private State(State state, Proof.Rule rule, Delta delta, Formula... dependencies) {
-			super(state.getProof(),state,rule,dependencies);
+			super((BitSetProof) state.getProof(),state,rule,dependencies);
 			this.truths = (BitSet) state.truths.clone();
 			this.delta = delta;
 			state.children.add(this);
@@ -292,7 +289,8 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 				}
 			}
 			Delta nDelta = new Delta(additions, removals);
-			return new State(this, rule, nDelta, ArrayUtils.append(from, deps));
+			// Register this state
+			return proof.register(new State(this, rule, nDelta, ArrayUtils.append(from, deps)));
 		}
 
 		@Override
@@ -300,8 +298,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			final int index = truth.getIndex();
 			if(!truths.get(index)) {
 				Delta delta = new Delta(new Delta.Set(truth), Delta.EMPTY_SET);
-				State next = new State(this,rule,delta,dependencies);
-				return next;
+				return proof.register(new State(this,rule,delta,dependencies));
 			} else {
 				return this;
 			}
