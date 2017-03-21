@@ -17,7 +17,7 @@ public class EqualityCongruence implements Proof.LinearRule {
 
 	@Override
 	public String getName() {
-		return "Eq-C";
+		return "Eq-S";
 	}
 
 	@Override

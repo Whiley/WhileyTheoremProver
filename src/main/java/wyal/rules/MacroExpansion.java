@@ -18,6 +18,40 @@ import wyal.lang.WyalFile.Stmt.Block;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
+/**
+ * <p>
+ * Responsible for inlining macro invocations from their definitions. For
+ * example, consider this assertion:
+ * </p>
+ *
+ * <pre>
+ * define nat(int n) is:
+ *   n >= 0
+ *
+ * assert:
+ *   forall(int x):
+ *       if:
+ *           x > 0
+ *       then:
+ *           nat(x)
+ * </pre>
+ * <p>
+ * In proving this assertion, we will at some point come to the macro invocation
+ * <code>nat(x)</code> or its <i>inversion</i> <code>!nat(x)</code>. To deal
+ * with this, we simply replace <code>nat(x)</code> by its body where the
+ * parameters are substituted for their arguments. That is, we replace
+ * <code>nat(x)</code> by <code>n >= 0</code> and substitute <code>n</code> for
+ * the argument <code>x</code>.
+ * </p>
+ * <p>
+ * <b>NOTE:</b> A pretty obvious concern with this rule is how to deal with
+ * recursive macro definitions. This has not been tried and tested at this
+ * stage!
+ * </p>
+ *
+ * @author David J. Pearce
+ *
+ */
 public class MacroExpansion implements Proof.LinearRule {
 	private final TypeSystem types;
 
@@ -32,7 +66,7 @@ public class MacroExpansion implements Proof.LinearRule {
 
 	@Override
 	public State apply(Proof.State state, Formula truth) {
-		if(truth instanceof Formula.Invoke) {
+		if (truth instanceof Formula.Invoke) {
 			Formula.Invoke ivk = (Formula.Invoke) truth;
 			// Determine the type declaration in question
 			Type.FunctionOrMacro af = ivk.getSignatureType();
@@ -63,6 +97,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// Expand the macro body with appropriate substitutions
 			return expandMacroBody(md, arguments.getOperands());
 		} else {
+			// Functions are ignored
 			return null;
 		}
 	}
