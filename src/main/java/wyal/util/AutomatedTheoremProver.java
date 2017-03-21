@@ -10,6 +10,7 @@ import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.rules.AndElimination;
+import wyal.rules.ArrayIndexCaseAnalysis;
 import wyal.rules.ArrayLengthAxiom;
 import wyal.rules.EqualityCongruence;
 import wyal.rules.ExistentialElimination;
@@ -41,9 +42,16 @@ public class AutomatedTheoremProver {
 		// FIXME: this should be shared between different compilation stages
 		this.types = new TypeSystem(parent);
 		//
-		this.rules = new Proof.Rule[] { new EqualityCongruence(types), new InequalityIntroduction(types),
-				new AndElimination(), new ExistentialElimination(), new MacroExpansion(types), new ArrayLengthAxiom(),
-				new OrElimination(), new QuantifierInstantiation(types) };
+		this.rules = new Proof.Rule[] {
+				new EqualityCongruence(types),
+				new InequalityIntroduction(types),
+				new AndElimination(),
+				new ExistentialElimination(),
+				new MacroExpansion(types),
+				new ArrayLengthAxiom(),
+				new ArrayIndexCaseAnalysis(types),
+				new OrElimination(),
+				new QuantifierInstantiation(types) };
 	}
 
 	public void check(Path.Entry<?> originalSource) {
