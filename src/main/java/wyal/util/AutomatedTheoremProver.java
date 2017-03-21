@@ -1,5 +1,7 @@
 package wyal.util;
 
+import java.util.BitSet;
+
 import wyal.heap.StructurallyEquivalentHeap;
 import wyal.heap.SyntacticHeaps;
 import wyal.lang.Formula;
@@ -39,16 +41,9 @@ public class AutomatedTheoremProver {
 		// FIXME: this should be shared between different compilation stages
 		this.types = new TypeSystem(parent);
 		//
-		this.rules = new Proof.Rule[] {
-				new EqualityCongruence(types),
-				new InequalityIntroduction(types),
-				new AndElimination(),
-				new ExistentialElimination(),
-				new MacroExpansion(types),
-				new ArrayLengthAxiom(),
-				new OrElimination(),
-				new QuantifierInstantiation(types)
-		};
+		this.rules = new Proof.Rule[] { new EqualityCongruence(types), new InequalityIntroduction(types),
+				new AndElimination(), new ExistentialElimination(), new MacroExpansion(types), new ArrayLengthAxiom(),
+				new OrElimination(), new QuantifierInstantiation(types) };
 	}
 
 	public void check(Path.Entry<?> originalSource) {
@@ -124,7 +119,7 @@ public class AutomatedTheoremProver {
 						Proof.State[] splits = nonLinearRule.apply(state, truth);
 						if (splits.length > 1) {
 							// Yes, we have multiple branches so handle that.
-							return applySplit(delta, splits, FALSE);
+							return applySplit(state, splits, delta, truth, FALSE);
 						} else {
 							// In this case, either the rule did not apply or
 							// there was only one child anyway.
@@ -143,20 +138,25 @@ public class AutomatedTheoremProver {
 				}
 			}
 		}
-		// If we still have some unprocessed truths then continue!
-		if(state.isKnown(FALSE)) {
+		if (state.isKnown(FALSE)) {
+			// We established a contradiction at some point during this round,
+			// therefore we're done.
 			return true;
 		} else if (delta.getAdditions().size() > 0) {
+			// We still have unprocessed truths. Therefore, continue for another
+			// round.
 			return checkUnsat(state, delta, FALSE);
 		} else {
+			// We're out of options, therefore we're failing to find a
+			// contradiction and we give up on the whole thing.
 			return false;
 		}
 	}
 
-	private boolean applySplit(Proof.Delta delta, Proof.State[] states, Formula.Truth FALSE) {
+	private boolean applySplit(Proof.State state, Proof.State[] splits, Proof.Delta delta, Formula truth, Formula.Truth FALSE) {
 		// Now, try to find a contradiction for each case
-		for (int j = 0; j != states.length; ++j) {
-			Proof.State split = states[j];
+		for (int j = 0; j != splits.length; ++j) {
+			Proof.State split = splits[j];
 			Proof.Delta splitDelta = delta.apply(split.getDelta());
 			//
 			if (!checkUnsat(split, splitDelta, FALSE)) {
@@ -168,43 +168,59 @@ public class AutomatedTheoremProver {
 				// actually had a part to play or not. If not, then we can
 				// terminate this disjunct early (which can lead to significant
 				// reductions in the state space).
-				// BitSet cone = split.getDependencyCone();
-				// //
-				// if (cone.get(disjunct.getIndex()) == false) {
-				// applyStateBypass(state, split);
-				// break;
-				// }
+				BitSet cone = getDependencyCone(split, FALSE);
+				//
+				if (cone.get(truth.getIndex()) == false) {
+					state.applyBypass(split);
+					break;
+				}
 			}
 		}
 		return true;
 	}
 
 	/**
-	 * This simply implements a "state bypass". That is, this state is removed
-	 * from the proof because it is not considered necessary for proving the
-	 * contradiction. This is useful for reducing the overall search space of
-	 * the algorithm, and also for reducing the size of the resulting proofs
-	 * (making them far easier to read by hand).
+	 * Determine the "dependency cone" for a give state. That is, the set of
+	 * truths on which the final contradiction depends. This is likely to be a
+	 * subset of the actual active truths. In particular, at the point of a
+	 * disjunction it is possible that the disjunct itself does not contribute
+	 * torwards finding the contradiction. In such case, we can apply a "bypass"
+	 * to avoid checking all of the other branches for that disjunct.
 	 *
-	 * @param child
-	 *            The child which is used in the bypass. The parent will now
-	 *            point to the child, rather than the formula.
-	 * @param formula
 	 * @param state
+	 * @return
 	 */
-	private void applyStateBypass(Proof.State state, Proof.State bypass) {
-		// Proof.State parent = state.getParent();
-		// if (parent != null) {
-		// // Must have a parent state to implement bypass
-		// for (int i = 0; i != parent.numberOfChildren(); ++i) {
-		// if (parent.getChild(i) == state) {
-		// // found it
-		// parent.setChild(i, bypass);
-		// bypass.setParent(parent);
-		// }
-		// }
-		// state.setParent(null);
-		// }
-		// FIXME: put this back
+	private BitSet getDependencyCone(Proof.State state, Formula.Truth FALSE) {
+		Proof.Delta delta = state.getDelta();
+		if(delta.isAddition(FALSE)) {
+			// This is the leaf case
+			BitSet dependencies = new BitSet();
+			for(Formula dep : state.getDependencies()) {
+				dependencies.set(dep.getIndex());
+			}
+			return dependencies;
+		} else {
+			BitSet dependencies = new BitSet();
+			// Determine recurisve dependencies
+			for(int i=0;i!=state.numberOfChildren();++i) {
+				Proof.State child = state.getChild(i);
+				dependencies.or(getDependencyCone(child,FALSE));
+			}
+			//
+			Proof.Delta.Set additions = delta.getAdditions();
+			for(int i=0;i!=additions.size();++i) {
+				Formula addition = additions.get(i);
+				if(dependencies.get(addition.getIndex())) {
+					// One of the additions for this state contributed to the
+					// contradiction. Therefore, include our dependencies.
+					for(Formula dep : state.getDependencies()) {
+						dependencies.set(dep.getIndex());
+					}
+					break;
+				}
+			}
+			//
+			return dependencies;
+		}
 	}
 }

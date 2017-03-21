@@ -101,7 +101,7 @@ public interface Proof {
 		 *
 		 * @return
 		 */
-		List<WyalFile.Expr> getDependencies();
+		List<Formula> getDependencies();
 
 		/**
 		 * Get the number of child steps originating from this step
@@ -116,6 +116,8 @@ public interface Proof {
 		 * @return
 		 */
 		State getChild(int ith);
+
+		void applyBypass(State bypass);
 
 		/**
 		 * Apply a simple proof step which splits a given disjunct into several

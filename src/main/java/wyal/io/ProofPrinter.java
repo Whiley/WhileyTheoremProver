@@ -172,7 +172,7 @@ public class ProofPrinter {
 			title += step.getRule().getName();
 			title += " ";
 		}
-		List<WyalFile.Expr> deps = step.getDependencies();
+		List<Formula> deps = step.getDependencies();
 		for(int j=0;j!=deps.size();++j) {
 			if(j != 0) {
 				title += ",";

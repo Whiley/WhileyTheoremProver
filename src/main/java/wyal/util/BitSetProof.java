@@ -213,7 +213,7 @@ public class BitSetProof extends AbstractProof<BitSetProof.State> {
 			this.truths.set(axiom.getIndex());
 		}
 
-		private State(State state, Proof.Rule rule, Delta delta, WyalFile.Expr... dependencies) {
+		private State(State state, Proof.Rule rule, Delta delta, Formula... dependencies) {
 			super(state.getProof(),state,rule,dependencies);
 			this.truths = (BitSet) state.truths.clone();
 			this.delta = delta;

@@ -48,12 +48,12 @@ public class AbstractProof<T extends Proof.State> implements Proof {
 
 	public abstract static class AbstractStep<T extends Proof.State> implements Proof.State {
 		protected final Proof proof;
-		protected final List<WyalFile.Expr> dependencies;
+		protected final List<Formula> dependencies;
 		protected final Proof.Rule rule;
 		protected final ArrayList<T> children;
 		protected T parent;
 
-		public AbstractStep(Proof proof, T parent, Proof.Rule rule, WyalFile.Expr... dependencies) {
+		public AbstractStep(Proof proof, T parent, Proof.Rule rule, Formula... dependencies) {
 			this.proof = proof;
 			this.parent = parent;
 			this.dependencies = Arrays.asList(dependencies);
@@ -71,17 +71,13 @@ public class AbstractProof<T extends Proof.State> implements Proof {
 			return parent;
 		}
 
-		public void setParent(T parent) {
-			this.parent = parent;
-		}
-
 		@Override
 		public Proof.Rule getRule() {
 			return rule;
 		}
 
 		@Override
-		public List<WyalFile.Expr> getDependencies() {
+		public List<Formula> getDependencies() {
 			return dependencies;
 		}
 
@@ -95,8 +91,17 @@ public class AbstractProof<T extends Proof.State> implements Proof {
 			return children.get(ith);
 		}
 
-		public void setChild(int ith, T child) {
-			children.set(ith, child);
+		@Override
+		public void applyBypass(Proof.State child) {
+			// FIXME: this line is clearly a hack for now
+			AbstractStep c = (AbstractStep) child;
+			children.clear();
+			children.addAll(c.children);
+			c.parent = null;
+			for(int i=0;i!=children.size();++i) {
+				c = (AbstractStep) children.get(i);
+				c.parent = this;
+			}
 		}
 	}
 }
