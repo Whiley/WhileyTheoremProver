@@ -1,10 +1,9 @@
 package wyal.rules;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
@@ -12,7 +11,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
@@ -41,18 +40,15 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		return state;
 	}
 
-	private Set<Expr> extractTerms(Polynomial polynomial) {
-		HashSet<Expr> terms = new HashSet<>();
-		for (int i = 0; i != polynomial.size(); ++i) {
-			Polynomial.Term term = polynomial.getOperand(i);
-			Expr[] atoms = term.getAtoms();
-			for (int j = 0; j != atoms.length; ++j) {
-				terms.add(atoms[j]);
-			}
-		}
-		return terms;
-	}
-
+	/**
+	 * Attempt to match a given ground term against any active quantifiers in an
+	 * effort to instantiate them one or more times. This may fail if no
+	 * suitable bindings can be found.
+	 *
+	 * @param groundTerm
+	 * @param state
+	 * @return
+	 */
 	private State instantiateQuantifiers(Formula.Inequality groundTerm, State state) {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
@@ -60,13 +56,13 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		// determine any cases where this can be applied.
 		Proof.Delta history = state.getDelta(null);
 		Proof.Delta.Set additions = history.getAdditions();
-		for(int i=0;i!=additions.size();++i) {
+		for (int i = 0; i != additions.size(); ++i) {
 			Formula truth = additions.get(i);
-			if(truth instanceof Formula.Quantifier) {
+			if (truth instanceof Formula.Quantifier) {
 				Formula.Quantifier qf = (Formula.Quantifier) truth;
-				if(qf.getSign()) {
+				if (qf.getSign()) {
 					// Yes, this is a universal quantifier
-					state = applyQuantifierInstantiation(qf,groundTerm,EMPTY_BINDING,state);
+					state = applyQuantifierInstantiation(qf, groundTerm, state);
 				}
 			}
 		}
@@ -74,49 +70,128 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		return state;
 	}
 
-	private static Expr[] EMPTY_BINDING = new Expr[0];
+	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Inequality groundTerm, State state) {
 
-	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Inequality groundTerm,
-			Expr[] binding, State state) {
+		// FIXME: I believe there is a bug here in the (unlikely?) situation
+		// that we can in fact match *multiple* variables in the same quantifier
+		// against the same ground term.
 
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
-		if (binding.length == parameters.length) {
-			// Binding now complete, so proceed to instantiate quantifier.
-			// First, substitute body through for the binding obtained for each
-			// parameter.
-			Formula body = quantifier.getBody();
-			// FIXME: there is a bug of sorts here related to skolems
-			for (int i = 0; i != parameters.length; ++i) {
-				VariableDeclaration parameter = parameters[i];
-				Expr.VariableAccess access = new Expr.VariableAccess(parameter);
-				body = (Formula) Formulae.substitute(access, binding[i], body);
-			}
-			// Second, instantiate the ground body
-			body = state.allocate(Formulae.simplifyFormula(body, types));
-			return state.infer(QuantifierInstantiation.this, body, quantifier);
-		} else {
-			// Exhaustively instantiate this variable with all possible ground
-			// terms.
-			VariableDeclaration quantifiedVariable = parameters[binding.length];
-			Type pt = quantifiedVariable.getType();
-			List<Expr> grounds = match(quantifiedVariable, quantifier, groundTerm);
-			//
-			System.out.println("MATCHED: " + grounds);
-			//
-			for (int i = 0; i != grounds.size(); ++i) {
-				Expr ground = grounds.get(i);
-				Type gt = ground.getReturnType(types);
-				// Make sure ground term is compatible with parameter in
-				// question. If not, then it's not a valid substitution and
-				// should be skipped.
-				if (types.isSubtype(pt, gt)) {
-					Expr[] nBinding = Arrays.copyOf(binding, binding.length + 1);
-					nBinding[binding.length] = ground;
-					state = applyQuantifierInstantiation(quantifier, groundTerm, nBinding, state);
-				}
-			}
-			return state;
+		for(int i=0;i!=parameters.length;++i) {
+			VariableDeclaration variable = parameters[i];
+			state = attemptQuantifierInstantiation(quantifier, variable, groundTerm, state);
 		}
+		return state;
+	}
+
+	/**
+	 * Attempt to instantiate a given variable of a universal quantifier. This
+	 * searches a given ground term for appropriate bindings for the variable in
+	 * question. If any are found, then the quantifier is instantiated
+	 * separately for each.
+	 *
+	 * @param quantifier
+	 *            --- The universal quantifier to be instantiated.
+	 * @param variable
+	 *            --- The quantified variable declared in the universal
+	 *            quantifier to be instantiated.
+	 * @param groundTerm
+	 *            --- The term with which we will attempt to bind the quantified
+	 *            variable against, thereby producing appropriate bindings for
+	 *            the instantiation (or not, if none exist).
+	 * @param state
+	 *            --- The state in which the instantiated quantifier will be
+	 *            asserted.
+	 * @return
+	 */
+	private State attemptQuantifierInstantiation(Formula.Quantifier quantifier, VariableDeclaration variable,
+			Formula.Inequality groundTerm, State state) {
+		// Exhaustively instantiate this variable with all possible ground
+		// terms.
+		Type pt = variable.getType();
+		List<Expr> grounds = bind(variable, quantifier.getBody(), groundTerm);
+		//
+		for (int i = 0; i != grounds.size(); ++i) {
+			Expr ground = grounds.get(i);
+			Type gt = ground.getReturnType(types);
+			// Make sure ground term is compatible with parameter in
+			// question. If not, then it's not a valid substitution and
+			// should be skipped.
+			if (types.isSubtype(pt, gt)) {
+				state = instantiateQuantifier(quantifier, variable, groundTerm, ground, state);
+			}
+		}
+		return state;
+	}
+
+	/**
+	 * <p>
+	 * Instantiate the body of a universal quantifier using a binding for a
+	 * given quantified variable. For example, instantiating
+	 * <code>forall(int i).(xs[i] >= 0)</code> with the binding <code>i=1</code>
+	 * would produce the ground term <code>xs[1] >= 0</code>.
+	 * </p>
+	 * <p>
+	 * Note that this procedure does not always eliminate the quantifier itself.
+	 * For example, instantiating <code>forall(int i, int j).(xs[i] >= j)</code>
+	 * with the binding <code>i=1</code> would produce the quantified term
+	 * <code>forall(int j).(xs[1] >= j)</code>.
+	 * </p>
+	 *
+	 * @param quantifier
+	 *            --- The universal quantifier to be instantiated.
+	 * @param variable
+	 *            --- The quantified variable declared in the universal
+	 *            quantifier to be instantiated.
+	 * @param binding
+	 *            --- The binding to be used to instantiated the quantified
+	 *            variable with. In other words, all occurences of the
+	 *            quantified variable are replaced with this expression.
+	 * @param state
+	 *            --- The state in which the instantiated quantifier will be
+	 *            asserted.
+	 * @return
+	 */
+	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable, Formula.Inequality groundTerm, Expr binding, State state) {
+		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
+		// Substitute body through for the binding obtained the given parameter
+		Formula grounded = quantifier.getBody();
+		Expr.VariableAccess access = new Expr.VariableAccess(variable);
+		grounded = (Formula) Formulae.substitute(access, binding, grounded);
+		// Determine whether quantified variables still exist.
+		if (parameters.length > 1) {
+			// This does not represent a complete instantiation of this
+			// quantifier. Therefore, we need to retain all quantified variables
+			// except that which was instantiated.
+			parameters = stripInstantiatedParameter(parameters,variable);
+			// Re-quantify remaining variables
+			grounded = new Formula.Quantifier(true,parameters,grounded);
+		}
+		// Finally, assert the newly instantiated quantifier in the current
+		// state.
+		grounded = state.allocate(Formulae.simplifyFormula(grounded, types));
+		return state.infer(this, grounded, quantifier, groundTerm);
+	}
+
+	/**
+	 * Remove a given parameter declaration from an array of parameter
+	 * declarations, producing an array of length exactly one less than the
+	 * original.
+	 *
+	 * @param parameters
+	 * @param variable
+	 * @return
+	 */
+	private VariableDeclaration[] stripInstantiatedParameter(VariableDeclaration[] parameters,
+			VariableDeclaration variable) {
+		VariableDeclaration[] result = new VariableDeclaration[parameters.length - 1];
+		for (int i = 0, j = 0; i != parameters.length; ++i) {
+			VariableDeclaration parameter = parameters[i];
+			if (parameter != variable) {
+				result[j++] = parameter;
+			}
+		}
+		return result;
 	}
 
 	/**
@@ -130,138 +205,171 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @param variable
 	 * @return
 	 */
-	private List<Expr> match(VariableDeclaration variable, Formula.Quantifier quantifier, Formula.Inequality ground) {
-		ArrayList<Expr> matches = new ArrayList<>();
-		matchHelper(variable,quantifier.getBody(),ground,matches);
-		return matches;
-	}
-
-	private void matchHelper(VariableDeclaration variable, Formula quantified, Formula.Inequality ground,
-			List<Expr> matches) {
+	private List<Expr> bind(VariableDeclaration variable, Formula quantified, Formula.Inequality ground) {
+		ArrayList<Expr> result = new ArrayList<>();
+		//
 		if (quantified instanceof Formula.Inequality) {
-			matchInequality(variable, (Formula.Inequality) quantified, ground, matches);
-		} else {
-			// FIXME: should do more here!!
-		}
-	}
-
-	private void matchInequality(VariableDeclaration variable, Formula.Inequality quantified, Formula.Inequality ground, List<Expr> matches) {
-
-		// FIXME: do we need to have one side "locked". That is, matching?
-
-		// Positive (Quantified) versus Negative (Ground)
-		matchPolynomial(variable,quantified.getOperand(0),ground.getOperand(1),matches);
-		//  Negative (Quantified) versus Positive (Ground)
-		matchPolynomial(variable,quantified.getOperand(1),ground.getOperand(0),matches);
-	}
-
-	private void matchPolynomial(VariableDeclaration variable, Polynomial quantified, Polynomial ground, List<Expr> matches) {
-		for(int i=0;i!=quantified.size();++i) {
-			Polynomial.Term quantifiedTerm = quantified.getOperand(i);
-			for(int j=0;j!=ground.size();++j) {
-				Polynomial.Term groundTerm = ground.getOperand(j);
-				matchPolynomialTerm(variable,quantifiedTerm,groundTerm,matches);
+			Formula.Inequality ieq = (Formula.Inequality) quantified;
+			// Positive (Quantified) versus Negative (Ground)
+			List<Expr> posNegMatches = bindPolynomial(variable, ieq.getOperand(0), ground.getOperand(1));
+			// Negative (Quantified) versus Positive (Ground)
+			List<Expr> negPosMatches = bindPolynomial(variable, ieq.getOperand(1), ground.getOperand(0));
+			//
+			result.addAll(posNegMatches);
+			result.addAll(negPosMatches);
+		} else if(quantified instanceof Formula.Conjunct){
+			Formula.Conjunct c = (Formula.Conjunct) quantified;
+			for(int i=0;i!=c.size();++i) {
+				result.addAll(bind(variable,c.getOperand(i),ground));
 			}
-		}
-	}
-
-	private void matchPolynomialTerm(VariableDeclaration variable, Polynomial.Term quantified, Polynomial.Term ground, List<Expr> matches) {
-		Expr[] quantifiedAtoms = quantified.getAtoms();
-		Expr[] groundAtoms = ground.getAtoms();
-		for(int i=0;i!=quantifiedAtoms.length;++i) {
-			Expr quantifiedAtom = quantifiedAtoms[i];
-			for(int j=0;j!=groundAtoms.length;++j) {
-				Expr groundAtom = groundAtoms[j];
-				matchExpression(variable,quantifiedAtom,groundAtom,matches);
-			}
-		}
-	}
-
-	private boolean matchExpression(VariableDeclaration variable, Expr quantified, Expr ground, List<Expr> matches) {
-		if(attemptMatch(variable,quantified,ground,matches)) {
-			return true;
-		} else {
-			WyalFile.Opcode quantifiedOpcode = quantified.getOpcode();
-			WyalFile.Opcode groundOpcode = ground.getOpcode();
-			if(quantified.equals(ground)) {
-				System.out.print("MATCHED IDENTICAL: ");
-				WyalFile.print(quantified);
-				System.out.print(" ");
-				WyalFile.println(ground);
-				return true;
-			} else if (quantifiedOpcode == groundOpcode) {
-				switch(quantifiedOpcode) {
-				case EXPR_arridx:
-					return matchArrayAccess(variable, (Expr.Operator) quantified, (Expr.Operator) ground, matches);
-				case EXPR_add:
-					return equateArithmeticExpression(variable, (Expr.Polynomial) quantified, (Expr.Polynomial) ground, matches);
-				default:
-					throw new IllegalArgumentException("attempting to match unknown expression: " + quantifiedOpcode);
-				}
-			}
-
-			return false;
-		}
-	}
-
-	private boolean attemptMatch(VariableDeclaration variable, Expr quantified, Expr ground, List<Expr> matches) {
-		System.out.print("ATTEMPTING MATCH: ");
-		WyalFile.print(quantified);
-		System.out.print(" (" + quantified.getClass().getName() + ")");
-		WyalFile.print(ground);
-		System.out.println(" (" + ground.getClass().getName() + ")");
-		if(quantified instanceof Expr.VariableAccess) {
-			System.out.println("GOT IN");
-			Expr.VariableAccess var = (Expr.VariableAccess) quantified;
-			if(var.getVariableDeclaration().equals(variable)) {
-				// Yes, this is the quantified variable we're looking for.
-				// Therefore, we can now (finally) extract an actual match.
-				matches.add(ground);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private boolean equateArithmeticExpression(VariableDeclaration variable, Expr.Polynomial quantified, Expr.Polynomial ground, List<Expr> matches) {
-		boolean result = false;
-		for(int i=0;i!=quantified.size();++i) {
-			Polynomial.Term quantifiedTerm = quantified.getOperand(i);
-			for(int j=0;j!=ground.size();++j) {
-				Polynomial.Term groundTerm = ground.getOperand(j);
-				result |= equatePolynomialTerm(variable,quantifiedTerm,groundTerm,matches);
+		} else if(quantified instanceof Formula.Disjunct){
+			Formula.Disjunct c = (Formula.Disjunct) quantified;
+			for(int i=0;i!=c.size();++i) {
+				result.addAll(bind(variable,c.getOperand(i),ground));
 			}
 		}
 		return result;
 	}
 
-	private boolean equatePolynomialTerm(VariableDeclaration variable, Polynomial.Term quantified, Polynomial.Term ground, List<Expr> matches) {
-		boolean result = false;
-		Expr[] quantifiedAtoms = quantified.getAtoms();
-		Expr[] groundAtoms = ground.getAtoms();
-		for(int i=0;i!=quantifiedAtoms.length;++i) {
-			Expr quantifiedAtom = quantifiedAtoms[i];
-			if (groundAtoms.length == 0) {
-				result |= matchExpression(variable, quantifiedAtom, ground.getOperand(0), matches);
-			} else {
-				for (int j = 0; j != groundAtoms.length; ++j) {
-					Expr groundAtom = groundAtoms[j];
-					result |= matchExpression(variable, quantifiedAtom, groundAtom, matches);
+	private List<Expr> bindPolynomial(VariableDeclaration variable, Expr.Polynomial quantified, Expr.Polynomial ground) {
+		//
+		List<Expr> result = new ArrayList<>();
+		// Perform exhaustive search through possible combinations of terms
+		// looking for matches.
+		for(int i=0;i!=quantified.size();++i) {
+			Polynomial.Term quantifiedTerm = quantified.getOperand(i);
+			for(int j=0;j!=ground.size();++j) {
+				Polynomial.Term groundTerm = ground.getOperand(j);
+				List<Expr> matches = equatePolynomialTerm(variable,quantifiedTerm,groundTerm);
+				if(matches != null) {
+					// NOTE: unlike for equatePolynomiall we don't attempt to
+					// balance things here. That's because we can accept some
+					// differences in this case.
+					// FIXME: could do something similar to balancing whereby we
+					// ensure the difference is acceptable. Something like
+					// negative differences are OK, but positive ones are not.
+					result.addAll(matches);
 				}
 			}
-
 		}
+		// If we get here and result == null then we didn't find any suitable
+		// matches and, hence, overall we failed to equate these. Observe that
+		// we can assume the quantified expression and the ground expression
+		// differ, since equateExpression() ensures this.
 		return result;
 	}
 
-	private boolean matchArrayAccess(VariableDeclaration variable, Expr.Operator quantified, Expr.Operator ground, List<Expr> matches) {
-		System.out.println("MATCHING ARRAY ACCESS: ");
+	private List<Expr> equateExpression(VariableDeclaration variable, Expr quantified, Expr ground) {
+//		System.out.print("EQUATING: ");
+//		WyalFile.print(quantified);
+//		System.out.print(" AGAINST: ");
+//		WyalFile.println(ground);
+		//
+		WyalFile.Opcode quantifiedOpcode = quantified.getOpcode();
+		WyalFile.Opcode groundOpcode = ground.getOpcode();
+		if (quantified.equals(ground)) {
+			return Collections.EMPTY_LIST;
+		} else if (quantifiedOpcode == Opcode.EXPR_var) {
+			return equateQuantifiedVariable(variable, (Expr.VariableAccess) quantified, ground);
+		} else if (quantifiedOpcode == groundOpcode) {
+			switch (quantifiedOpcode) {
+			case EXPR_arridx:
+				return equateArrayAccess(variable, (Expr.Operator) quantified, (Expr.Operator) ground);
+			case EXPR_add:
+				return equatePolynomial(variable, (Expr.Polynomial) quantified, (Expr.Polynomial) ground);
+			}
+		}
+		// Failed to equate
+		return null;
+	}
+
+	private List<Expr> equateQuantifiedVariable(VariableDeclaration variable, Expr.VariableAccess quantified, Expr ground) {
+		if (quantified.getVariableDeclaration().equals(variable)) {
+			// Yes, this is the quantified variable we're looking for.
+			// Therefore, we can now (finally) extract an actual match.
+			ArrayList<Expr> matches = new ArrayList<>();
+			matches.add(ground);
+			return matches;
+		}
+		// Failed to equate
+		return null;
+	}
+
+	private List<Expr> equatePolynomial(VariableDeclaration variable, Expr.Polynomial quantified, Expr.Polynomial ground) {
+		//
+		List<Expr> result = null;
+		// Perform exhaustive search through possible combinations of terms
+		// looking for matches. If we find them, then we need to try and balance
+		// any outstanding differences.
+		for(int i=0;i!=quantified.size();++i) {
+			Polynomial.Term quantifiedTerm = quantified.getOperand(i);
+			for(int j=0;j!=ground.size();++j) {
+				Polynomial.Term groundTerm = ground.getOperand(j);
+				List<Expr> matches = equatePolynomialTerm(variable,quantifiedTerm,groundTerm);
+				if(matches != null) {
+					// We found some matches, now try to balance things out.
+					result = balance(matches,quantified,ground,i,j,result);
+				}
+			}
+		}
+		// If we get here and result == null then we didn't find any suitable
+		// matches and, hence, overall we failed to equate these. Observe that
+		// we can assume the quantified expression and the ground expression
+		// differ, since equateExpression() ensures this.
+		return result;
+	}
+
+	private List<Expr> balance(List<Expr> matches, Expr.Polynomial quantified, Expr.Polynomial ground, int i, int j, List<Expr> result) {
+		//
+		Polynomial.Term quantifiedTerm = quantified.getOperand(i);
+		Polynomial.Term groundTerm = ground.getOperand(j);
+		quantified = quantified.subtract(quantifiedTerm);
+		ground = ground.subtract(groundTerm);
+		if(!quantified.equals(ground)) {
+			// No, this did not balance out
+			return result;
+		} else if(result == null){
+			return matches;
+		} else {
+			result.addAll(matches);
+			return result;
+		}
+	}
+
+	private List<Expr> equatePolynomialTerm(VariableDeclaration variable, Polynomial.Term quantified,
+			Polynomial.Term ground) {
+		Expr[] quantifiedAtoms = quantified.getAtoms();
+		Expr[] groundAtoms = ground.getAtoms();
+		// FIXME: this is something of a simplification, as we could potentially
+		// handle more complex cases here.
+		if (quantifiedAtoms.length == 1 && quantified.getCoefficient().get().equals(BigInteger.ONE)) {
+			Expr quantifiedAtom = quantifiedAtoms[0];
+			if(groundAtoms.length == 1 && ground.getCoefficient().get().equals(BigInteger.ONE)) {
+				return equateExpression(variable, quantifiedAtoms[0], groundAtoms[0]);
+			} else if(quantifiedAtom instanceof Expr.VariableAccess) {
+				return equateQuantifiedVariable(variable,(Expr.VariableAccess) quantifiedAtom,ground);
+			}
+		}
+		// Failed to equate
+		return null;
+	}
+
+	private List<Expr> equateArrayAccess(VariableDeclaration variable, Expr.Operator quantified, Expr.Operator ground) {
 		Expr quantifiedSource = quantified.getOperand(0);
 		Expr quantifiedIndex = quantified.getOperand(1);
 		Expr groundSource = ground.getOperand(0);
 		Expr groundIndex = ground.getOperand(1);
-		boolean r = matchExpression(variable,quantifiedSource, groundSource, matches);
-		r &= matchExpression(variable,quantifiedIndex, groundIndex, matches);
-		return r;
+		List<Expr> sourceMatches = equateExpression(variable,quantifiedSource, groundSource);
+		List<Expr> indexMatches = equateExpression(variable,quantifiedIndex, groundIndex);
+		if(sourceMatches == null || indexMatches == null) {
+			// this indicates we failed to equate
+			return null;
+		} else {
+			// Immutable data structures would be preferred here!
+			ArrayList<Expr> result = new ArrayList<>();
+			result.addAll(sourceMatches);
+			result.addAll(indexMatches);
+			return result;
+		}
 	}
 }
