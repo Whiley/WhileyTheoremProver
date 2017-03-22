@@ -133,19 +133,7 @@ public class Formulae {
 				Formula l = new Conjunct(lhs_f, rhs_f);
 				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
 				return new Formula.Disjunct(l, r);
-			}
-//			else if(types.isReadableRecord(lhs_t)) {
-//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-//				FieldDeclaration[] fields = lhs_r.getFields();
-//				Formula[] clauses = new Formula[fields.length];
-//				for(int i=0;i!=fields.length;++i) {
-//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
-//				}
-//				return new Formula.Conjunct(clauses);
-//			}
-			else {
+			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
 		}
@@ -167,17 +155,7 @@ public class Formulae {
 				Formula r = new Conjunct(lhs_f,invert(rhs_f));
 				return new Formula.Disjunct(l,r);
 			}
-//			else if(types.isReadableRecord(lhs_t)) {
-//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-//				FieldDeclaration[] fields = lhs_r.getFields();
-//				Formula[] clauses = new Formula[fields.length];
-//				for(int i=0;i!=fields.length;++i) {
-//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
-//				}
-//				return new Formula.Disjunct(clauses);
-//			}
+
 			else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
@@ -846,20 +824,10 @@ public class Formulae {
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else if (eq.getSign()) {
-			if(nLhs == lhs && nRhs == rhs) {
-				return eq;
-			} else {
-				return new ArithmeticEquality(true, nLhs, nRhs);
-			}
+		} else if(nLhs == lhs && nRhs == rhs) {
+			return eq;
 		} else {
-			// For an arithmetic equality of the form x != y, we return a
-			// disjunction of the form (x < y) || (x > y). This is not
-			// necessarily the most efficient thing to do. However, for our
-			// purposes, this works well enough for now.
-			Inequality lt = lessThan(nLhs,nRhs);
-			Inequality gt = lessThan(nRhs,nLhs);
-			return new Formula.Disjunct(lt, gt);
+			return new ArithmeticEquality(eq.getSign(), nLhs, nRhs);
 		}
 	}
 

@@ -19,6 +19,7 @@ import wyal.rules.InequalityIntroduction;
 import wyal.rules.MacroExpansion;
 import wyal.rules.OrElimination;
 import wyal.rules.QuantifierInstantiation;
+import wyal.rules.EqualityCaseAnalysis;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
@@ -37,7 +38,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 1000;
+	private final int maxProofSize = 2000;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
@@ -58,6 +59,7 @@ public class AutomatedTheoremProver {
 				new ExpandTypeTest(types),
 				new ArrayLengthAxiom(),
 				new ArrayIndexCaseAnalysis(types),
+				new EqualityCaseAnalysis(types),
 				new OrElimination(),
 				new QuantifierInstantiation(types) };
 	}
@@ -117,8 +119,8 @@ public class AutomatedTheoremProver {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
 		if(state.getProof().size() > maxProofSize) {
-			//throw new IllegalArgumentException("Maximum proof size reached");
-			return false;
+			throw new IllegalArgumentException("Maximum proof size reached");
+			//return false;
 		}
 		// Hard limit not reached, therefore continue exploring!
 		Proof.Delta.Set additions = delta.getAdditions();
