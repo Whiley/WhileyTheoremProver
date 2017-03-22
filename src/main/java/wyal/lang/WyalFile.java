@@ -1225,6 +1225,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Invoke extends AbstractSyntacticItem implements Expr {
+
+			// FIXME: making the arguments a tuple prevents traversals following
+			// the line of expressions.
+
 			public Invoke(Type.FunctionOrMacro type, Name name, Expr... arguments) {
 				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}

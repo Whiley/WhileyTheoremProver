@@ -9,17 +9,7 @@ import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.rules.AndElimination;
-import wyal.rules.ArrayIndexCaseAnalysis;
-import wyal.rules.ArrayLengthAxiom;
-import wyal.rules.EqualityCongruence;
-import wyal.rules.ExistentialElimination;
-import wyal.rules.ExpandTypeTest;
-import wyal.rules.InequalityIntroduction;
-import wyal.rules.MacroExpansion;
-import wyal.rules.OrElimination;
-import wyal.rules.QuantifierInstantiation;
-import wyal.rules.EqualityCaseAnalysis;
+import wyal.rules.*;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
@@ -58,6 +48,7 @@ public class AutomatedTheoremProver {
 				new MacroExpansion(types),
 				new ExpandTypeTest(types),
 				new ArrayLengthAxiom(),
+				new ArrayIndexAxiom(types),
 				new ArrayIndexCaseAnalysis(types),
 				new EqualityCaseAnalysis(types),
 				new OrElimination(),
