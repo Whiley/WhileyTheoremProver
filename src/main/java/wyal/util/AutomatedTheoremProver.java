@@ -41,7 +41,7 @@ public class AutomatedTheoremProver {
 		this.types = new TypeSystem(parent);
 		//
 		this.rules = new Proof.Rule[] {
-				new EqualityCongruence(types),
+				new CongruenceClosure(types),
 				new InequalityIntroduction(types),
 				new AndElimination(),
 				new ExistentialElimination(types),
@@ -52,7 +52,8 @@ public class AutomatedTheoremProver {
 				new ArrayIndexCaseAnalysis(types),
 				new EqualityCaseAnalysis(types),
 				new OrElimination(),
-				new QuantifierInstantiation(types) };
+				new QuantifierInstantiation(types)
+				};
 	}
 
 	public void check(Path.Entry<?> originalSource) {
@@ -99,8 +100,8 @@ public class AutomatedTheoremProver {
 		//
 		boolean r = checkUnsat(state, state.getDelta(), FALSE);
 		//
-		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-		OldAutomatedTheoremProver.print(proof);
+//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
+//		OldAutomatedTheoremProver.print(proof);
 		return r;
 	}
 

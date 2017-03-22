@@ -128,14 +128,12 @@ public class ArrayIndexAxiom implements Proof.LinearRule {
 	}
 
 	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) {
-		WyalFile.println(dependencies);
 		Polynomial zero = new Polynomial(BigInteger.ZERO);
 		Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(index, zero), types);
 		return state.infer(this, state.allocate(axiom), dependencies);
 	}
 
 	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) {
-		WyalFile.println(dependencies);
 		Formula axiom = Formulae.simplifyFormula(Formulae.lessThan(index, length), types);
 		return state.infer(this, state.allocate(axiom), dependencies);
 	}
