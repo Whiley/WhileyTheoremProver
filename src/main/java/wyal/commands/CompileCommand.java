@@ -229,7 +229,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 * @param project
 	 */
 	protected void addCompilationBuildRules(StdProject project) {
-		addWhiley2WyilBuildRule(project);
+		addWhiley2WyalBuildRule(project);
 	}
 
 	/**
@@ -237,7 +237,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 *
 	 * @param project
 	 */
-	protected void addWhiley2WyilBuildRule(StdProject project) {
+	protected void addWhiley2WyalBuildRule(StdProject project) {
 		// Rule for compiling Whiley to WyIL
 		CompileTask wyalBuildTask = new CompileTask(project);
 		if(verbose) {

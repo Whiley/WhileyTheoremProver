@@ -119,8 +119,8 @@ public class AutomatedTheoremProver {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
 		if(state.getProof().size() > maxProofSize) {
-			throw new IllegalArgumentException("Maximum proof size reached");
-			//return false;
+			//throw new IllegalArgumentException("Maximum proof size reached");
+			return false;
 		}
 		// Hard limit not reached, therefore continue exploring!
 		Proof.Delta.Set additions = delta.getAdditions();

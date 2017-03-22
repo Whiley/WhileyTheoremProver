@@ -149,10 +149,10 @@ public class ProofPrinter {
 		if(fullDelta) {
 			// Full delta (usually for debugging)
 			String[] lines = new String[additions.size()+removals.size()];
-			for(int i=0;i!=removals.size();++i) {
+			for(int i=0;i<removals.size();++i) {
 				lines[i] = "-" + toLine(removals.get(i));
 			}
-			for(int i=0;i!=additions.size();++i) {
+			for(int i=0;i<additions.size();++i) {
 				lines[i+removals.size()] = "+" + toLine(additions.get(i));
 			}
 			return lines;
@@ -173,7 +173,7 @@ public class ProofPrinter {
 			title += " ";
 		}
 		List<Formula> deps = step.getDependencies();
-		for(int j=0;j!=deps.size();++j) {
+		for(int j=0;j<deps.size();++j) {
 			if(j != 0) {
 				title += ",";
 			}
@@ -193,7 +193,7 @@ public class ProofPrinter {
 	}
 
 	private void printLine(int width, char c) {
-		for(int i=0;i!=width;i++) {
+		for(int i=0;i<width;i++) {
 			out.print(c);
 		}
 		out.println();
