@@ -98,14 +98,16 @@ public class AbstractProof<T extends Proof.State> implements Proof {
 
 		@Override
 		public void applyBypass(Proof.State child) {
-			// FIXME: this line is clearly a hack for now
-			AbstractState c = (AbstractState) child;
 			children.clear();
-			children.addAll(c.children);
-			c.parent = null;
-			for(int i=0;i!=children.size();++i) {
-				c = (AbstractState) children.get(i);
-				c.parent = this;
+			if (child != null) {
+				// FIXME: this line is clearly a hack for now
+				AbstractState c = (AbstractState) child;
+				children.addAll(c.children);
+				c.parent = null;
+				for (int i = 0; i != children.size(); ++i) {
+					c = (AbstractState) children.get(i);
+					c.parent = this;
+				}
 			}
 		}
 	}

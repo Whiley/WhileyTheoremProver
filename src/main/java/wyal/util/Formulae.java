@@ -889,7 +889,7 @@ public class Formulae {
 	}
 
 
-	private static Expr[] simplify(Expr[] children, TypeSystem types) {
+	public static Expr[] simplify(Expr[] children, TypeSystem types) {
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -908,7 +908,7 @@ public class Formulae {
 	 * @param e
 	 * @return
 	 */
-	private static Expr simplify(Expr e, TypeSystem types) {
+	public static Expr simplify(Expr e, TypeSystem types) {
 		switch (e.getOpcode()) {
 		case EXPR_var:
 			return e;

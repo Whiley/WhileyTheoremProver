@@ -25,7 +25,7 @@ public class ExpandTypeTest implements Proof.LinearRule {
 		if(truth instanceof Formula.Is) {
 			Formula nTruth = expand((Formula.Is) truth);
 			if(nTruth != truth) {
-				nTruth = state.allocate(nTruth);
+				nTruth = state.allocate(Formulae.simplifyFormula(nTruth,types));
 				return state.subsume(this, truth, nTruth);
 			}
 		}
@@ -40,7 +40,7 @@ public class ExpandTypeTest implements Proof.LinearRule {
 		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
 		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
 		if (isSubtype && invariant != null) {
-			return Formulae.simplifyFormula(invariant,types);
+			return invariant;
 		} else if (isSubtype) {
 			return new Formula.Truth(true);
 		} else if (isNotSubtype && invariant != null) {
@@ -48,13 +48,13 @@ public class ExpandTypeTest implements Proof.LinearRule {
 			// problem boils down to what the subtype test is really telling us.
 			// For example, is it saying that the underlying type of the lhs is not
 			// a subtype of the negated rhs? I don't think so.
-			return Formulae.simplifyFormula(invariant,types);
+			return invariant;
 		} else if(isNotSubtype) {
 			return new Formula.Truth(false);
 		}
 		// At this point, we're stuck with a type test of some sort.
 		if(invariant != null) {
-			return Formulae.and(Formulae.simplifyFormula(invariant,types),e);
+			return Formulae.and(invariant,e);
 		} else {
 			return e;
 		}

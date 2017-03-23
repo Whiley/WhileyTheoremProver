@@ -10,6 +10,7 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.Formulae;
+import wyal.util.TypeSystem;
 import wyal.lang.WyalFile;
 
 /**
@@ -49,6 +50,11 @@ import wyal.lang.WyalFile;
  * @return
  */
 public class ArrayLengthAxiom implements Proof.LinearRule {
+	private final TypeSystem types;
+
+	public ArrayLengthAxiom(TypeSystem types) {
+		this.types = types;
+	}
 
 	@Override
 	public String getName() {
@@ -64,8 +70,8 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 				WyalFile.Expr match = matches.get(i);
 				Polynomial len = Formulae.toPolynomial(match);
 				Polynomial zero = Formulae.toPolynomial(0);
-				Formula axiom = state.allocate(Formulae.greaterOrEqual(len, zero));
-				state = state.infer(this, axiom, inequality);
+				Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(len, zero),types);
+				state = state.infer(this, state.allocate(axiom), inequality);
 			}
 			return state;
 		}

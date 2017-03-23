@@ -33,11 +33,43 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	@Override
 	public State apply(Proof.State state, Formula newTruth) {
 
-		if(newTruth instanceof Formula.Inequality) {
-			Formula.Inequality ground = (Formula.Inequality) newTruth;
+		if(newTruth instanceof Formula.ArithmeticEquation) {
+			Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) newTruth;
 			return instantiateQuantifiers(ground,state);
+		} else if(newTruth instanceof Formula.Quantifier) {
+			Formula.Quantifier quantifier = (Formula.Quantifier) newTruth;
+			return instantiateQuantifiers(quantifier,state);
 		}
 		// No change in the normal case
+		return state;
+	}
+
+	/**
+	 * Attempt to match a given quantifier against any appropriate ground terms.
+	 * This may fail if no suitable bindings can be found.
+	 *
+	 * @param quantifier
+	 * @param state
+	 * @return
+	 */
+	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) {
+		if (quantifier.getSign()) {
+			// At this point, we have a quantifier which has not been seen
+			// before (for example, it was hiding inside a macro invocation
+			// somewhere). Therefore, we need to search the history looking for
+			// suitable opportunities to instantiate it.
+			Proof.Delta history = state.getDelta(null);
+			Proof.Delta.Set additions = history.getAdditions();
+			for (int i = 0; i != additions.size(); ++i) {
+				Formula truth = additions.get(i);
+				if (truth instanceof Formula.ArithmeticEquation) {
+					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) truth;
+					// Yes, this is a universal quantifier
+					state = applyQuantifierInstantiation(quantifier, ground, state);
+				}
+			}
+		}
+		//
 		return state;
 	}
 
@@ -50,7 +82,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Inequality groundTerm, State state) {
+	private State instantiateQuantifiers(Formula.ArithmeticEquation groundTerm, State state) {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
@@ -71,7 +103,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		return state;
 	}
 
-	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Inequality groundTerm, State state) {
+	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.ArithmeticEquation groundTerm, State state) {
 
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
@@ -106,7 +138,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @return
 	 */
 	private State attemptQuantifierInstantiation(Formula.Quantifier quantifier, VariableDeclaration variable,
-			Formula.Inequality groundTerm, State state) {
+			Formula.ArithmeticEquation groundTerm, State state) {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
 		Type pt = variable.getType();
@@ -153,7 +185,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 *            asserted.
 	 * @return
 	 */
-	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable, Formula.Inequality groundTerm, Expr binding, State state) {
+	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable, Formula.ArithmeticEquation groundTerm, Expr binding, State state) {
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
@@ -212,7 +244,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @param variable
 	 * @return
 	 */
-	private List<Expr> bind(VariableDeclaration variable, Formula quantified, Formula.Inequality ground) {
+	private List<Expr> bind(VariableDeclaration variable, Formula quantified, Formula.ArithmeticEquation ground) {
 		ArrayList<Expr> result = new ArrayList<>();
 		//
 		if (quantified instanceof Formula.Inequality) {
@@ -224,6 +256,17 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 			//
 			result.addAll(posNegMatches);
 			result.addAll(negPosMatches);
+		} else if (quantified instanceof Formula.ArithmeticEquality) {
+			Formula.ArithmeticEquality ieq = (Formula.ArithmeticEquality) quantified;
+			List<Expr> posPosMatches = bindPolynomial(variable, ieq.getOperand(0), ground.getOperand(0));
+			List<Expr> posNegMatches = bindPolynomial(variable, ieq.getOperand(0), ground.getOperand(1));
+			List<Expr> negPosMatches = bindPolynomial(variable, ieq.getOperand(1), ground.getOperand(0));
+			List<Expr> negNegMatches = bindPolynomial(variable, ieq.getOperand(1), ground.getOperand(1));
+			//
+			result.addAll(posPosMatches);
+			result.addAll(posNegMatches);
+			result.addAll(negPosMatches);
+			result.addAll(negNegMatches);
 		} else if(quantified instanceof Formula.Conjunct){
 			Formula.Conjunct c = (Formula.Conjunct) quantified;
 			for(int i=0;i!=c.size();++i) {
@@ -245,17 +288,20 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		// looking for matches.
 		for(int i=0;i!=quantified.size();++i) {
 			Polynomial.Term quantifiedTerm = quantified.getOperand(i);
-			for(int j=0;j!=ground.size();++j) {
-				Polynomial.Term groundTerm = ground.getOperand(j);
-				List<Expr> matches = equatePolynomialTerm(variable,quantifiedTerm,groundTerm);
-				if(matches != null) {
-					// NOTE: unlike for equatePolynomiall we don't attempt to
-					// balance things here. That's because we can accept some
-					// differences in this case.
-					// FIXME: could do something similar to balancing whereby we
-					// ensure the difference is acceptable. Something like
-					// negative differences are OK, but positive ones are not.
-					result.addAll(matches);
+			if(isTrigger(quantifiedTerm)) {
+				for(int j=0;j!=ground.size();++j) {
+					Polynomial.Term groundTerm = ground.getOperand(j);
+					List<Expr> matches = equatePolynomialTerm(variable,quantifiedTerm,groundTerm);
+					if(matches != null) {
+						// NOTE: unlike for equatePolynomiall we don't attempt to
+						// balance things here. That's because we can accept some
+						// differences in this case.
+						//
+						// FIXME: could do something similar to balancing whereby we
+						// ensure the difference is acceptable. Something like
+						// negative differences are OK, but positive ones are not.
+						result.addAll(matches);
+					}
 				}
 			}
 		}
@@ -264,6 +310,19 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		// we can assume the quantified expression and the ground expression
 		// differ, since equateExpression() ensures this.
 		return result;
+	}
+
+	/**
+	 * Determine whether a given ground term is a suitable trigger or not. In
+	 * the default case, only array access expressions are considered suitable
+	 * triggers.
+	 *
+	 * @param ground
+	 * @return
+	 */
+	private boolean isTrigger(Polynomial.Term ground) {
+		Expr[] atoms = ground.getAtoms();
+		return atoms.length == 1 && atoms[0].getOpcode() == Opcode.EXPR_arridx;
 	}
 
 	private List<Expr> equateExpression(VariableDeclaration variable, Expr quantified, Expr ground) {

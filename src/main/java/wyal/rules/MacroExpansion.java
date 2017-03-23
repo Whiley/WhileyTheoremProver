@@ -76,9 +76,10 @@ public class MacroExpansion implements Proof.LinearRule {
 			Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
 			if (invariant != null) {
 				if (!ivk.getSign()) {
-					invariant = Formulae.simplifyFormula(Formulae.invert(invariant), types);
+					invariant = Formulae.invert(invariant);
 				}
 				// Update the state
+				invariant = Formulae.simplifyFormula(invariant,types);
 				state = state.subsume(this, ivk, state.allocate(invariant));
 			}
 		}
@@ -121,7 +122,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
 			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
 		}
-		return Formulae.simplifyFormula(body, types);
+		return body;
 	}
 
 	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
@@ -142,7 +143,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) Formulae.substitute(parameter, argument, result);
-			return Formulae.simplifyFormula(result, types);
+			return result;
 		}
 	}
 }

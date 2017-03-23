@@ -25,7 +25,7 @@ import wyal.lang.Formula.Quantifier;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Stmt.Block;
-import wyal.util.BitSetProof.State;
+import wyal.util.DeltaProof.State;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 
@@ -93,7 +93,7 @@ public class OldAutomatedTheoremProver {
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 //		println(formula);
 		// Create initial state
-		BitSetProof proof = new BitSetProof(null, heap, formula);
+		DeltaProof proof = new DeltaProof(null, heap, formula);
 		State state = proof.getState(0);
 		//
 		boolean r = checkUnsat(state, 0, FALSE);

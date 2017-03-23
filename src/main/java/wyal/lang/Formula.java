@@ -128,7 +128,23 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class Inequality extends Expr.Operator implements Formula {
+	public interface Equation extends Formula {
+		@Override
+		public Expr getOperand(int i);
+
+		@Override
+		public Expr[] getOperands();
+	}
+
+	public interface ArithmeticEquation extends Equation {
+		@Override
+		public Polynomial getOperand(int i);
+
+		@Override
+		public Polynomial[] getOperands();
+	}
+
+	public static class Inequality extends Expr.Operator implements ArithmeticEquation {
 
 		public Inequality(Polynomial lhs, Polynomial rhs) {
 			super(Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
@@ -150,7 +166,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class Equality extends Expr.Operator implements Formula {
+	public static class Equality extends Expr.Operator implements Equation {
 		public Equality(boolean sign, Expr lhs, Expr rhs) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
@@ -169,7 +185,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class ArithmeticEquality extends Equality implements Formula {
+	public static class ArithmeticEquality extends Equality implements ArithmeticEquation {
 		public ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
 			super(sign, new Polynomial[]{lhs, rhs});
 		}

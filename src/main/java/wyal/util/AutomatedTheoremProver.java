@@ -9,6 +9,7 @@ import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.Proof.State;
 import wyal.rules.*;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
@@ -47,12 +48,12 @@ public class AutomatedTheoremProver {
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
 				new ExpandTypeTest(types),
-				new ArrayLengthAxiom(),
+				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
 				new ArrayIndexCaseAnalysis(types),
 				new EqualityCaseAnalysis(types),
 				new OrElimination(),
-				new QuantifierInstantiation(types)
+				new ExhaustiveQuantifierInstantiation(types)
 				};
 	}
 
@@ -95,17 +96,17 @@ public class AutomatedTheoremProver {
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		// Create initial state
-		BitSetProof proof = new BitSetProof(null, heap, formula);
+		DeltaProof proof = new DeltaProof(null, heap, formula);
 		Proof.State state = proof.getState(0);
 		//
 		boolean r = checkUnsat(state, state.getDelta(), FALSE);
 		//
-//		System.out.println("******************* PROOF (" + formula.getIndex() + ") ******************");
-//		OldAutomatedTheoremProver.print(proof);
+		simplifyProof(state,FALSE);
+		//
+		System.out.println("******************* PROOF (" + proof.size() + ") ******************");
+		OldAutomatedTheoremProver.print(proof);
 		return r;
 	}
-
-
 
 	private boolean checkUnsat(Proof.State state, Proof.Delta delta, Formula.Truth FALSE) {
 		// Sanity check whether we have reached the hard limit on the amount of
@@ -173,6 +174,7 @@ public class AutomatedTheoremProver {
 	}
 
 	private boolean applySplit(Proof.State state, Proof.State[] splits, Proof.Delta delta, Formula truth, Formula.Truth FALSE) {
+		State parent = state.getParent();
 		// Now, try to find a contradiction for each case
 		for (int j = 0; j != splits.length; ++j) {
 			Proof.State split = splits[j];
@@ -187,9 +189,11 @@ public class AutomatedTheoremProver {
 				// actually had a part to play or not. If not, then we can
 				// terminate this disjunct early (which can lead to significant
 				// reductions in the state space).
-				BitSet cone = getDependencyCone(split, FALSE);
+				BitSet cone = computeDependencyCone(split, FALSE);
 				//
-				if (cone.get(truth.getIndex()) == false) {
+				if (cone.get(truth.getIndex()) == false && parent != null) {
+					// First, bypass the split where one of the clauses was
+					// assumed
 					state.applyBypass(split);
 					break;
 				}
@@ -209,7 +213,7 @@ public class AutomatedTheoremProver {
 	 * @param state
 	 * @return
 	 */
-	private BitSet getDependencyCone(Proof.State state, Formula.Truth FALSE) {
+	private BitSet computeDependencyCone(Proof.State state, Formula.Truth FALSE) {
 		Proof.Delta delta = state.getDelta();
 		if(delta.isAddition(FALSE)) {
 			// This is the leaf case
@@ -223,7 +227,7 @@ public class AutomatedTheoremProver {
 			// Determine recurisve dependencies
 			for(int i=0;i!=state.numberOfChildren();++i) {
 				Proof.State child = state.getChild(i);
-				dependencies.or(getDependencyCone(child,FALSE));
+				dependencies.or(computeDependencyCone(child,FALSE));
 			}
 			//
 			Proof.Delta.Set additions = delta.getAdditions();
@@ -241,5 +245,48 @@ public class AutomatedTheoremProver {
 			//
 			return dependencies;
 		}
+	}
+
+	private boolean simplifyProof(Proof.State state, Formula.Truth FALSE) {
+		Proof.Delta delta = state.getDelta();
+		Proof.Delta.Set additions = delta.getAdditions();
+		// First, simplify children
+		for(int i=0;i<state.numberOfChildren();++i) {
+			Proof.State child = state.getChild(i);
+			if(!simplifyProof(child,FALSE) && !additions.contains(FALSE)) {
+				return false;
+			} else if(child.getParent() != state) {
+				// This indicates the given child has been bypassed. Therefore,
+				// all remaining children would have been moved down and
+				// therefore, we want to rewind one step.
+				i = i - 1;
+			}
+		}
+		// Now, see whether we can bypass this state or not
+		if(additions.contains(FALSE)) {
+			state.applyBypass(null);
+			return true;
+		} else if(state.numberOfChildren() == 0) {
+			return false;
+		} else {
+			BitSet cone = computeDependencyCone(state, FALSE);
+			for (int i = 0; i != additions.size(); ++i) {
+				Formula addition = additions.get(i);
+				if (cone.get(addition.getIndex())) {
+					// This indicates a dependency that we introduced was
+					// required for the final contradiction. Therefore, we don't
+					// want to bypass this state.
+					return true;
+				}
+			}
+		}
+		// If we get here, then we didn't fine anything in this state which
+		// was actually required for the final proof. Therefore, we can
+		// eliminate this state
+		Proof.State parent = state.getParent();
+		if(parent.numberOfChildren() == 1) {
+			parent.applyBypass(state);
+		}
+		return true;
 	}
 }

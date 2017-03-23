@@ -37,8 +37,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 				// purposes, this works well enough for now.
 				Inequality lt = Formulae.lessThan(lhs,rhs);
 				Inequality gt = Formulae.lessThan(rhs,lhs);
-				Formula disjunct = state.allocate(new Formula.Disjunct(lt, gt));
-				return state.subsume(this, truth, disjunct);
+				Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(lt, gt),types);
+				return state.subsume(this, truth, state.allocate(disjunct));
 			}
 		} else if(truth instanceof Formula.Equality) {
 			Formula.Equality eq = (Formula.Equality) truth;
@@ -86,8 +86,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 			Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
 			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
 		}
-		Formula disjunct = state.allocate(Formulae.simplifyFormula(new Formula.Disjunct(clauses), types));
-		return state.subsume(this, eq, disjunct);
+		Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(clauses), types);
+		return state.subsume(this, eq, state.allocate(disjunct));
 	}
 
 	private State expandRecordInitialiserEquality(Formula.Equality eq, Expr.RecordInitialiser lhs,
@@ -111,8 +111,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 				Expr rf = rhsField.getSecond();
 				clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_eq, lf, rf), types);
 			}
-			Formula disjunct = state.allocate(Formulae.simplifyFormula(new Formula.Conjunct(clauses), types));
-			return state.subsume(this, eq, disjunct);
+			Formula disjunct = Formulae.simplifyFormula(new Formula.Conjunct(clauses), types);
+			return state.subsume(this, eq, state.allocate(disjunct));
 		}
 	}
 
