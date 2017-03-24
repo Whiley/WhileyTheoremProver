@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
+import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
@@ -58,6 +59,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	}
 
 	private State closeOver(Formula.Inequality ith, Formula.Inequality jth, State state) {
+		//
 		Formula inferred = closeOver(ith, jth);
 		if (inferred != null) {
 			inferred = state.allocate(inferred);
@@ -102,7 +104,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 			lhsCandidate = rCandidate.getSecond();
 		} else if(lCandidate == null && rCandidate == null) {
 			return null;
-		} else if(lCandidate.compareTo(rCandidate) <= 0){
+		} else if(lessThan(lCandidate.getFirst(),rCandidate.getFirst())) {
 			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
 			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
 			lhsCandidate = lCandidate.getFirst();
@@ -119,6 +121,9 @@ public class InequalityIntroduction implements Proof.LinearRule {
 		}
 	}
 
+	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
+		return lhs.getIndex() < rhs.getIndex();
+	}
 
 	/**
 	 * Extract a given bound from the inequality. Here, true is upper and false
@@ -168,9 +173,8 @@ public class InequalityIntroduction implements Proof.LinearRule {
 					Polynomial.Term jth = upper.getOperand(j);
 					Expr[] jthAtoms = jth.getAtoms();
 					if (Arrays.equals(ithAtoms, jthAtoms)) {
-						// FIXME: we should be selecting the lexiographically
-						// least candidate here.
-						return new Pair<>(ith, jth);
+						// Select lexicographically least term
+						return new Pair<>(min(ith, jth),max(ith,jth));
 					}
 				}
 			}
@@ -179,6 +183,21 @@ public class InequalityIntroduction implements Proof.LinearRule {
 		return null;
 	}
 
+	private static Polynomial.Term min(Polynomial.Term lhs, Polynomial.Term rhs) {
+		if(lhs.getIndex() < rhs.getIndex()) {
+			return lhs;
+		} else {
+			return rhs;
+		}
+	}
+
+	private static Polynomial.Term max(Polynomial.Term lhs, Polynomial.Term rhs) {
+		if(lhs.getIndex() > rhs.getIndex()) {
+			return lhs;
+		} else {
+			return rhs;
+		}
+	}
 
 	/**
 	 * Rearrange a given equation such that the given term appears on the

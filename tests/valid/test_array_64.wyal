@@ -1,0 +1,28 @@
+type string is (int[] this)
+
+type nat is (int x)
+where:
+    x >= 0
+
+type Entry is ({int value, string variable} this)
+type Environment is (Entry[] this)
+
+define contains(Environment env, string variable, int s) is:
+    exists(int k):
+        (s <= k) && (k < |env|)
+        env[k].variable == variable
+
+define lookup(Environment env, string variable) is:
+    contains(env, variable, 0)
+
+define invariant(Environment env, string variable, nat i) is:
+    contains(env, variable, i)
+
+assert "loop invariant not restored":
+    forall(string variable, Environment env, nat i):
+        if:
+            lookup(env, variable)
+            invariant(env, variable, i)
+            env[i].variable != variable
+        then:
+            contains(env, variable, i+1)

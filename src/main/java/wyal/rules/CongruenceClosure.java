@@ -173,7 +173,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs, rhs);
 			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs, lhs);
 			if (lhsCandidate != null && rhsCandidate != null) {
-				if (lhsCandidate.compareTo(rhsCandidate) < 0) {
+				if (lessThan(lhsCandidate,rhsCandidate)) {
 					candidate = extractCandidate(lhsCandidate);
 					bound = rhs.subtract(lhs.subtract(lhsCandidate));
 				} else {
@@ -203,7 +203,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			} else if (rhs instanceof Expr.Constant) {
 				candidate = lhs;
 				bound = rhs;
-			} else if (lhs.compareTo(rhs) < 0) {
+			} else if (lessThan(lhs,rhs)) {
 				candidate = lhs;
 				bound = rhs;
 			} else {
@@ -238,7 +238,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 				// FIXME: the problem here is thatthe given polynomial is not
 				// taking into account the other side of the equation, which may
 				// contain a recursive reference.
-				if ((candidate == null || atom.compareTo(candidateAtom) < 0) && !recursive(atom, i, p)
+				if ((candidate == null || lessThan(atom,candidateAtom)) && !recursive(atom, i, p)
 						&& !recursive(atom, -1, other)) {
 					candidate = term;
 					candidateAtom = atom;
@@ -246,6 +246,10 @@ public class CongruenceClosure implements Proof.LinearRule {
 			}
 		}
 		return candidate;
+	}
+
+	private static boolean lessThan(Expr lhs, Expr rhs) {
+		return lhs.getIndex() < rhs.getIndex();
 	}
 
 	private static boolean recursive(Expr atom, int i, Polynomial p) {
