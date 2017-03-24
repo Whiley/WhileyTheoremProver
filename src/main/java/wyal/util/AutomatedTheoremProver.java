@@ -29,7 +29,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 2000;
+	private final int maxProofSize = 500;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
@@ -48,6 +48,7 @@ public class AutomatedTheoremProver {
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
 				new ExpandTypeTest(types),
+				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
 				new ArrayIndexCaseAnalysis(types),

@@ -66,8 +66,17 @@ public class MacroExpansion implements Proof.LinearRule {
 
 	@Override
 	public State apply(Proof.State state, Formula truth) {
-		if (truth instanceof Formula.Invoke) {
-			Formula.Invoke ivk = (Formula.Invoke) truth;
+		Formula expanded = expandFormula(truth);
+		if(expanded != null) {
+			expanded = state.allocate(expanded);
+			state = state.subsume(this, truth, expanded);
+		}
+		return state;
+	}
+
+	private Formula expandFormula(Formula formula) {
+		if (formula instanceof Formula.Invoke) {
+			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
 			Type.FunctionOrMacro af = ivk.getSignatureType();
 			// Resolve the declaration corresponding to this invocation
@@ -79,11 +88,15 @@ public class MacroExpansion implements Proof.LinearRule {
 					invariant = Formulae.invert(invariant);
 				}
 				// Update the state
-				invariant = Formulae.simplifyFormula(invariant,types);
-				state = state.subsume(this, ivk, state.allocate(invariant));
+				return Formulae.simplifyFormula(invariant,types);
 			}
+		} else if(formula instanceof Formula.Quantifier) {
+			Formula.Quantifier quantifier = (Formula.Quantifier) formula;
+			// FIXME: the basic problem is that if we have a quantifier which
+			// contains a macro invocation and we don't it, then quantifier
+			// instantiation won't be triggered.
 		}
-		return state;
+		return null;
 	}
 
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {

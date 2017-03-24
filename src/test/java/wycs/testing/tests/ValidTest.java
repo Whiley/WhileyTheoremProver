@@ -41,8 +41,6 @@ public class ValidTest {
 	static {
 
 		//
-		IGNORED.put("test_array_15", "timeout");
-		//
 		IGNORED.put("test_arith_12", "#2");
 		//
 		IGNORED.put("test_arith_15", "#12");
@@ -50,9 +48,7 @@ public class ValidTest {
 		IGNORED.put("test_arith_36", "#12");
 		IGNORED.put("test_arith_38", "#12");
 		//
-		IGNORED.put("test_type_34", "#26");
 		IGNORED.put("test_type_47", "#26");
-		IGNORED.put("test_type_51", "#26");
 		//
 		IGNORED.put("test_type_26", "#27");
 		IGNORED.put("test_type_27", "#27");
@@ -60,15 +56,8 @@ public class ValidTest {
 		IGNORED.put("test_type_29", "#27");
 		IGNORED.put("test_type_35", "#27");
 		//
-		IGNORED.put("test_type_36", "#28");
 		//
 		IGNORED.put("test_array_59", "#29");
-		//
-		IGNORED.put("test_type_23", "#30");
-		IGNORED.put("test_type_24", "#30");
-		IGNORED.put("test_type_25", "#30");
-		IGNORED.put("test_type_37", "#30");
-		IGNORED.put("test_type_50", "#30");
 		//
 		IGNORED.put("test_type_38", "#31");
 		//
@@ -91,7 +80,6 @@ public class ValidTest {
 		//
 		IGNORED.put("test_array_31", "#42");
 		//
-		IGNORED.put("test_array_23", "#47");
 		IGNORED.put("test_array_54", "#47");
 	}
 

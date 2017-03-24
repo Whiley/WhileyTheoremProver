@@ -38,7 +38,7 @@ public class ExpandTypeTest implements Proof.LinearRule {
 		// FIXME: could reduce this expression to true or false in some cases.
 		// For example, if lhs is a constant.
 		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
-		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
+		boolean isNotSubtype = types.isSubtype(TypeSystem.negate(e.getTypeTest()),nLhs.getReturnType(types));
 		if (isSubtype && invariant != null) {
 			return invariant;
 		} else if (isSubtype) {
