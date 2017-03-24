@@ -1,5 +1,6 @@
 package wyal.rules;
 
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public class MacroExpansion implements Proof.LinearRule {
 	@Override
 	public State apply(Proof.State state, Formula truth) {
 		Formula expanded = expandFormula(truth);
-		if(expanded != null) {
+		if(expanded != truth) {
 			expanded = state.allocate(expanded);
 			state = state.subsume(this, truth, expanded);
 		}
@@ -92,11 +93,46 @@ public class MacroExpansion implements Proof.LinearRule {
 			}
 		} else if(formula instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) formula;
-			// FIXME: the basic problem is that if we have a quantifier which
-			// contains a macro invocation and we don't it, then quantifier
-			// instantiation won't be triggered.
+			if(quantifier.getSign()) {
+				// There's no point going into existentials since they will be
+				// expanded anyway,
+				Formula body = expandFormula(quantifier.getBody());
+				if(body != quantifier.getBody()) {
+					quantifier = new Formula.Quantifier(true, quantifier.getParameters(), body);
+					return Formulae.simplifyFormula(quantifier, types);
+				}
+			}
+		} else if(formula instanceof Formula.Disjunct) {
+			Formula.Disjunct disjunct = (Formula.Disjunct) formula;
+			Formula[] children = disjunct.getOperands();
+			Formula[] nChildren = expandFormula(children);
+			if(nChildren != children) {
+				disjunct = new Formula.Disjunct(nChildren);
+				return Formulae.simplifyFormula(disjunct, types);
+			}
+		} else if(formula instanceof Formula.Conjunct) {
+			Formula.Conjunct disjunct = (Formula.Conjunct) formula;
+			Formula[] children = disjunct.getOperands();
+			Formula[] nChildren = expandFormula(children);
+			if(nChildren != children) {
+				disjunct = new Formula.Conjunct(nChildren);
+				return Formulae.simplifyFormula(disjunct, types);
+			}
 		}
-		return null;
+		return formula;
+	}
+
+	private Formula[] expandFormula(Formula... children) {
+		Formula[] nChildren = children;
+		for(int i=0;i!=children.length;++i) {
+			Formula child = nChildren[i];
+			Formula nChild = expandFormula(child);
+			if(child != nChild && nChildren == children) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		return nChildren;
 	}
 
 	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
