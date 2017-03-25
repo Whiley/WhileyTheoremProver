@@ -146,7 +146,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			Formula.Equation groundTerm, State state) {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
-		List<Expr> grounds = bind(variable, quantifier.getBody(), groundTerm);
+		List<Expr> grounds = bind(state, variable, quantifier.getBody(), groundTerm);
 		//
 		for (int i = 0; i != grounds.size(); ++i) {
 			Expr ground = grounds.get(i);
@@ -193,7 +193,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
-		grounded = (Formula) Formulae.substitute(access, binding, grounded);
+		grounded = (Formula) state.substitute(access, binding, grounded, types);
 		// Expand any type invariant associated with this variable
 		Formula invariant = Formulae.expandTypeInvariant(variable, types);
 		// Add type invariants (if appropriate)
@@ -247,24 +247,26 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param variable
 	 * @return
 	 */
-	private List<Expr> bind(VariableDeclaration variable, Formula quantified, Formula.Equation ground) {
+	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Formula quantified, Formula.Equation ground) {
 		ArrayList<Expr> result = new ArrayList<>();
 		//
 		if (quantified instanceof Formula.Inequality) {
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
-			List<Expr> posNegMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
+			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
 			// Negative (Quantified) versus Positive (Ground)
-			List<Expr> negPosMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(0), Match.POSITIVE);
+			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), Match.POSITIVE);
 			//
 			result.addAll(posNegMatches);
 			result.addAll(negPosMatches);
-		} else if (quantified instanceof Formula.Equality || quantified instanceof Formula.Assignment) {
+		} else if (quantified instanceof Formula.Equality) {
 			Formula.Equation ieq = (Formula.Equation) quantified;
-			List<Expr> posPosMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(0), Match.EXACT);
-			List<Expr> posNegMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(1), Match.EXACT);
-			List<Expr> negPosMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(0), Match.EXACT);
-			List<Expr> negNegMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(1), Match.EXACT);
+			Match leftSign = getSign(ground,0);
+			Match rightSign = getSign(ground,1);
+			List<Expr> posPosMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(0), leftSign);
+			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), rightSign);
+			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), leftSign);
+			List<Expr> negNegMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(1), rightSign);
 			//
 			result.addAll(posPosMatches);
 			result.addAll(posNegMatches);
@@ -273,15 +275,25 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		} else if (quantified instanceof Formula.Conjunct) {
 			Formula.Conjunct c = (Formula.Conjunct) quantified;
 			for (int i = 0; i != c.size(); ++i) {
-				result.addAll(bind(variable, c.getOperand(i), ground));
+				result.addAll(bind(state, variable, c.getOperand(i), ground));
 			}
 		} else if (quantified instanceof Formula.Disjunct) {
 			Formula.Disjunct c = (Formula.Disjunct) quantified;
 			for (int i = 0; i != c.size(); ++i) {
-				result.addAll(bind(variable, c.getOperand(i), ground));
+				result.addAll(bind(state, variable, c.getOperand(i), ground));
 			}
 		}
 		return result;
+	}
+
+	private Match getSign(Formula.Equation e, int operand) {
+		if (e instanceof Formula.Equality || e instanceof Formula.Assignment) {
+			return Match.EXACT;
+		} else if (operand == 0) {
+			return Match.POSITIVE;
+		} else {
+			return Match.NEGATIVE;
+		}
 	}
 
 	private enum Match {
@@ -313,7 +325,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param ground
 	 * @return
 	 */
-	private List<Expr> bindExpression(VariableDeclaration variable, Expr quantified, Expr ground, Match kind) {
+	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) {
 		//
 		if (containsTrigger(quantified)) {
 			Expr.VariableAccess access = new Expr.VariableAccess(variable);
@@ -321,7 +333,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
-				Expr attempt = (Expr) Formulae.substitute(access, candidate, quantified);
+				Expr attempt = (Expr) state.substitute(access, candidate, quantified, types);
 				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {

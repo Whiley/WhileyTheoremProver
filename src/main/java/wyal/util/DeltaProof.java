@@ -144,8 +144,19 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		}
 
 		@Override
-		public Expr construct(Expr term) {
+		public Expr construct(Expr term, TypeSystem types) {
+			Expr tmp = Formulae.simplify((Expr) term, types);
+			Formula.Assignment assignment = lookupAssignment(tmp);
+			if(assignment != null) {
+				return assignment.getRightHandSide();
+			} else {
+				return term;
+			}
+		}
+
+		private Formula.Assignment lookupAssignment(Expr term) {
 			Proof.Delta.Set additions = delta.getAdditions();
+			//
 			for (int i = 0; i != additions.size(); ++i) {
 				Formula f = additions.get(i);
 				if (f instanceof Formula.Assignment) {
@@ -153,15 +164,14 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 					// Found an assignment, so check whether term is being
 					// assigned or not.
 					if (assign.getLeftHandSide().equals(term)) {
-						// Term is being assigned.
-						return assign.getRightHandSide();
+						return assign;
 					}
 				}
 			}
 			if (parent == null) {
-				return term;
+				return null;
 			} else {
-				return parent.construct(term);
+				return parent.lookupAssignment(term);
 			}
 		}
 	}

@@ -82,11 +82,11 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 				Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
 				Expr v = src.getOperand(2);
 				result = new Formula[2];
-				Formula case1 = (Formula) Formulae.substitute(split, v, truth);
+				Formula case1 = (Formula) state.substitute(split, v, truth, types);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j));
-				Formula case2 = (Formula) Formulae.substitute(split, arridx, truth);
+				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j),types);
+				Formula case2 = (Formula) state.substitute(split, arridx, truth, types);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
 				break;
@@ -95,7 +95,7 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 				result = new Formula[src.size()];
 				for (int i = 0; i != src.size(); ++i) {
 					// a >= 0 && j == 0
-					Formula lhs = (Formula) Formulae.substitute(split, src.getOperand(i), truth);
+					Formula lhs = (Formula) state.substitute(split, src.getOperand(i), truth, types);
 					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(i));
 					result[i] = Formulae.and(lhs, rhs);
 				}

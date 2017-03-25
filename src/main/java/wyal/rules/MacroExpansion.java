@@ -67,7 +67,7 @@ public class MacroExpansion implements Proof.LinearRule {
 
 	@Override
 	public State apply(Proof.State state, Formula truth) {
-		Formula expanded = expandFormula(truth);
+		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
 			expanded = state.allocate(expanded);
 			state = state.subsume(this, truth, expanded);
@@ -75,7 +75,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return state;
 	}
 
-	private Formula expandFormula(Formula formula) {
+	private Formula expandFormula(Proof.State state, Formula formula) {
 		if (formula instanceof Formula.Invoke) {
 			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
@@ -83,7 +83,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// Resolve the declaration corresponding to this invocation
 			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
 			// Calculate the invariant (if any)
-			Formula invariant = extractDeclarationInvariant(decl, ivk.getArguments());
+			Formula invariant = extractDeclarationInvariant(state, decl, ivk.getArguments());
 			if (invariant != null) {
 				if (!ivk.getSign()) {
 					invariant = Formulae.invert(invariant);
@@ -96,7 +96,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			if(quantifier.getSign()) {
 				// There's no point going into existentials since they will be
 				// expanded anyway,
-				Formula body = expandFormula(quantifier.getBody());
+				Formula body = expandFormula(state, quantifier.getBody());
 				if(body != quantifier.getBody()) {
 					quantifier = new Formula.Quantifier(true, quantifier.getParameters(), body);
 					return Formulae.simplifyFormula(quantifier, types);
@@ -105,7 +105,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		} else if(formula instanceof Formula.Disjunct) {
 			Formula.Disjunct disjunct = (Formula.Disjunct) formula;
 			Formula[] children = disjunct.getOperands();
-			Formula[] nChildren = expandFormula(children);
+			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
 				disjunct = new Formula.Disjunct(nChildren);
 				return Formulae.simplifyFormula(disjunct, types);
@@ -113,7 +113,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		} else if(formula instanceof Formula.Conjunct) {
 			Formula.Conjunct disjunct = (Formula.Conjunct) formula;
 			Formula[] children = disjunct.getOperands();
-			Formula[] nChildren = expandFormula(children);
+			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
 				disjunct = new Formula.Conjunct(nChildren);
 				return Formulae.simplifyFormula(disjunct, types);
@@ -122,11 +122,11 @@ public class MacroExpansion implements Proof.LinearRule {
 		return formula;
 	}
 
-	private Formula[] expandFormula(Formula... children) {
+	private Formula[] expandFormula(Proof.State state, Formula... children) {
 		Formula[] nChildren = children;
 		for(int i=0;i!=children.length;++i) {
 			Formula child = nChildren[i];
-			Formula nChild = expandFormula(child);
+			Formula nChild = expandFormula(state, child);
 			if(child != nChild && nChildren == children) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
@@ -135,24 +135,24 @@ public class MacroExpansion implements Proof.LinearRule {
 		return nChildren;
 	}
 
-	private Formula extractDeclarationInvariant(Declaration.Named decl, Tuple<Expr> arguments) {
+	private Formula extractDeclarationInvariant(Proof.State state, Declaration.Named decl, Tuple<Expr> arguments) {
 		if (decl instanceof Declaration.Named.Type) {
 			// This is a type invariant macro call. In such case, we
 			// need to first determine what the invariant actually is.
 			Declaration.Named.Type td = (Declaration.Named.Type) decl;
 			// Expand the corresponding type invariant
-			return expandTypeInvariant(td, arguments.getOperand(0));
+			return expandTypeInvariant(state, td, arguments.getOperand(0));
 		} else if (decl instanceof Declaration.Named.Macro) {
 			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
 			// Expand the macro body with appropriate substitutions
-			return expandMacroBody(md, arguments.getOperands());
+			return expandMacroBody(state, md, arguments.getOperands());
 		} else {
 			// Functions are ignored
 			return null;
 		}
 	}
 
-	private Formula expandMacroBody(Declaration.Named.Macro md, Expr[] arguments) {
+	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) {
 		VariableDeclaration[] parameters = md.getParameters().getOperands();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
@@ -169,12 +169,12 @@ public class MacroExpansion implements Proof.LinearRule {
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
-			body = (Formula) Formulae.substitute(parameter, arguments[i], body);
+			body = (Formula) state.substitute(parameter, arguments[i], body, types);
 		}
 		return body;
 	}
 
-	private Formula expandTypeInvariant(Declaration.Named.Type td, Expr argument) {
+	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
 		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(), argument, types);
@@ -191,7 +191,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
-			result = (Formula) Formulae.substitute(parameter, argument, result);
+			result = (Formula) state.substitute(parameter, argument, result, types);
 			return result;
 		}
 	}

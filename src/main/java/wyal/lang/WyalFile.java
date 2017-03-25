@@ -1317,6 +1317,29 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// DEBUGGING SUPPORT
 	// ===========================================================
 
+	public static void println(Proof.Delta delta) {
+		print(delta);
+		System.out.println();
+	}
+	public static void print(Proof.Delta delta) {
+		Proof.Delta.Set additions = delta.getAdditions();
+		Proof.Delta.Set removals = delta.getRemovals();
+		for (int i = 0; i != additions.size(); ++i) {
+			if(i != 0) {
+				System.out.print(", ");
+			}
+			System.out.print("+");
+			print(additions.get(i));
+		}
+		for (int i = 0; i != removals.size(); ++i) {
+			if(i != 0 || additions.size() > 0) {
+				System.out.print(", ");
+			}
+			System.out.print("-");
+			print(removals.get(i));
+		}
+	}
+
 	public static void println(SyntacticItem... items) {
 		print(items);
 		System.out.println();

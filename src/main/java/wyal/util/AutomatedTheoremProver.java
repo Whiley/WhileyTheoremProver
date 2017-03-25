@@ -29,7 +29,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 1000;
+	private final int maxProofSize = 500;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
@@ -100,7 +100,7 @@ public class AutomatedTheoremProver {
 		DeltaProof proof = new DeltaProof(null, heap, formula);
 		Proof.State state = proof.getState(0);
 		//
-		boolean r = checkUnsat(state, state.getDelta(), FALSE);
+		boolean r = checkUnsat(state, new FastDelta.Set(formula), FALSE);
 		//
 		simplifyProof(state,FALSE);
 		//
@@ -109,7 +109,7 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private boolean checkUnsat(Proof.State state, Proof.Delta delta, Formula.Truth FALSE) {
+	private boolean checkUnsat(Proof.State state, FastDelta.Set additions, Formula.Truth FALSE) {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
 		if(state.getProof().size() > maxProofSize) {
@@ -117,15 +117,18 @@ public class AutomatedTheoremProver {
 			return false;
 		}
 		// Hard limit not reached, therefore continue exploring!
-		Proof.Delta.Set additions = delta.getAdditions();
+		FastDelta delta = new FastDelta(additions,FastDelta.EMPTY_SET);
 		// Infer information from current state and delta
 		for (int i = 0; i != additions.size() && !state.isKnown(FALSE); ++i) {
 			Formula truth = additions.get(i);
-			// Check whether the given truth is actually active or not. If not,
-			// it has been subsumed at some point, and must be ignored.
-			if (!delta.isRemoval(truth)) {
-				// Has not been removed yet
-				for (int j = 0; j != rules.length; ++j) {
+			for (int j = 0; j != rules.length; ++j) {
+				// Check whether the given truth is actually active or not. If not,
+				// it has been subsumed at some point, and must be ignored.
+				if (delta.isRemoval(truth)) {
+					break;
+				} else {
+					// Truth remains active, therefore try to process it with
+					// the given rule.
 					Proof.Rule rule = rules[j];
 					Proof.State before = state;
 					// Apply the rule
@@ -148,16 +151,18 @@ public class AutomatedTheoremProver {
 							state = splits[0];
 						}
 					}
-					// At this point, we have now processed this truth
-					// completely against all known rules. Therefore, it will
-					// not be considered again.
-					delta = delta.remove(truth);
-					// Given our current delta as processed thus far, we now
-					// need to include the delta for the step that was just
-					// taken (if any).
-					delta = delta.apply(state.getDelta(before));
+					if(state != before) {
+						// Given our current delta as processed thus far, we now
+						// need to include the delta for the step that was just
+						// taken (if any).
+						delta = delta.apply(state.getDelta(before));
+					}
 				}
 			}
+			// At this point, we have now processed this truth
+			// completely against all known rules. Therefore, it will
+			// not be considered again.
+			delta = delta.remove(truth);
 		}
 		if (state.isKnown(FALSE)) {
 			// We established a contradiction at some point during this round,
@@ -166,7 +171,7 @@ public class AutomatedTheoremProver {
 		} else if (delta.getAdditions().size() > 0) {
 			// We still have unprocessed truths. Therefore, continue for another
 			// round.
-			return checkUnsat(state, delta, FALSE);
+			return checkUnsat(state, delta.getAdditions(), FALSE);
 		} else {
 			// We're out of options, therefore we're failing to find a
 			// contradiction and we give up on the whole thing.
@@ -174,14 +179,14 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySplit(Proof.State state, Proof.State[] splits, Proof.Delta delta, Formula truth, Formula.Truth FALSE) {
+	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth, Formula.Truth FALSE) {
 		State parent = state.getParent();
 		// Now, try to find a contradiction for each case
 		for (int j = 0; j != splits.length; ++j) {
 			Proof.State split = splits[j];
-			Proof.Delta splitDelta = delta.apply(split.getDelta());
+			FastDelta splitDelta = delta.apply(split.getDelta());
 			//
-			if (!checkUnsat(split, splitDelta, FALSE)) {
+			if (!checkUnsat(split, splitDelta.getAdditions(), FALSE)) {
 				// Unable to find a proof down this branch, therefore done.
 				return false;
 			} else {

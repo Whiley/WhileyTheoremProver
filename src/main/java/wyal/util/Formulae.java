@@ -961,6 +961,7 @@ public class Formulae {
 		case EXPR_or:
 		case EXPR_exists:
 		case EXPR_forall:
+		case EXPR_assign:
 		case EXPR_eq:
 		case EXPR_neq:
 		case EXPR_lt:
@@ -1251,58 +1252,6 @@ public class Formulae {
 		}
 	}
 
-	/**
-	 * <p>
-	 * Substitute for a given variable within a given syntactic item.
-	 * Specifically, this replaces all instances of VariableAccess which match
-	 * the given declaration. Observe that the substitution is performed
-	 * verbatim and (for example) without simplifying the underlying item.
-	 * </p>
-	 * <p>
-	 * This function preserves the aliasing structure of the original item up to
-	 * the substitution itself. Furthermore, if no substitution was performed
-	 * then the original item is returned as is.
-	 * </p>
-	 *
-	 * @param to
-	 * @param item
-	 * @return
-	 */
-	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
-			SyntacticItem item) {
-		if (item.equals(from)) {
-			// Yes, we made a substitution!
-			return to;
-		} else {
-			// No immediate substitution possible. Instead, recursively traverse
-			// term looking for substitution.
-			SyntacticItem[] children = item.getOperands();
-			SyntacticItem[] nChildren = children;
-			if(children != null) {
-				for (int i = 0; i != children.length; ++i) {
-					SyntacticItem child = children[i];
-					if(child != null) {
-						SyntacticItem nChild = substitute(from, to, child);
-						if (child != nChild && nChildren == children) {
-							// Clone the new children array to avoid interfering with
-							// original item.
-							nChildren = Arrays.copyOf(children, children.length);
-						}
-						nChildren[i] = nChild;
-					}
-				}
-			}
-			if (nChildren == children) {
-				// No children were updated, hence simply return the original
-				// item.
-				return item;
-			} else {
-				// At least one child was changed, therefore clone the original
-				// item with the new children.
-				return item.clone(nChildren);
-			}
-		}
-	}
 
 	/**
 	 * Recursively remove nested conjuncts. If no nested conjuncts are

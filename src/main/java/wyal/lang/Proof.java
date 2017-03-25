@@ -2,6 +2,8 @@ package wyal.lang;
 
 import java.util.List;
 import wyal.lang.WyalFile.Declaration;
+import wyal.lang.WyalFile.Expr;
+import wyal.util.TypeSystem;
 
 public interface Proof {
 
@@ -176,7 +178,18 @@ public interface Proof {
 		 * @param newTerm
 		 * @return
 		 */
-		WyalFile.Expr construct(WyalFile.Expr newTerm);
+		Expr construct(Expr newTerm, TypeSystem types);
+
+		/**
+		 * Replace all occurrences of a given expression (from) with all
+		 * occurrences of a given expression (to) in a given term.
+		 *
+		 * @param from
+		 * @param to
+		 * @param item
+		 * @return
+		 */
+		SyntacticItem substitute(SyntacticItem from, SyntacticItem to, SyntacticItem term, TypeSystem types);
 	}
 
 	/**

@@ -101,8 +101,8 @@ public class CongruenceClosure implements Proof.LinearRule {
 		for (int i = 0; i != additions.size(); ++i) {
 			Formula existingTruth = additions.get(i);
 			if(existingTruth != assignment) {
-				Formula updatedTruth = (Formula) Formulae.substitute(assignment.getLeftHandSide(),
-						assignment.getRightHandSide(), existingTruth);
+				Formula updatedTruth = (Formula) state.substitute(assignment.getLeftHandSide(),
+						assignment.getRightHandSide(), existingTruth, types);
 				if (existingTruth != updatedTruth) {
 					updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
 					// The following is needed because substitution can

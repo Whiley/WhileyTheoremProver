@@ -187,7 +187,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
-		grounded = (Formula) Formulae.substitute(access, binding, grounded);
+		grounded = (Formula) state.substitute(access, binding, grounded, types);
 		// Expand any type invariant associated with this variable
 		Formula invariant = Formulae.expandTypeInvariant(variable,types);
 		// Add type invariants (if appropriate)
