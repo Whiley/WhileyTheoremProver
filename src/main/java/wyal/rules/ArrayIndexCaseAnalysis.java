@@ -3,6 +3,7 @@ package wyal.rules;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
+import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
@@ -24,7 +25,7 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 	public State apply(State state, Formula truth) {
 		Expr split = findCaseAnalysis(truth);
 		if (split != null) {
-			Formula[] cases = generateCaseAnalysis(split, truth);
+			Formula[] cases = generateCaseAnalysis(split, truth, state);
 			Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
 			state = state.subsume(this, truth, disjunct);
 		}
@@ -69,7 +70,7 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 		return null;
 	}
 
-	private Formula[] generateCaseAnalysis(Expr split, Formula truth) {
+	private Formula[] generateCaseAnalysis(Expr split, Formula truth, Proof.State state) {
 		Formula[] result;
 		switch (split.getOpcode()) {
 		case EXPR_arridx: {
@@ -82,8 +83,10 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 				Expr v = src.getOperand(2);
 				result = new Formula[2];
 				Formula case1 = (Formula) Formulae.substitute(split, v, truth);
-				Formula case2 = (Formula) Formulae.substitute(split, new Expr.Operator(Opcode.EXPR_arridx, xs, j),
-						truth);
+				// NOTE: we must call construct here since we are creating a new
+				// term from scratch.
+				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j));
+				Formula case2 = (Formula) Formulae.substitute(split, arridx, truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
 				break;

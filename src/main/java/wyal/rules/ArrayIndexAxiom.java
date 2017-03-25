@@ -103,7 +103,10 @@ public class ArrayIndexAxiom implements Proof.LinearRule {
 		for (int i = 0; i != matches.size(); ++i) {
 			Expr.Operator match = matches.get(i);
 			Polynomial index = Formulae.toPolynomial(match.getOperand(1));
-			Polynomial length = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0)));
+			// NOTE: we must call construct here since we are creating a new
+			// term from scratch.
+			Polynomial length = Formulae
+					.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0))));
 
 			if (target instanceof Formula.Inequality) {
 

@@ -167,6 +167,16 @@ public interface Proof {
 		 * @return
 		 */
 		Formula allocate(Formula truth);
+
+		/**
+		 * When generating an entirely new term within a given rule (i.e. one
+		 * that has not been previously seen in the proof), we need to check
+		 * whether it is the subject of some existing assignment or not.
+		 *
+		 * @param newTerm
+		 * @return
+		 */
+		WyalFile.Expr construct(WyalFile.Expr newTerm);
 	}
 
 	/**

@@ -146,18 +146,15 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			Formula.Equation groundTerm, State state) {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
-		Type pt = variable.getType();
 		List<Expr> grounds = bind(variable, quantifier.getBody(), groundTerm);
 		//
 		for (int i = 0; i != grounds.size(); ++i) {
 			Expr ground = grounds.get(i);
-			Type gt = ground.getReturnType(types);
-			// Make sure ground term is compatible with parameter in
-			// question. If not, then it's not a valid substitution and
-			// should be skipped.
-			if (types.isSubtype(pt, gt)) {
-				state = instantiateQuantifier(quantifier, variable, groundTerm, ground, state);
-			}
+			// NOTE: we don't bother checking the type of the term being
+			// instantiated here. That's because (at the moment) this is only
+			// matching integer terms anyway. In the future, if we relax this,
+			// then we might need a different approach.
+			state = instantiateQuantifier(quantifier, variable, groundTerm, ground, state);
 		}
 		return state;
 	}
@@ -256,14 +253,14 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		if (quantified instanceof Formula.Inequality) {
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
-			List<Expr> posNegMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(1), Match.POSITIVE);
+			List<Expr> posNegMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
 			// Negative (Quantified) versus Positive (Ground)
-			List<Expr> negPosMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(0), Match.NEGATIVE);
+			List<Expr> negPosMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(0), Match.POSITIVE);
 			//
 			result.addAll(posNegMatches);
 			result.addAll(negPosMatches);
-		} else if (quantified instanceof Formula.Equality) {
-			Formula.Equality ieq = (Formula.Equality) quantified;
+		} else if (quantified instanceof Formula.Equality || quantified instanceof Formula.Assignment) {
+			Formula.Equation ieq = (Formula.Equation) quantified;
 			List<Expr> posPosMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(0), Match.EXACT);
 			List<Expr> posNegMatches = bindExpression(variable, ieq.getOperand(0), ground.getOperand(1), Match.EXACT);
 			List<Expr> negPosMatches = bindExpression(variable, ieq.getOperand(1), ground.getOperand(0), Match.EXACT);
@@ -343,7 +340,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			return attempt.equals(ground);
 		}
 		Polynomial lhs = (Polynomial) attempt;
-		Polynomial rhs = (Polynomial) attempt;
+		Polynomial rhs = (Polynomial) ground;
 		Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
 			BigInteger diff = difference.toConstant().get();

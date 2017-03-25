@@ -29,7 +29,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 500;
+	private final int maxProofSize = 1000;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
@@ -122,12 +122,13 @@ public class AutomatedTheoremProver {
 		for (int i = 0; i != additions.size() && !state.isKnown(FALSE); ++i) {
 			Formula truth = additions.get(i);
 			// Check whether the given truth is actually active or not. If not,
-			// it has been subsumed at some point, and can be ignored.
+			// it has been subsumed at some point, and must be ignored.
 			if (!delta.isRemoval(truth)) {
 				// Has not been removed yet
 				for (int j = 0; j != rules.length; ++j) {
 					Proof.Rule rule = rules[j];
 					Proof.State before = state;
+					// Apply the rule
 					if (rule instanceof Proof.LinearRule) {
 						// Linear rules are the easy case as they can only
 						// produce one follow on case.
@@ -148,9 +149,8 @@ public class AutomatedTheoremProver {
 						}
 					}
 					// At this point, we have now processed this truth
-					// completely against all known rules. Therefore, it is now
-					// rendered "inactive" meaning that it will not be
-					// considered again.
+					// completely against all known rules. Therefore, it will
+					// not be considered again.
 					delta = delta.remove(truth);
 					// Given our current delta as processed thus far, we now
 					// need to include the delta for the step that was just

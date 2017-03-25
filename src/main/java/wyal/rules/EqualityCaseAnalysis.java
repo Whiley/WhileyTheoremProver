@@ -82,8 +82,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
-			Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-			Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
+			Expr lf = state.construct(new Expr.RecordAccess(lhs, fields[i].getVariableName()));
+			Expr rf = state.construct(new Expr.RecordAccess(rhs, fields[i].getVariableName()));
 			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
 		}
 		Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(clauses), types);
@@ -109,6 +109,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 				}
 				Expr lf = lhsField.getSecond();
 				Expr rf = rhsField.getSecond();
+				// NOTE: don't need to call construct here, since generating a
+				// formula.
 				clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_eq, lf, rf), types);
 			}
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Conjunct(clauses), types);
@@ -198,13 +200,13 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
 			Proof.State state) {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
-		Expr rhsSize = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
+		Expr rhsSize = state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
 		Expr[] lhsOperands = lhs.getOperands();
 		Formula[] clauses = new Formula[lhsOperands.length + 1];
 		for (int i = 0; i != lhsOperands.length; ++i) {
 			Expr index = new Expr.Constant(new Value.Int(i));
 			Expr lhsOperand = lhsOperands[i];
-			Expr rhsOperand = new Expr.Operator(Opcode.EXPR_arridx, rhs, index);
+			Expr rhsOperand = state.construct(new Expr.Operator(Opcode.EXPR_arridx, rhs, index));
 			clauses[i] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsOperand, rhsOperand), types);
 		}
 		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsSize, rhsSize), types);
@@ -219,8 +221,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
 		Formula body = Formulae.notEquals(lhsAccess, rhsAccess, types);
-		Polynomial lhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
-		Polynomial rhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+		Polynomial lhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, lhs)));
+		Polynomial rhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs)));
 		// The following axiom simply states that the length of every array
 		// type is greater than or equal to zero.
 		Formula axiom = new ArithmeticEquality(false, lhsLen, rhsLen);

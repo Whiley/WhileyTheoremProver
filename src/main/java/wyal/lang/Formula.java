@@ -136,6 +136,25 @@ public interface Formula extends Expr {
 		public Expr[] getOperands();
 	}
 
+	public static class Assignment extends Expr.Operator implements Equation {
+		public Assignment(Expr lhs, Expr rhs) {
+			super(Opcode.EXPR_assign, lhs, rhs);
+		}
+
+		public Expr getLeftHandSide() {
+			return getOperand(0);
+		}
+
+		public Expr getRightHandSide() {
+			return getOperand(1);
+		}
+
+		@Override
+		public Assignment clone(SyntacticItem[] children) {
+			return new Assignment((Expr) children[0], (Expr) children[1]);
+		}
+	}
+
 	public interface ArithmeticEquation extends Equation {
 		@Override
 		public Polynomial getOperand(int i);

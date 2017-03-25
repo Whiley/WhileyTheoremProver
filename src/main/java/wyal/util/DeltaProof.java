@@ -5,10 +5,12 @@ import java.util.BitSet;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
+import wyal.lang.WyalFile;
 import wyal.util.AbstractProof;
 import wyal.util.AbstractProof.AbstractState;
 import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.Declaration.Assert;
+import wyal.lang.WyalFile.Expr;
 
 public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
@@ -41,6 +43,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			state.children.add(this);
 			// Update our state of the world
 			FastDelta.Set additions = delta.getAdditions();
+			//
 			for (int i = 0; i != additions.size(); ++i) {
 				truths.set(additions.get(i).getIndex());
 			}
@@ -115,6 +118,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
 		@Override
 		public State infer(Proof.Rule rule, Formula truth, Formula... dependencies) {
+			//
 			final int index = truth.getIndex();
 			if(!truths.get(index)) {
 				FastDelta delta = new FastDelta(new FastDelta.Set(truth), FastDelta.EMPTY_SET);
@@ -138,6 +142,27 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		public Formula allocate(Formula truth) {
 			return proof.getHeap().allocate(truth);
 		}
-	}
 
+		@Override
+		public Expr construct(Expr term) {
+			Proof.Delta.Set additions = delta.getAdditions();
+			for (int i = 0; i != additions.size(); ++i) {
+				Formula f = additions.get(i);
+				if (f instanceof Formula.Assignment) {
+					Formula.Assignment assign = (Formula.Assignment) f;
+					// Found an assignment, so check whether term is being
+					// assigned or not.
+					if (assign.getLeftHandSide().equals(term)) {
+						// Term is being assigned.
+						return assign.getRightHandSide();
+					}
+				}
+			}
+			if (parent == null) {
+				return term;
+			} else {
+				return parent.construct(term);
+			}
+		}
+	}
 }

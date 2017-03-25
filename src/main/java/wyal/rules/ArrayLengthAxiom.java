@@ -63,6 +63,9 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 
 	@Override
 	public State apply(Proof.State state, Formula truth) {
+		// FIXME: there is a bug here because we might not find an array length
+		// expression; rather we might find only the representative from its
+		// equivalence class.
 		if (truth instanceof Formula.Inequality) {
 			Formula.Inequality inequality = (Formula.Inequality) truth;
 			List<WyalFile.Expr> matches = findMatches(inequality.getOperand(1));

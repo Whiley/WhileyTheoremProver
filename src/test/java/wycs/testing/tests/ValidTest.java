@@ -39,7 +39,6 @@ public class ValidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//

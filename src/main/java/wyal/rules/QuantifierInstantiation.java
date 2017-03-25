@@ -141,18 +141,15 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 			Formula.ArithmeticEquation groundTerm, State state) {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
-		Type pt = variable.getType();
 		List<Expr> grounds = bind(variable, quantifier.getBody(), groundTerm);
 		//
 		for (int i = 0; i != grounds.size(); ++i) {
 			Expr ground = grounds.get(i);
-			Type gt = ground.getReturnType(types);
-			// Make sure ground term is compatible with parameter in
-			// question. If not, then it's not a valid substitution and
-			// should be skipped.
-			if (types.isSubtype(pt, gt)) {
-				state = instantiateQuantifier(quantifier, variable, groundTerm, ground, state);
-			}
+			// NOTE: we don't bother checking the type of the term being
+			// instantiated here. That's because (at the moment) this is only
+			// matching integer terms anyway. In the future, if we relax this,
+			// then we might need a different approach.
+			state = instantiateQuantifier(quantifier, variable, groundTerm, ground, state);
 		}
 		return state;
 	}

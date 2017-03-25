@@ -3,6 +3,7 @@ package wyal.rules;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
+import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
@@ -35,15 +36,13 @@ import wyal.util.TypeSystem;
  * substitutions are the responsibility of this rule.
  * </p>
  * <p>
- * Upon seeing a new truth (e.g. <code>i &lt; 0</code> above), this rule first
- * searches back through the history of active truths (e.g. <code>i == 0</code>
- * above) for any equalities which can be used for substitution. In the case
- * that the new truth is itself an equality, then this rule also searches back
- * through the history attempting to subsume existing active truths. If/when a
- * successful substitution occurs, then the truth in question is <i>subsumed</i>
- * and the substituted version asserted instead. To reduce overhead, this rule
- * employs a lexicographic ordering of terms and always substitutes through the
- * lowest available candidate in any given equality.
+ * Upon seeing a new equality (e.g. <code>i == 0</code> above), this rule
+ * searches back through the history of active truths for any opportunities to
+ * apply the substitution. If/when a successful substitution occurs, then the
+ * truth in question is <i>subsumed</i> and the substituted version asserted
+ * instead. To reduce overhead, this rule employs a lexicographic ordering of
+ * terms and always substitutes through the lowest available candidate in any
+ * given equality.
  * </p>
  * <p>
  * <b>NOTE:</b> The problem of <i>counting</i> is a surprising issue with
@@ -72,80 +71,52 @@ public class CongruenceClosure implements Proof.LinearRule {
 
 	@Override
 	public State apply(Proof.State state, Formula newTruth) {
-		Proof.Delta history = state.getDelta(null);
 		//
-		state = substituteAgainstTruth(history,state,newTruth);
-		//
-		if(newTruth instanceof Formula.Equality) {
-			// FIXME: what if the new truth was substituted against, and is no
-			// longer active?
-			state = substituteAgainstEquality(history,state,(Formula.Equality) newTruth);
+		if (newTruth instanceof Formula.Assignment) {
+			state = applyAssignment((Formula.Assignment)newTruth,state);
+		} else if (newTruth instanceof Formula.Equality) {
+			state = substituteAgainstEquality(state, (Formula.Equality) newTruth);
 		}
-
+		//
 		return state;
 	}
 
-	private Proof.State substituteAgainstEquality(Proof.Delta history, Proof.State state, Formula.Equality newTruth) {
-		Proof.Delta.Set additions = history.getAdditions();
+	private Proof.State substituteAgainstEquality(Proof.State state, Formula.Equality newTruth) {
+		//
 		if (newTruth.getSign()) {
-			Pair<Expr, Expr> substitution = rearrangeForSubstitution(newTruth);
-			if (substitution != null) {
-				for (int i = 0; i != additions.size(); ++i) {
-					Formula existingTruth = additions.get(i);
-					if (existingTruth != newTruth) {
-						Formula updatedTruth = (Formula) Formulae.substitute(substitution.getFirst(),
-								substitution.getSecond(), existingTruth);
-						if (existingTruth != updatedTruth) {
-							updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
-							// The following is needed because substitution can
-							// produce a different looking term which, after
-							// simplification, is the same. To avoid this, we
-							// need to avoid "recursive substitutions" somehow.
-							if (!existingTruth.equals(updatedTruth)) {
-								updatedTruth = state.allocate(updatedTruth);
-								state = state.subsume(this, existingTruth, updatedTruth, newTruth);
-							}
-						}
-					}
-				}
+			Formula.Assignment assignment = rearrangeToAssignment(newTruth);
+			if (assignment != null) {
+				assignment = (Formula.Assignment) state.allocate(assignment);
+				state = state.subsume(this,newTruth,assignment);
+				return applyAssignment(assignment,state);
 			}
 		}
 		return state;
 	}
 
-	private Proof.State substituteAgainstTruth(Proof.Delta history, Proof.State state, Formula newTruth) {
+	private State applyAssignment(Formula.Assignment assignment, Proof.State state) {
+		Proof.Delta history = state.getDelta(null);
 		Proof.Delta.Set additions = history.getAdditions();
 		//
 		for (int i = 0; i != additions.size(); ++i) {
 			Formula existingTruth = additions.get(i);
-			//
-			if (existingTruth != newTruth && existingTruth instanceof Formula.Equality) {
-				Formula.Equality equality = (Formula.Equality) existingTruth;
-				if (equality.getSign()) {
-					Pair<Expr, Expr> substitution = rearrangeForSubstitution(equality);
-					if (substitution != null) {
-						// At this point, we have an equality which potentially
-						// could be used to subsume one or more existing facts.
-						// Therefore, we need to look back through the history
-						// to determine any cases where this can be applied.
-						Formula updatedTruth = (Formula) Formulae.substitute(substitution.getFirst(),
-								substitution.getSecond(), newTruth);
-						//
-						if (newTruth != updatedTruth) {
-							updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
-							// The following is needed because substitution can
-							// produce a different looking term which, after
-							// simplification, is the same.
-							if (!newTruth.equals(updatedTruth)) {
-								updatedTruth = state.allocate(updatedTruth);
-								return state.subsume(this, newTruth, updatedTruth, equality);
-							}
-						}
+			if(existingTruth != assignment) {
+				Formula updatedTruth = (Formula) Formulae.substitute(assignment.getLeftHandSide(),
+						assignment.getRightHandSide(), existingTruth);
+				if (existingTruth != updatedTruth) {
+					updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
+					// The following is needed because substitution can
+					// produce a different looking term which, after
+					// simplification, is the same. To avoid this, we
+					// need to avoid "recursive substitutions" somehow.
+					if (!existingTruth.equals(updatedTruth)) {
+						updatedTruth = state.allocate(updatedTruth);
+						state = state.subsume(this, existingTruth, updatedTruth, assignment);
 					}
 				}
 			}
 		}
-		// No change in the normal case
+		//
 		return state;
 	}
 
@@ -161,7 +132,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 	 *            --- The equality being rearranged
 	 * @return
 	 */
-	public static Pair<Expr, Expr> rearrangeForSubstitution(Formula.Equality equality) {
+	public static Formula.Assignment rearrangeToAssignment(Formula.Equality equality) {
 		Expr candidate;
 		Expr bound;
 		if (equality instanceof Formula.ArithmeticEquality) {
@@ -212,7 +183,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			}
 		}
 
-		return new Pair<>(candidate, bound);
+		return new Formula.Assignment(candidate, bound);
 	}
 
 	private static Expr extractCandidate(Polynomial.Term term) {

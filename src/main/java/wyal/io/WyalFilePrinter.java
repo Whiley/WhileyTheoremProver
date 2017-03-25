@@ -304,6 +304,7 @@ public class WyalFilePrinter {
 		case EXPR_or:
 		case EXPR_implies:
 		case EXPR_iff:
+		case EXPR_assign:
 		case EXPR_eq:
 		case EXPR_neq:
 		case EXPR_lt:
@@ -671,6 +672,7 @@ public class WyalFilePrinter {
 		OPERATOR_MAP.put(Opcode.EXPR_lt, "<");
 		OPERATOR_MAP.put(Opcode.EXPR_gteq, ">=");
 		OPERATOR_MAP.put(Opcode.EXPR_gt, ">");
+		OPERATOR_MAP.put(Opcode.EXPR_assign, ":=");
 		OPERATOR_MAP.put(Opcode.EXPR_eq, "==");
 		OPERATOR_MAP.put(Opcode.EXPR_neq, "!=");
 		OPERATOR_MAP.put(Opcode.EXPR_is, "is");

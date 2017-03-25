@@ -602,6 +602,8 @@ public class Formulae {
 		case EXPR_forall: {
 			return simplifyQuantifier((Formula.Quantifier) f, types);
 		}
+		case EXPR_assign:
+			return simplifyAssign((Formula.Assignment) f,types);
 		case EXPR_eq:
 		case EXPR_neq: {
 			if (f instanceof ArithmeticEquality) {
@@ -855,6 +857,24 @@ public class Formulae {
 			return eq;
 		} else {
 			return new Equality(eq.getSign(),nLhs,nRhs);
+		}
+	}
+
+	public static Formula simplifyAssign(Formula.Assignment eq, TypeSystem types) {
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		Expr nLhs = simplify(lhs, types);
+		Expr nRhs = simplify(rhs, types);
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value lhs_v = ((Expr.Constant) nLhs).getValue();
+			Value rhs_v = ((Expr.Constant) nRhs).getValue();
+			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
+		} else if (nLhs.equals(nRhs)) {
+			return new Formula.Truth(true);
+		} if(nLhs == lhs && nRhs == rhs) {
+			return eq;
+		} else {
+			return new Assignment(nLhs,nRhs);
 		}
 	}
 

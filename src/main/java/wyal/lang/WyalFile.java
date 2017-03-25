@@ -172,6 +172,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_arrgen(60),
 		EXPR_arrinit(61),
 		EXPR_recinit(62),
+		// Other
+		EXPR_assign(63),
 
 		// BASE
 		CONST_null(66),

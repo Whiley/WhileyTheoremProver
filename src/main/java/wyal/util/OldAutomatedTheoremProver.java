@@ -680,7 +680,7 @@ public class OldAutomatedTheoremProver {
 		// COUNTING. this is possible in congruence closure when you have
 		// recursive predicates. For example, x == f(x) can ultimately give rise
 		// to a sequence of applications end up with f(f(f(f(x)))), etc.
-		Pair<Expr, Expr> substitution = Formulae.rearrangeForSubstitution(eq);
+		Pair<Expr, Expr> substitution = Formulae.rearrangeToAssignment(eq);
 		if (eq.getSign() && substitution != null) {
 			// We've found a suitable substitution
 			State original = state;
