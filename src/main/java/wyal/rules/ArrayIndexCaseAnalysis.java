@@ -1,5 +1,7 @@
 package wyal.rules;
 
+import java.util.List;
+
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
@@ -11,11 +13,10 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
-	private final TypeSystem types;
+public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
 
 	public ArrayIndexCaseAnalysis(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -25,71 +26,29 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 
 	@Override
 	public State apply(State state, Formula truth) {
-		Expr split = findCaseAnalysis(truth);
-		if (split != null) {
-			Formula[] cases = generateCaseAnalysis(split, truth, state);
-			Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
-			state = state.subsume(this, truth, disjunct);
+		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
+		if (matches.size() > 0) {
+			for(int i=0;i!=matches.size();++i) {
+				Expr.Operator match = matches.get(i);
+				Formula[] cases = generateCaseAnalysis(match, truth, state);
+				Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
+				state = state.subsume(this, truth, disjunct);
+			}
 		}
 		return state;
 	}
 
-	/**
-	 * A split point is a subexpression which can be divided into two or more
-	 * "options". For example, the expression <code>xs[i:=0][j] >= 0</code> is
-	 * broken down into
-	 * <code>(j == i && 0 >= 0) || (j != i && xs[j] >= 0)</code>.
-	 *
-	 * @param e
-	 * @return
-	 */
-	private Expr findCaseAnalysis(Expr e) {
-		switch (e.getOpcode()) {
-		case EXPR_arridx: {
-			if (e.getOperand(0).getOpcode() == Opcode.EXPR_arrupdt) {
-				// This represents a split point.
-				return e;
-			} else if (e.getOperand(0).getOpcode() == Opcode.EXPR_arrinit) {
-				return e;
-			}
-		}
-		case EXPR_forall:
-			// Don't extract case splitters from quantified formulae. There's
-			// no point until they are instantiated!
-
-			// FIXME: there are situations when we should go into a quantifier.
-			return null;
-		}
-		// Generic traversal, returning first split point encountered.
-		for (int i = 0; i != e.size(); ++i) {
-			SyntacticItem item = e.getOperand(i);
-			if (item instanceof Expr) {
-				Expr cf = findCaseAnalysis((Expr) item);
-				// FIXME: this looks incorrect, since there could well be
-				// multiple targets generated for case analysis. We shouldn't
-				// stop at the first one we find.
-				if (cf != null) {
-					return cf;
-				}
-			} else if (item instanceof Tuple) {
-				// FIXME: need to process function arguments here as well
-			}
-		}
-		// No split points found
-		return null;
-	}
-
-	private Formula[] generateCaseAnalysis(Expr split, Formula truth, Proof.State state) {
+	private Formula[] generateCaseAnalysis(Expr.Operator split, Formula truth, Proof.State state) {
 		Formula[] result;
 		switch (split.getOpcode()) {
 		case EXPR_arridx: {
-			Expr.Operator src = (Expr.Operator) split.getOperand(0);
+			Expr src = split.getOperand(0);
 			Expr.Polynomial j = (Expr.Polynomial) split.getOperand(1);
 			if (src.getOpcode() == Opcode.EXPR_arrupdt) {
 				// xs[i:=v][j]
-				Expr xs = src.getOperand(0);
+				Expr xs = (Expr) src.getOperand(0);
 				Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
-				Expr v = src.getOperand(2);
+				Expr v = (Expr) src.getOperand(2);
 				result = new Formula[2];
 				Formula case1 = (Formula) state.substitute(split, v, truth, types);
 				// NOTE: we must call construct here since we are creating a new
@@ -112,7 +71,9 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 			}
 		}
 		default:
-			throw new IllegalArgumentException("unknown split kind encountered");
+			// NOTE: we can arrive here if we extracted a defined term that
+			// didn't meet our criteria above.
+			return new Formula[0];
 		}
 		return result;
 	}

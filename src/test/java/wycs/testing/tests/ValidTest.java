@@ -39,14 +39,9 @@ public class ValidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-		IGNORED.put("test_array_06", "??");
-		IGNORED.put("test_array_15", "??");
 		IGNORED.put("test_array_26", "??");
 		IGNORED.put("test_array_38", "??");
-		IGNORED.put("test_array_50", "??");
 		IGNORED.put("test_array_60", "??");
-		IGNORED.put("test_array_63", "??");
-		IGNORED.put("test_type_64", "??");
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//
@@ -68,8 +63,6 @@ public class ValidTest {
 		//
 		IGNORED.put("test_type_38", "#31");
 		//
-		IGNORED.put("test_fun_03", "#32");
-		//
 		IGNORED.put("test_type_45", "#35");
 		IGNORED.put("test_type_46", "#35");
 		//
@@ -86,8 +79,6 @@ public class ValidTest {
 		IGNORED.put("test_array_61", "#41");
 		//
 		IGNORED.put("test_array_31", "#42");
-		//
-		IGNORED.put("test_array_54", "#47");
 	}
 
 	// ======================================================================

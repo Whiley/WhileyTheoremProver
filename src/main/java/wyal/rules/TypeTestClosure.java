@@ -43,10 +43,8 @@ public class TypeTestClosure implements Proof.LinearRule {
 		if (lhs.getExpr().equals(rhs.getExpr())) {
 			Type lhsT = lhs.getTypeTest();
 			Type rhsT = rhs.getTypeTest();
-			Type type = types.intersect(lhsT, rhsT);
+			Type type = TypeSystem.intersect(lhsT, rhsT);
 			Formula inferred = Formulae.simplifyFormula(new Formula.Is(lhs.getExpr(), type), types);
-			// FIXME: without proper simplification this could presumably
-			// runaway.
 			state = state.infer(this, state.allocate(inferred), lhs, rhs);
 		}
 		return state;

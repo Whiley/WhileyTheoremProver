@@ -8,10 +8,10 @@ import wyal.lang.WyalFile.Type;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class ExpandTypeTest implements Proof.LinearRule {
+public class TypeTestExpansion implements Proof.LinearRule {
 	private final TypeSystem types;
 
-	public ExpandTypeTest(TypeSystem types) {
+	public TypeTestExpansion(TypeSystem types) {
 		this.types = types;
 	}
 

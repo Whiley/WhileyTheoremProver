@@ -253,8 +253,11 @@ public interface Formula extends Expr {
 			if(o instanceof Formula.Invoke) {
 				Formula.Invoke i = (Formula.Invoke) o;
 				return sign == i.sign && super.equals(o);
+			} else if(o instanceof Expr.Invoke && !sign) {
+				return false;
+			} else {
+				return super.equals(o);
 			}
-			return false;
 		}
 
 		@Override

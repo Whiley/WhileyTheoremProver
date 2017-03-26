@@ -86,6 +86,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 		if (newTruth.getSign()) {
 			Formula.Assignment assignment = rearrangeToAssignment(newTruth);
 			if (assignment != null) {
+				assignment = (Formula.Assignment) Formulae.simplifyFormula(assignment,types);
 				assignment = (Formula.Assignment) state.allocate(assignment);
 				state = state.subsume(this,newTruth,assignment);
 				return applyAssignment(assignment,state);

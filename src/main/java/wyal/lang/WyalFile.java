@@ -14,7 +14,6 @@ import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.util.OldAutomatedTheoremProver;
 import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;

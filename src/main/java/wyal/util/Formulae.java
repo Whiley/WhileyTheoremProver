@@ -12,6 +12,7 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.lang.WyalFile.Expr.Polynomial.Term;
 import wyal.lang.Formula.*;
 import wycc.util.ArrayUtils;
 
@@ -826,6 +827,11 @@ public class Formulae {
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
+		}
+		Polynomial difference = nLhs.subtract(nRhs);
+		if(difference.isConstant()) {
+			BigInteger constant = difference.toConstant().get();
+			return new Formula.Truth(constant.equals(BigInteger.ZERO));
 		} else if(nLhs == lhs && nRhs == rhs) {
 			return eq;
 		} else {
@@ -880,12 +886,40 @@ public class Formulae {
 
 	public static Formula simplifyInvoke(Invoke ivk, TypeSystem types) {
 		Tuple<Expr> args = ivk.getArguments();
-		Tuple<Expr> nArgs = simplify(args, types);
-		if(args == nArgs) {
+		Expr[] children  = args.getOperands();
+		Expr[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child, types);
+			// Attempt to normalise parameters which have integer type. This is
+			// necessary because, after substitution, we may end up with a
+			// poltnomial here which should match with a variable access.
+			nChild = collapseVariableAccessPolynomial(nChild);
+			if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		if(children == nChildren) {
 			return ivk;
 		} else {
+			Tuple<Expr> nArgs = new Tuple<>(nChildren);
 			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
 		}
+	}
+
+	private static Expr collapseVariableAccessPolynomial(Expr nChild) {
+		if (nChild instanceof Expr.Polynomial) {
+			Expr.Polynomial p = (Expr.Polynomial) nChild;
+			if (p.size() == 1) {
+				Polynomial.Term term = p.getOperand(0);
+				Expr[] atoms = term.getAtoms();
+				if (term.getCoefficient().get().equals(BigInteger.ONE) && atoms.length == 1) {
+					return atoms[0];
+				}
+			}
+		}
+		return nChild;
 	}
 
 	private static Tuple<Expr> simplify(Tuple<Expr> tuple, TypeSystem types) {
@@ -1029,10 +1063,24 @@ public class Formulae {
 
 	private static Expr simplify(Expr.Invoke ivk, TypeSystem types) {
 		Tuple<Expr> args = ivk.getArguments();
-		Tuple<Expr> nArgs = simplify(args, types);
-		if(args == nArgs) {
+		Expr[] children  = args.getOperands();
+		Expr[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child, types);
+			// Attempt to normalise parameters which have integer type. This is
+			// necessary because, after substitution, we may end up with a
+			// poltnomial here which should match with a variable access.
+			nChild = collapseVariableAccessPolynomial(nChild);
+			if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		if(children == nChildren) {
 			return ivk;
 		} else {
+			Tuple<Expr> nArgs = new Tuple<>(nChildren);
 			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
 		}
 	}

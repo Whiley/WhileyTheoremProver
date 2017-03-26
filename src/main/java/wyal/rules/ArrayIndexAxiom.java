@@ -51,11 +51,9 @@ import wyal.lang.WyalFile;
  * </p>
  *
  */
-public class ArrayIndexAxiom implements Proof.LinearRule {
-	private final TypeSystem types;
-
+public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRule {
 	public ArrayIndexAxiom(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -76,7 +74,7 @@ public class ArrayIndexAxiom implements Proof.LinearRule {
 		for (int j = 0; j != additions.size(); ++j) {
 			Formula existing = additions.get(j);
 			if(existing != truth) {
-				List<Expr.Operator> matches = findArrayAccesses(existing);
+				List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
 				state = attemptInstantiation(existing,matches,truth,state);
 			}
 		}
@@ -84,7 +82,7 @@ public class ArrayIndexAxiom implements Proof.LinearRule {
 	}
 
 	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta history, Proof.State state) {
-		List<Expr.Operator> matches = findArrayAccesses(truth);
+		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
 		// At this point, we have one or more array access expressions which
 		// potentially could be introduce some useful facts. Therefore, we need to look
 		// back through the history to determine any cases where this can be applied.
@@ -139,48 +137,6 @@ public class ArrayIndexAxiom implements Proof.LinearRule {
 	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) {
 		Formula axiom = Formulae.simplifyFormula(Formulae.lessThan(index, length), types);
 		return state.infer(this, state.allocate(axiom), dependencies);
-	}
-
-	/**
-	 * <p>
-	 * Find matches which can be used to instantiate the axiom. A match is
-	 * simply an occurrence of an array access expression as any part of a
-	 * truth.
-	 * </p>
-	 *
-	 * @param poly
-	 * @return
-	 */
-	private List<Expr.Operator> findArrayAccesses(Expr e) {
-		ArrayList<Expr.Operator> matches = new ArrayList<>();
-		switch(e.getOpcode()) {
-		case EXPR_arridx:
-			matches.add((Expr.Operator) e);
-			break;
-		case EXPR_and:
-		case EXPR_or:
-		case EXPR_forall:
-		case EXPR_exists:
-			// We don't explore these constructs as we either cannot reliably
-			// pull stuff out of them or (for conjuncts), there's no point yet.
-			return Collections.EMPTY_LIST;
-		}
-		for (int i = 0; i != e.size(); ++i) {
-			SyntacticItem child = e.getOperand(i);
-			if (child instanceof Expr) {
-				matches.addAll(findArrayAccesses((Expr) child));
-			} else if(child instanceof Tuple) {
-				// FIXME: this can occur for the parameters of a function
-				// invocation. Perhaps not ideal actually.
-				Tuple<?> t = (Tuple<?>) child;
-				for(SyntacticItem p : t.getOperands()) {
-					if (p instanceof Expr) {
-						matches.addAll(findArrayAccesses((Expr) p));
-					}
-				}
-			}
-		}
-		return matches;
 	}
 
 	private boolean hasPositiveMatchingAtom(Polynomial lhs, Polynomial rhs) {

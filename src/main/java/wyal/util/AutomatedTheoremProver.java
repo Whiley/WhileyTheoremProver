@@ -4,6 +4,7 @@ import java.util.BitSet;
 
 import wyal.heap.StructurallyEquivalentHeap;
 import wyal.heap.SyntacticHeaps;
+import wyal.io.ProofPrinter;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
@@ -47,7 +48,7 @@ public class AutomatedTheoremProver {
 				new AndElimination(),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
-				new ExpandTypeTest(types),
+				new TypeTestExpansion(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
@@ -106,7 +107,7 @@ public class AutomatedTheoremProver {
 		simplifyProof(state,FALSE);
 		//
 		System.out.println("******************* PROOF (" + proof.size() + ") ******************");
-		OldAutomatedTheoremProver.print(proof);
+		print(proof);
 		return r;
 	}
 
@@ -312,5 +313,12 @@ public class AutomatedTheoremProver {
 			parent.applyBypass(state);
 		}
 		return true;
+	}
+
+	// Useful for debugging
+	public static void print(Proof proof) {
+		ProofPrinter printer = new ProofPrinter(System.out);
+		printer.print(proof);
+		printer.flush();
 	}
 }
