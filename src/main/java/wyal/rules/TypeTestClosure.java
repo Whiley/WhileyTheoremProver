@@ -5,6 +5,7 @@ import java.util.List;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
+import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
@@ -21,27 +22,32 @@ public class TypeTestClosure implements Proof.LinearRule {
 
 	@Override
 	public String getName() {
-		return "Type-I";
+		return "Is-Ia";
 	}
 
 	@Override
 	public State apply(State state, Formula newTruth) {
-		if(newTruth instanceof Formula.Is) {
+		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			// At this point, we have a type test which potentially could be
-			// closed with one or more other type tests. Therefore, we need to
-			// look back through the history to determine any inequalities which
-			// are currently "active".
-			List<Formula.Is> matches = findMatches(test,state);
-			if(matches.size() > 1) {
-				state = closeOver(matches,state);
+			if(test.getExpr() instanceof Expr.VariableAccess){
+				// FIXME: I think we probably can do better here in some cases
+				// by back propagating type information through the expression
+				// in question.
+				state = retypeVariable(test, state, test);
 			} else {
-				//state = retypeVariable(test,state);
+				// At this point, we have a type test which potentially could be
+				// closed with one or more other type tests. Therefore, we need to
+				// look back through the history to determine any inequalities which
+				// are currently "active".
+				List<Formula.Is> matches = findMatches(test,state);
+				if(matches.size() > 1) {
+					state = closeOver(matches,state);
+				}
 			}
-
 		}
 		return state;
 	}
+
 
 	/**
 	 * Find the complete set of matching type tests. A type test is matching if
@@ -88,30 +94,53 @@ public class TypeTestClosure implements Proof.LinearRule {
 		state = state.subsume(this, froms, new Formula[] { test });
 		//
 		return state;
-	}
+}
 
-	private State retypeVariable(Formula.Is typeTest, Proof.State state) {
+	/**
+	 * Effect the given type test by retyping the variable in question. The type
+	 * test is made redundant at this point.
+	 *
+	 * @param typeTest
+	 * @param state
+	 * @param dependencies
+	 * @return
+	 */
+	private State retypeVariable(Formula.Is typeTest, Proof.State state, Formula... dependencies) {
 		Expr lhs = typeTest.getExpr();
-		Type rhs = typeTest.getTypeTest();
-		if(lhs instanceof Expr.VariableAccess){
+		Type lhsT = lhs.getReturnType(types);
+		Type rhsT = typeTest.getTypeTest();
+		if (lhsT == null) {
+			return state;
+		} else if (types.isSubtype(rhsT, lhsT)) {
+			// Don't need to do anything in this situation.
+			return state;
+		} else if (lhs instanceof Expr.VariableAccess) {
 			Expr.VariableAccess oldVar = (Expr.VariableAccess) lhs;
 			VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
-			VariableDeclaration newDeclaration = new VariableDeclaration(rhs,oldDeclaration.getVariableName());
-			Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
-			//
-			Proof.Delta history = state.getDelta(null);
-			Proof.Delta.Set additions = history.getAdditions();
-			//
-			for(int i=0;i!=additions.size();++i) {
-				Formula existing = additions.get(i);
-				Formula updated = (Formula) state.substitute(oldVar, newVar, existing, types);
-				if(updated != existing) {
-					updated = state.allocate(updated);
-					state = state.subsume(this, existing, updated, typeTest);
+			Type intersection = TypeSystem.intersect(oldDeclaration.getType(), rhsT);
+			if (types.isSubtype(new Type.Void(), intersection)) {
+				// This indicates something of a problem has occurred. The type
+				// of this variable is void ... so it definitely cannot be
+				// instantiated.
+				return state.subsume(this, typeTest, state.allocate(new Formula.Truth(false)));
+			} else {
+				VariableDeclaration newDeclaration = new VariableDeclaration(intersection,
+						oldDeclaration.getVariableName());
+				Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
+				//
+				Proof.Delta history = state.getDelta(null);
+				Proof.Delta.Set additions = history.getAdditions();
+				//
+				for (int i = 0; i != additions.size(); ++i) {
+					Formula existing = additions.get(i);
+					Formula updated = (Formula) state.substitute(oldVar, newVar, existing, types);
+					if (updated != existing) {
+						updated = state.allocate(updated);
+						state = state.subsume(this, existing, updated, dependencies);
+					}
 				}
 			}
 		}
-		//
 		return state;
 	}
 }

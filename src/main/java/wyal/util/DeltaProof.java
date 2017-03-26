@@ -110,9 +110,11 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			FastDelta.Set additions = FastDelta.EMPTY_SET;
 			for (int i = 0; i != tos.length; ++i) {
 				Formula ith = tos[i];
-				final int toIndex = ith.getIndex();
-				if (!truths.get(toIndex)) {
-					additions = additions.add(ith);
+				if(ith != null) {
+					final int toIndex = ith.getIndex();
+					if (!truths.get(toIndex)) {
+						additions = additions.add(ith);
+					}
 				}
 			}
 			FastDelta nDelta = new FastDelta(additions, removals);

@@ -3,6 +3,7 @@ package wyal.rules;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.Formula.ArithmeticEquality;
+import wyal.lang.Formula.Conjunct;
 import wyal.lang.Formula.Inequality;
 import wyal.lang.Formula.Quantifier;
 import wyal.lang.Proof.State;
@@ -44,16 +45,56 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 			Formula.Equality eq = (Formula.Equality) truth;
 			Expr lhs = eq.getOperand(0);
 			Expr rhs = eq.getOperand(1);
-			Type lhs_t = lhs.getReturnType(types);
-			Type rhs_t = rhs.getReturnType(types);
-			if(types.isReadableRecord(lhs_t) || types.isReadableRecord(rhs_t)) {
-				return expandRecordEquality(eq,state);
-			} else if(types.isReadableArray(lhs_t) || types.isReadableArray(rhs_t)) {
-				return expandArrayEquality(eq,state);
+			Type lhsT = lhs.getReturnType(types);
+			Type rhsT = rhs.getReturnType(types);
+
+			if (lhsT != null && rhsT != null) {
+				// NOTE: the type expansion below is currently necessary to
+				// allow
+				// intersect to its job properly.
+				Type lhsExpanded = types.expandAsReadableType(true, lhsT);
+				Type rhsExpanded = types.expandAsReadableType(true, rhsT);
+				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
+				if (types.isSubtype(new Type.Void(), intersection)) {
+					// In this case, no possible intersection exists between the
+					// lhs and
+					// rhs. Therefore, we're done as this equality cannot ever
+					// be true.
+					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
+				} else if (types.isSubtype(new Type.Bool(), lhsT) && types.isSubtype(new Type.Bool(), rhsT)) {
+					return expandBooleanEquality(eq, state);
+				} else if (types.isReadableRecord(lhsT) && types.isReadableRecord(rhsT)) {
+					return expandRecordEquality(eq, state);
+				} else if (types.isReadableArray(lhsT) && types.isReadableArray(rhsT)) {
+					return expandArrayEquality(eq, state);
+				}
+			} else {
+				// NOTE: it is possible to get here in some situations. This can
+				// happen as a result of type test which has not yet been
+				// properly processed.
 			}
 		}
 
 		return state;
+	}
+
+	private State expandBooleanEquality(Formula.Equality eq, Proof.State state) {
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		//
+		Formula lhs_f = Formulae.toFormula(lhs, types);
+		Formula rhs_f = Formulae.toFormula(rhs, types);
+		if(eq.getSign()) {
+			Formula l = new Conjunct(lhs_f, rhs_f);
+			Formula r = new Conjunct(Formulae.invert(lhs_f), Formulae.invert(rhs_f));
+			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
+			return state.subsume(this, eq, state.allocate(disjunct));
+		} else {
+			Formula l = new Conjunct(Formulae.invert(lhs_f),rhs_f);
+			Formula r = new Conjunct(lhs_f,Formulae.invert(rhs_f));
+			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
+			return state.subsume(this, eq, state.allocate(disjunct));
+		}
 	}
 
 	private State expandRecordEquality(Formula.Equality eq, Proof.State state) {
@@ -220,7 +261,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-		Formula body = Formulae.notEquals(lhsAccess, rhsAccess, types);
+		Formula body = notEquals(lhsAccess, rhsAccess, types);
 		Polynomial lhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, lhs),types));
 		Polynomial rhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs),types));
 		// The following axiom simply states that the length of every array
@@ -230,5 +271,15 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		axiom = Formulae.simplifyFormula(axiom, types);
 		//
 		return state.subsume(this, eq, state.allocate(axiom));
+	}
+
+	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
+		Type lhs_t = lhs.getReturnType(types);
+		Type rhs_t = rhs.getReturnType(types);
+		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			return new ArithmeticEquality(false, Formulae.toPolynomial(lhs), Formulae.toPolynomial(rhs));
+		} else {
+			return new Formula.Equality(false, lhs, rhs);
+		}
 	}
 }

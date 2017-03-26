@@ -954,7 +954,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				case EXPR_arridx: {
 					Type src = getOperand(0).getReturnType(types);
 					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
-					return effectiveArray.getElement();
+					if(effectiveArray != null) {
+						return effectiveArray.getElement();
+					} else {
+						return null;
+					}
 				}
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
@@ -1121,17 +1125,19 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
 				Type.Record effectiveRecord = types.expandAsReadableRecordType(src);
-				FieldDeclaration[] fields = effectiveRecord.getFields();
-				String actualFieldName = getField().get();
-				for (int i = 0; i != fields.length; ++i) {
-					FieldDeclaration vd = fields[i];
-					String declaredFieldName = vd.getVariableName().get();
-					if (declaredFieldName.equals(actualFieldName)) {
-						return vd.getType();
+				if(effectiveRecord != null) {
+					FieldDeclaration[] fields = effectiveRecord.getFields();
+					String actualFieldName = getField().get();
+					for (int i = 0; i != fields.length; ++i) {
+						FieldDeclaration vd = fields[i];
+						String declaredFieldName = vd.getVariableName().get();
+						if (declaredFieldName.equals(actualFieldName)) {
+							return vd.getType();
+						}
 					}
 				}
 				//
-				throw new RuntimeException("invalid record access: " + actualFieldName);
+				return null;
 			}
 			public Expr getSource() {
 				return (Expr) getOperand(0);

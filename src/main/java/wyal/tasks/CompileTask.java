@@ -6,11 +6,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.util.AutomatedTheoremProver;
-import wyal.util.OldAutomatedTheoremProver;
-import wyal.lang.WyalFile;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;

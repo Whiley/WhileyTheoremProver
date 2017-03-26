@@ -7,6 +7,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
@@ -84,6 +85,8 @@ public class CongruenceClosure implements Proof.LinearRule {
 	private Proof.State substituteAgainstEquality(Proof.State state, Formula.Equality newTruth) {
 		//
 		if (newTruth.getSign()) {
+			state = applyEqualityTypeAxiom(state, newTruth);
+			//
 			Formula.Assignment assignment = rearrangeToAssignment(newTruth);
 			if (assignment != null) {
 				assignment = (Formula.Assignment) Formulae.simplifyFormula(assignment,types);
@@ -93,6 +96,51 @@ public class CongruenceClosure implements Proof.LinearRule {
 			}
 		}
 		return state;
+	}
+
+	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) {
+		Expr lhs = newTruth.getOperand(0);
+		Expr rhs = newTruth.getOperand(1);
+		Type lhsT = lhs.getReturnType(types);
+		Type rhsT = rhs.getReturnType(types);
+		if(lhsT == null || rhsT == null) {
+			// Defer processing of this equality
+			return state;
+		} else {
+			// NOTE: the type expansion below is currently necessary to allow
+			// intersect to its job properly.
+			Type lhsExpanded = types.expandAsReadableType(true, lhsT);
+			Type rhsExpanded = types.expandAsReadableType(true, rhsT);
+			Type intersection = TypeSystem.intersect(lhsExpanded,rhsExpanded);
+			boolean left = types.isSubtype(lhsT, rhsT);
+			boolean right = types.isSubtype(rhsT, lhsT);
+			Formula axiom;
+			if (left && right) {
+				// In this case, the types are equivalent so we don't need to do
+				// anything.
+				return state;
+			} else if (left) {
+				// In this case, the type of rhs is contained within that of lhs.
+				// Therefore, that type must be the type for lhs.
+				axiom = new Formula.Is(lhs, rhsT);
+			} else if (right) {
+				// In this case, the type of lhs is contained within that of rhs.
+				// Therefore, that type must be the type for rhs.
+				axiom = new Formula.Is(rhs, lhsT);
+			} else if (types.isSubtype(new Type.Void(), intersection)) {
+				// In this case, no possible intersection exists between the lhs and
+				// rhs. Therefore, we're done as this equality cannot ever be true.
+				return state.subsume(this, newTruth, state.allocate(new Formula.Truth(false)));
+			} else {
+				// In this case, neither type is contained within the other.
+				// Therefore, their intersection must be the type for both.
+				axiom = new Formula.Conjunct(new Formula.Is(lhs, intersection), new Formula.Is(rhs, intersection));
+			}
+			// FIXME: I think it makes sense here to try and propagate the type
+			// information upwards. Otherwise, we can get stuck with a non-variable
+			// on the left-hand side.
+			return state.subsume(this, newTruth, state.allocate(axiom));
+		}
 	}
 
 	private State applyAssignment(Formula.Assignment assignment, Proof.State state) {

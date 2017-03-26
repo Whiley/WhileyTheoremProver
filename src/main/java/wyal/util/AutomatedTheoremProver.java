@@ -95,9 +95,11 @@ public class AutomatedTheoremProver {
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
 		//
+		WyalFile.println(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
+		//
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		//
 		// Create initial state

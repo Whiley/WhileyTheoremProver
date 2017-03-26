@@ -123,17 +123,11 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if (types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs, types);
-				Formula rhs_f = toFormula(rhs, types);
-				Formula l = new Conjunct(lhs_f, rhs_f);
-				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
-				return new Formula.Disjunct(l, r);
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -144,20 +138,12 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs,types);
-				Formula rhs_f = toFormula(rhs,types);
-				Formula l = new Conjunct(invert(lhs_f),rhs_f);
-				Formula r = new Conjunct(lhs_f,invert(rhs_f));
-				return new Formula.Disjunct(l,r);
-			}
-
-			else {
+			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
@@ -452,26 +438,6 @@ public class Formulae {
 		case TYPE_macro:
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
-		}
-	}
-
-	public static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
-		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
-			return new ArithmeticEquality(false, toPolynomial(lhs), toPolynomial(rhs));
-		} else {
-			return new Formula.Equality(false, lhs, rhs);
-		}
-	}
-
-	public static Formula equals(Expr lhs, Expr rhs, TypeSystem types) {
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
-		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
-			return new ArithmeticEquality(true, toPolynomial(lhs), toPolynomial(rhs));
-		} else {
-			return new Formula.Equality(true, lhs, rhs);
 		}
 	}
 
@@ -991,6 +957,7 @@ public class Formulae {
 			return simplify((Expr.RecordInitialiser) e, types);
 		case EXPR_recfield:
 			return simplify((Expr.RecordAccess) e, types);
+		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_exists:
@@ -1001,7 +968,13 @@ public class Formulae {
 		case EXPR_lt:
 		case EXPR_gteq:
 		case EXPR_is:
-			return simplifyFormula((Formula) e, types);
+			if(e instanceof Formula) {
+				return simplifyFormula((Formula) e, types);
+			} else {
+				// We need toFormula here because of the potential for arbitrarily
+				// nested expressions to contain these constructs.
+				return simplifyFormula(toFormula(e,types), types);
+			}
 		default:
 			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
 		}
