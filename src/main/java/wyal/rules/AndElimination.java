@@ -40,7 +40,7 @@ public class AndElimination implements Proof.LinearRule {
 	public State apply(Proof.State state, Formula truth) {
 		if (truth instanceof Formula.Conjunct) {
 			Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-			state = state.subsume(this, conjunct, conjunct.getOperands());
+			state = state.subsume(this, new Formula[]{conjunct}, conjunct.getOperands());
 			return state;
 		}
 		// No change in the normal case

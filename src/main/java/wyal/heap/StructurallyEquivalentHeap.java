@@ -2,6 +2,7 @@ package wyal.heap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +36,7 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 	}
 
 	private <T extends SyntacticItem> T allocate(T item, Map<SyntacticItem,SyntacticItem> map) {
+		//
 		SyntacticHeap parent = item.getParent();
 		T allocated = (T) map.get(item);
 		if(allocated != null) {
@@ -76,24 +78,25 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 					}
 				}
 			}
-			T equivalent = item;
+			T nItem = item;
 			if (children != nChildren) {
 				// No equivalent was found, but the child array was
 				// updated in some way. Therefore, we need to clone
 				// the item in order reflect this change.
-				equivalent = (T) item.clone(nChildren);
+				nItem = (T) item.clone(nChildren);
 			}
 			// Look for any structural equivalents that exist
 			// already in this heap. If we find one, then we can
 			// just return the directly.
-			equivalent = (T) findStructuralEquivalent(equivalent, item.getClass());
+			T equivalent = (T) findStructuralEquivalent(nItem, item.getClass());
 			if (equivalent == null) {
 				// Allocate the item (or its clone) into this heap.
-				equivalent = internalAllocate(item);
+				nItem = internalAllocate(nItem);
+			} else {
+				nItem = equivalent;
 			}
-
-			map.put(item,equivalent);
-			return equivalent;
+			map.put(item,nItem);
+			return nItem;
 		}
 	}
 

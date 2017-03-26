@@ -1520,6 +1520,7 @@ public class Formulae {
 	private static Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
 		boolean result;
 		switch (opcode) {
+		case EXPR_assign:
 		case EXPR_eq:
 			result = lhs.equals(rhs);
 			break;

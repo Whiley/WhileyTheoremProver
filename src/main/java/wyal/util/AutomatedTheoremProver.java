@@ -94,10 +94,12 @@ public class AutomatedTheoremProver {
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
+		//
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
+		//
 		// Create initial state
 		DeltaProof proof = new DeltaProof(null, heap, formula);
 		Proof.State state = proof.getState(0);

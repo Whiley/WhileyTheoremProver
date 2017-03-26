@@ -90,7 +90,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
 		@Override
 		public State subsume(Proof.Rule rule, Formula from, Formula to, Formula... deps) {
-			return subsume(rule,from,new Formula[]{to},deps);
+			return subsume(rule,new Formula[]{from},new Formula[]{to},deps);
 		}
 		/**
 		 * Subume one formula with one or more formulae. This implication is
@@ -101,8 +101,12 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		 * @param to
 		 */
 		@Override
-		public State subsume(Proof.Rule rule, Formula from, Formula[] tos, Formula... deps) {
-			FastDelta.Set removals = new FastDelta.Set(from);
+		public State subsume(Proof.Rule rule, Formula[] froms, Formula[] tos, Formula... deps) {
+			FastDelta.Set removals = FastDelta.EMPTY_SET;
+			for (int i = 0; i != froms.length; ++i) {
+				Formula ith = froms[i];
+				removals = removals.add(ith);
+			}
 			FastDelta.Set additions = FastDelta.EMPTY_SET;
 			for (int i = 0; i != tos.length; ++i) {
 				Formula ith = tos[i];
@@ -113,7 +117,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			}
 			FastDelta nDelta = new FastDelta(additions, removals);
 			// Register this state
-			return proof.register(new State(this, rule, nDelta, ArrayUtils.append(from, deps)));
+			return proof.register(new State(this, rule, nDelta, ArrayUtils.append(froms, deps)));
 		}
 
 		@Override

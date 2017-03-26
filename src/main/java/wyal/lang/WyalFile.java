@@ -1358,6 +1358,19 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				printer.writeStatement((Stmt) item,0);
 			} else if(item instanceof WyalFile.Type) {
 				printer.writeType((Type) item);
+			} else if(item instanceof WyalFile.VariableDeclaration) {
+				printer.writeVariableDeclaration((WyalFile.VariableDeclaration) item);
+			} else if(item instanceof WyalFile.Tuple) {
+				WyalFile.Tuple tuple = (WyalFile.Tuple) item;
+				out.print("(");
+				for(int j=0;j!=tuple.size();++j) {
+					if(j != 0) {
+						out.print(",");
+					}
+					out.flush();
+					print(tuple.getOperand(j));
+				}
+				out.print(")");
 			} else if(item == null) {
 				out.print("null");
 			} else {

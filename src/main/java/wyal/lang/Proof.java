@@ -150,7 +150,7 @@ public interface Proof {
 		 * @param dependencies
 		 * @return
 		 */
-		State subsume(Proof.Rule rule, Formula truth, Formula[] replacements, Formula... dependencies);
+		State subsume(Proof.Rule rule, Formula[] truth, Formula[] replacements, Formula... dependencies);
 
 		/**
 		 * Infer a new fact from one or more existing facts.

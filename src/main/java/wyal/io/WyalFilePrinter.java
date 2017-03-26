@@ -164,9 +164,11 @@ public class WyalFilePrinter {
 		writeType(decl.getType());
 		out.print(" ");
 		out.print(decl.getVariableName().get());
-		if(nonces) {
-			out.print("'");
-			out.print(decl.getIndex());
+		// print nonces
+		if(nonces && decl.getParent() != null) {
+			out.print("'" + decl.getIndex());
+		} else if(nonces) {
+			out.print("'?");
 		}
 	}
 
@@ -361,8 +363,10 @@ public class WyalFilePrinter {
 		// Print out the declared variable name
 		out.print(ident.get());
 		//
-		if(nonces) {
+		if(nonces && decl.getParent() != null) {
 			out.print("'" + decl.getIndex());
+		} else if(nonces) {
+			out.print("'?");
 		}
 	}
 
