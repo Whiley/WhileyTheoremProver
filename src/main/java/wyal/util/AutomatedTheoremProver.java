@@ -52,6 +52,7 @@ public class AutomatedTheoremProver {
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
 				new ArrayIndexCaseAnalysis(types),
+				new FunctionCallAxiom(types),
 				new EqualityCaseAnalysis(types),
 				new OrElimination(),
 				new ExhaustiveQuantifierInstantiation(types)
@@ -109,7 +110,24 @@ public class AutomatedTheoremProver {
 		return r;
 	}
 
-	private boolean checkUnsat(Proof.State state, FastDelta.Set additions, Formula.Truth FALSE) {
+	/**
+	 * Check whether a given state is unsatisfiable or not. That is, whether or
+	 * not we can reach a contradiction from this state. One or more new truths
+	 * are carried forward to be investigated. If there are no more new truths
+	 * to investigate, then we are done. This method will apply all known rules
+	 * to this set of truths and generate a set of new truths, to be used in any
+	 * subsequent calls to this method.
+	 *
+	 * @param state
+	 *            The current state being investigated to see whether or not it
+	 *            leads to a contradiction.
+	 * @param carries
+	 *            One or more new truths carried forward from the previous
+	 *            state. Such truths have not yet been processed and
+	 * @param FALSE
+	 * @return
+	 */
+	private boolean checkUnsat(Proof.State state, FastDelta.Set carries, Formula.Truth FALSE) {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
 		if(state.getProof().size() > maxProofSize) {
@@ -117,10 +135,10 @@ public class AutomatedTheoremProver {
 			return false;
 		}
 		// Hard limit not reached, therefore continue exploring!
-		FastDelta delta = new FastDelta(additions,FastDelta.EMPTY_SET);
+		FastDelta delta = new FastDelta(carries,FastDelta.EMPTY_SET);
 		// Infer information from current state and delta
-		for (int i = 0; i != additions.size() && !state.isKnown(FALSE); ++i) {
-			Formula truth = additions.get(i);
+		for (int i = 0; i != carries.size() && !state.isKnown(FALSE); ++i) {
+			Formula truth = carries.get(i);
 			for (int j = 0; j != rules.length; ++j) {
 				// Check whether the given truth is actually active or not. If not,
 				// it has been subsumed at some point, and must be ignored.

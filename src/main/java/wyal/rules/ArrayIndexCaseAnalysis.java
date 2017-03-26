@@ -7,6 +7,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Tuple;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
@@ -16,6 +17,7 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 	public ArrayIndexCaseAnalysis(TypeSystem types) {
 		this.types = types;
 	}
+
 	@Override
 	public String getName() {
 		return "ArrInd-C";
@@ -54,6 +56,8 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 		case EXPR_forall:
 			// Don't extract case splitters from quantified formulae. There's
 			// no point until they are instantiated!
+
+			// FIXME: there are situations when we should go into a quantifier.
 			return null;
 		}
 		// Generic traversal, returning first split point encountered.
@@ -61,9 +65,14 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 			SyntacticItem item = e.getOperand(i);
 			if (item instanceof Expr) {
 				Expr cf = findCaseAnalysis((Expr) item);
+				// FIXME: this looks incorrect, since there could well be
+				// multiple targets generated for case analysis. We shouldn't
+				// stop at the first one we find.
 				if (cf != null) {
 					return cf;
 				}
+			} else if (item instanceof Tuple) {
+				// FIXME: need to process function arguments here as well
 			}
 		}
 		// No split points found
@@ -85,7 +94,7 @@ public class ArrayIndexCaseAnalysis implements Proof.LinearRule {
 				Formula case1 = (Formula) state.substitute(split, v, truth, types);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j),types);
+				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j), types);
 				Formula case2 = (Formula) state.substitute(split, arridx, truth, types);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);

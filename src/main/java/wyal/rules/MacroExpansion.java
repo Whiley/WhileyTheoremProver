@@ -79,17 +79,23 @@ public class MacroExpansion implements Proof.LinearRule {
 		if (formula instanceof Formula.Invoke) {
 			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
-			Type.FunctionOrMacro af = ivk.getSignatureType();
+			Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 			// Resolve the declaration corresponding to this invocation
-			Declaration.Named decl = types.resolveAsDeclaration(ivk.getName());
-			// Calculate the invariant (if any)
+			Declaration.Named decl;
+			if (af instanceof Type.Macro) {
+				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Macro.class);
+			} else if (af instanceof Type.Invariant) {
+				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Type.class);
+			} else {
+				return null;
+			}
 			Formula invariant = extractDeclarationInvariant(state, decl, ivk.getArguments());
 			if (invariant != null) {
 				if (!ivk.getSign()) {
 					invariant = Formulae.invert(invariant);
 				}
 				// Update the state
-				return Formulae.simplifyFormula(invariant,types);
+				return Formulae.simplifyFormula(invariant, types);
 			}
 		} else if(formula instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) formula;
@@ -190,6 +196,10 @@ public class MacroExpansion implements Proof.LinearRule {
 			// At this point, we must substitute the variable name used in
 			// the type declaration for the name used as the invocation
 			// argument.
+
+			// FIXME: this is only necessary for the invariant itself, not the
+			// extracted type invariant.
+
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) state.substitute(parameter, argument, result, types);
 			return result;

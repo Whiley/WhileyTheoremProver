@@ -441,7 +441,7 @@ public class OldAutomatedTheoremProver {
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) e;
 			// Determine the type declaration in question
-			Type.FunctionOrMacro af = ivk.getSignatureType();
+			Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 			if(af instanceof Type.Function) {
 				// FIXME: this resolution should have already been performed
 				// elsewhere
@@ -550,7 +550,7 @@ public class OldAutomatedTheoremProver {
 		// :)
 
 		// Determine the type declaration in question
-		Type.FunctionOrMacro af = ivk.getSignatureType();
+		Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 
 		// FIXME: this resolution should have already been performed
 		// elsewhere

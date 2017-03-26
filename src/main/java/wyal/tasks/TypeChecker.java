@@ -214,7 +214,7 @@ public class TypeChecker {
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
 		// Replace old object with fully resolved object
-		Type.FunctionOrMacro type = constructFunctionOrMacroType(sig);
+		Type.FunctionOrMacroOrInvariant type = constructFunctionOrMacroType(sig);
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
@@ -230,7 +230,7 @@ public class TypeChecker {
 	 * @param declaration
 	 * @return
 	 */
-	private Type.FunctionOrMacro constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
+	private Type.FunctionOrMacroOrInvariant constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
 		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
 		Type[] returns;
 		if (declaration instanceof Named.Function) {
