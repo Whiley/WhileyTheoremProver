@@ -31,8 +31,11 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 			for(int i=0;i!=matches.size();++i) {
 				Expr.Operator match = matches.get(i);
 				Formula[] cases = generateCaseAnalysis(match, truth, state);
-				Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
-				state = state.subsume(this, truth, disjunct);
+				if(cases.length > 0) {
+					WyalFile.println(new Formula.Disjunct(cases));
+					Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
+					state = state.subsume(this, truth, disjunct);
+				}
 			}
 		}
 		return state;
