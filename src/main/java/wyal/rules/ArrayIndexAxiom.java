@@ -105,25 +105,30 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 			// term from scratch.
 			Polynomial length = Formulae
 					.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0)),types));
-
+			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
-
-				// FIXME: in the following formula, the correct signage is a
-				// little unclear to me.
-
 				Formula.Inequality ieq = (Formula.Inequality) target;
-				// Only look for index on negative side, as this is where it
-				// is useful.
-				if(hasPositiveMatchingAtom(ieq.getOperand(1), index)) {
+				//
+				if(match(ieq.getOperand(1), index, Match.NONNEGATIVE)) {
+					// A[i] ~ e && 0 >= i+1
 					state = instantiateIndexAxiom(index,state,target,source);
 				}
-				// Only look for length on positive side, as this is where
-				// it is useful.
-				if (hasPositiveMatchingAtom(ieq.getOperand(0), index)
-						&& hasPositiveMatchingAtom(ieq.getOperand(1), length)) {
+				//
+				if (match(ieq.getOperand(0), index, Match.NEGATIVE)
+						&& match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
+					// A[i] ~ e && i-1 >= |A|+1 ==> i < |A|
 					state = instantiateLengthAxiom(index, length, state, target, source);
 				}
+			} else if(target instanceof Formula.Equation) {
+				Formula.Equation ieq = (Formula.Equation) target;
+				// A[i] ~ e && |A| == c ==> i < |A|
+				if (match(ieq.getOperand(0), length, Match.NONNEGATIVE)
+						|| match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
+					// A[i] ~ e && 0 >= i+1
+					state = instantiateLengthAxiom(index,length,state,target,source);
+				}
 			}
+
 		}
 		return state;
 	}
@@ -139,31 +144,27 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state.infer(this, state.allocate(axiom), dependencies);
 	}
 
-	private boolean hasPositiveMatchingAtom(Polynomial lhs, Polynomial rhs) {
-		Polynomial result = lhs.subtract(rhs);
-		if(result.isConstant()) {
-			BigInteger val = result.toConstant().get();
-			return val.compareTo(BigInteger.ZERO) >= 0;
-		} else {
-			return false;
-		}
+
+	private enum Match {
+		EXACT,
+		NONNEGATIVE, // >= 0
+		NEGATIVE  // < 0
 	}
 
-	private boolean hasNegativeMatchingAtom(Polynomial lhs, Polynomial rhs) {
-		Polynomial result = lhs.subtract(rhs);
-		if(result.isConstant()) {
-			BigInteger val = result.toConstant().get();
-			return val.compareTo(BigInteger.ZERO) <= 0;
-		} else {
-			return false;
+	private boolean match(Expr attempt, Expr ground, Match kind) {
+		if (kind == Match.EXACT || !(attempt instanceof Expr.Polynomial) || !(ground instanceof Polynomial)) {
+			return attempt.equals(ground);
 		}
-	}
-
-	private boolean hasExactMatchingAtom(Polynomial lhs, Polynomial rhs) {
-		Polynomial result = lhs.subtract(rhs);
-		if(result.isConstant()) {
-			BigInteger val = result.toConstant().get();
-			return val.compareTo(BigInteger.ZERO) == 0;
+		Polynomial lhs = (Polynomial) attempt;
+		Polynomial rhs = (Polynomial) ground;
+		Polynomial difference = lhs.subtract(rhs);
+		if (difference.isConstant()) {
+			BigInteger diff = difference.toConstant().get();
+			if (kind == Match.NONNEGATIVE) {
+				return diff.compareTo(BigInteger.ZERO) >= 0;
+			} else {
+				return diff.compareTo(BigInteger.ZERO) < 0;
+			}
 		} else {
 			return false;
 		}

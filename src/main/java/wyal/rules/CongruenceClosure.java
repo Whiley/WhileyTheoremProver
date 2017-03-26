@@ -215,20 +215,11 @@ public class CongruenceClosure implements Proof.LinearRule {
 			Expr lhs = equality.getOperand(0);
 			Expr rhs = equality.getOperand(1);
 			//
-			if (lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
+			candidate = min(lhs,rhs);
+			if(candidate == null) {
 				return null;
-			} else if (lhs instanceof Expr.Constant) {
-				candidate = rhs;
-				bound = lhs;
-			} else if (rhs instanceof Expr.Constant) {
-				candidate = lhs;
-				bound = rhs;
-			} else if (lessThan(lhs,rhs)) {
-				candidate = lhs;
-				bound = rhs;
 			} else {
-				candidate = rhs;
-				bound = lhs;
+				bound = max(lhs,rhs);
 			}
 		}
 
@@ -255,7 +246,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			Expr[] atoms = term.getAtoms();
 			if (term.getAtoms().length == 1) {
 				Expr atom = atoms[0];
-				// FIXME: the problem here is thatthe given polynomial is not
+				// FIXME: the problem here is that the given polynomial is not
 				// taking into account the other side of the equation, which may
 				// contain a recursive reference.
 				if ((candidate == null || lessThan(atom,candidateAtom)) && !recursive(atom, i, p)
@@ -270,6 +261,46 @@ public class CongruenceClosure implements Proof.LinearRule {
 
 	private static boolean lessThan(Expr lhs, Expr rhs) {
 		return lhs.getIndex() < rhs.getIndex();
+	}
+
+	public static Expr min(Expr lhs, Expr rhs) {
+		if(isVariable(lhs) && isVariable(rhs)) {
+			if(lessThan(lhs,rhs)) {
+				return lhs;
+			} else {
+				return rhs;
+			}
+		} else if(isVariable(lhs)) {
+			return lhs;
+		} else if(isVariable(rhs)) {
+			return rhs;
+		} else {
+			return null;
+		}
+	}
+
+	public static Expr max(Expr lhs, Expr rhs) {
+		Expr r = min(lhs,rhs);
+		if(r == lhs) {
+			return rhs;
+		} else if(r == rhs) {
+			return lhs;
+		} else {
+			return null;
+		}
+	}
+
+	private static boolean isVariable(Expr e) {
+		switch(e.getOpcode()) {
+		case EXPR_var:
+		case EXPR_arridx:
+		case EXPR_recfield:
+		case EXPR_invoke:
+		case EXPR_arrlen:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	private static boolean recursive(Expr atom, int i, Polynomial p) {

@@ -70,6 +70,8 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) truth;
 					// Yes, this is a universal quantifier
 					state = applyQuantifierInstantiation(quantifier, ground, state);
+				} else {
+					// FIXME: we need to handle Assignment here
 				}
 			}
 		}
@@ -259,7 +261,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			//
 			result.addAll(posNegMatches);
 			result.addAll(negPosMatches);
-		} else if (quantified instanceof Formula.Equality) {
+		} else if (quantified instanceof Formula.Equation) {
 			Formula.Equation ieq = (Formula.Equation) quantified;
 			Match leftSign = getSign(ground,0);
 			Match rightSign = getSign(ground,1);
@@ -348,15 +350,21 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	}
 
 	private boolean match(Expr attempt, Expr ground, Match kind) {
-		if (kind == Match.EXACT || !(attempt instanceof Expr.Polynomial) || !(ground instanceof Polynomial)) {
-			return attempt.equals(ground);
+		if(!(ground instanceof Polynomial)) {
+			ground = Formulae.toPolynomial(ground);
 		}
+		if(!(attempt instanceof Polynomial)) {
+			attempt = Formulae.toPolynomial(attempt);
+		}
+		//
 		Polynomial lhs = (Polynomial) attempt;
 		Polynomial rhs = (Polynomial) ground;
 		Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
 			BigInteger diff = difference.toConstant().get();
-			if (kind == Match.POSITIVE) {
+			if(kind == Match.EXACT) {
+				return diff.compareTo(BigInteger.ZERO) == 0;
+			} else if (kind == Match.POSITIVE) {
 				return diff.compareTo(BigInteger.ZERO) >= 0;
 			} else {
 				return diff.compareTo(BigInteger.ZERO) <= 0;
@@ -382,9 +390,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 				}
 			}
 		}
-		if (e instanceof Polynomial) {
-			grounds.add(e);
-		}
+		grounds.add(e);
 		return grounds;
 	}
 

@@ -1,0 +1,11 @@
+type pos is (int x)
+where:
+    x > 0
+
+assert:
+    forall(int&pos y, null|pos x):
+        if:
+            y == x
+            (x is int) && (y >= 0)
+        then:
+            null is null
