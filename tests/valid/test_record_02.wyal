@@ -1,0 +1,9 @@
+type Point is ({int x, int y} p)
+type Expr is (int|Point this)
+
+assert:
+    forall(Point x, Expr y):
+        if:
+            x == y
+        then:
+            x.x is int

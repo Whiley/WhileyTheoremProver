@@ -128,7 +128,42 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class Inequality extends Expr.Operator implements Formula {
+	public interface Equation extends Formula {
+		@Override
+		public Expr getOperand(int i);
+
+		@Override
+		public Expr[] getOperands();
+	}
+
+	public static class Assignment extends Expr.Operator implements Equation {
+		public Assignment(Expr lhs, Expr rhs) {
+			super(Opcode.EXPR_assign, lhs, rhs);
+		}
+
+		public Expr getLeftHandSide() {
+			return getOperand(0);
+		}
+
+		public Expr getRightHandSide() {
+			return getOperand(1);
+		}
+
+		@Override
+		public Assignment clone(SyntacticItem[] children) {
+			return new Assignment((Expr) children[0], (Expr) children[1]);
+		}
+	}
+
+	public interface ArithmeticEquation extends Equation {
+		@Override
+		public Polynomial getOperand(int i);
+
+		@Override
+		public Polynomial[] getOperands();
+	}
+
+	public static class Inequality extends Expr.Operator implements ArithmeticEquation {
 
 		public Inequality(Polynomial lhs, Polynomial rhs) {
 			super(Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
@@ -150,7 +185,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class Equality extends Expr.Operator implements Formula {
+	public static class Equality extends Expr.Operator implements Equation {
 		public Equality(boolean sign, Expr lhs, Expr rhs) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
@@ -169,7 +204,7 @@ public interface Formula extends Expr {
 		}
 	}
 
-	public static class ArithmeticEquality extends Equality implements Formula {
+	public static class ArithmeticEquality extends Equality implements ArithmeticEquation {
 		public ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
 			super(sign, new Polynomial[]{lhs, rhs});
 		}
@@ -193,12 +228,12 @@ public interface Formula extends Expr {
 	public static class Invoke extends Expr.Invoke implements Formula {
 		private boolean sign;
 
-		public Invoke(boolean sign, Type.FunctionOrMacro type, Name name, Expr... arguments) {
+		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Expr... arguments) {
 			super(type, name, arguments);
 			this.sign = sign;
 		}
 
-		public Invoke(boolean sign, Type.FunctionOrMacro type, Name name, Tuple<Expr> arguments) {
+		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Tuple<Expr> arguments) {
 			super(type, name, arguments);
 			this.sign = sign;
 		}
@@ -218,13 +253,16 @@ public interface Formula extends Expr {
 			if(o instanceof Formula.Invoke) {
 				Formula.Invoke i = (Formula.Invoke) o;
 				return sign == i.sign && super.equals(o);
+			} else if(o instanceof Expr.Invoke && !sign) {
+				return false;
+			} else {
+				return super.equals(o);
 			}
-			return false;
 		}
 
 		@Override
 		public Formula.Invoke clone(SyntacticItem[] children) {
-			return new Formula.Invoke(sign,(Type.FunctionOrMacro) children[0], (Name) children[1],
+			return new Formula.Invoke(sign,(Type.FunctionOrMacroOrInvariant) children[0], (Name) children[1],
 					(Tuple) children[2]);
 		}
 	}

@@ -1,0 +1,8 @@
+function f(int x) -> (int r)
+
+assert:
+    forall(int i, int j):
+        if:
+            f(i) != f(j)
+        then:
+            (i < j) || (i > j)

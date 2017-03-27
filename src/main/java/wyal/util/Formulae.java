@@ -12,6 +12,7 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.lang.WyalFile.Expr.Polynomial.Term;
 import wyal.lang.Formula.*;
 import wycc.util.ArrayUtils;
 
@@ -76,12 +77,6 @@ public class Formulae {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Disjunct(invert(invariant), body);
-			}
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
@@ -89,12 +84,6 @@ public class Formulae {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Conjunct(invariant, body);
-			}
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
@@ -102,12 +91,6 @@ public class Formulae {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Disjunct(invert(invariant), body);
-			}
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
@@ -115,12 +98,6 @@ public class Formulae {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
-			// Expand any type invariants
-			Formula invariant = expandTypeInvariants(q.getParameters(),types);
-			// Add type invariants (if appropriate)
-			if (invariant != null) {
-				body = new Conjunct(invariant, body);
-			}
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
@@ -146,30 +123,12 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
-			} else if (types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs, types);
-				Formula rhs_f = toFormula(rhs, types);
-				Formula l = new Conjunct(lhs_f, rhs_f);
-				Formula r = new Conjunct(invert(lhs_f), invert(rhs_f));
-				return new Formula.Disjunct(l, r);
-			}
-//			else if(types.isReadableRecord(lhs_t)) {
-//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-//				FieldDeclaration[] fields = lhs_r.getFields();
-//				Formula[] clauses = new Formula[fields.length];
-//				for(int i=0;i!=fields.length;++i) {
-//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_eq, lf, rf), types);
-//				}
-//				return new Formula.Conjunct(clauses);
-//			}
-			else {
+			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
 		}
@@ -179,30 +138,12 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
-			} else if(types.isSubtype(new Type.Bool(), lhs_t) || types.isSubtype(new Type.Bool(), rhs_t)) {
-				Formula lhs_f = toFormula(lhs,types);
-				Formula rhs_f = toFormula(rhs,types);
-				Formula l = new Conjunct(invert(lhs_f),rhs_f);
-				Formula r = new Conjunct(lhs_f,invert(rhs_f));
-				return new Formula.Disjunct(l,r);
-			}
-//			else if(types.isReadableRecord(lhs_t)) {
-//				Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
-//				FieldDeclaration[] fields = lhs_r.getFields();
-//				Formula[] clauses = new Formula[fields.length];
-//				for(int i=0;i!=fields.length;++i) {
-//					Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-//					Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-//					clauses[i] = toFormula(new Expr.Operator(Opcode.EXPR_neq, lf, rf), types);
-//				}
-//				return new Formula.Disjunct(clauses);
-//			}
-			else {
+			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
@@ -327,7 +268,7 @@ public class Formulae {
 	 * @param types
 	 * @return
 	 */
-	private static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
+	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
@@ -341,7 +282,7 @@ public class Formulae {
 		}
 		return result;
 	}
-	private static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
 		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
 	}
 	public static int skolem = 0;
@@ -434,6 +375,7 @@ public class Formulae {
 		}
 		case TYPE_arr: {
 			Type.Array t = (Type.Array) type;
+			// FIXME: trying to get rid of this would somehow be useful
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
 			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
@@ -496,26 +438,6 @@ public class Formulae {
 		case TYPE_macro:
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
-		}
-	}
-
-	public static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
-		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
-			return new ArithmeticEquality(false, toPolynomial(lhs), toPolynomial(rhs));
-		} else {
-			return new Formula.Equality(false, lhs, rhs);
-		}
-	}
-
-	public static Formula equals(Expr lhs, Expr rhs, TypeSystem types) {
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
-		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
-			return new ArithmeticEquality(true, toPolynomial(lhs), toPolynomial(rhs));
-		} else {
-			return new Formula.Equality(true, lhs, rhs);
 		}
 	}
 
@@ -605,7 +527,7 @@ public class Formulae {
 		case EXPR_is: {
 			Formula.Is c = (Formula.Is) f;
 			// FIXME: could simplify the type here I think
-			return new Is(c.getExpr(), new WyalFile.Type.Negation(c.getTypeTest()));
+			return new Is(c.getExpr(), TypeSystem.negate(c.getTypeTest()));
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());
@@ -647,6 +569,8 @@ public class Formulae {
 		case EXPR_forall: {
 			return simplifyQuantifier((Formula.Quantifier) f, types);
 		}
+		case EXPR_assign:
+			return simplifyAssign((Formula.Assignment) f,types);
 		case EXPR_eq:
 		case EXPR_neq: {
 			if (f instanceof ArithmeticEquality) {
@@ -869,20 +793,15 @@ public class Formulae {
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
-		} else if (eq.getSign()) {
-			if(nLhs == lhs && nRhs == rhs) {
-				return eq;
-			} else {
-				return new ArithmeticEquality(true, nLhs, nRhs);
-			}
+		}
+		Polynomial difference = nLhs.subtract(nRhs);
+		if(difference.isConstant()) {
+			BigInteger constant = difference.toConstant().get();
+			return new Formula.Truth(constant.equals(BigInteger.ZERO));
+		} else if(nLhs == lhs && nRhs == rhs) {
+			return eq;
 		} else {
-			// For an arithmetic equality of the form x != y, we return a
-			// disjunction of the form (x < y) || (x > y). This is not
-			// necessarily the most efficient thing to do. However, for our
-			// purposes, this works well enough for now.
-			Inequality lt = lessThan(nLhs,nRhs);
-			Inequality gt = lessThan(nRhs,nLhs);
-			return new Formula.Disjunct(lt, gt);
+			return new ArithmeticEquality(eq.getSign(), nLhs, nRhs);
 		}
 	}
 
@@ -913,14 +832,60 @@ public class Formulae {
 		}
 	}
 
+	public static Formula simplifyAssign(Formula.Assignment eq, TypeSystem types) {
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		Expr nLhs = simplify(lhs, types);
+		Expr nRhs = simplify(rhs, types);
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value lhs_v = ((Expr.Constant) nLhs).getValue();
+			Value rhs_v = ((Expr.Constant) nRhs).getValue();
+			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
+		} else if (nLhs.equals(nRhs)) {
+			return new Formula.Truth(true);
+		} if(nLhs == lhs && nRhs == rhs) {
+			return eq;
+		} else {
+			return new Assignment(nLhs,nRhs);
+		}
+	}
+
 	public static Formula simplifyInvoke(Invoke ivk, TypeSystem types) {
 		Tuple<Expr> args = ivk.getArguments();
-		Tuple<Expr> nArgs = simplify(args, types);
-		if(args == nArgs) {
+		Expr[] children  = args.getOperands();
+		Expr[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child, types);
+			// Attempt to normalise parameters which have integer type. This is
+			// necessary because, after substitution, we may end up with a
+			// poltnomial here which should match with a variable access.
+			nChild = collapseVariableAccessPolynomial(nChild);
+			if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		if(children == nChildren) {
 			return ivk;
 		} else {
+			Tuple<Expr> nArgs = new Tuple<>(nChildren);
 			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
 		}
+	}
+
+	private static Expr collapseVariableAccessPolynomial(Expr nChild) {
+		if (nChild instanceof Expr.Polynomial) {
+			Expr.Polynomial p = (Expr.Polynomial) nChild;
+			if (p.size() == 1) {
+				Polynomial.Term term = p.getOperand(0);
+				Expr[] atoms = term.getAtoms();
+				if (term.getCoefficient().get().equals(BigInteger.ONE) && atoms.length == 1) {
+					return atoms[0];
+				}
+			}
+		}
+		return nChild;
 	}
 
 	private static Tuple<Expr> simplify(Tuple<Expr> tuple, TypeSystem types) {
@@ -936,37 +901,15 @@ public class Formulae {
 	private static Formula simplifyIs(Formula.Is e, TypeSystem types) {
 		Expr lhs = e.getExpr();
 		Expr nLhs = simplify(lhs,types);
-		Formula invariant = extractTypeInvariant(e.getTypeTest(), nLhs, types);
-		// FIXME: could reduce this expression to true or false in some cases.
-		// For example, if lhs is a constant.
-		boolean isSubtype = types.isSubtype(e.getTypeTest(),nLhs.getReturnType(types));
-		boolean isNotSubtype = types.isSubtype(new Type.Negation(e.getTypeTest()),nLhs.getReturnType(types));
-		if (isSubtype && invariant != null) {
-			return simplifyFormula(invariant,types);
-		} else if (isSubtype) {
-			return new Formula.Truth(true);
-		} else if (isNotSubtype && invariant != null) {
-			// FIXME: I think this is broken in the general case. The essential
-			// problem boils down to what the subtype test is really telling us.
-			// For example, is it saying that the underlying type of the lhs is not
-			// a subtype of the negated rhs? I don't think so.
-			return simplifyFormula(invariant,types);
-		} else if(isNotSubtype) {
-			return new Formula.Truth(false);
-		}
-		// At this point, we're stuck with a type test of some sort.
 		if(lhs != nLhs) {
-			e = new Formula.Is(nLhs, e.getTypeTest());
-		}
-		if(invariant != null) {
-			return and(simplifyFormula(invariant,types),e);
+			return new Formula.Is(nLhs, e.getTypeTest());
 		} else {
 			return e;
 		}
 	}
 
 
-	private static Expr[] simplify(Expr[] children, TypeSystem types) {
+	public static Expr[] simplify(Expr[] children, TypeSystem types) {
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -985,7 +928,7 @@ public class Formulae {
 	 * @param e
 	 * @return
 	 */
-	private static Expr simplify(Expr e, TypeSystem types) {
+	public static Expr simplify(Expr e, TypeSystem types) {
 		switch (e.getOpcode()) {
 		case EXPR_var:
 			return e;
@@ -1014,16 +957,24 @@ public class Formulae {
 			return simplify((Expr.RecordInitialiser) e, types);
 		case EXPR_recfield:
 			return simplify((Expr.RecordAccess) e, types);
+		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_exists:
 		case EXPR_forall:
+		case EXPR_assign:
 		case EXPR_eq:
 		case EXPR_neq:
 		case EXPR_lt:
 		case EXPR_gteq:
 		case EXPR_is:
-			return simplifyFormula((Formula) e, types);
+			if(e instanceof Formula) {
+				return simplifyFormula((Formula) e, types);
+			} else {
+				// We need toFormula here because of the potential for arbitrarily
+				// nested expressions to contain these constructs.
+				return simplifyFormula(toFormula(e,types), types);
+			}
 		default:
 			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
 		}
@@ -1085,10 +1036,24 @@ public class Formulae {
 
 	private static Expr simplify(Expr.Invoke ivk, TypeSystem types) {
 		Tuple<Expr> args = ivk.getArguments();
-		Tuple<Expr> nArgs = simplify(args, types);
-		if(args == nArgs) {
+		Expr[] children  = args.getOperands();
+		Expr[] nChildren = children;
+		for (int i = 0; i != children.length; ++i) {
+			Expr child = children[i];
+			Expr nChild = simplify(child, types);
+			// Attempt to normalise parameters which have integer type. This is
+			// necessary because, after substitution, we may end up with a
+			// poltnomial here which should match with a variable access.
+			nChild = collapseVariableAccessPolynomial(nChild);
+			if (child != nChild && children == nChildren) {
+				nChildren = Arrays.copyOf(children, children.length);
+			}
+			nChildren[i] = nChild;
+		}
+		if(children == nChildren) {
 			return ivk;
 		} else {
+			Tuple<Expr> nArgs = new Tuple<>(nChildren);
 			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
 		}
 	}
@@ -1308,328 +1273,6 @@ public class Formulae {
 		}
 	}
 
-	/**
-	 * Close over two inequalities. This may or may not produce a new inequality
-	 * as a result. For example, closing over <code>3 < x</code> and
-	 * <code>x < y</code> gives <code>3 < y</code>. Observe that, for this
-	 * operation to succeed, there must exist a term common to both
-	 * inequalities. In the case that multiple candidate terms exist, then the
-	 * lexiographically least is selected.
-	 *
-	 * <b>NOTE:</b> this currently assumes that the inequalities are balanced.
-	 *
-	 * @param ith
-	 * @param jth
-	 * @return
-	 */
-	public static Formula closeOver(Formula.Inequality ith, Formula.Inequality jth, TypeSystem types) {
-		Polynomial ithLowerBound = extractBound(false, ith);
-		Polynomial ithUpperBound = extractBound(true, ith);
-		Polynomial jthLowerBound = extractBound(false, jth);
-		Polynomial jthUpperBound = extractBound(true, jth);
-
-		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
-		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
-		Polynomial.Term lhsCandidate;
-		Polynomial lower;
-		Polynomial upper;
-		if (lCandidate != null && rCandidate == null) {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-			lhsCandidate = lCandidate.getFirst();
-		} else if (lCandidate == null && rCandidate != null) {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			lhsCandidate = rCandidate.getSecond();
-		} else if(lCandidate == null && rCandidate == null) {
-			return null;
-		} else if(lCandidate.compareTo(rCandidate) <= 0){
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-			lhsCandidate = lCandidate.getFirst();
-		} else {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			lhsCandidate = rCandidate.getSecond();
-		}
-		if(lower.equals(upper)) {
-			return simplifyArithmeticEquality(new Formula.ArithmeticEquality(true, toPolynomial(lhsCandidate), lower), types);
-		} else {
-			// Result is not-strict as had something like ... <= x <= ...
-			return simplifyInequality(greaterOrEqual(upper,lower), types);
-		}
-	}
-
-	/**
-	 * Extract a given bound from the inequality. Here, true is upper and false
-	 * is lower.
-	 *
-	 * @param sign
-	 * @param inequality
-	 * @return
-	 */
-	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
-		int i = sign ? 0 : 1;
-		return (Polynomial) inequality.getOperand(i);
-	}
-
-	/**
-	 * <p>
-	 * Determine a suitable term (if one exists) for rearranging the two
-	 * inequalities. A candidate term must be common to both and involve at
-	 * least one variable, and should appear on opposite sides of the
-	 * inequalities. The selected candidate then has the lowest ordering of any
-	 * possible term. For example, consider these two options:
-	 * </p>
-	 *
-	 * <pre>
-	 * x < y + z
-	 * x + y > z
-	 * </pre>
-	 *
-	 * <p>
-	 * For these two equations, the candidate terms are <code>x</code> and
-	 * <code>z</code>. Since <code>y</code> is an upper bound on both, it is not
-	 * considered. Then, <code>x</code> is selected as the actual term for
-	 * rearranging since it is lexiographically lower than <code>z</code>.
-	 * </p>
-	 *
-	 * @param ith
-	 * @param jth
-	 * @return
-	 */
-	private static Pair<Polynomial.Term, Polynomial.Term> selectCandidateTerm(Polynomial lower, Polynomial upper) {
-		for (int i = 0; i != lower.size(); ++i) {
-			Polynomial.Term ith = lower.getOperand(i);
-			Expr[] ithAtoms = ith.getAtoms();
-			if (ithAtoms.length > 0) {
-				for (int j = 0; j != upper.size(); ++j) {
-					Polynomial.Term jth = upper.getOperand(j);
-					Expr[] jthAtoms = jth.getAtoms();
-					if (Arrays.equals(ithAtoms, jthAtoms)) {
-						// FIXME: we should be selecting the lexiographically
-						// least candidate here.
-						return new Pair<>(ith, jth);
-					}
-				}
-			}
-		}
-		//
-		return null;
-	}
-
-	public static Pair<Expr, Expr> rearrangeForSubstitution(Formula.Equality f) {
-		Expr candidate;
-		Expr bound;
-		if (f instanceof Formula.ArithmeticEquality) {
-			// Arithmetic equalities are a special case because we can actually
-			// rearrange them.
-			Formula.ArithmeticEquality e = (Formula.ArithmeticEquality) f;
-			Polynomial lhs = e.getOperand(0);
-			Polynomial rhs = e.getOperand(1);
-			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs,rhs);
-			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs,lhs);
-			if (lhsCandidate != null && rhsCandidate != null) {
-				if (lhsCandidate.compareTo(rhsCandidate) < 0) {
-					candidate = extractCandidate(lhsCandidate);
-					bound = rhs.subtract(lhs.subtract(lhsCandidate));
-				} else {
-					candidate = extractCandidate(rhsCandidate);
-					bound = lhs.subtract(rhs.subtract(rhsCandidate));
-				}
-			} else if (lhsCandidate != null) {
-				candidate = extractCandidate(lhsCandidate);
-				bound = rhs.subtract(lhs.subtract(lhsCandidate));
-			} else if (rhsCandidate != null) {
-				candidate = extractCandidate(rhsCandidate);
-				bound = lhs.subtract(rhs.subtract(rhsCandidate));
-			} else {
-				return null;
-			}
-		} else {
-			// For non-arithmetic equalities, we can't rearrange them.
-			// Therefore, there are relatively few options.
-			Expr lhs = f.getOperand(0);
-			Expr rhs = f.getOperand(1);
-			//
-			if(lhs instanceof Expr.Constant && rhs instanceof Expr.Constant) {
-				return null;
-			} else if(lhs instanceof Expr.Constant) {
-				candidate = rhs;
-				bound = lhs;
-			} else if(rhs instanceof Expr.Constant) {
-				candidate = lhs;
-				bound = rhs;
-			} else if (lhs.compareTo(rhs) < 0) {
-				candidate = lhs;
-				bound = rhs;
-			} else {
-				candidate = rhs;
-				bound = lhs;
-			}
-		}
-
-		return new Pair<>(candidate, bound);
-	}
-
-	private static Expr extractCandidate(Polynomial.Term term) {
-		return term.getAtoms()[0];
-	}
-
-	/**
-	 * Examine all terms in a polynomial to see whether any is a candidate for
-	 * substitution or not. If one or more are found, then the least candidate
-	 * is returned.
-	 *
-	 * @param p
-	 * @return
-	 */
-	public static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
-		Expr candidateAtom = null;
-		Polynomial.Term candidate = null;
-		for (int i = 0; i != p.size(); ++i) {
-			Polynomial.Term term = p.getOperand(i);
-			Expr[] atoms = term.getAtoms();
-			if (term.getAtoms().length == 1) {
-				Expr atom = atoms[0];
-				// FIXME: the problem here is thatthe given polynomial is not
-				// taking into account the other side of the equation, which may
-				// contain a recursive reference.
-				if ((candidate == null || atom.compareTo(candidateAtom) < 0) && !recursive(atom, i, p) && !recursive(atom, -1, other)) {
-					candidate = term;
-					candidateAtom = atom;
-				}
-			}
-		}
-		return candidate;
-	}
-
-	private static boolean recursive(Expr atom, int i, Polynomial p) {
-		for (int j = 0; j != p.size(); ++j) {
-			if (i != j) {
-				Polynomial.Term term = p.getOperand(j);
-				if (isParentOf(term,atom)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	private static boolean isParentOf(Expr parent, Expr child) {
-		if (parent.equals(child)) {
-			return true;
-		} else {
-			for (int i = 0; i != parent.size(); ++i) {
-				SyntacticItem pChild = parent.getOperand(i);
-				if (pChild instanceof Expr && isParentOf((Expr) pChild, child)) {
-					return true;
-				}
-			}
-			return false;
-		}
-	}
-
-	/**
-	 * Rearrange a given equation such that the given term appears on the
-	 * right-hand side, and everything else is moved on to the left side. For
-	 * example, consider rearranging these for <code>x</code>:
-	 *
-	 * <pre>
-	 * 1 < x + y
-	 * </pre>
-	 *
-	 * The resulting polynomial represents the "left-hand side" which (in this
-	 * case) is 1-y. Thus, the rearranged inequality would be 1 - y < x.
-	 *
-	 * @param lhs
-	 *            The "left-hand side" of the equation.
-	 * @param rhs
-	 *            The "right-hand side" of the equation.
-	 * @param term
-	 *            the given term being rearranged for.
-	 */
-	private static Polynomial rearrangeForLowerBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
-		rhs = rhs.subtract(term);
-		return lhs.add(rhs.negate());
-	}
-
-	/**
-	 * Rearrange a given equation such that the given term appears on the
-	 * left-hand side, and everything else is moved on to the right side. For
-	 * example, consider rearranging these for <code>x</code>:
-	 *
-	 * <pre>
-	 * x + y < 1
-	 * </pre>
-	 *
-	 * The resulting polynomial represents the "right-hand side" which (in this
-	 * case) is 1-y. Thus, the rearranged inequality would be x < 1 - y.
-	 *
-	 * @param lhs
-	 *            The "left-hand side" of the equation.
-	 * @param rhs
-	 *            The "right-hand side" of the equation.
-	 * @param term
-	 *            the given term being rearranged for.
-	 */
-	private static Polynomial rearrangeForUpperBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
-		lhs = lhs.subtract(term);
-		return rhs.add(lhs.negate());
-	}
-
-	/**
-	 * <p>
-	 * Substitute for a given variable within a given syntactic item.
-	 * Specifically, this replaces all instances of VariableAccess which match
-	 * the given declaration. Observe that the substitution is performed
-	 * verbatim and (for example) without simplifying the underlying item.
-	 * </p>
-	 * <p>
-	 * This function preserves the aliasing structure of the original item up to
-	 * the substitution itself. Furthermore, if no substitution was performed
-	 * then the original item is returned as is.
-	 * </p>
-	 *
-	 * @param to
-	 * @param item
-	 * @return
-	 */
-	public static <T extends SyntacticItem> SyntacticItem substitute(T from, T to,
-			SyntacticItem item) {
-		if (item.equals(from)) {
-			// Yes, we made a substitution!
-			return to;
-		} else {
-			// No immediate substitution possible. Instead, recursively traverse
-			// term looking for substitution.
-			SyntacticItem[] children = item.getOperands();
-			SyntacticItem[] nChildren = children;
-			if(children != null) {
-				for (int i = 0; i != children.length; ++i) {
-					SyntacticItem child = children[i];
-					if(child != null) {
-						SyntacticItem nChild = substitute(from, to, child);
-						if (child != nChild && nChildren == children) {
-							// Clone the new children array to avoid interfering with
-							// original item.
-							nChildren = Arrays.copyOf(children, children.length);
-						}
-						nChildren[i] = nChild;
-					}
-				}
-			}
-			if (nChildren == children) {
-				// No children were updated, hence simply return the original
-				// item.
-				return item;
-			} else {
-				// At least one child was changed, therefore clone the original
-				// item with the new children.
-				return item.clone(nChildren);
-			}
-		}
-	}
 
 	/**
 	 * Recursively remove nested conjuncts. If no nested conjuncts are
@@ -1850,6 +1493,7 @@ public class Formulae {
 	private static Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
 		boolean result;
 		switch (opcode) {
+		case EXPR_assign:
 		case EXPR_eq:
 			result = lhs.equals(rhs);
 			break;

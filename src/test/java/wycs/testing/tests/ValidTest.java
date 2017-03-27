@@ -39,9 +39,19 @@ public class ValidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
+		IGNORED.put("test_array_06", "??");
+		IGNORED.put("test_array_15", "??");
+		IGNORED.put("test_array_26", "??");
+		IGNORED.put("test_array_38", "??");
+		IGNORED.put("test_array_44", "??");
+		IGNORED.put("test_array_50", "??");
+		IGNORED.put("test_array_60", "??");
+		IGNORED.put("test_array_63", "??");
+		IGNORED.put("test_array_66", "??");
+		IGNORED.put("test_array_67", "??");
+		IGNORED.put("test_type_44", "??");
+		IGNORED.put("test_type_64", "??");
 
-		//
-		IGNORED.put("test_array_15", "timeout");
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//
@@ -50,31 +60,13 @@ public class ValidTest {
 		IGNORED.put("test_arith_36", "#12");
 		IGNORED.put("test_arith_38", "#12");
 		//
-		IGNORED.put("test_type_34", "#26");
-		IGNORED.put("test_type_47", "#26");
-		IGNORED.put("test_type_51", "#26");
-		//
-		IGNORED.put("test_type_26", "#27");
-		IGNORED.put("test_type_27", "#27");
-		IGNORED.put("test_type_28", "#27");
-		IGNORED.put("test_type_29", "#27");
-		IGNORED.put("test_type_35", "#27");
-		//
-		IGNORED.put("test_type_36", "#28");
+//		IGNORED.put("test_type_35", "#27");
 		//
 		IGNORED.put("test_array_59", "#29");
 		//
-		IGNORED.put("test_type_23", "#30");
-		IGNORED.put("test_type_24", "#30");
-		IGNORED.put("test_type_25", "#30");
-		IGNORED.put("test_type_37", "#30");
-		IGNORED.put("test_type_50", "#30");
-		//
 		IGNORED.put("test_type_38", "#31");
 		//
-		IGNORED.put("test_fun_03", "#32");
-		//
-		IGNORED.put("test_type_45", "#35");
+//		IGNORED.put("test_type_45", "#35");
 		IGNORED.put("test_type_46", "#35");
 		//
 		IGNORED.put("test_arith_40", "#36");
@@ -90,9 +82,6 @@ public class ValidTest {
 		IGNORED.put("test_array_61", "#41");
 		//
 		IGNORED.put("test_array_31", "#42");
-		//
-		IGNORED.put("test_array_23", "#47");
-		IGNORED.put("test_array_54", "#47");
 	}
 
 	// ======================================================================

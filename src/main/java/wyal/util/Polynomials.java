@@ -3,6 +3,7 @@ package wyal.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Value;
@@ -31,6 +32,8 @@ public class Polynomials {
 		// that zero is present. This can happen is all terms cancelled out.
 		if (nTerms.length == 0) {
 			// FIXME: can zero be represented using an empty term array?
+			// This does make the manipulation of polynomials more awkward than
+			// necessary.
 			nTerms = new Polynomial.Term[] { new Polynomial.Term(BigInteger.ZERO) };
 		}
 		// Sort remaining terms
@@ -51,6 +54,7 @@ public class Polynomials {
 	 * @param terms
 	 */
 	private static void mergeTerms(Polynomial.Term[] terms) {
+		//
 		for (int i = 0; i != terms.length; ++i) {
 			Polynomial.Term ith = terms[i];
 			if (ith != null) {
@@ -73,6 +77,13 @@ public class Polynomials {
 					}
 				}
 			}
+		}
+	}
+
+	private static void print(Expr[] atoms) {
+		for(Expr a : atoms) {
+			WyalFile.print(a);
+			System.out.print(" [" + System.identityHashCode(a) + "] ");
 		}
 	}
 

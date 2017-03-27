@@ -1,4 +1,4 @@
-package wyal.util;
+package wyal.heap;
 
 import java.util.Arrays;
 import java.util.IdentityHashMap;

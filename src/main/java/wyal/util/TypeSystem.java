@@ -159,6 +159,32 @@ public class TypeSystem {
 	}
 
 	// ======================================================================
+	// Negate
+	// ======================================================================
+	public static Type negate(Type type) {
+		if(type instanceof Type.Negation){
+			Type.Negation nt = (Type.Negation) type;
+			return nt.getElement();
+		} else if(type instanceof Type.Union) {
+			Type.Union union = (Type.Union) type;
+			return intersect(negate(union.getOperands()));
+		} else if(type instanceof Type.Intersection) {
+			Type.Intersection intersection = (Type.Intersection) type;
+			return union(negate(intersection.getOperands()));
+		} else {
+			return new Type.Negation(type);
+		}
+	}
+
+	public static Type[] negate(Type... types) {
+		Type[] result = new Type[types.length];
+		for(int i=0;i!=result.length;++i) {
+			result[i] = negate(types[i]);
+		}
+		return result;
+	}
+
+	// ======================================================================
 	// Union
 	// ======================================================================
 
@@ -169,7 +195,7 @@ public class TypeSystem {
 	 * @param types
 	 * @return
 	 */
-	public Type union(Type... types) {
+	public static Type union(Type... types) {
 		Type[] rs = Arrays.copyOf(types, types.length);
 		// intersect atoms
 		for (int i = 0; i < rs.length; ++i) {
@@ -196,7 +222,7 @@ public class TypeSystem {
 		}
 	}
 
-	private void unionAtoms(int i, int j, Type[] types) {
+	private static void unionAtoms(int i, int j, Type[] types) {
 		Type ith = types[i];
 		Type jth = types[j];
 		if(ith instanceof Type.Record && jth instanceof Type.Record) {
@@ -211,11 +237,11 @@ public class TypeSystem {
 		}
 	}
 
-	private Type unionArrays(Type.Array lhs, Type.Array rhs) {
+	private static Type unionArrays(Type.Array lhs, Type.Array rhs) {
 		return new Type.Array(union(lhs.getElement(), rhs.getElement()));
 	}
 
-	private Type.Record unionRecords(Type.Record lhs, Type.Record rhs) {
+	private static Type.Record unionRecords(Type.Record lhs, Type.Record rhs) {
 		FieldDeclaration[] lhsFields = lhs.getFields();
 		FieldDeclaration[] rhsFields = rhs.getFields();
 		ArrayList<FieldDeclaration> fields = new ArrayList<>();
@@ -248,7 +274,7 @@ public class TypeSystem {
 	 * @param types
 	 * @return
 	 */
-	public Type intersect(Type... types) {
+	public static Type intersect(Type... types) {
 		Type[] rs = Arrays.copyOf(types, types.length);
 		// At this point, we need to handle distribution of
 		// intersections over negations.
@@ -294,7 +320,7 @@ public class TypeSystem {
 	 *            One or more types which should be intersected together
 	 * @return
 	 */
-	private Type distributeUnion(int ith, Type[] children) {
+	private static Type distributeUnion(int ith, Type[] children) {
 		Type.Union union = (Type.Union) children[ith];
 		Type[] clauses = new Type[union.size()];
 		for(int j=0;j!=union.size();++j) {
@@ -308,7 +334,7 @@ public class TypeSystem {
 		return union(clauses);
 	}
 
-	private void intersectAtoms(int i, int j, Type[] types) {
+	private static void intersectAtoms(int i, int j, Type[] types) {
 		Type ith = types[i];
 		Type jth = types[j];
 		boolean lhsNegative = ith instanceof Type.Negation;
@@ -318,17 +344,17 @@ public class TypeSystem {
 		} else if(lhsNegative) {
 			intersectNegativePositive(i,j,types);
 		} else if(rhsNegative) {
-			intersectNegativePositive(i,j,types);
+			intersectNegativePositive(j,i,types);
 		} else {
 			intersectPositivePositive(i,j,types);
 		}
 	}
 
-	private void intersectNegativeNegative(int i, int j, Type[] types) {
+	private static void intersectNegativeNegative(int i, int j, Type[] types) {
 		// FIXME: could do more here
 	}
 
-	private void intersectNegativePositive(int i, int j, Type[] types) {
+	private static void intersectNegativePositive(int i, int j, Type[] types) {
 		Type.Negation ith = (Type.Negation) types[i];
 		Type ith_element = ith.getElement();
 		Type jth = types[j];
@@ -349,7 +375,7 @@ public class TypeSystem {
 		}
 	}
 
-	private void intersectPositivePositive(int i, int j, Type[] types) {
+	private static void intersectPositivePositive(int i, int j, Type[] types) {
 		Type ith = types[i];
 		Type jth = types[j];
 		Opcode lhsKind = ith.getOpcode();
@@ -393,11 +419,11 @@ public class TypeSystem {
 		}
 	}
 
-	private Type intersectArrays(Type.Array lhs, Type.Array rhs) {
+	private static Type intersectArrays(Type.Array lhs, Type.Array rhs) {
 		return new Type.Array(intersect(lhs.getElement(), rhs.getElement()));
 	}
 
-	private Type intersectRecords(Type.Record lhs, Type.Record rhs) {
+	private static Type intersectRecords(Type.Record lhs, Type.Record rhs) {
 		if (lhs == null) {
 			return rhs;
 		} else {

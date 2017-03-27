@@ -1,0 +1,9 @@
+type Point is ({bool x, bool y} p) where p.x == p.y
+type Expr is (int|Point this)
+
+assert:
+    forall(Point p, Expr q):
+        if:
+            p == q
+        then:
+            p.x == p.y

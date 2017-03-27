@@ -7,14 +7,13 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+import wyal.heap.AbstractSyntacticHeap;
+import wyal.heap.AbstractSyntacticItem;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.util.AbstractSyntacticHeap;
-import wyal.util.AbstractSyntacticItem;
-import wyal.util.AutomatedTheoremProver;
 import wyal.util.Formulae;
 import wyal.util.Polynomials;
 import wyal.util.TypeSystem;
@@ -172,6 +171,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_arrgen(60),
 		EXPR_arrinit(61),
 		EXPR_recinit(62),
+		// Other
+		EXPR_assign(63),
 
 		// BASE
 		CONST_null(66),
@@ -698,8 +699,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Type {
-			public FunctionOrMacro(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
+		public static abstract class FunctionOrMacroOrInvariant extends AbstractSyntacticItem implements Type {
+			public FunctionOrMacroOrInvariant(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
 				super(opcode,parameters,returns);
 			}
 			public Tuple<Type> getParameters() {
@@ -710,7 +711,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Function extends FunctionOrMacro implements Type {
+		public static class Function extends FunctionOrMacroOrInvariant implements Type {
 			public Function(Tuple<Type> parameters, Tuple<Type> returns) {
 				super(Opcode.TYPE_fun,parameters,returns);
 			}
@@ -721,7 +722,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Macro extends FunctionOrMacro implements Type {
+		public static class Macro extends FunctionOrMacroOrInvariant implements Type {
 			public Macro(Tuple<Type> parameters, Tuple<Type> returns) {
 				super(Opcode.TYPE_macro, parameters, returns);
 			}
@@ -732,7 +733,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Invariant extends FunctionOrMacro implements Type {
+		public static class Invariant extends FunctionOrMacroOrInvariant implements Type {
 			public Invariant(Tuple<Type> parameters) {
 				super(Opcode.TYPE_inv, parameters, new Tuple<Type>(new Bool()));
 			}
@@ -953,7 +954,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				case EXPR_arridx: {
 					Type src = getOperand(0).getReturnType(types);
 					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
-					return effectiveArray.getElement();
+					if(effectiveArray != null) {
+						return effectiveArray.getElement();
+					} else {
+						return null;
+					}
 				}
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
@@ -1120,17 +1125,19 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
 				Type.Record effectiveRecord = types.expandAsReadableRecordType(src);
-				FieldDeclaration[] fields = effectiveRecord.getFields();
-				String actualFieldName = getField().get();
-				for (int i = 0; i != fields.length; ++i) {
-					FieldDeclaration vd = fields[i];
-					String declaredFieldName = vd.getVariableName().get();
-					if (declaredFieldName.equals(actualFieldName)) {
-						return vd.getType();
+				if(effectiveRecord != null) {
+					FieldDeclaration[] fields = effectiveRecord.getFields();
+					String actualFieldName = getField().get();
+					for (int i = 0; i != fields.length; ++i) {
+						FieldDeclaration vd = fields[i];
+						String declaredFieldName = vd.getVariableName().get();
+						if (declaredFieldName.equals(actualFieldName)) {
+							return vd.getType();
+						}
 					}
 				}
 				//
-				throw new RuntimeException("invalid record access: " + actualFieldName);
+				return null;
 			}
 			public Expr getSource() {
 				return (Expr) getOperand(0);
@@ -1225,17 +1232,21 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Invoke extends AbstractSyntacticItem implements Expr {
-			public Invoke(Type.FunctionOrMacro type, Name name, Expr... arguments) {
+
+			// FIXME: making the arguments a tuple prevents traversals following
+			// the line of expressions.
+
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Expr... arguments) {
 				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
 			}
 
-			public Invoke(Type.FunctionOrMacro type, Name name, Tuple<Expr> arguments) {
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Tuple<Expr> arguments) {
 				super(Opcode.EXPR_invoke, type, name, arguments);
 			}
 
 			@Override
 			public Type getReturnType(TypeSystem types) {
-				Type.FunctionOrMacro type = getSignatureType();
+				Type.FunctionOrMacroOrInvariant type = getSignatureType();
 				Tuple<Type> returns = type.getReturns();
 				if (returns.size() != 1) {
 					throw new IllegalArgumentException("need support for multiple returns");
@@ -1244,11 +1255,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 			}
 
-			public Type.FunctionOrMacro getSignatureType() {
-				return (Type.FunctionOrMacro) getOperand(0);
+			public Type.FunctionOrMacroOrInvariant getSignatureType() {
+				return (Type.FunctionOrMacroOrInvariant) getOperand(0);
 			}
 
-			public void setSignatureType(Type.FunctionOrMacro type) {
+			public void setSignatureType(Type.FunctionOrMacroOrInvariant type) {
 				this.setOperand(0, type);
 			}
 
@@ -1262,7 +1273,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			@Override
 			public Invoke clone(SyntacticItem[] operands) {
-				return new Invoke((Type.FunctionOrMacro) operands[0], (Name) operands[1], (Tuple) operands[2]);
+				return new Invoke((Type.FunctionOrMacroOrInvariant) operands[0], (Name) operands[1], (Tuple) operands[2]);
 			}
 		}
 
@@ -1311,6 +1322,29 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// DEBUGGING SUPPORT
 	// ===========================================================
 
+	public static void println(Proof.Delta delta) {
+		print(delta);
+		System.out.println();
+	}
+	public static void print(Proof.Delta delta) {
+		Proof.Delta.Set additions = delta.getAdditions();
+		Proof.Delta.Set removals = delta.getRemovals();
+		for (int i = 0; i != additions.size(); ++i) {
+			if(i != 0) {
+				System.out.print(", ");
+			}
+			System.out.print("+");
+			print(additions.get(i));
+		}
+		for (int i = 0; i != removals.size(); ++i) {
+			if(i != 0 || additions.size() > 0) {
+				System.out.print(", ");
+			}
+			System.out.print("-");
+			print(removals.get(i));
+		}
+	}
+
 	public static void println(SyntacticItem... items) {
 		print(items);
 		System.out.println();
@@ -1330,10 +1364,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				printer.writeStatement((Stmt) item,0);
 			} else if(item instanceof WyalFile.Type) {
 				printer.writeType((Type) item);
+			} else if(item instanceof WyalFile.VariableDeclaration) {
+				printer.writeVariableDeclaration((WyalFile.VariableDeclaration) item);
+			} else if(item instanceof WyalFile.Tuple) {
+				WyalFile.Tuple tuple = (WyalFile.Tuple) item;
+				out.print("(");
+				for(int j=0;j!=tuple.size();++j) {
+					if(j != 0) {
+						out.print(",");
+					}
+					out.flush();
+					print(tuple.getOperand(j));
+				}
+				out.print(")");
 			} else if(item == null) {
 				out.print("null");
 			} else {
-				throw new RuntimeException("Unsupported item category: " + item);
+				out.print(item);
 			}
 		}
 		out.flush();

@@ -15,6 +15,7 @@ import wyal.lang.WyalFile;
 public class ProofPrinter {
 	private final PrintWriter out;
 	private final int width = 120;
+	private final boolean fullDelta = false;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -33,10 +34,10 @@ public class ProofPrinter {
 	}
 
 	public void print(Proof p) {
-		print(0, p.getStep(0));
+		print(0, p.getState(0));
 	}
 
-	public void print(int depth, Proof.Step step) {
+	public void print(int depth, Proof.State step) {
 		tab(depth);
 		String[] lines = toLines(step);
 		String title = title(step);
@@ -83,11 +84,11 @@ public class ProofPrinter {
 			out.print(" | ");
 		}
 	}
-	private Proof.Step[] expandFrontier(Proof.Step[] steps) {
-		ArrayList<Proof.Step> nSteps = new ArrayList<>();
+	private Proof.State[] expandFrontier(Proof.State[] steps) {
+		ArrayList<Proof.State> nSteps = new ArrayList<>();
 		boolean allLeaf = true;
 		for(int i=0;i!=steps.length;++i) {
-			Proof.Step step = steps[i];
+			Proof.State step = steps[i];
 			if(step.numberOfChildren() == 0) {
 				nSteps.add(step);
 			} else {
@@ -98,14 +99,14 @@ public class ProofPrinter {
 			}
 		}
 		if(allLeaf) {
-			return new Proof.Step[0];
+			return new Proof.State[0];
 		} else {
-			return nSteps.toArray(new Proof.Step[nSteps.size()]);
+			return nSteps.toArray(new Proof.State[nSteps.size()]);
 		}
 	}
 
-	private int calculateColumnWidth(Proof.Step step, int maxWidth) {
-		Proof.Step parent = step.getParent();
+	private int calculateColumnWidth(Proof.State step, int maxWidth) {
+		Proof.State parent = step.getParent();
 		if(parent == null) {
 			return maxWidth;
 		} else {
@@ -141,23 +142,38 @@ public class ProofPrinter {
 		}
 	}
 
-	private String[] toLines(Proof.Step s) {
-		List<Formula> is = s.getIntroductions();
-		String[] lines = new String[is.size()];
-		for(int i=0;i!=lines.length;++i) {
-			lines[i] = toLine(is.get(i));
+	private String[] toLines(Proof.State s) {
+		Proof.Delta delta = s.getDelta();
+		Proof.Delta.Set additions = delta.getAdditions();
+		Proof.Delta.Set removals = delta.getRemovals();
+		if(fullDelta) {
+			// Full delta (usually for debugging)
+			String[] lines = new String[additions.size()+removals.size()];
+			for(int i=0;i<removals.size();++i) {
+				lines[i] = "-" + toLine(removals.get(i));
+			}
+			for(int i=0;i<additions.size();++i) {
+				lines[i+removals.size()] = "+" + toLine(additions.get(i));
+			}
+			return lines;
+		} else {
+			// Half delta
+			String[] lines = new String[additions.size()];
+			for(int i=0;i!=lines.length;++i) {
+				lines[i] = toLine(additions.get(i));
+			}
+			return lines;
 		}
-		return lines;
 	}
 
-	private String title(Proof.Step step) {
+	private String title(Proof.State step) {
 		String title = " (";
 		if(step.getRule() != null) {
-			title += step.getRule();
+			title += step.getRule().getName();
 			title += " ";
 		}
-		List<WyalFile.Expr> deps = step.getDependencies();
-		for(int j=0;j!=deps.size();++j) {
+		List<Formula> deps = step.getDependencies();
+		for(int j=0;j<deps.size();++j) {
 			if(j != 0) {
 				title += ",";
 			}
@@ -177,7 +193,7 @@ public class ProofPrinter {
 	}
 
 	private void printLine(int width, char c) {
-		for(int i=0;i!=width;i++) {
+		for(int i=0;i<width;i++) {
 			out.print(c);
 		}
 		out.println();

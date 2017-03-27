@@ -1463,7 +1463,7 @@ public class WyalFileParser {
 	private Type parseNegationType(EnclosingScope scope) {
 		int start = index;
 		match(Shreak);
-		Type element = parseType(scope);
+		Type element = parseBaseType(scope);
 		Type type = new Type.Negation(element);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;

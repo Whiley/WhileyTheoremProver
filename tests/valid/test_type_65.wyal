@@ -1,0 +1,8 @@
+type Point is ({int x, int y} p)
+
+assert:
+    forall(Point p, int q):
+        if:
+            p == q
+        then:
+            false // since false antecedent

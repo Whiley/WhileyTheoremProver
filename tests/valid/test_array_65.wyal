@@ -1,0 +1,9 @@
+function f(int x) -> (int r)
+
+assert:
+    forall (int[] xs, int k):
+        if:
+            forall(int i):
+                (xs[k] == i) || (xs[k] == 0)
+        then:
+            k >= 0

@@ -24,6 +24,7 @@ public class WyalFilePrinter {
 	private final PrintWriter out;
 	private boolean raw = true;
 	private boolean nonces = false;
+	private boolean functionSignatures = false;
 
 	public WyalFilePrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -163,9 +164,11 @@ public class WyalFilePrinter {
 		writeType(decl.getType());
 		out.print(" ");
 		out.print(decl.getVariableName().get());
-		if(nonces) {
-			out.print("'");
-			out.print(decl.getIndex());
+		// print nonces
+		if(nonces && decl.getParent() != null) {
+			out.print("'" + decl.getIndex());
+		} else if(nonces) {
+			out.print("'?");
 		}
 	}
 
@@ -304,6 +307,7 @@ public class WyalFilePrinter {
 		case EXPR_or:
 		case EXPR_implies:
 		case EXPR_iff:
+		case EXPR_assign:
 		case EXPR_eq:
 		case EXPR_neq:
 		case EXPR_lt:
@@ -359,8 +363,10 @@ public class WyalFilePrinter {
 		// Print out the declared variable name
 		out.print(ident.get());
 		//
-		if(nonces) {
+		if(nonces && decl.getParent() != null) {
 			out.print("'" + decl.getIndex());
+		} else if(nonces) {
+			out.print("'?");
 		}
 	}
 
@@ -469,6 +475,12 @@ public class WyalFilePrinter {
 			}
 		}
 		writeName(expr.getName());
+		Type.FunctionOrMacroOrInvariant sig = expr.getSignatureType();
+		if(sig != null && functionSignatures) {
+			out.print("[");
+			writeType(sig);
+			out.print("]");
+		}
 		out.print("(");
 		writeArguments(expr.getArguments().getOperands());
 		out.print(")");
@@ -620,9 +632,40 @@ public class WyalFilePrinter {
 			}
 			break;
 		}
+		case TYPE_fun: {
+			Type.Function t = (Type.Function) type;
+			out.print("function");
+			writeTypeArray(t.getParameters());
+			out.print("->");
+			writeTypeArray(t.getReturns());
+			break;
+		}
+		case TYPE_macro: {
+			Type.Macro t = (Type.Macro) type;
+			out.print("macro");
+			writeTypeArray(t.getParameters());
+			break;
+		}
+		case TYPE_inv: {
+			Type.Invariant t = (Type.Invariant) type;
+			out.print("invariant");
+			writeTypeArray(t.getParameters());
+			break;
+		}
 		default:
 			throw new RuntimeException("Unknown type encountered: " + type);
 		}
+	}
+
+	private void writeTypeArray(Tuple<Type> types) {
+		out.print("(");
+		for(int i=0;i!=types.size();++i) {
+			if(i != 0) {
+				out.print(",");
+			}
+			writeType(types.getOperand(i));
+		}
+		out.print(")");
 	}
 
 	private void writeTypeWithBraces(Type type) {
@@ -671,6 +714,7 @@ public class WyalFilePrinter {
 		OPERATOR_MAP.put(Opcode.EXPR_lt, "<");
 		OPERATOR_MAP.put(Opcode.EXPR_gteq, ">=");
 		OPERATOR_MAP.put(Opcode.EXPR_gt, ">");
+		OPERATOR_MAP.put(Opcode.EXPR_assign, ":=");
 		OPERATOR_MAP.put(Opcode.EXPR_eq, "==");
 		OPERATOR_MAP.put(Opcode.EXPR_neq, "!=");
 		OPERATOR_MAP.put(Opcode.EXPR_is, "is");

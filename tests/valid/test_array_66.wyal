@@ -1,0 +1,12 @@
+define contains(int[] xs, int item, int start) is:
+    exists(int k):
+         start <= k
+         k < |xs|
+         xs[k] == item
+
+assert "loop invariant does not hold on entry":
+    forall(int[] str, int i):
+        if:
+            contains(str,0,0)
+        then:
+            contains(str,0,0)

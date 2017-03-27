@@ -3,7 +3,7 @@
 //
 // This software may be modified and distributed under the terms
 // of the BSD license.  See the LICENSE file for details.
-package wyal.util;
+package wyal.tasks;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +14,7 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
+import wyal.util.TypeSystem;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
@@ -213,7 +214,7 @@ public class TypeChecker {
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
 		// Replace old object with fully resolved object
-		Type.FunctionOrMacro type = constructFunctionOrMacroType(sig);
+		Type.FunctionOrMacroOrInvariant type = constructFunctionOrMacroType(sig);
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
@@ -229,7 +230,7 @@ public class TypeChecker {
 	 * @param declaration
 	 * @return
 	 */
-	private Type.FunctionOrMacro constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
+	private Type.FunctionOrMacroOrInvariant constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
 		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
 		Type[] returns;
 		if (declaration instanceof Named.Function) {
@@ -294,7 +295,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type checkLogicalOperator(Expr.Operator expr) {
-		checkOperands(expr, Type.Bool.class);
+		checkOperands(expr, new Type.Bool());
 		return new Type.Bool();
 	}
 
@@ -306,7 +307,7 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type checkArithmeticOperator(Expr.Operator expr) {
-		checkOperands(expr, Type.Int.class);
+		checkOperands(expr, new Type.Int());
 		return new Type.Int();
 	}
 
@@ -328,7 +329,7 @@ public class TypeChecker {
 		case EXPR_lteq:
 		case EXPR_gt:
 		case EXPR_gteq:
-			checkOperands(expr, Type.Int.class);
+			checkOperands(expr, new Type.Int());
 			break;
 		default:
 			throw new RuntimeException("Unknown bytecode encountered: " + expr);
@@ -337,9 +338,9 @@ public class TypeChecker {
 		return new Type.Bool();
 	}
 
-	private void checkOperands(Expr.Operator expr, Class<? extends Type> kind) {
+	private void checkOperands(Expr.Operator expr, Type type) {
 		for (int i = 0; i != expr.size(); ++i) {
-			checkIsType(check(expr.getOperand(i)), kind);
+			checkIsSubtype(type, check(expr.getOperand(i)));
 		}
 	}
 
@@ -360,7 +361,7 @@ public class TypeChecker {
 
 	private Type checkArrayGenerator(Expr.Operator expr) {
 		Type element = check(expr.getOperand(0));
-		checkIsType(check(expr.getOperand(1)), Type.Int.class);
+		checkIsSubtype(new Type.Int(), check(expr.getOperand(1)));
 		return new Type.Array(element);
 	}
 
@@ -380,30 +381,6 @@ public class TypeChecker {
 		Type valueType = check(expr.getOperand(2));
 		checkIsSubtype(effectiveArray.getElement(), valueType);
 		return effectiveArray;
-	}
-
-	/**
-	 * Check whether a given instance of type is, in fact, an instance of a
-	 * given kind. For example, we might want to check whether a given type is a
-	 * bool or not (i.e. an instance of Type.Bool)
-	 *
-	 * @param type
-	 * @param kind
-	 */
-	private <T extends Type> T checkIsType(Type type, Class<T> kind) {
-		if (kind.isInstance(type)) {
-			return (T) type;
-		} else if (type instanceof Type.Nominal) {
-			Type.Nominal nt = (Type.Nominal) type;
-			// Look up the type declaration to which the name refers
-			Declaration.Named.Type td = types.resolveAsDeclaredType(nt.getName());
-			// Extract the actual type corresponding to this declaration
-			Type declared = td.getVariableDeclaration().getType();
-			// Check it makes sense
-			return checkIsType(declared, kind);
-		} else {
-			throw new RuntimeException("expected " + kind.getName() + ", got " + type);
-		}
 	}
 
 	/**
