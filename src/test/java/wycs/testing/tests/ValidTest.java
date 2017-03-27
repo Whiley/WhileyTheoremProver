@@ -50,14 +50,7 @@ public class ValidTest {
 		IGNORED.put("test_arith_36", "#12");
 		IGNORED.put("test_arith_38", "#12");
 		//
-		IGNORED.put("test_type_47", "#26");
-		//
-		IGNORED.put("test_type_26", "#27");
-		IGNORED.put("test_type_27", "#27");
-		IGNORED.put("test_type_28", "#27");
-		IGNORED.put("test_type_29", "#27");
 		IGNORED.put("test_type_35", "#27");
-		//
 		//
 		IGNORED.put("test_array_59", "#29");
 		//
