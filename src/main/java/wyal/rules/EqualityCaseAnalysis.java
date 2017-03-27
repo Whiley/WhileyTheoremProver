@@ -52,8 +52,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 				// NOTE: the type expansion below is currently necessary to
 				// allow
 				// intersect to its job properly.
-				Type lhsExpanded = types.expandAsReadableType(true, lhsT);
-				Type rhsExpanded = types.expandAsReadableType(true, rhsT);
+				Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
+				Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
 				if (types.isSubtype(new Type.Void(), intersection)) {
 					// In this case, no possible intersection exists between the
@@ -63,9 +63,9 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
 				} else if (types.isSubtype(new Type.Bool(), lhsT) && types.isSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);
-				} else if (types.isReadableRecord(lhsT) && types.isReadableRecord(rhsT)) {
+				} else if (types.isEffectiveRecord(lhsT) && types.isEffectiveRecord(rhsT)) {
 					return expandRecordEquality(eq, state);
-				} else if (types.isReadableArray(lhsT) && types.isReadableArray(rhsT)) {
+				} else if (types.isEffectiveArray(lhsT) && types.isEffectiveArray(rhsT)) {
 					return expandArrayEquality(eq, state);
 				}
 			} else {
@@ -108,9 +108,9 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 						state);
 			}
 		} else {
-			if (types.isReadableRecord(lhs_t)) {
+			if (types.isEffectiveRecord(lhs_t)) {
 				return expandRecordNonEquality(eq, lhs, rhs, state);
-			} else if (types.isReadableRecord(rhs_t)) {
+			} else if (types.isEffectiveRecord(rhs_t)) {
 				return expandRecordNonEquality(eq, rhs, lhs, state);
 			}
 		}
@@ -119,7 +119,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 
 	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) {
 		Type lhs_t = lhs.getReturnType(types);
-		Type.Record lhs_r = types.expandAsReadableRecordType(lhs_t);
+		Type.EffectiveRecord lhs_r = types.expandAsEffectiveRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {

@@ -20,19 +20,17 @@ import wyal.lang.WyalFile.FieldDeclaration;
 
 public class TypeSystem {
 	private final WyalFile parent;
-	private final ArrayList<Type> rewrites;
 
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
-		this.rewrites = new ArrayList<>();
 	}
 
-	public boolean isReadableRecord(Type type) {
-		return expandAsReadableRecordType(type) != null;
+	public boolean isEffectiveRecord(Type type) {
+		return expandAsEffectiveRecord(type) != null;
 	}
 
-	public boolean isReadableArray(Type type) {
-		return expandAsReadableArrayType(type) != null;
+	public boolean isEffectiveArray(Type type) {
+		return expandAsEffectiveArray(type) != null;
 	}
 
 	/**
@@ -53,10 +51,10 @@ public class TypeSystem {
 	 * @param type
 	 * @return
 	 */
-	public Type.Record expandAsReadableRecordType(Type type) {
-		Type r = expandAsReadableType(true,type);
-		if(r instanceof Type.Record) {
-			return (Type.Record) r;
+	public Type.EffectiveRecord expandAsEffectiveRecord(Type type) {
+		Type r = expandAsEffectiveType(true,type);
+		if(r instanceof Type.EffectiveRecord) {
+			return (Type.EffectiveRecord) r;
 		} else {
 			return null;
 		}
@@ -70,10 +68,10 @@ public class TypeSystem {
 	 * @param type
 	 * @return
 	 */
-	public Type.Array expandAsReadableArrayType(Type type) {
-		Type r = expandAsReadableType(true,type);
-		if(r instanceof Type.Array) {
-			return (Type.Array) r;
+	public Type.EffectiveArray expandAsEffectiveArray(Type type) {
+		Type r = expandAsEffectiveType(true,type);
+		if(r instanceof Type.EffectiveArray) {
+			return (Type.EffectiveArray) r;
 		} else {
 			return null;
 		}
@@ -112,16 +110,17 @@ public class TypeSystem {
 	 * @throws IOException
 	 * @throws ResolveError
 	 */
-	public Type expandAsReadableType(boolean sign, Type type) {
+	public Type expandAsEffectiveType(boolean sign, Type type) {
+		//
 		switch(type.getOpcode()) {
 		case TYPE_not: {
 			Type.Negation neg = (Type.Negation) type;
-			return expandAsReadableType(!sign,neg.getElement());
+			return expandAsEffectiveType(!sign,neg.getElement());
 		}
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return expandAsReadableType(sign,decl.getVariableDeclaration().getType());
+			return expandAsEffectiveType(sign,decl.getVariableDeclaration().getType());
 		}
 		case TYPE_and:
 		case TYPE_or: {
@@ -153,7 +152,7 @@ public class TypeSystem {
 	public Type[] expandAsReadableTypes(boolean sign, Type... types) {
 		Type[] nTypes = new Type[types.length];
 		for(int i=0;i!=types.length;++i) {
-			nTypes[i] = expandAsReadableType(sign, types[i]);
+			nTypes[i] = expandAsEffectiveType(sign, types[i]);
 		}
 		return nTypes;
 	}
@@ -196,14 +195,9 @@ public class TypeSystem {
 	 * @return
 	 */
 	public static Type union(Type... types) {
+		//
 		Type[] rs = Arrays.copyOf(types, types.length);
-		// intersect atoms
-		for (int i = 0; i < rs.length; ++i) {
-			for (int j = i + 1; j < rs.length; ++j) {
-				unionAtoms(i, j, rs);
-			}
-		}
-		// Any intersection containing void equals void
+		// Any union containing any equals any
 		int anyIndex = ArrayUtils.firstIndexOf(rs, new Type.Any());
 		if(anyIndex >= 0) { return rs[anyIndex]; }
 		// Any in an intersection can be dropped
@@ -211,55 +205,93 @@ public class TypeSystem {
 		rs = ArrayUtils.removeAll(rs, null);
 		// remove any duplicates
 		rs = ArrayUtils.sortAndRemoveDuplicates(rs);
-		// intersect terms together
+		//
+		// FIXME: we can do better here by handling subsumed types.
+		//
+		// FIXME: we also need to flatten nest types properly
 		//
 		if(rs.length == 0) {
 			return new Type.Void();
 		} else if(rs.length == 1) {
 			return rs[0];
+		} else if(areInstances(types,Type.Record.class)){
+			return new UnionOfRecords(rs);
+		} else if(areInstances(types, Type.Array.class)){
+			return new UnionOfArrays(rs);
 		} else {
-			return new Type.Union(types);
+			return new Type.Union(rs);
 		}
 	}
 
-	private static void unionAtoms(int i, int j, Type[] types) {
-		Type ith = types[i];
-		Type jth = types[j];
-		if(ith instanceof Type.Record && jth instanceof Type.Record) {
-			Type.Record record = unionRecords((Type.Record)ith, (Type.Record)jth);
-			if(record != null) {
-				types[i] = null;
-				types[j] = record;
-			}
-		} else if(ith instanceof Type.Array && jth instanceof Type.Array){
-			types[i] = null;
-			types[j] = unionArrays((Type.Array)ith, (Type.Array)jth);
-		}
-	}
-
-	private static Type unionArrays(Type.Array lhs, Type.Array rhs) {
-		return new Type.Array(union(lhs.getElement(), rhs.getElement()));
-	}
-
-	private static Type.Record unionRecords(Type.Record lhs, Type.Record rhs) {
-		FieldDeclaration[] lhsFields = lhs.getFields();
-		FieldDeclaration[] rhsFields = rhs.getFields();
-		ArrayList<FieldDeclaration> fields = new ArrayList<>();
-		for (int i = 0; i < lhsFields.length && i < rhsFields.length; ++i) {
-			FieldDeclaration lhsField = lhsFields[i];
-			FieldDeclaration rhsField = rhsFields[i];
-			Identifier lhsFieldName = lhsField.getVariableName();
-			Identifier rhsFieldName = rhsField.getVariableName();
-			if (lhsFieldName.equals(rhsFieldName)) {
-				fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()), lhsFieldName));
-			} else {
-				break;
+	private static <T> boolean areInstances(T[] items, Class<? extends T> kind) {
+		for(int i=0;i!=items.length;++i) {
+			if(!kind.isInstance(items[i])) {
+				return false;
 			}
 		}
-		if (fields.isEmpty()) {
-			return null;
-		} else {
+		//
+		return true;
+	}
+
+	private static class UnionOfRecords extends WyalFile.Type.Union implements Type.EffectiveRecord {
+
+		public UnionOfRecords(Type...records) {
+			super(records);
+		}
+
+		@Override
+		public Type.Record getOperand(int i) {
+			return (Type.Record) super.getOperand(i);
+		}
+
+		@Override
+		public FieldDeclaration[] getFields() {
+			Type.Record result = getOperand(0);
+			for(int i=1;i!=size();++i) {
+				result = unionReadableRecords(result,getOperand(i));
+			}
+			return result.getFields();
+		}
+
+		private static Type.Record unionReadableRecords(Type.Record lhs, Type.Record rhs) {
+			ArrayList<FieldDeclaration> fields = new ArrayList<>();
+			for (int i = 0; i != lhs.size(); ++i) {
+				for (int j = 0; j != rhs.size(); ++j) {
+					FieldDeclaration lhsField = lhs.getOperand(i);
+					FieldDeclaration rhsField = rhs.getOperand(j);
+					Identifier lhsFieldName = lhsField.getVariableName();
+					Identifier rhsFieldName = rhsField.getVariableName();
+					if (lhsFieldName.equals(rhsFieldName)) {
+						Type type = union(lhsField.getType(), rhsField.getType());
+						fields.add(new FieldDeclaration(type, lhsFieldName));
+					}
+				}
+			}
+			// FIXME: this should potentially create an open record in some
+			// cases
 			return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+		}
+	}
+
+	private static class UnionOfArrays extends WyalFile.Type.Union implements Type.EffectiveArray {
+
+		public UnionOfArrays(Type...arrays) {
+			super(arrays);
+		}
+
+		@Override
+		public Type.Array getOperand(int i) {
+			return (Type.Array) super.getOperand(i);
+		}
+
+		@Override
+		public Type getReadableElement() {
+			Type[] results = new Type[size()];
+			for(int i=0;i!=size();++i) {
+				results[i] = getOperand(i).getElement();
+
+			}
+			return union(results);
 		}
 	}
 
@@ -275,6 +307,7 @@ public class TypeSystem {
 	 * @return
 	 */
 	public static Type intersect(Type... types) {
+		//
 		Type[] rs = Arrays.copyOf(types, types.length);
 		// At this point, we need to handle distribution of
 		// intersections over negations.
@@ -306,7 +339,7 @@ public class TypeSystem {
 		} else if(rs.length == 1) {
 			return rs[0];
 		} else {
-			return new Type.Intersection(types);
+			return new Type.Intersection(rs);
 		}
 	}
 
@@ -327,6 +360,7 @@ public class TypeSystem {
 			Type[] nChildren = Arrays.copyOf(children, children.length);
 			nChildren[ith] = union.getOperand(j);
 			clauses[j] = intersect(nChildren);
+
 		}
 		// At this point, we recursively call expand one level again. This is
 		// perhaps slightly inefficient, but is necessary to ensure that nested
@@ -424,11 +458,16 @@ public class TypeSystem {
 	}
 
 	private static Type intersectRecords(Type.Record lhs, Type.Record rhs) {
+		//
 		if (lhs == null) {
 			return rhs;
 		} else {
 			FieldDeclaration[] lhsFields = lhs.getFields();
 			FieldDeclaration[] rhsFields = rhs.getFields();
+			if(lhsFields.length != rhsFields.length) {
+				// FIXME: need support for open records here
+				return new Type.Void();
+			}
 			ArrayList<FieldDeclaration> fields = new ArrayList<>();
 			for (int i = 0; i != lhsFields.length; ++i) {
 				for(int j=0; j != rhsFields.length; ++j) {
@@ -442,7 +481,8 @@ public class TypeSystem {
 					}
 				}
 			}
-			if(fields.isEmpty()) {
+			if (fields.size() != lhsFields.length) {
+				// FIXME: support open records here
 				return new Type.Void();
 			} else {
 				return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));

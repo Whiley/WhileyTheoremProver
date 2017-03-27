@@ -109,8 +109,8 @@ public class CongruenceClosure implements Proof.LinearRule {
 		} else {
 			// NOTE: the type expansion below is currently necessary to allow
 			// intersect to its job properly.
-			Type lhsExpanded = types.expandAsReadableType(true, lhsT);
-			Type rhsExpanded = types.expandAsReadableType(true, rhsT);
+			Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
+			Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 			Type intersection = TypeSystem.intersect(lhsExpanded,rhsExpanded);
 			boolean left = types.isSubtype(lhsT, rhsT);
 			boolean right = types.isSubtype(rhsT, lhsT);

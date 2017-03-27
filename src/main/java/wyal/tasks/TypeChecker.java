@@ -261,7 +261,8 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record effectiveRecord = checkIsRecordType(src);
+		Type.EffectiveRecord effectiveRecord = checkIsRecordType(src);
+		//
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
 		for (int i = 0; i != fields.length; ++i) {
@@ -346,7 +347,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
 		return new Type.Int();
 	}
 
@@ -367,19 +368,19 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
-		return effectiveArray.getElement();
+		return effectiveArray.getReadableElement();
 	}
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
-		checkIsSubtype(effectiveArray.getElement(), valueType);
+		checkIsSubtype(effectiveArray.getReadableElement(), valueType);
 		return effectiveArray;
 	}
 
@@ -389,8 +390,8 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.Array checkIsArrayType(Type type) {
-		Type.Array arrT = types.expandAsReadableArrayType(type);
+	private Type.EffectiveArray checkIsArrayType(Type type) {
+		Type.EffectiveArray arrT = types.expandAsEffectiveArray(type);
 		if(arrT == null) {
 			throw new RuntimeException("expected array type, got " + type);
 		}
@@ -403,8 +404,8 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.Record checkIsRecordType(Type type) {
-		Type.Record recT = types.expandAsReadableRecordType(type);
+	private Type.EffectiveRecord checkIsRecordType(Type type) {
+		Type.EffectiveRecord recT = types.expandAsEffectiveRecord(type);
 		if(recT == null) {
 			throw new RuntimeException("expected record type, got " + type);
 		}

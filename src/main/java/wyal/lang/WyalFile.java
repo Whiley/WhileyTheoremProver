@@ -593,11 +593,20 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Array extends Atom {
+		public interface EffectiveArray extends Type {
+			public Type getReadableElement();
+		}
+
+
+		public static class Array extends Atom implements EffectiveArray {
 			public Array(Type element) {
 				super(Opcode.TYPE_arr, element);
 			}
 			public Type getElement() {
+				return (Type) getOperand(0);
+			}
+			@Override
+			public Type getReadableElement() {
 				return (Type) getOperand(0);
 			}
 			@Override
@@ -619,11 +628,21 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Record extends Atom {
+		public interface EffectiveRecord extends Type {
+			public FieldDeclaration[] getFields();
+		}
+
+		public static class Record extends Atom implements EffectiveRecord {
 			public Record(FieldDeclaration... fields) {
 				super(Opcode.TYPE_rec, fields);
 			}
 
+			@Override
+			public FieldDeclaration getOperand(int i) {
+				return (FieldDeclaration) super.getOperand(i);
+			}
+
+			@Override
 			public FieldDeclaration[] getFields() {
 				return ArrayUtils.toArray(FieldDeclaration.class, getOperands());
 			}
@@ -953,16 +972,16 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				case EXPR_arridx: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
+					Type.EffectiveArray effectiveArray = types.expandAsEffectiveArray(src);
 					if(effectiveArray != null) {
-						return effectiveArray.getElement();
+						return effectiveArray.getReadableElement();
 					} else {
 						return null;
 					}
 				}
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.Array effectiveArray = types.expandAsReadableArrayType(src);
+					Type.EffectiveArray effectiveArray = types.expandAsEffectiveArray(src);
 					return effectiveArray;
 				}
 				default:
@@ -1124,7 +1143,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Type getReturnType(TypeSystem types) {
 				Type src = getSource().getReturnType(types);
-				Type.Record effectiveRecord = types.expandAsReadableRecordType(src);
+				Type.EffectiveRecord effectiveRecord = types.expandAsEffectiveRecord(src);
 				if(effectiveRecord != null) {
 					FieldDeclaration[] fields = effectiveRecord.getFields();
 					String actualFieldName = getField().get();
