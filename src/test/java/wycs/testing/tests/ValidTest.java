@@ -68,7 +68,6 @@ public class ValidTest {
 		//
 		IGNORED.put("test_macro_03", "#38");
 		IGNORED.put("test_macro_04", "#38");
-		//
 		IGNORED.put("test_type_48", "#38");
 		//
 		IGNORED.put("test_arith_28", "#40");

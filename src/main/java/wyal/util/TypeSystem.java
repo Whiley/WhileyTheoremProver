@@ -12,6 +12,7 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
+import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
 import wybs.util.ResolveError;
@@ -473,7 +474,7 @@ public class TypeSystem {
 			FieldDeclaration[] rhsFields = rhs.getFields();
 			// Determine the number of matching fields. That is, fields with the
 			// same name.
-			int matches = countMatchingFields(lhsFields,rhsFields);
+			int matches = countMatchingFields(lhsFields, rhsFields);
 			// When intersecting two records, the number of fields is only
 			// allowed to differ if one of them is an open record. Therefore, we
 			// need to pay careful attention to the size of the resulting match
@@ -493,11 +494,11 @@ public class TypeSystem {
 				int rhsRemainder = rhsFields.length - matches;
 				FieldDeclaration[] fields = new FieldDeclaration[matches + lhsRemainder + rhsRemainder];
 				// Extract all matching fields first
-				int index = extractMatchingFields(lhsFields,rhsFields,fields);
+				int index = extractMatchingFields(lhsFields, rhsFields, fields);
 				// Extract remaining lhs fields second
-				index = extractNonMatchingFields(lhsFields,rhsFields,fields,index);
+				index = extractNonMatchingFields(lhsFields, rhsFields, fields, index);
 				// Extract remaining rhs fields last
-				index = extractNonMatchingFields(rhsFields,lhsFields,fields,index);
+				index = extractNonMatchingFields(rhsFields, lhsFields, fields, index);
 				// The intersection of two records can only be open when both
 				// are themselves open.
 				boolean isOpen = lhs.isOpen() && rhs.isOpen();
@@ -762,7 +763,7 @@ public class TypeSystem {
 			case TYPE_ref:
 				throw new RuntimeException("Implement me!");
 			case TYPE_fun:
-				throw new RuntimeException("Implement me!");
+				return isVoidFunction(aSign, (Type.Function) a.type, bSign, (Type.Function) b.type, assumptions);
 			default:
 				throw new RuntimeException("invalid type encountered: " + aOpcode);
 			}
@@ -861,8 +862,7 @@ public class TypeSystem {
 			BitSet assumptions) {
 		FieldDeclaration[] lhsFields = lhs.getFields();
 		FieldDeclaration[] rhsFields = rhs.getFields();
-		// FIXME: We need to sort fields above by their name in order to
-		// eliminate the order in which they are written as being relevant.
+		//
 		if (lhsSign || rhsSign) {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
@@ -925,13 +925,99 @@ public class TypeSystem {
 		}
 	}
 
+	/**
+	 * <p>
+	 * Determine whether the intersection of two function types is void or not.
+	 * For example, <code>function(int)->(int)</code> intersecting with
+	 * <code>function(bool)->(int)</code> gives void. In contrast, intersecting
+	 * <code>function(int|null)->(int)</code> with
+	 * <code>function(int)->(int)</code> does not give void. Likewise,
+	 * <code>function(int)->(int)</code> intersecting with
+	 * <code>!function(int)->(int)</code> gives void, whilst intersecting
+	 * <code>function(int)->(int)</code> with
+	 * <code>!function(bool)->(int)</code> does not give void.
+	 * </p>
+	 *
+	 *
+	 * @param lhsSign
+	 *            The sign of the first type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param lhs.
+	 *            The first type being intersected, referred to as the
+	 *            "left-hand side".
+	 * @param rhsSign
+	 *            The sign of the second type being intersected. If true, we
+	 *            have a positive atom. Otherwise, we have a negative atom.
+	 * @param rhs
+	 *            The second type being intersected, referred to as the
+	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships private boolean
+	 */
+	public boolean isVoidFunction(boolean lhsSign, Type.Function lhs, boolean rhsSign, Type.Function rhs,
+			BitSet assumptions) {
+		if (lhsSign || rhsSign) {
+			// The sign indicates whether were in the pos-pos case, or in the
+			// pos-neg case.
+			Tuple<Type> lhsParameters = lhs.getParameters();
+			Tuple<Type> rhsParameters = rhs.getParameters();
+			//
+			if(isVoidParameters(!lhsSign, lhsParameters, !rhsSign, rhsParameters, assumptions)) {
+				return true;
+			} else if(isVoidParameters(lhsSign, lhsParameters, rhsSign, rhsParameters, assumptions)) {
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			// In this case, we are intersecting two negative function types.
+			// For example, !(function(int)->(int)) and
+			// !(function(bool)->(int)). This never reduces to void.
+			return false;
+		}
+	}
+
+	public boolean isVoidParameters(boolean lhsSign, Tuple<Type> lhs, boolean rhsSign, Tuple<Type> rhs,
+			BitSet assumptions) {
+		boolean sign = lhsSign == rhsSign;
+		//
+		if (lhs.size() != rhs.size()) {
+			// Different number of parameters. In either pos-pos or neg-neg
+			// cases, this reduces to void. Otherwise, it doesn't.
+			return sign;
+		} else {
+			for (int i = 0; i != lhs.size(); ++i) {
+				Type lhsParameter = lhs.getOperand(i);
+				Type rhsParameter = rhs.getOperand(i);
+				if (isVoid(lhsSign, lhsParameter, rhsSign, rhsParameter, assumptions) == sign) {
+					// For pos-pos / neg-neg case, there is no intersection
+					// between this parameterand, hence, no intersection
+					// overall; for pos-neg case, there is some
+					// intersection between these parameters which means
+					// that some intersections exists overall. For example,
+					// consider the case (int,int|null) & !(int,int). There is
+					// no intersection for first parameter (i.e. since int &
+					// !int = void), whilst there is an intersection for second
+					// parameter (i.e. since int|null & !int = null). Hence, we
+					// can conclude that there is an intersection between them
+					// with (int,null).
+					return sign;
+				}
+			}
+			// If we get here, then: for pos-pos case, all parameters have
+			// intersection; for pos-neg case, no parameters have intersection.
+			return !sign;
+		}
+	}
+
 	// ========================================================================
 	// Resolution
 	// ========================================================================
 
 	public <T extends Declaration.Named> T resolveAsDeclaration(Name name, Class<T> kind) {
-		Identifier[] components = name.getComponents();
-		// FIXME: need to handle case where more than one component
+		Identifier[] components = name.getComponents(); // FIXME: need to handle
+														// case where more than
+														// one component
 		Identifier last = components[components.length - 1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
@@ -949,7 +1035,6 @@ public class TypeSystem {
 
 	public Declaration.Named resolveAsDeclaration(Name name) {
 		Identifier[] components = name.getComponents();
-		// FIXME: need to handle case where more than one component
 		Identifier last = components[components.length - 1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
@@ -961,8 +1046,7 @@ public class TypeSystem {
 					return nd;
 				}
 			}
-		}
-		// FIXME: consider imported files as well
+		} // FIXME: consider imported files as well
 		throw new IllegalArgumentException("unable to resolve " + Arrays.toString(name.getComponents()) + " as type");
 	}
 
