@@ -433,9 +433,13 @@ public class Formulae {
 				return invert(inv);
 			}
 		}
-		case TYPE_ref:
 		case TYPE_fun:
-		case TYPE_macro:
+		case TYPE_macro: {
+			// NOTE: not very clear whether we can useful extract a type
+			// invariant from here or not.
+			return null;
+		}
+		case TYPE_ref:
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
 		}

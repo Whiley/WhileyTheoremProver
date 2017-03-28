@@ -725,7 +725,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static abstract class FunctionOrMacroOrInvariant extends AbstractSyntacticItem implements Type {
+		public static abstract class FunctionOrMacroOrInvariant extends Atom implements Type {
 			public FunctionOrMacroOrInvariant(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
 				super(opcode,parameters,returns);
 			}

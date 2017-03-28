@@ -1413,6 +1413,8 @@ public class WyalFileParser {
 			return parseNegationType(scope);
 		case Identifier:
 			return parseNominalType(scope);
+		case Function:
+			return parseFunctionType(scope);
 		default:
 			syntaxError("unknown type encountered", token);
 			return null; // deadcode
@@ -1565,6 +1567,43 @@ public class WyalFileParser {
 		Type type = new Type.Nominal(nameID);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
+	}
+
+	/**
+	 * Parse a function type of the form:
+	 *
+	 * <pre>
+	 * FunctionType ::= "function" [Type (',' Type)* ] "->" Type
+	 * </pre>
+	 *
+	 * Observer, it is required that parameters and returns for a function type
+	 * are enclosed in braces.
+	 *
+	 * @param scope
+	 * @return
+	 */
+	private Type parseFunctionType(EnclosingScope scope) {
+		int start = index;
+		match(Function);
+		Tuple<Type> parameters = parseTypeParameters(scope);
+		match(MinusGreater);
+		Tuple<Type> returns = parseTypeParameters(scope);
+		Type.Function type = new Type.Function(parameters, returns);
+		type.attributes().add(sourceAttr(start, index - 1));
+		return type;
+	}
+
+	private Tuple<Type> parseTypeParameters(EnclosingScope scope) {
+		match(LeftBrace);
+		ArrayList<Type> types = new ArrayList<>();
+		boolean firstTime = true;
+		while(eventuallyMatch(RightBrace) == null) {
+			if(!firstTime) {
+				match(Comma);
+			}
+			types.add(parseType(scope));
+		}
+		return new Tuple<>(types.toArray(new Type[types.size()]));
 	}
 
 	private Identifier parseIdentifier(EnclosingScope scope) {

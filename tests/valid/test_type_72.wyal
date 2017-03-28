@@ -1,0 +1,6 @@
+type fun1 is (function(int)->(int) p)
+type fun2 is (function(int|null)->(int) p)
+
+assert:
+    forall(fun1 f):
+        f is fun2

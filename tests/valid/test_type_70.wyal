@@ -1,0 +1,5 @@
+type fun is (function(int)->(int) p)
+
+assert:
+    forall(fun f):
+        f is fun
