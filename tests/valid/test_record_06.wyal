@@ -1,0 +1,6 @@
+type ClosedPoint is ({int x,int y} p)
+type OpenPoint is ({int x,int y, ...} p)
+
+assert:
+    forall(ClosedPoint p):
+        p is OpenPoint

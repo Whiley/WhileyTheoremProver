@@ -1,10 +1,8 @@
 package wyal.io;
 
 import static wyal.io.WyalFileLexer.Token.Kind.*;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,13 +10,10 @@ import java.util.Map;
 
 import wyal.io.WyalFileLexer.Token;
 import static wyal.lang.WyalFile.*;
-import wyal.lang.SyntacticItem;
+
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Opcode;
-import wycc.util.ArrayUtils;
-import wycc.util.Pair;
 import wybs.lang.Attribute;
-import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
@@ -175,7 +170,11 @@ public class WyalFileParser {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
-		match(Type);
+		// Match identifier rather than kind e.g. keyword type to avoid "type"
+		// being a keyword. We already know that the identifier in question must
+		// be "type" as, otherwise, this method would not have been called.
+		match(Identifier);
+		//
 		Identifier name = parseIdentifier(scope);
 		match(Is);
 		// Parse parameter declaration and invariant (if applicable)
@@ -1513,6 +1512,7 @@ public class WyalFileParser {
 		int start = index;
 		match(LeftCurly);
 		List<FieldDeclaration> fields = new ArrayList<>();
+		boolean isOpenRecord = false;
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
 			if (!firstTime) {
@@ -1521,14 +1521,23 @@ public class WyalFileParser {
 				firstTime = false;
 			}
 			int fieldStart = index;
-			Type fieldType = parseType(scope);
-			Identifier fieldName = parseIdentifier(scope);
-			FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
-			var.attributes().add(sourceAttr(fieldStart, index - 1));
-			fields.add(var);
+			// Check whether this is the end of an open record, or not.
+			if(tryAndMatch(true, DotDotDot) == null) {
+				// No, this is not an open record
+				Type fieldType = parseType(scope);
+				Identifier fieldName = parseIdentifier(scope);
+				FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
+				var.attributes().add(sourceAttr(fieldStart, index - 1));
+				fields.add(var);
+			} else {
+				isOpenRecord = true;
+				// The "..." of an open record can only come at the end.
+				match(RightCurly);
+				break;
+			}
 		}
 		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
-		Type type = new Type.Record(arr);
+		Type type = new Type.Record(isOpenRecord,arr);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}

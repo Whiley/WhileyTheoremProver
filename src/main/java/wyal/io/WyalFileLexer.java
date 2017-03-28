@@ -80,7 +80,7 @@ public class WyalFileLexer {
 	 * @return
 	 */
 	public List<Token> scan() {
-		ArrayList<Token> tokens = new ArrayList<Token>();
+		ArrayList<Token> tokens = new ArrayList<>();
 		pos = 0;
 
 		while (pos < input.length()) {
@@ -536,7 +536,9 @@ public class WyalFileLexer {
 			put("import", Token.Kind.Import);
 			put("define", Token.Kind.Define);
 			put("constant", Token.Kind.Constant);
-			put("type", Token.Kind.Type);
+			// NOTE: we don't include type here because that would *prevent* it
+			// from being used as a variable identifier.
+			// put("type", Token.Kind.Type);
 			put("where", Token.Kind.Where);
 			put("ensures", Token.Kind.Ensures);
 			put("requires", Token.Kind.Requires);

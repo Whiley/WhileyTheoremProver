@@ -1,0 +1,6 @@
+type LeftPoint is ({int x,int y} p)
+type RightPoint is ({int y,int x} p)
+
+assert:
+    forall(LeftPoint p):
+        p is RightPoint

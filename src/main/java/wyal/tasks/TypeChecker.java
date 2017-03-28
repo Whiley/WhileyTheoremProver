@@ -285,7 +285,7 @@ public class TypeChecker {
 			decls[i] = new FieldDeclaration(fieldType, fieldName);
 		}
 		//
-		return new Type.Record(decls);
+		return new Type.Record(false,decls);
 	}
 
 	/**
