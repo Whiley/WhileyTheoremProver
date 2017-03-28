@@ -1,0 +1,8 @@
+type OpenPoint is ({int x,int y, ...} p)
+
+assert:
+    forall(OpenPoint p):
+        if:
+            p.z > 0
+        then:
+            p.z >= 0

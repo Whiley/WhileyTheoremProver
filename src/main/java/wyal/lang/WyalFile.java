@@ -633,23 +633,30 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static class Record extends Atom implements EffectiveRecord {
-			public Record(FieldDeclaration... fields) {
-				super(Opcode.TYPE_rec, fields);
+			public Record(boolean isOpen, FieldDeclaration... fields) {
+				super(Opcode.TYPE_rec, ArrayUtils.append(SyntacticItem.class,new Value.Bool(isOpen), fields));
 			}
 
-			@Override
-			public FieldDeclaration getOperand(int i) {
-				return (FieldDeclaration) super.getOperand(i);
+			private Record(SyntacticItem[] operands) {
+				super(Opcode.TYPE_rec, operands);
+			}
+
+			public boolean isOpen() {
+				Value.Bool flag = (Value.Bool) getOperand(0);
+				return flag.get();
 			}
 
 			@Override
 			public FieldDeclaration[] getFields() {
-				return ArrayUtils.toArray(FieldDeclaration.class, getOperands());
+				SyntacticItem[] operands = getOperands();
+				FieldDeclaration[] fields = new FieldDeclaration[size()-1];
+				System.arraycopy(operands, 1, fields, 0, fields.length);
+				return fields;
 			}
 
 			@Override
 			public Record clone(SyntacticItem[] operands) {
-				return new Record((FieldDeclaration[]) operands);
+				return new Record(operands);
 			}
 		}
 
@@ -1184,8 +1191,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					Type fieldType = fields[i].getSecond().getReturnType(types);
 					decls[i] = new FieldDeclaration(fieldType, fieldName);
 				}
-				//
-				return new Type.Record(decls);
+				// NOTE: a record initialiser never produces an open record
+				// type. But definition, an initialiser always produces a closed
+				// (i.e. concrete) type.
+				return new Type.Record(false,decls);
 			}
 			public Pair<Identifier,Expr>[] getFields() {
 				return ArrayUtils.toArray(Pair.class, getOperands());

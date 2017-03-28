@@ -52,8 +52,8 @@ public class TypeSystem {
 	 * @return
 	 */
 	public Type.EffectiveRecord expandAsEffectiveRecord(Type type) {
-		Type r = expandAsEffectiveType(true,type);
-		if(r instanceof Type.EffectiveRecord) {
+		Type r = expandAsEffectiveType(true, type);
+		if (r instanceof Type.EffectiveRecord) {
 			return (Type.EffectiveRecord) r;
 		} else {
 			return null;
@@ -69,8 +69,8 @@ public class TypeSystem {
 	 * @return
 	 */
 	public Type.EffectiveArray expandAsEffectiveArray(Type type) {
-		Type r = expandAsEffectiveType(true,type);
-		if(r instanceof Type.EffectiveArray) {
+		Type r = expandAsEffectiveType(true, type);
+		if (r instanceof Type.EffectiveArray) {
 			return (Type.EffectiveArray) r;
 		} else {
 			return null;
@@ -112,29 +112,29 @@ public class TypeSystem {
 	 */
 	public Type expandAsEffectiveType(boolean sign, Type type) {
 		//
-		switch(type.getOpcode()) {
+		switch (type.getOpcode()) {
 		case TYPE_not: {
 			Type.Negation neg = (Type.Negation) type;
-			return expandAsEffectiveType(!sign,neg.getElement());
+			return expandAsEffectiveType(!sign, neg.getElement());
 		}
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
 			Named.Type decl = resolveAsDeclaredType(nom.getName());
-			return expandAsEffectiveType(sign,decl.getVariableDeclaration().getType());
+			return expandAsEffectiveType(sign, decl.getVariableDeclaration().getType());
 		}
 		case TYPE_and:
 		case TYPE_or: {
 			// Hmm, this is tasty line. It does exactly what I want though :)
 			boolean union = sign == (type.getOpcode() == Opcode.TYPE_or);
-			Type[] children = expandAsReadableTypes(sign,(Type[])type.getOperands());
-			if(union) {
+			Type[] children = expandAsReadableTypes(sign, (Type[]) type.getOperands());
+			if (union) {
 				return union(children);
 			} else {
 				return intersect(children);
 			}
 		}
 		default:
-			if(sign) {
+			if (sign) {
 				return type;
 			} else {
 				return new Type.Negation(type);
@@ -151,7 +151,7 @@ public class TypeSystem {
 	 */
 	public Type[] expandAsReadableTypes(boolean sign, Type... types) {
 		Type[] nTypes = new Type[types.length];
-		for(int i=0;i!=types.length;++i) {
+		for (int i = 0; i != types.length; ++i) {
 			nTypes[i] = expandAsEffectiveType(sign, types[i]);
 		}
 		return nTypes;
@@ -161,13 +161,13 @@ public class TypeSystem {
 	// Negate
 	// ======================================================================
 	public static Type negate(Type type) {
-		if(type instanceof Type.Negation){
+		if (type instanceof Type.Negation) {
 			Type.Negation nt = (Type.Negation) type;
 			return nt.getElement();
-		} else if(type instanceof Type.Union) {
+		} else if (type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
 			return intersect(negate(union.getOperands()));
-		} else if(type instanceof Type.Intersection) {
+		} else if (type instanceof Type.Intersection) {
 			Type.Intersection intersection = (Type.Intersection) type;
 			return union(negate(intersection.getOperands()));
 		} else {
@@ -177,7 +177,7 @@ public class TypeSystem {
 
 	public static Type[] negate(Type... types) {
 		Type[] result = new Type[types.length];
-		for(int i=0;i!=result.length;++i) {
+		for (int i = 0; i != result.length; ++i) {
 			result[i] = negate(types[i]);
 		}
 		return result;
@@ -199,7 +199,9 @@ public class TypeSystem {
 		Type[] rs = Arrays.copyOf(types, types.length);
 		// Any union containing any equals any
 		int anyIndex = ArrayUtils.firstIndexOf(rs, new Type.Any());
-		if(anyIndex >= 0) { return rs[anyIndex]; }
+		if (anyIndex >= 0) {
+			return rs[anyIndex];
+		}
 		// Any in an intersection can be dropped
 		rs = ArrayUtils.removeAll(rs, new Type.Void());
 		rs = ArrayUtils.removeAll(rs, null);
@@ -210,13 +212,13 @@ public class TypeSystem {
 		//
 		// FIXME: we also need to flatten nest types properly
 		//
-		if(rs.length == 0) {
+		if (rs.length == 0) {
 			return new Type.Void();
-		} else if(rs.length == 1) {
+		} else if (rs.length == 1) {
 			return rs[0];
-		} else if(areInstances(types,Type.Record.class)){
+		} else if (areInstances(types, Type.Record.class)) {
 			return new UnionOfRecords(rs);
-		} else if(areInstances(types, Type.Array.class)){
+		} else if (areInstances(types, Type.Array.class)) {
 			return new UnionOfArrays(rs);
 		} else {
 			return new Type.Union(rs);
@@ -224,8 +226,8 @@ public class TypeSystem {
 	}
 
 	private static <T> boolean areInstances(T[] items, Class<? extends T> kind) {
-		for(int i=0;i!=items.length;++i) {
-			if(!kind.isInstance(items[i])) {
+		for (int i = 0; i != items.length; ++i) {
+			if (!kind.isInstance(items[i])) {
 				return false;
 			}
 		}
@@ -235,7 +237,7 @@ public class TypeSystem {
 
 	private static class UnionOfRecords extends WyalFile.Type.Union implements Type.EffectiveRecord {
 
-		public UnionOfRecords(Type...records) {
+		public UnionOfRecords(Type... records) {
 			super(records);
 		}
 
@@ -247,18 +249,20 @@ public class TypeSystem {
 		@Override
 		public FieldDeclaration[] getFields() {
 			Type.Record result = getOperand(0);
-			for(int i=1;i!=size();++i) {
-				result = unionReadableRecords(result,getOperand(i));
+			for (int i = 1; i != size(); ++i) {
+				result = unionReadableRecords(result, getOperand(i));
 			}
 			return result.getFields();
 		}
 
 		private static Type.Record unionReadableRecords(Type.Record lhs, Type.Record rhs) {
 			ArrayList<FieldDeclaration> fields = new ArrayList<>();
-			for (int i = 0; i != lhs.size(); ++i) {
-				for (int j = 0; j != rhs.size(); ++j) {
-					FieldDeclaration lhsField = lhs.getOperand(i);
-					FieldDeclaration rhsField = rhs.getOperand(j);
+			FieldDeclaration[] lhsFields = lhs.getFields();
+			FieldDeclaration[] rhsFields = rhs.getFields();
+			for (int i = 0; i != lhsFields.length; ++i) {
+				for (int j = 0; j != rhsFields.length; ++j) {
+					FieldDeclaration lhsField = lhsFields[i];
+					FieldDeclaration rhsField = rhsFields[j];
 					Identifier lhsFieldName = lhsField.getVariableName();
 					Identifier rhsFieldName = rhsField.getVariableName();
 					if (lhsFieldName.equals(rhsFieldName)) {
@@ -267,15 +271,16 @@ public class TypeSystem {
 					}
 				}
 			}
-			// FIXME: this should potentially create an open record in some
-			// cases
-			return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+			//
+			boolean isOpenRecord = lhs.isOpen() || rhs.isOpen();
+			//
+			return new Type.Record(isOpenRecord, fields.toArray(new FieldDeclaration[fields.size()]));
 		}
 	}
 
 	private static class UnionOfArrays extends WyalFile.Type.Union implements Type.EffectiveArray {
 
-		public UnionOfArrays(Type...arrays) {
+		public UnionOfArrays(Type... arrays) {
 			super(arrays);
 		}
 
@@ -287,7 +292,7 @@ public class TypeSystem {
 		@Override
 		public Type getReadableElement() {
 			Type[] results = new Type[size()];
-			for(int i=0;i!=size();++i) {
+			for (int i = 0; i != size(); ++i) {
 				results[i] = getOperand(i).getElement();
 
 			}
@@ -311,11 +316,11 @@ public class TypeSystem {
 		Type[] rs = Arrays.copyOf(types, types.length);
 		// At this point, we need to handle distribution of
 		// intersections over negations.
-		for(int i=0;i!=types.length;++i) {
+		for (int i = 0; i != types.length; ++i) {
 			Type child = types[i];
-			if(child instanceof Type.Union) {
+			if (child instanceof Type.Union) {
 				// Distribute outer intersection over this inner
-				return distributeUnion(i,types);
+				return distributeUnion(i, types);
 			}
 		}
 		// intersect atoms
@@ -326,7 +331,9 @@ public class TypeSystem {
 		}
 		// Any intersection containing void equals void
 		int voidIndex = ArrayUtils.firstIndexOf(rs, new Type.Void());
-		if(voidIndex >= 0) { return rs[voidIndex]; }
+		if (voidIndex >= 0) {
+			return rs[voidIndex];
+		}
 		// Any in an intersection can be dropped
 		rs = ArrayUtils.removeAll(rs, new Type.Any());
 		rs = ArrayUtils.removeAll(rs, null);
@@ -334,9 +341,9 @@ public class TypeSystem {
 		rs = ArrayUtils.sortAndRemoveDuplicates(rs);
 		// intersect terms together
 		//
-		if(rs.length == 0) {
+		if (rs.length == 0) {
 			return new Type.Any();
-		} else if(rs.length == 1) {
+		} else if (rs.length == 1) {
 			return rs[0];
 		} else {
 			return new Type.Intersection(rs);
@@ -356,7 +363,7 @@ public class TypeSystem {
 	private static Type distributeUnion(int ith, Type[] children) {
 		Type.Union union = (Type.Union) children[ith];
 		Type[] clauses = new Type[union.size()];
-		for(int j=0;j!=union.size();++j) {
+		for (int j = 0; j != union.size(); ++j) {
 			Type[] nChildren = Arrays.copyOf(children, children.length);
 			nChildren[ith] = union.getOperand(j);
 			clauses[j] = intersect(nChildren);
@@ -373,14 +380,14 @@ public class TypeSystem {
 		Type jth = types[j];
 		boolean lhsNegative = ith instanceof Type.Negation;
 		boolean rhsNegative = jth instanceof Type.Negation;
-		if(lhsNegative && rhsNegative) {
-			intersectNegativeNegative(i,j,types);
-		} else if(lhsNegative) {
-			intersectNegativePositive(i,j,types);
-		} else if(rhsNegative) {
-			intersectNegativePositive(j,i,types);
+		if (lhsNegative && rhsNegative) {
+			intersectNegativeNegative(i, j, types);
+		} else if (lhsNegative) {
+			intersectNegativePositive(i, j, types);
+		} else if (rhsNegative) {
+			intersectNegativePositive(j, i, types);
 		} else {
-			intersectPositivePositive(i,j,types);
+			intersectPositivePositive(i, j, types);
 		}
 	}
 
@@ -392,15 +399,15 @@ public class TypeSystem {
 		Type.Negation ith = (Type.Negation) types[i];
 		Type ith_element = ith.getElement();
 		Type jth = types[j];
-		if(jth instanceof Type.Any) {
+		if (jth instanceof Type.Any) {
 			types[i] = null;
 			types[j] = ith;
-		} else if(ith_element.equals(jth)) {
+		} else if (ith_element.equals(jth)) {
 			// FIXME: should do more here as there are other cases where we
 			// should reduce to void. For example, if jth element is
 			// supertype of ith.
 			types[i] = types[j] = new Type.Void();
-		} else if(ith_element instanceof Type.Nominal || jth instanceof Type.Nominal) {
+		} else if (ith_element instanceof Type.Nominal || jth instanceof Type.Nominal) {
 			// There's not much we can do here, since we can't be sure
 			// whether or not the Nominal types having anything in common.
 		} else {
@@ -415,12 +422,12 @@ public class TypeSystem {
 		Opcode lhsKind = ith.getOpcode();
 		Opcode rhsKind = jth.getOpcode();
 		//
-		if(lhsKind == Opcode.TYPE_any || rhsKind == Opcode.TYPE_any) {
+		if (lhsKind == Opcode.TYPE_any || rhsKind == Opcode.TYPE_any) {
 			// In this case, there is nothing really to do. Basically
 			// intersection something with any gives something. We don't remove
 			// the any type from the array at this stage, since it will be
 			// removed lated on.
-		} else if(lhsKind == Opcode.TYPE_nom || rhsKind == Opcode.TYPE_nom) {
+		} else if (lhsKind == Opcode.TYPE_nom || rhsKind == Opcode.TYPE_nom) {
 			// In this case, there is also nothing to do. That's because
 			// we don't know what a nominal is, and hence we are
 			// essentially treating it as being the same as any.
@@ -442,11 +449,11 @@ public class TypeSystem {
 				break;
 			case TYPE_arr:
 				types[i] = null;
-				types[j] = intersectArrays((Type.Array)ith,(Type.Array)jth);
+				types[j] = intersectArrays((Type.Array) ith, (Type.Array) jth);
 				break;
 			case TYPE_rec:
 				types[i] = null;
-				types[j] = intersectRecords((Type.Record)ith,(Type.Record)jth);
+				types[j] = intersectRecords((Type.Record) ith, (Type.Record) jth);
 				break;
 			}
 			// FIXME: could do more here
@@ -464,30 +471,119 @@ public class TypeSystem {
 		} else {
 			FieldDeclaration[] lhsFields = lhs.getFields();
 			FieldDeclaration[] rhsFields = rhs.getFields();
-			if(lhsFields.length != rhsFields.length) {
-				// FIXME: need support for open records here
+			// Determine the number of matching fields. That is, fields with the
+			// same name.
+			int matches = countMatchingFields(lhsFields,rhsFields);
+			// When intersecting two records, the number of fields is only
+			// allowed to differ if one of them is an open record. Therefore, we
+			// need to pay careful attention to the size of the resulting match
+			// in comparison with the original records.
+			if (matches < lhsFields.length && !rhs.isOpen()) {
+				// Not enough matches made to meet the requirements of the lhs
+				// type.
 				return new Type.Void();
-			}
-			ArrayList<FieldDeclaration> fields = new ArrayList<>();
-			for (int i = 0; i != lhsFields.length; ++i) {
-				for(int j=0; j != rhsFields.length; ++j) {
-					FieldDeclaration lhsField = lhsFields[i];
-					FieldDeclaration rhsField = rhsFields[j];
-					Identifier lhsFieldName = lhsField.getVariableName();
-					Identifier rhsFieldName = rhsField.getVariableName();
-					if (lhsFieldName.equals(rhsFieldName)) {
-						fields.add(new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
-								lhsFieldName));
-					}
-				}
-			}
-			if (fields.size() != lhsFields.length) {
-				// FIXME: support open records here
+			} else if (matches < rhsFields.length && !lhs.isOpen()) {
+				// Not enough matches made to meet the requirements of the rhs
+				// type.
 				return new Type.Void();
 			} else {
-				return new Type.Record(fields.toArray(new FieldDeclaration[fields.size()]));
+				// At this point, we know the intersection succeeds. The next
+				// job is to determine the final set of field declarations.
+				int lhsRemainder = lhsFields.length - matches;
+				int rhsRemainder = rhsFields.length - matches;
+				FieldDeclaration[] fields = new FieldDeclaration[matches + lhsRemainder + rhsRemainder];
+				// Extract all matching fields first
+				int index = extractMatchingFields(lhsFields,rhsFields,fields);
+				// Extract remaining lhs fields second
+				index = extractNonMatchingFields(lhsFields,rhsFields,fields,index);
+				// Extract remaining rhs fields last
+				index = extractNonMatchingFields(rhsFields,lhsFields,fields,index);
+				// The intersection of two records can only be open when both
+				// are themselves open.
+				boolean isOpen = lhs.isOpen() && rhs.isOpen();
+				//
+				return new Type.Record(isOpen, fields);
 			}
 		}
+	}
+
+	/**
+	 * Count the number of matching fields. That is, fields with the same name.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @return
+	 */
+	private static int countMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields) {
+		int count = 0;
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					count = count + 1;
+				}
+			}
+		}
+		return count;
+	}
+
+	/**
+	 * Extract all matching fields (i.e. fields with the same name) into the
+	 * result array.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @param result
+	 * @return
+	 */
+	private static int extractMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields,
+			FieldDeclaration[] result) {
+		int index = 0;
+		// Extract all matching fields first.
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					FieldDeclaration combined = new FieldDeclaration(intersect(lhsField.getType(), rhsField.getType()),
+							lhsFieldName);
+					result[index++] = combined;
+				}
+			}
+		}
+		return index;
+	}
+
+	/**
+	 * Extract fields from lhs which do not match any field in the rhs. That is,
+	 * there is no field in the rhs with the same name.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @param result
+	 * @param index
+	 * @return
+	 */
+	private static int extractNonMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields,
+			FieldDeclaration[] result, int index) {
+		outer: for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				Identifier lhsFieldName = lhsFields[i].getVariableName();
+				Identifier rhsFieldName = rhsFields[j].getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					// This is a matching field. Therefore, continue on to the
+					// next lhs field
+					continue outer;
+				}
+			}
+			result[index++] = lhsFields[i];
+		}
+		return index;
 	}
 
 	/**
@@ -771,32 +867,24 @@ public class TypeSystem {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
 			boolean sign = lhsSign == rhsSign;
-			// In this case, we are intersecting two positive record types. This
+			// Attempt to match all fields In the positive-positive case this
 			// reduces to void if the fields in either of these differ (e.g.
 			// {int f} and {int g}), or if there is no intersection between the
 			// same field in either (e.g. {int f} and {bool f}).
-			if (lhsFields.length != rhsFields.length) {
-				// We have a differing number of fields and, hence, no
-				// intersection of underlying types is possible. In the pos-pos
-				// case, this indicates no intersection is possible overall. In
-				// the pos-neg case, then intersection exists.
-				return sign;
-			} else {
-				// We have the same number of fields. Now, we need to check that
-				// each field as the same name, and that their types intersect.
-				for (int i = 0; i != lhsFields.length; ++i) {
-					FieldDeclaration lhsField = lhsFields[i];
-					FieldDeclaration rhsField = rhsFields[i];
+			int matches = 0;
+			//
+			for (int i = 0; i != lhsFields.length; ++i) {
+				FieldDeclaration lhsField = lhsFields[i];
+				for (int j = 0; j != rhsFields.length; ++j) {
+					FieldDeclaration rhsField = rhsFields[j];
 					if (!lhsField.getVariableName().equals(rhsField.getVariableName())) {
-						// The fields have different names. In the pos-pos
-						// case, this indicates no intersection is possible. For
-						// pos-neg case, intersection exists.
-						return sign;
+						continue;
 					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions) == sign) {
-						// For pos-pos case, there is no intersection between
-						// these fields and, hence, no intersection overall; for
-						// pos-neg case, there is some intersection between
-						// these fields which means that some intersections
+						// For pos-pos case, there is no intersection
+						// between these fields and, hence, no intersection
+						// overall; for pos-neg case, there is some
+						// intersection between these fields which means
+						// that some intersections
 						// exists overall. For example, consider the case
 						// {int f, int|null g} & !{int f, int g}. There is no
 						// intersection for field f (i.e. since int & !int =
@@ -805,8 +893,27 @@ public class TypeSystem {
 						// conclude that there is an intersection between them
 						// with {int f, null g}.
 						return sign;
+					} else {
+						matches = matches + 1;
 					}
 				}
+			}
+
+			if (matches < lhsFields.length && !rhs.isOpen()) {
+				// We have matched fewer fields than contained in the lhs.
+				// However, if the rhs is an open record, then it can match the
+				// remainder. Otherwise, there is no match here. In the pos-pos
+				// case, this means there is no intersection. In the pos-neg
+				// case, this means there is an intersection.
+				return sign;
+			} else if (matches < rhsFields.length && !lhs.isOpen()) {
+				// We have matched fewer fields than contained in the rhs.
+				// However, if the lhs is an open record, then it can match the
+				// remainder. Otherwise, there is no match here. In the pos-pos
+				// case, this means there is no intersection. In the pos-neg
+				// case, this means there is an intersection.
+				return sign;
+			} else {
 				// If we get here, then: for pos-pos case, all fields have
 				// intersection; for pos-neg case, no fields have intersection.
 				return !sign;

@@ -603,6 +603,12 @@ public class WyalFilePrinter {
 				}
 				writeFieldDeclaration(fields[i]);
 			}
+			if(t.isOpen()) {
+				if (fields.length > 0) {
+					out.print(", ");
+				}
+				out.print("...");
+			}
 			out.print("}");
 			break;
 		}

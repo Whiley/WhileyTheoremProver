@@ -1,0 +1,10 @@
+type ClosedPoint is ({int x,int y} p)
+type OpenPoint is ({int x,int y, ...} p)
+
+assert:
+    forall(OpenPoint p, ClosedPoint q):
+        if:
+            q.x > 0
+            p == q
+        then:
+            p.x >= 0
