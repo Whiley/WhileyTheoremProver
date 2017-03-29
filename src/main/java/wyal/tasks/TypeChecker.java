@@ -13,9 +13,12 @@ import wyal.lang.NameResolver;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.NameNotFoundError;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.util.TypeSystem;
+import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
@@ -206,7 +209,6 @@ public class TypeChecker {
 	}
 
 	private Type checkInvocation(Expr.Invoke expr) {
-		WyalFile parent = (WyalFile) expr.getParent();
 		// Determine the argument types
 		WyalFile.Tuple<Expr> arguments = expr.getArguments();
 		Type[] types = new Type[arguments.size()];
@@ -214,9 +216,9 @@ public class TypeChecker {
 			types[i] = check(arguments.getOperand(i));
 		}
 		// Attempt to resolve the appropriate function type
-		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), types);
+		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), expr, types);
+		Type.FunctionOrMacro type = sig.getSignatureType();
 		// Replace old object with fully resolved object
-		Type.FunctionOrMacroOrInvariant type = constructFunctionOrMacroType(sig);
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
@@ -234,14 +236,12 @@ public class TypeChecker {
 	 */
 	private Type.FunctionOrMacroOrInvariant constructFunctionOrMacroType(Named.FunctionOrMacro declaration) {
 		Type[] parameters = toTypeArray(declaration.getParameters().getOperands());
-		Type[] returns;
 		if (declaration instanceof Named.Function) {
 			Named.Function nf = (Named.Function) declaration;
-			returns = toTypeArray(nf.getReturns().getOperands());
+			Type[] returns = toTypeArray(nf.getReturns().getOperands());
 			return new Type.Function(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
 		} else {
-			returns = new Type[] { new WyalFile.Type.Bool() };
-			return new Type.Macro(new WyalFile.Tuple<>(parameters), new WyalFile.Tuple<>(returns));
+			return new Type.Macro(new WyalFile.Tuple<>(parameters));
 		}
 	}
 
@@ -391,13 +391,18 @@ public class TypeChecker {
 	 *
 	 * @param type
 	 * @return
+	 * @throws ResolutionError
 	 */
 	private Type.EffectiveArray checkIsArrayType(Type type) {
-		Type.EffectiveArray arrT = types.expandAsEffectiveArray(type);
-		if(arrT == null) {
-			throw new RuntimeException("expected array type, got " + type);
+		try {
+			Type.EffectiveArray arrT = types.expandAsEffectiveArray(type);
+			if(arrT == null) {
+				throw new RuntimeException("expected array type, got " + type);
+			}
+			return arrT;
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
 		}
-		return arrT;
 	}
 
 	/**
@@ -407,11 +412,15 @@ public class TypeChecker {
 	 * @return
 	 */
 	private Type.EffectiveRecord checkIsRecordType(Type type) {
-		Type.EffectiveRecord recT = types.expandAsEffectiveRecord(type);
-		if(recT == null) {
-			throw new RuntimeException("expected record type, got " + type);
+		try {
+			Type.EffectiveRecord recT = types.expandAsEffectiveRecord(type);
+			if(recT == null) {
+				throw new RuntimeException("expected record type, got " + type);
+			}
+			return recT;
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
 		}
-		return recT;
 	}
 
 
@@ -424,43 +433,19 @@ public class TypeChecker {
 	 * @param args
 	 * @return
 	 */
-	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, Type... args) {
-		// Identify all function or macro declarations which should be
-		// considered
-		List<Named.FunctionOrMacro> candidates = findCandidateFunctionOrMacroDeclarations(name);
-		// Based on given argument types, select the most precise signature from
-		// the candidates.
-		Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates, args);
-		return selected;
-	}
-
-	/**
-	 * Extract all candidate function or macro declarations. This is basically
-	 * just the complete list of function or macro declarations in the given
-	 * file which have the matching name. Many of these will be immediately
-	 * non-applicable because, for example, they have different numbers of
-	 * parameters, etc. We don't worry about this here, we just find and return
-	 * them all.
-	 *
-	 * @param name
-	 * @return
-	 */
-	private List<Named.FunctionOrMacro> findCandidateFunctionOrMacroDeclarations(Name name) {
-		Identifier[] components = name.getComponents();
-		// FIXME: need to handle case where more than one component
-		Identifier last = components[components.length - 1];
-		//
-		ArrayList<Named.FunctionOrMacro> candidates = new ArrayList<>();
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (item instanceof Named.FunctionOrMacro) {
-				Named.FunctionOrMacro nd = (Named.FunctionOrMacro) item;
-				if (nd.getName().equals(last)) {
-					candidates.add(nd);
-				}
-			}
+	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, SyntacticElement context, Type... args) {
+		try {
+			// Identify all function or macro declarations which should be
+			// considered
+			List<Named.FunctionOrMacro> candidates = types.resolveAll(name, Named.FunctionOrMacro.class, context);
+			// Based on given argument types, select the most precise signature
+			// from
+			// the candidates.
+			Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates, args);
+			return selected;
+		} catch (ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), context);
 		}
-		return candidates;
 	}
 
 	/**
@@ -518,12 +503,12 @@ public class TypeChecker {
 	 * definitely not applicable. Otherwise, we need every argument type to be a
 	 * subtype of its corresponding parameter type.
 	 *
-	 * @param decl
+	 * @param candidate
 	 * @param args
 	 * @return
 	 */
-	private boolean isApplicable(Named.FunctionOrMacro decl, Type... args) {
-		WyalFile.Tuple<VariableDeclaration> parameters = decl.getParameters();
+	private boolean isApplicable(Named.FunctionOrMacro candidate, Type... args) {
+		WyalFile.Tuple<VariableDeclaration> parameters = candidate.getParameters();
 		if (parameters.size() != args.length) {
 			// Differing number of parameters / arguments. Since we don't
 			// support variable-length argument lists (yet), there is nothing
@@ -542,7 +527,7 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
 		}
 	}
 
@@ -552,7 +537,7 @@ public class TypeChecker {
 				throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
 		}
 	}
 
@@ -586,7 +571,7 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
 		}
 	}
 }

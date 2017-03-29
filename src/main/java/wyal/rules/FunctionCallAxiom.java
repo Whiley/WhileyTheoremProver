@@ -4,7 +4,7 @@ import java.util.List;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
-import wyal.lang.NameResolver.ResolutionError;
+import wyal.lang.NameResolver.*;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
@@ -50,7 +50,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 		// FIXME: this resolution should have already been performed
 		// elsewhere
-		Declaration.Named.Function decl = types.resolveAsDeclaration(ivk.getName(),Declaration.Named.Function.class);
+		Declaration.Named.Function decl = resolve(ivk);
 		if (decl != null) {
 			// FIXME: there are bugs in the procedure before when new
 			// terms are introduced, but not taken to the representative of
@@ -74,7 +74,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		return state;
 	}
 
-	private Formula expandFunctionPrecondition(Declaration.Named.Function decl, Tuple<Expr> arguments) {
+	private Formula expandFunctionPrecondition(Declaration.Named.Function decl, Tuple<Expr> arguments) throws ResolutionError {
 		Formula precondition = null;
 		Tuple<VariableDeclaration> parameters = decl.getParameters();
 		for (int i = 0; i != parameters.size(); ++i) {
@@ -86,7 +86,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		return precondition;
 	}
 
-	private Formula expandFunctionPostcondition(Declaration.Named.Function decl, Expr.Invoke ivk) {
+	private Formula expandFunctionPostcondition(Declaration.Named.Function decl, Expr.Invoke ivk) throws ResolutionError {
 		Formula precondition = null;
 		Tuple<VariableDeclaration> returns = decl.getReturns();
 		for (int i = 0; i != returns.size(); ++i) {
@@ -106,4 +106,19 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 			return new Formula.Disjunct(lhs,rhs);
 		}
 	}
+
+	private Declaration.Named.Function resolve(Expr.Invoke ivk) throws ResolutionError {
+		Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
+		List<Declaration.Named.Function> candidates = types.resolveAll(ivk.getName(),Declaration.Named.Function.class,ivk);
+		for(int i=0;i!=candidates.size();++i) {
+			Declaration.Named.Function fun = candidates.get(i);
+			if(fun.getSignatureType().equals(signature)) {
+				return fun;
+			}
+		}
+		//
+		// Should really be impossible to get here
+		throw new NameNotFoundError(ivk.getName(), ivk);
+	}
+
 }

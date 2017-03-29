@@ -2,6 +2,7 @@ package wyal.rules;
 
 import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 import wyal.heap.SyntacticHeaps;
@@ -9,6 +10,7 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Declaration;
@@ -81,15 +83,13 @@ public class MacroExpansion implements Proof.LinearRule {
 			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
 			Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
-			// Resolve the declaration corresponding to this invocation
-			Declaration.Named decl;
-			if (af instanceof Type.Macro) {
-				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Macro.class);
-			} else if (af instanceof Type.Invariant) {
-				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Type.class);
-			} else {
+			if(af instanceof Type.Function) {
+				// We ignore function macros here
 				return null;
 			}
+			// Resolve the declaration corresponding to this invocation
+			Declaration.Named decl = resolve(ivk);
+			//
 			Formula invariant = extractDeclarationInvariant(state, decl, ivk.getArguments());
 			if (invariant != null) {
 				if (!ivk.getSign()) {
@@ -204,6 +204,25 @@ public class MacroExpansion implements Proof.LinearRule {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) state.substitute(parameter, argument, result, types);
 			return result;
+		}
+	}
+
+	private Declaration.Named resolve(Expr.Invoke ivk) throws ResolutionError {
+		if (ivk.getSignatureType() instanceof Type.Macro) {
+			List<Declaration.Named.Macro> candidates = types.resolveAll(ivk.getName(), Declaration.Named.Macro.class,
+					ivk);
+			Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
+			for (int i = 0; i != candidates.size(); ++i) {
+				Declaration.Named.Macro macro = candidates.get(i);
+				if (macro.getSignatureType().equals(signature)) {
+					return macro;
+				}
+			}
+			//
+			// Should really be impossible to get here
+			throw new NameNotFoundError(ivk.getName(), ivk);
+		} else {
+			return types.resolveExactly(ivk.getName(), Declaration.Named.Type.class, ivk);
 		}
 	}
 }

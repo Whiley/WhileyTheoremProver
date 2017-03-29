@@ -74,7 +74,7 @@ public class AutomatedTheoremProver {
 					throw new SyntaxError(ast.getMessage(), originalSource, item);
 				}
 				} catch(NameResolver.ResolutionError e) {
-					throw new SyntaxError(e.getMessage(),originalSource,e.getContext());
+					throw new SyntaxError(e.getMessage(),originalSource,e.getContext(),e);
 				}
 			}
 		}

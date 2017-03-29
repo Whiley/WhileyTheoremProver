@@ -86,6 +86,11 @@ public interface NameResolver {
 
 		public ResolutionError(Name name, SyntacticElement context, String message) {
 			super(message);
+			if(name == null) {
+				throw new IllegalArgumentException("name is null");
+			} else if(context == null) {
+				throw new IllegalArgumentException("context is null");
+			}
 			this.name = name;
 			this.context = context;
 		}
@@ -125,7 +130,7 @@ public interface NameResolver {
 		private static final long serialVersionUID = 1L;
 
 		public NameNotFoundError(Name name, SyntacticElement context) {
-			super(name,context,"name not found");
+			super(name,context,"name \"" + name + "\" not found");
 		}
 	}
 
@@ -143,7 +148,7 @@ public interface NameResolver {
 		private static final long serialVersionUID = 1L;
 
 		public AmbiguousNameError(Name name, SyntacticElement context) {
-			super(name,context,"ambiguous name");
+			super(name,context,"name \"" + name + "\" is ambiguous");
 		}
 	}
 }

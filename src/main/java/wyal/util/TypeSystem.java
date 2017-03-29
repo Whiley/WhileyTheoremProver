@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.List;
 
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.AmbiguousNameError;
@@ -20,6 +21,8 @@ import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
+import wyal.lang.WyalFile.Expr;
+import wybs.lang.SyntacticElement;
 import wybs.util.ResolveError;
 import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.FieldDeclaration;
@@ -57,11 +60,11 @@ public class TypeSystem {
 		return coerciveSubtypeOperator.isSubtype(lhs,rhs);
 	}
 
-	public boolean isEffectiveRecord(Type type) {
+	public boolean isEffectiveRecord(Type type) throws ResolutionError {
 		return expandAsEffectiveRecord(type) != null;
 	}
 
-	public boolean isEffectiveArray(Type type) {
+	public boolean isEffectiveArray(Type type) throws ResolutionError {
 		return expandAsEffectiveArray(type) != null;
 	}
 
@@ -82,8 +85,9 @@ public class TypeSystem {
 	 *
 	 * @param type
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public Type.EffectiveRecord expandAsEffectiveRecord(Type type) {
+	public Type.EffectiveRecord expandAsEffectiveRecord(Type type) throws ResolutionError {
 		Type r = expandAsEffectiveType(true, type);
 		if (r instanceof Type.EffectiveRecord) {
 			return (Type.EffectiveRecord) r;
@@ -99,8 +103,9 @@ public class TypeSystem {
 	 *
 	 * @param type
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public Type.EffectiveArray expandAsEffectiveArray(Type type) {
+	public Type.EffectiveArray expandAsEffectiveArray(Type type) throws ResolutionError {
 		Type r = expandAsEffectiveType(true, type);
 		if (r instanceof Type.EffectiveArray) {
 			return (Type.EffectiveArray) r;
@@ -139,10 +144,11 @@ public class TypeSystem {
 	 * @param type
 	 *            The type to be expanded by exactly one level
 	 * @return
+	 * @throws ResolutionError
 	 * @throws IOException
 	 * @throws ResolveError
 	 */
-	public Type expandAsEffectiveType(boolean sign, Type type) {
+	public Type expandAsEffectiveType(boolean sign, Type type) throws ResolutionError {
 		//
 		switch (type.getOpcode()) {
 		case TYPE_not: {
@@ -151,7 +157,7 @@ public class TypeSystem {
 		}
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveAsDeclaredType(nom.getName());
+			Named.Type decl = resolveExactly(nom.getName(),Named.Type.class,nom);
 			return expandAsEffectiveType(sign, decl.getVariableDeclaration().getType());
 		}
 		case TYPE_and:
@@ -180,8 +186,9 @@ public class TypeSystem {
 	 * @param sign
 	 * @param types
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public Type[] expandAsReadableTypes(boolean sign, Type... types) {
+	public Type[] expandAsReadableTypes(boolean sign, Type... types) throws ResolutionError {
 		Type[] nTypes = new Type[types.length];
 		for (int i = 0; i != types.length; ++i) {
 			nTypes[i] = expandAsEffectiveType(sign, types[i]);
@@ -624,68 +631,14 @@ public class TypeSystem {
 	// Resolution
 	// ========================================================================
 
-	public <T extends Declaration.Named> T resolveAsDeclaration(Name name, Class<T> kind) {
-		Identifier[] components = name.getComponents(); // FIXME: need to handle
-														// case where more than
-														// one component
-		Identifier last = components[components.length - 1];
-		// Look through the enclosing file first!
-		SyntacticHeap parent = name.getParent();
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (item instanceof Declaration.Named) {
-				Declaration.Named nd = (Declaration.Named) item;
-				if (nd.getName().equals(last) && kind.isInstance(nd)) {
-					return (T) nd;
-				}
-			}
-		}
-		return null;
+	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind, SyntacticElement context)
+			throws ResolutionError {
+		return resolver.resolveExactly(name,kind,context);
 	}
 
-	public Declaration.Named resolveAsDeclaration(Name name) {
-		Identifier[] components = name.getComponents();
-		Identifier last = components[components.length - 1];
-		// Look through the enclosing file first!
-		SyntacticHeap parent = name.getParent();
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (item instanceof Declaration.Named) {
-				Declaration.Named nd = (Declaration.Named) item;
-				if (nd.getName().equals(last)) {
-					return nd;
-				}
-			}
-		} // FIXME: consider imported files as well
-		throw new IllegalArgumentException("unable to resolve " + Arrays.toString(name.getComponents()) + " as type");
+	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind, SyntacticElement context)
+			throws ResolutionError {
+		return resolver.resolveAll(name,kind,context);
 	}
-
-	/**
-	 * Expand a given named declaration on the assumption that it is a type.
-	 * This will initially look for the given name in the enclosing file, before
-	 * considering those import statements included in the appropriate order.
-	 *
-	 * @param name
-	 * @return
-	 */
-	public Declaration.Named.Type resolveAsDeclaredType(Name name) {
-		Identifier[] components = name.getComponents();
-		// FIXME: need to handle case where more than one component
-		Identifier last = components[components.length - 1];
-		// Look through the enclosing file first!
-		SyntacticHeap parent = name.getParent();
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
-			if (item instanceof Declaration.Named.Type) {
-				Declaration.Named.Type nd = (Declaration.Named.Type) item;
-				if (nd.getName().equals(last)) {
-					return nd;
-				}
-			}
-		}
-		// FIXME: consider imported files as well
-		throw new IllegalArgumentException("unable to resolve " + Arrays.toString(name.getComponents()) + " as type");
-	}
-
 
 }

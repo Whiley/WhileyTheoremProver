@@ -51,8 +51,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 
 			if (lhsT != null && rhsT != null) {
 				// NOTE: the type expansion below is currently necessary to
-				// allow
-				// intersect to its job properly.
+				// allow intersect to its job properly.
 				Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
 				Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
@@ -85,6 +84,12 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		//
 		Formula lhs_f = Formulae.toFormula(lhs, types);
 		Formula rhs_f = Formulae.toFormula(rhs, types);
+		//
+		// FIXME: I have a feeling we can do better here. Especially, in the
+		// case of an equality I don't think we want to do anything. In the case
+		// of an inequality (e.g. x==y), I think we want to generate an equality
+		// (x == !y) or similar.
+		//
 		if(eq.getSign()) {
 			Formula l = new Conjunct(lhs_f, rhs_f);
 			Formula r = new Conjunct(Formulae.invert(lhs_f), Formulae.invert(rhs_f));
@@ -94,7 +99,9 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 			Formula l = new Conjunct(Formulae.invert(lhs_f),rhs_f);
 			Formula r = new Conjunct(lhs_f,Formulae.invert(rhs_f));
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
-			return state.subsume(this, eq, state.allocate(disjunct));
+			// NOTE: at the moment, we can't do a subsume here because we can
+			// end up losing critical information.
+			return state.infer(this, state.allocate(disjunct), eq);
 		}
 	}
 

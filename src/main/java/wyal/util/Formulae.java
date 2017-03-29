@@ -7,6 +7,7 @@ import java.util.BitSet;
 import wyal.lang.Formula;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.Formula.*;
 import wyal.lang.NameResolver.ResolutionError;
@@ -267,8 +268,9 @@ public class Formulae {
 	 * @param declarations
 	 * @param types
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
+	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) throws ResolutionError {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
@@ -282,7 +284,7 @@ public class Formulae {
 		}
 		return result;
 	}
-	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) throws ResolutionError {
 		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
 	}
 	public static int skolem = 0;
@@ -308,8 +310,9 @@ public class Formulae {
 	 * @param type
 	 * @param types
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) throws ResolutionError {
 		return extractTypeInvariant(type,root,types,new BitSet());
 	}
 
@@ -323,8 +326,9 @@ public class Formulae {
 	 *            search. Such types are necessarily recursive, and should only
 	 *            be visited once to prevent infinite loops.
 	 * @return
+	 * @throws ResolutionError
 	 */
-	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) {
+	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
 		Formula invariant = null;
 		if(type.getParent() == null) {
 			invariant = extractTypeInvariantInner(type,root,types,visited);
@@ -335,7 +339,7 @@ public class Formulae {
 		}
 		return invariant;
 	}
-	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) {
+	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:
@@ -345,7 +349,7 @@ public class Formulae {
 			return null; // no invariant
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
-			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
+			Declaration.Named.Type td = types.resolveExactly(nom.getName(),Named.Type.class,nom);
 			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
 			if (td.getInvariant().size() == 0 && invariant == null) {
 				return null;
