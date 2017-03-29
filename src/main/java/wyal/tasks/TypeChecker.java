@@ -9,12 +9,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import wyal.lang.NameResolver;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.util.TypeSystem;
+import wybs.lang.SyntaxError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
@@ -528,21 +530,29 @@ public class TypeChecker {
 			// more to consider.
 			return false;
 		}
-		// Number of parameters matches number of arguments. Now, check that
-		// each argument is a subtype of its corresponding parameter.
-		for (int i = 0; i != args.length; ++i) {
-			Type param = parameters.getOperand(i).getType();
-			if (!types.isSubtype(param, args[i])) {
-				return false;
+		try {
+			// Number of parameters matches number of arguments. Now, check that
+			// each argument is a subtype of its corresponding parameter.
+			for (int i = 0; i != args.length; ++i) {
+				Type param = parameters.getOperand(i).getType();
+				if (!types.isSubtype(param, args[i])) {
+					return false;
+				}
 			}
+			//
+			return true;
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
 		}
-		//
-		return true;
 	}
 
 	private void checkIsSubtype(Type lhs, Type rhs) {
-		if (!types.isSubtype(lhs, rhs)) {
-			throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
+		try {
+			if (!types.isSubtype(lhs, rhs)) {
+				throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
+			}
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
 		}
 	}
 
@@ -550,29 +560,33 @@ public class TypeChecker {
 	 * Check whether the type signature for a given function declaration is a
 	 * super type of a given child declaration.
 	 *
-	 * @param parent
-	 * @param child
+	 * @param lhs
+	 * @param rhs
 	 * @return
 	 */
-	private boolean isSubtype(Named.FunctionOrMacro parent, Named.FunctionOrMacro child) {
-		WyalFile.Tuple<VariableDeclaration> parentParams = parent.getParameters();
-		WyalFile.Tuple<VariableDeclaration> childParams = child.getParameters();
+	private boolean isSubtype(Named.FunctionOrMacro lhs, Named.FunctionOrMacro rhs) {
+		WyalFile.Tuple<VariableDeclaration> parentParams = lhs.getParameters();
+		WyalFile.Tuple<VariableDeclaration> childParams = rhs.getParameters();
 		if (parentParams.size() != childParams.size()) {
 			// Differing number of parameters / arguments. Since we don't
 			// support variable-length argument lists (yet), there is nothing
 			// more to consider.
 			return false;
 		}
-		// Number of parameters matches number of arguments. Now, check that
-		// each argument is a subtype of its corresponding parameter.
-		for (int i = 0; i != parentParams.size(); ++i) {
-			Type parentParam = parentParams.getOperand(i).getType();
-			Type childParam = childParams.getOperand(i).getType();
-			if (!types.isSubtype(parentParam, childParam)) {
-				return false;
+		try {
+			// Number of parameters matches number of arguments. Now, check that
+			// each argument is a subtype of its corresponding parameter.
+			for (int i = 0; i != parentParams.size(); ++i) {
+				Type parentParam = parentParams.getOperand(i).getType();
+				Type childParam = childParams.getOperand(i).getType();
+				if (!types.isSubtype(parentParam, childParam)) {
+					return false;
+				}
 			}
+			//
+			return true;
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext());
 		}
-		//
-		return true;
 	}
 }

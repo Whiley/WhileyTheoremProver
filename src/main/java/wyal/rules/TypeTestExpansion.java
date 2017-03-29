@@ -4,6 +4,7 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
@@ -21,7 +22,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(State state, Formula truth) {
+	public State apply(State state, Formula truth) throws ResolutionError {
 		if (truth instanceof Formula.Is) {
 			Formula nTruth = expand((Formula.Is) truth);
 			if (nTruth != truth) {
@@ -32,7 +33,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 		return state;
 	}
 
-	private Formula expand(Formula.Is e) {
+	private Formula expand(Formula.Is e) throws ResolutionError {
 		WyalFile.Expr nLhs = e.getExpr();
 		Type lhsT = nLhs.getReturnType(types);
 		if (lhsT == null) {

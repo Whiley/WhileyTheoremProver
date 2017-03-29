@@ -9,6 +9,7 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.WyalFile;
 import wyal.lang.Formula.Disjunct;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
@@ -31,7 +32,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) {
+	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 
 		if(newTruth instanceof Formula.ArithmeticEquation) {
 			Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) newTruth;
@@ -52,7 +53,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) {
+	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) throws ResolutionError {
 		if (quantifier.getSign()) {
 			// At this point, we have a quantifier which has not been seen
 			// before (for example, it was hiding inside a macro invocation
@@ -82,7 +83,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.ArithmeticEquation groundTerm, State state) {
+	private State instantiateQuantifiers(Formula.ArithmeticEquation groundTerm, State state) throws ResolutionError {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
@@ -103,7 +104,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		return state;
 	}
 
-	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.ArithmeticEquation groundTerm, State state) {
+	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.ArithmeticEquation groundTerm, State state) throws ResolutionError {
 
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
@@ -138,7 +139,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 * @return
 	 */
 	private State attemptQuantifierInstantiation(Formula.Quantifier quantifier, VariableDeclaration variable,
-			Formula.ArithmeticEquation groundTerm, State state) {
+			Formula.ArithmeticEquation groundTerm, State state) throws ResolutionError {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
 		List<Expr> grounds = bind(variable, quantifier.getBody(), groundTerm);
@@ -182,7 +183,8 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 	 *            asserted.
 	 * @return
 	 */
-	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable, Formula.ArithmeticEquation groundTerm, Expr binding, State state) {
+	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable,
+			Formula.ArithmeticEquation groundTerm, Expr binding, State state) throws ResolutionError {
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();

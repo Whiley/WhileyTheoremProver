@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 
 import wyal.lang.Formula;
+import wyal.lang.NameResolver;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof;
 import wyal.lang.Proof.State;
 import wyal.lang.SyntacticItem;
@@ -62,14 +64,14 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Proof.Delta history = state.getDelta(null);
 		state = attemptInstantiationByArrayAccess(truth,history,state);
 		state = attemptInstantiationByEquation(truth,history,state);
 		return state;
 	}
 
-	public State attemptInstantiationByEquation(Formula truth, Proof.Delta history, Proof.State state) {
+	public State attemptInstantiationByEquation(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
 		Proof.Delta.Set additions = history.getAdditions();
 		for (int j = 0; j != additions.size(); ++j) {
 			Formula existing = additions.get(j);
@@ -81,7 +83,7 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta history, Proof.State state) {
+	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
 		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
 		// At this point, we have one or more array access expressions which
 		// potentially could be introduce some useful facts. Therefore, we need to look
@@ -96,7 +98,7 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	public State attemptInstantiation(Formula source, List<Expr.Operator> matches, Formula target, Proof.State state) {
+	public State attemptInstantiation(Formula source, List<Expr.Operator> matches, Formula target, Proof.State state) throws ResolutionError {
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			Expr.Operator match = matches.get(i);
@@ -133,13 +135,13 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) {
+	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Polynomial zero = new Polynomial(BigInteger.ZERO);
 		Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(index, zero), types);
 		return state.infer(this, state.allocate(axiom), dependencies);
 	}
 
-	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) {
+	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Formula axiom = Formulae.simplifyFormula(Formulae.lessThan(index, length), types);
 		return state.infer(this, state.allocate(axiom), dependencies);
 	}

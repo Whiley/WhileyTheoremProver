@@ -9,6 +9,7 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
@@ -66,7 +67,7 @@ public class MacroExpansion implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
 			expanded = state.allocate(expanded);
@@ -75,7 +76,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return state;
 	}
 
-	private Formula expandFormula(Proof.State state, Formula formula) {
+	private Formula expandFormula(Proof.State state, Formula formula) throws ResolutionError {
 		if (formula instanceof Formula.Invoke) {
 			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
@@ -128,7 +129,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return formula;
 	}
 
-	private Formula[] expandFormula(Proof.State state, Formula... children) {
+	private Formula[] expandFormula(Proof.State state, Formula... children) throws ResolutionError {
 		Formula[] nChildren = children;
 		for(int i=0;i!=children.length;++i) {
 			Formula child = nChildren[i];
@@ -141,7 +142,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return nChildren;
 	}
 
-	private Formula extractDeclarationInvariant(Proof.State state, Declaration.Named decl, Tuple<Expr> arguments) {
+	private Formula extractDeclarationInvariant(Proof.State state, Declaration.Named decl, Tuple<Expr> arguments) throws ResolutionError {
 		if (decl instanceof Declaration.Named.Type) {
 			// This is a type invariant macro call. In such case, we
 			// need to first determine what the invariant actually is.
@@ -158,7 +159,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		}
 	}
 
-	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) {
+	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) throws ResolutionError {
 		VariableDeclaration[] parameters = md.getParameters().getOperands();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
@@ -180,7 +181,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return body;
 	}
 
-	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) {
+	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) throws ResolutionError {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
 		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(), argument, types);

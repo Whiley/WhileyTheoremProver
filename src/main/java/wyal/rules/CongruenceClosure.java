@@ -4,6 +4,7 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
@@ -71,7 +72,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) {
+	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 		//
 		if (newTruth instanceof Formula.Assignment) {
 			state = applyAssignment((Formula.Assignment)newTruth,state);
@@ -82,7 +83,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 		return state;
 	}
 
-	private Proof.State substituteAgainstEquality(Proof.State state, Formula.Equality newTruth) {
+	private Proof.State substituteAgainstEquality(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
 		//
 		if (newTruth.getSign()) {
 			state = applyEqualityTypeAxiom(state, newTruth);
@@ -98,7 +99,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 		return state;
 	}
 
-	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) {
+	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
 		Expr lhs = newTruth.getOperand(0);
 		Expr rhs = newTruth.getOperand(1);
 		Type lhsT = lhs.getReturnType(types);
@@ -143,7 +144,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 		}
 	}
 
-	private State applyAssignment(Formula.Assignment assignment, Proof.State state) {
+	private State applyAssignment(Formula.Assignment assignment, Proof.State state) throws ResolutionError {
 		Proof.Delta history = state.getDelta(null);
 		Proof.Delta.Set additions = history.getAdditions();
 		//

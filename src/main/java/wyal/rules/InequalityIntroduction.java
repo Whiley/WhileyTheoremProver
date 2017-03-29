@@ -5,6 +5,7 @@ import java.util.Arrays;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
@@ -37,7 +38,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) {
+	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 
 		if(newTruth instanceof Formula.Inequality) {
 			Formula.Inequality inequality = (Formula.Inequality) newTruth;
@@ -58,7 +59,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 		return state;
 	}
 
-	private State closeOver(Formula.Inequality ith, Formula.Inequality jth, State state) {
+	private State closeOver(Formula.Inequality ith, Formula.Inequality jth, State state) throws ResolutionError {
 		//
 		Formula inferred = closeOver(ith, jth);
 		if (inferred != null) {
@@ -83,7 +84,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	 * @param jth
 	 * @return
 	 */
-	public Formula closeOver(Formula.Inequality ith, Formula.Inequality jth) {
+	public Formula closeOver(Formula.Inequality ith, Formula.Inequality jth) throws ResolutionError {
 		Polynomial ithLowerBound = extractBound(false, ith);
 		Polynomial ithUpperBound = extractBound(true, ith);
 		Polynomial jthLowerBound = extractBound(false, jth);

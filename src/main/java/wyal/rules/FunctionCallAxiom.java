@@ -4,6 +4,7 @@ import java.util.List;
 
 import wyal.lang.Formula;
 import wyal.lang.Proof;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
@@ -26,7 +27,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 	}
 
 	@Override
-	public State apply(State state, Formula truth) {
+	public State apply(State state, Formula truth) throws ResolutionError {
 		List<Expr.Invoke> matches = extractDefinedTerms(truth,Opcode.EXPR_invoke);
 		if (matches.size() > 0) {
 			for (int i = 0; i != matches.size(); ++i) {
@@ -44,7 +45,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 	 * @param ivk
 	 * @return
 	 */
-	private State applySpecificationInstantiation(Proof.State state, Formula truth, Expr.Invoke ivk) {
+	private State applySpecificationInstantiation(Proof.State state, Formula truth, Expr.Invoke ivk) throws ResolutionError {
 		// Determine the type declaration in question
 		Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 		// FIXME: this resolution should have already been performed

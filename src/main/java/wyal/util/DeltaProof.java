@@ -3,6 +3,7 @@ package wyal.util;
 import java.util.BitSet;
 
 import wyal.lang.Formula;
+import wyal.lang.NameResolver;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
@@ -151,12 +152,17 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
 		@Override
 		public Expr construct(Expr term, TypeSystem types) {
-			Expr tmp = Formulae.simplify((Expr) term, types);
-			Formula.Assignment assignment = lookupAssignment(tmp);
-			if(assignment != null) {
-				return assignment.getRightHandSide();
-			} else {
-				return term;
+			try {
+				Expr tmp = Formulae.simplify((Expr) term, types);
+				Formula.Assignment assignment = lookupAssignment(tmp);
+				if (assignment != null) {
+					return assignment.getRightHandSide();
+				} else {
+					return term;
+				}
+			} catch (NameResolver.ResolutionError e) {
+				// FIXME: now this is clearly scaffolding (i.e. a hack).
+				throw new RuntimeException("name resolution error", e);
 			}
 		}
 

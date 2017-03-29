@@ -1,6 +1,8 @@
 package wyal.lang;
 
 import java.util.List;
+
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.util.TypeSystem;
@@ -350,7 +352,7 @@ public interface Proof {
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State apply(State state, Formula truth);
+		State apply(State state, Formula truth) throws ResolutionError;
 	}
 
 	interface NonLinearRule extends Rule {
@@ -367,6 +369,6 @@ public interface Proof {
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State[] apply(State state, Formula truth);
+		State[] apply(State state, Formula truth) throws ResolutionError;
 	}
 }

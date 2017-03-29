@@ -6,6 +6,7 @@ import java.util.List;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
@@ -26,7 +27,7 @@ public class TypeTestClosure implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(State state, Formula newTruth) {
+	public State apply(State state, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
 			if(test.getExpr() instanceof Expr.VariableAccess){
@@ -78,7 +79,7 @@ public class TypeTestClosure implements Proof.LinearRule {
 		return matches;
 	}
 
-	private State closeOver(List<Formula.Is> matches, Proof.State state) {
+	private State closeOver(List<Formula.Is> matches, Proof.State state) throws ResolutionError {
 		Formula.Is first = matches.get(0);
 		Type type = first.getTypeTest();
 		//
@@ -105,7 +106,7 @@ public class TypeTestClosure implements Proof.LinearRule {
 	 * @param dependencies
 	 * @return
 	 */
-	private State retypeVariable(Formula.Is typeTest, Proof.State state, Formula... dependencies) {
+	private State retypeVariable(Formula.Is typeTest, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Expr lhs = typeTest.getExpr();
 		Type lhsT = lhs.getReturnType(types);
 		Type rhsT = typeTest.getTypeTest();

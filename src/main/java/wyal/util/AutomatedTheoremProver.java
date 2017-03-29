@@ -6,6 +6,10 @@ import wyal.heap.StructurallyEquivalentHeap;
 import wyal.heap.SyntacticHeaps;
 import wyal.io.ProofPrinter;
 import wyal.lang.Formula;
+import wyal.lang.NameResolver;
+import wyal.lang.NameResolver.AmbiguousNameError;
+import wyal.lang.NameResolver.NameNotFoundError;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
@@ -65,14 +69,18 @@ public class AutomatedTheoremProver {
 			SyntacticItem item = parent.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
+				try {
 				if (!check(ast)) {
 					throw new SyntaxError(ast.getMessage(), originalSource, item);
+				}
+				} catch(NameResolver.ResolutionError e) {
+					throw new SyntaxError(e.getMessage(),originalSource,e.getContext());
 				}
 			}
 		}
 	}
 
-	private boolean check(WyalFile.Declaration.Assert decl) {
+	private boolean check(WyalFile.Declaration.Assert decl) throws ResolutionError {
 		// Convert the body of the assertion into "expression form". That is,
 		// where every node is an expression.
 		Formula root = Formulae.toFormula(decl.getBody(), types);
@@ -87,8 +95,10 @@ public class AutomatedTheoremProver {
 	 *
 	 * @param formula
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	private boolean checkValidity(SyntacticHeap parent, Formula formula) {
+	private boolean checkValidity(SyntacticHeap parent, Formula formula) throws ResolutionError {
 		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
@@ -132,7 +142,7 @@ public class AutomatedTheoremProver {
 	 * @param FALSE
 	 * @return
 	 */
-	private boolean checkUnsat(Proof.State state, FastDelta.Set carries, Formula.Truth FALSE) {
+	private boolean checkUnsat(Proof.State state, FastDelta.Set carries, Formula.Truth FALSE) throws ResolutionError {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
 		if(state.getProof().size() > maxProofSize) {
@@ -202,7 +212,7 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth, Formula.Truth FALSE) {
+	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth, Formula.Truth FALSE) throws ResolutionError {
 		State parent = state.getParent();
 		// Now, try to find a contradiction for each case
 		for (int j = 0; j != splits.length; ++j) {
