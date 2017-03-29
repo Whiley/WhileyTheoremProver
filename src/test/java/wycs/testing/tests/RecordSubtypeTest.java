@@ -9,6 +9,7 @@ package wycs.testing.tests;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
+import wyal.lang.NameResolver;
 import wyal.lang.WyalFile;
 import wyal.util.TypeSystem;
 
@@ -5206,27 +5207,37 @@ public class RecordSubtypeTest {
 	@Test public void test_5776() { checkIsSubtype("{int f2}|int","{int f2}|int"); }
 
 	private void checkIsSubtype(String from, String to) {
-		// This is a bit of an ugly hack for now
-		List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
-		tokens.addAll(new WyalFileLexer(to).scan());
-		WyalFileParser parser = new WyalFileParser(null, tokens);
-		WyalFile wf = new WyalFile(null);
-		WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
-		WyalFile.Type ft = parser.parseType(scope);
-		WyalFile.Type tt = parser.parseType(scope);
-		//
-		assertTrue(new TypeSystem(wf).isSubtype(ft,tt));
+		try {
+			// This is a bit of an ugly hack for now
+			List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
+			tokens.addAll(new WyalFileLexer(to).scan());
+			WyalFileParser parser = new WyalFileParser(null, tokens);
+			WyalFile wf = new WyalFile(null);
+			WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
+			WyalFile.Type ft = parser.parseType(scope);
+			WyalFile.Type tt = parser.parseType(scope);
+			//
+			assertTrue(new TypeSystem(wf).isSubtype(ft,tt));
+		} catch(NameResolver.ResolutionError e) {
+			// It should be impossible to get here
+			throw new RuntimeException("name resolution error",e);
+		}
 	}
 	private void checkNotSubtype(String from, String to) {
-		// This is a bit of an ugly hack for now
-		List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
-		tokens.addAll(new WyalFileLexer(to).scan());
-		WyalFileParser parser = new WyalFileParser(null, tokens);
-		WyalFile wf = new WyalFile(null);
-		WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
-		WyalFile.Type ft = parser.parseType(scope);
-		WyalFile.Type tt = parser.parseType(scope);
-		//
-		assertFalse(new TypeSystem(wf).isSubtype(ft,tt));
+		try {
+			// This is a bit of an ugly hack for now
+			List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
+			tokens.addAll(new WyalFileLexer(to).scan());
+			WyalFileParser parser = new WyalFileParser(null, tokens);
+			WyalFile wf = new WyalFile(null);
+			WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
+			WyalFile.Type ft = parser.parseType(scope);
+			WyalFile.Type tt = parser.parseType(scope);
+			//
+			assertFalse(new TypeSystem(wf).isSubtype(ft, tt));
+		} catch (NameResolver.ResolutionError e) {
+			// It should be impossible to get here
+			throw new RuntimeException("name resolution error", e);
+		}
 	}
 }

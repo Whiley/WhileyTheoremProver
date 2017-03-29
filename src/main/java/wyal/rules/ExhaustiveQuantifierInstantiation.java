@@ -12,6 +12,7 @@ import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.Formula.Disjunct;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
@@ -35,7 +36,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) {
+	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 
 		if (newTruth instanceof Formula.Equation) {
 			Formula.Equation ground = (Formula.Equation) newTruth;
@@ -56,7 +57,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) {
+	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) throws ResolutionError {
 		if (quantifier.getSign()) {
 			// At this point, we have a quantifier which has not been seen
 			// before (for example, it was hiding inside a macro invocation
@@ -88,7 +89,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Equation groundTerm, State state) {
+	private State instantiateQuantifiers(Formula.Equation groundTerm, State state) throws ResolutionError {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
@@ -110,7 +111,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	}
 
 	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Equation groundTerm,
-			State state) {
+			State state) throws ResolutionError {
 
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
@@ -145,7 +146,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @return
 	 */
 	private State attemptQuantifierInstantiation(Formula.Quantifier quantifier, VariableDeclaration variable,
-			Formula.Equation groundTerm, State state) {
+			Formula.Equation groundTerm, State state) throws ResolutionError {
 		// Exhaustively instantiate this variable with all possible ground
 		// terms.
 		List<Expr> grounds = bind(state, variable, quantifier.getBody(), groundTerm);
@@ -190,7 +191,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @return
 	 */
 	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable,
-			Formula.Equation groundTerm, Expr binding, State state) {
+			Formula.Equation groundTerm, Expr binding, State state) throws ResolutionError {
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
@@ -249,7 +250,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param variable
 	 * @return
 	 */
-	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Formula quantified, Formula.Equation ground) {
+	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Formula quantified, Formula.Equation ground) throws ResolutionError {
 		ArrayList<Expr> result = new ArrayList<>();
 		//
 		if (quantified instanceof Formula.Inequality) {
@@ -327,7 +328,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	 * @param ground
 	 * @return
 	 */
-	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) {
+	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) throws ResolutionError {
 		//
 		if (containsTrigger(quantified)) {
 			Expr.VariableAccess access = new Expr.VariableAccess(variable);

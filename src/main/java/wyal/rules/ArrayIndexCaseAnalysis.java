@@ -3,6 +3,7 @@ package wyal.rules;
 import java.util.List;
 
 import wyal.lang.Formula;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -25,7 +26,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 	}
 
 	@Override
-	public State apply(State state, Formula truth) {
+	public State apply(State state, Formula truth) throws ResolutionError {
 		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
 		if (matches.size() > 0) {
 			for(int i=0;i!=matches.size();++i) {

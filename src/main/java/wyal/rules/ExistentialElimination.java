@@ -3,6 +3,7 @@ package wyal.rules;
 import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.Formula.Conjunct;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
@@ -38,7 +39,7 @@ public class ExistentialElimination implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		if(truth instanceof Formula.Quantifier) {
 			Formula.Quantifier qf = (Formula.Quantifier) truth;
 			if(!qf.getSign()) {

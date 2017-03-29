@@ -3,17 +3,14 @@ package wyal.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 import wyal.lang.Formula;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Expr.Polynomial.Term;
 import wyal.lang.Formula.*;
+import wyal.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
 
 /**
@@ -54,8 +51,10 @@ public class Formulae {
 	 *            The type system is required for the translation, as some
 	 *            aspects depend upon the types of expressions involved.
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula toFormula(WyalFile.Stmt stmt, TypeSystem types) {
+	public static Formula toFormula(WyalFile.Stmt stmt, TypeSystem types) throws ResolutionError {
 		switch (stmt.getOpcode()) {
 		case STMT_block: {
 			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
@@ -216,8 +215,10 @@ public class Formulae {
 	 *
 	 * @param stmts
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula[] toFormulae(WyalFile.Stmt[] stmts, TypeSystem types) {
+	public static Formula[] toFormulae(WyalFile.Stmt[] stmts, TypeSystem types) throws ResolutionError {
 		Formula[] exprs = new Formula[stmts.length];
 		for (int i = 0; i != exprs.length; ++i) {
 			exprs[i] = toFormula(stmts[i], types);
@@ -267,8 +268,9 @@ public class Formulae {
 	 * @param declarations
 	 * @param types
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) {
+	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) throws ResolutionError {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
 			VariableDeclaration decl = declarations.getOperand(i);
@@ -282,7 +284,7 @@ public class Formulae {
 		}
 		return result;
 	}
-	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) {
+	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) throws ResolutionError {
 		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
 	}
 	public static int skolem = 0;
@@ -308,8 +310,9 @@ public class Formulae {
 	 * @param type
 	 * @param types
 	 * @return
+	 * @throws ResolutionError
 	 */
-	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) {
+	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) throws ResolutionError {
 		return extractTypeInvariant(type,root,types,new BitSet());
 	}
 
@@ -323,8 +326,9 @@ public class Formulae {
 	 *            search. Such types are necessarily recursive, and should only
 	 *            be visited once to prevent infinite loops.
 	 * @return
+	 * @throws ResolutionError
 	 */
-	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) {
+	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
 		Formula invariant = null;
 		if(type.getParent() == null) {
 			invariant = extractTypeInvariantInner(type,root,types,visited);
@@ -335,7 +339,7 @@ public class Formulae {
 		}
 		return invariant;
 	}
-	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) {
+	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:
@@ -345,7 +349,7 @@ public class Formulae {
 			return null; // no invariant
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
-			Declaration.Named.Type td = types.resolveAsDeclaredType(nom.getName());
+			Declaration.Named.Type td = types.resolveExactly(nom.getName(),Named.Type.class,nom);
 			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
 			if (td.getInvariant().size() == 0 && invariant == null) {
 				return null;
@@ -557,8 +561,10 @@ public class Formulae {
 	 *
 	 * @param f
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula simplifyFormula(Formula f, TypeSystem types) {
+	public static Formula simplifyFormula(Formula f, TypeSystem types) throws ResolutionError {
 		switch (f.getOpcode()) {
 		case EXPR_const: {
 			return f;
@@ -618,9 +624,11 @@ public class Formulae {
 	 * <b>recursive</b>. That is, it will simplify all children of this formula.
 	 *
 	 * @author David J. Pearce
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 *
 	 */
-	public static Formula simplifyConjunct(Conjunct conjunct, TypeSystem types) {
+	public static Formula simplifyConjunct(Conjunct conjunct, TypeSystem types) throws ResolutionError {
 		Formula[] children = conjunct.getOperands();
 		Formula[] nChildren = children;
 		// Flatten nested conjuncts
@@ -665,9 +673,11 @@ public class Formulae {
 	 * case that no simplification is applied. Furthermore, this function is
 	 * <b>not recursive</b>. Furthermore, this function is <b>recursive</b>.
 	 * That is, it will simplify all children of this formula.
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 *
 	 */
-	public static Formula simplifyDisjunct(Disjunct disjunct, TypeSystem types) {
+	public static Formula simplifyDisjunct(Disjunct disjunct, TypeSystem types) throws ResolutionError {
 		Formula[] children = disjunct.getOperands();
 		Formula[] nChildren = children;
 		// Flatten nested disjuncts
@@ -693,7 +703,7 @@ public class Formulae {
 		}
 	}
 
-	private static Formula[] simplify(Formula[] children, TypeSystem types) {
+	private static Formula[] simplify(Formula[] children, TypeSystem types) throws ResolutionError {
 		Formula[] nChildren = children;
 		for (int i = 0; i != nChildren.length; ++i) {
 			Formula child = children[i];
@@ -713,8 +723,10 @@ public class Formulae {
 	 *
 	 * @param quantifier
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula simplifyQuantifier(Quantifier quantifier, TypeSystem types) {
+	public static Formula simplifyQuantifier(Quantifier quantifier, TypeSystem types) throws ResolutionError {
 		Formula body = quantifier.getBody();
 		Formula nBody = simplifyFormula(body, types);
 		if (nBody instanceof Truth) {
@@ -744,8 +756,10 @@ public class Formulae {
 	 *
 	 * @param ieq
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula simplifyInequality(Inequality ieq, TypeSystem types) {
+	public static Formula simplifyInequality(Inequality ieq, TypeSystem types) throws ResolutionError {
 		Polynomial lhs = simplify(ieq.getOperand(0), types);
 		Polynomial rhs = simplify(ieq.getOperand(1), types);
 		Pair<Polynomial, Polynomial> bs = normaliseBounds(lhs, rhs);
@@ -782,8 +796,10 @@ public class Formulae {
 	 *
 	 * @param ieq
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula simplifyArithmeticEquality(ArithmeticEquality eq, TypeSystem types) {
+	public static Formula simplifyArithmeticEquality(ArithmeticEquality eq, TypeSystem types) throws ResolutionError {
 		Expr.Polynomial lhs = eq.getOperand(0);
 		Expr.Polynomial rhs = eq.getOperand(1);
 		Polynomial nLhs = simplify(lhs, types);
@@ -817,8 +833,10 @@ public class Formulae {
 	 *
 	 * @param eq
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Formula simplifyEquality(Equality eq, TypeSystem types) {
+	public static Formula simplifyEquality(Equality eq, TypeSystem types) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		Expr nLhs = simplify(lhs, types);
@@ -836,7 +854,7 @@ public class Formulae {
 		}
 	}
 
-	public static Formula simplifyAssign(Formula.Assignment eq, TypeSystem types) {
+	public static Formula simplifyAssign(Formula.Assignment eq, TypeSystem types) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		Expr nLhs = simplify(lhs, types);
@@ -854,7 +872,7 @@ public class Formulae {
 		}
 	}
 
-	public static Formula simplifyInvoke(Invoke ivk, TypeSystem types) {
+	public static Formula simplifyInvoke(Invoke ivk, TypeSystem types) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] children  = args.getOperands();
 		Expr[] nChildren = children;
@@ -892,7 +910,7 @@ public class Formulae {
 		return nChild;
 	}
 
-	private static Tuple<Expr> simplify(Tuple<Expr> tuple, TypeSystem types) {
+	private static Tuple<Expr> simplify(Tuple<Expr> tuple, TypeSystem types) throws ResolutionError {
 		Expr[] children = tuple.getOperands();
 		Expr[] nChildren = simplify(children, types);
 		if(children == nChildren) {
@@ -902,7 +920,7 @@ public class Formulae {
 		}
 	}
 
-	private static Formula simplifyIs(Formula.Is e, TypeSystem types) {
+	private static Formula simplifyIs(Formula.Is e, TypeSystem types) throws ResolutionError {
 		Expr lhs = e.getExpr();
 		Expr nLhs = simplify(lhs,types);
 		if(lhs != nLhs) {
@@ -913,7 +931,7 @@ public class Formulae {
 	}
 
 
-	public static Expr[] simplify(Expr[] children, TypeSystem types) {
+	public static Expr[] simplify(Expr[] children, TypeSystem types) throws ResolutionError {
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -931,8 +949,10 @@ public class Formulae {
 	 *
 	 * @param e
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	public static Expr simplify(Expr e, TypeSystem types) {
+	public static Expr simplify(Expr e, TypeSystem types) throws ResolutionError {
 		switch (e.getOpcode()) {
 		case EXPR_var:
 			return e;
@@ -997,7 +1017,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplify(Expr.RecordInitialiser e, TypeSystem types) {
+	private static Expr simplify(Expr.RecordInitialiser e, TypeSystem types) throws ResolutionError {
 		Pair<Identifier,Expr>[] fields = e.getFields();
 		Pair<Identifier,Expr>[] nFields = fields;
 		for(int i=0;i!=fields.length;++i) {
@@ -1017,7 +1037,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplify(Expr.RecordAccess e, TypeSystem types) {
+	private static Expr simplify(Expr.RecordAccess e, TypeSystem types) throws ResolutionError {
 		Expr source = e.getSource();
 		Expr nSource = simplify(source,types);
 		if(nSource instanceof Expr.RecordInitialiser) {
@@ -1038,7 +1058,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplify(Expr.Invoke ivk, TypeSystem types) {
+	private static Expr simplify(Expr.Invoke ivk, TypeSystem types) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] children  = args.getOperands();
 		Expr[] nChildren = children;
@@ -1062,7 +1082,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplifyArrayIndex(Expr.Operator e, TypeSystem types) {
+	private static Expr simplifyArrayIndex(Expr.Operator e, TypeSystem types) throws ResolutionError {
 		Expr source = e.getOperand(0);
 		Expr index = e.getOperand(1);
 		Expr nSource = simplify(source,types);
@@ -1094,7 +1114,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) {
+	private static Expr simplifyArrayUpdate(Expr.Operator e, TypeSystem types) throws ResolutionError {
 		Expr source = e.getOperand(0);
 		Expr index = e.getOperand(1);
 		Expr value = e.getOperand(2);
@@ -1119,7 +1139,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) {
+	private static Expr simplifyArrayLength(Expr.Operator e, TypeSystem types) throws ResolutionError {
 		Expr r = simplifyNonArithmetic(e, types);
 		if(r instanceof Expr.Operator) {
 			Expr src = (Expr) r.getOperand(0);
@@ -1134,7 +1154,7 @@ public class Formulae {
 		return r;
 	}
 
-	private static Expr simplifyNonArithmetic(Expr.Operator e, TypeSystem types) {
+	private static Expr simplifyNonArithmetic(Expr.Operator e, TypeSystem types) throws ResolutionError {
 		Expr[] children = e.getOperands();
 		Expr[] nChildren = simplify(children, types);
 
@@ -1150,7 +1170,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplifyArithmetic(Expr.Operator e, TypeSystem types) {
+	private static Expr simplifyArithmetic(Expr.Operator e, TypeSystem types) throws ResolutionError {
 		if (e instanceof Polynomial) {
 			return simplify((Polynomial) e,types);
 		} else {
@@ -1192,8 +1212,10 @@ public class Formulae {
 	 *
 	 * @param p
 	 * @return
+	 * @throws AmbiguousNameError
+	 * @throws NameNotFoundError
 	 */
-	private static Polynomial simplify(Polynomial p, TypeSystem types) {
+	private static Polynomial simplify(Polynomial p, TypeSystem types) throws ResolutionError {
 		Polynomial.Term[] children = p.getOperands();
 		Expr[] nChildren = children;
 		for (int i = 0; i != p.size(); ++i) {
@@ -1235,7 +1257,7 @@ public class Formulae {
 		}
 	}
 
-	private static Expr simplify(Polynomial.Term p, TypeSystem types) {
+	private static Expr simplify(Polynomial.Term p, TypeSystem types) throws ResolutionError {
 		final Expr[] children = p.getAtoms();
 		Expr[] nChildren = children;
 		int numPolynomials = 0;

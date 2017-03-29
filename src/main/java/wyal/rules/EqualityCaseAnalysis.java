@@ -6,6 +6,7 @@ import wyal.lang.Formula.ArithmeticEquality;
 import wyal.lang.Formula.Conjunct;
 import wyal.lang.Formula.Inequality;
 import wyal.lang.Formula.Quantifier;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
@@ -26,7 +27,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(State state, Formula truth) {
+	public State apply(State state, Formula truth) throws ResolutionError {
 		if(truth instanceof Formula.ArithmeticEquality) {
 			Formula.ArithmeticEquality eq = (Formula.ArithmeticEquality) truth;
 			if(!eq.getSign()) {
@@ -50,8 +51,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 
 			if (lhsT != null && rhsT != null) {
 				// NOTE: the type expansion below is currently necessary to
-				// allow
-				// intersect to its job properly.
+				// allow intersect to its job properly.
 				Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
 				Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
@@ -78,12 +78,18 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		return state;
 	}
 
-	private State expandBooleanEquality(Formula.Equality eq, Proof.State state) {
+	private State expandBooleanEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		//
 		Formula lhs_f = Formulae.toFormula(lhs, types);
 		Formula rhs_f = Formulae.toFormula(rhs, types);
+		//
+		// FIXME: I have a feeling we can do better here. Especially, in the
+		// case of an equality I don't think we want to do anything. In the case
+		// of an inequality (e.g. x==y), I think we want to generate an equality
+		// (x == !y) or similar.
+		//
 		if(eq.getSign()) {
 			Formula l = new Conjunct(lhs_f, rhs_f);
 			Formula r = new Conjunct(Formulae.invert(lhs_f), Formulae.invert(rhs_f));
@@ -93,11 +99,13 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 			Formula l = new Conjunct(Formulae.invert(lhs_f),rhs_f);
 			Formula r = new Conjunct(lhs_f,Formulae.invert(rhs_f));
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
-			return state.subsume(this, eq, state.allocate(disjunct));
+			// NOTE: at the moment, we can't do a subsume here because we can
+			// end up losing critical information.
+			return state.infer(this, state.allocate(disjunct), eq);
 		}
 	}
 
-	private State expandRecordEquality(Formula.Equality eq, Proof.State state) {
+	private State expandRecordEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		Type lhs_t = lhs.getReturnType(types);
@@ -117,7 +125,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		return state;
 	}
 
-	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) {
+	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		Type lhs_t = lhs.getReturnType(types);
 		Type.EffectiveRecord lhs_r = types.expandAsEffectiveRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
@@ -132,7 +140,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	private State expandRecordInitialiserEquality(Formula.Equality eq, Expr.RecordInitialiser lhs,
-			Expr.RecordInitialiser rhs, Proof.State state) {
+			Expr.RecordInitialiser rhs, Proof.State state) throws ResolutionError {
 		if (lhs.size() != rhs.size()) {
 			// FIXME: for open records this could be possible
 			return state.infer(this, new Formula.Truth(false), eq);
@@ -159,7 +167,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		}
 	}
 
-	private State expandArrayEquality(Formula.Equality eq, Proof.State state) {
+	private State expandArrayEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
 		if (lhs.getOpcode() == Opcode.EXPR_arrinit && rhs.getOpcode() == Opcode.EXPR_arrinit) {
@@ -185,7 +193,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	private State expandArrayInitialiserInitialiserEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
-			Proof.State state) {
+			Proof.State state) throws ResolutionError {
 		if (lhs.size() != rhs.size()) {
 			return state.subsume(this, new Formula.Truth(!eq.getSign()), eq);
 		} else {
@@ -205,7 +213,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	private State expandArrayGeneratorInitialiserEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
-			Proof.State state) {
+			Proof.State state) throws ResolutionError {
 		Expr lhsValue = lhs.getOperand(0);
 		Expr lhsSize = lhs.getOperand(1);
 		Expr rhsSize = new Expr.Constant(new Value.Int(rhs.size()));
@@ -224,7 +232,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	private State expandArrayGeneratorGeneratorEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
-			Proof.State state) {
+			Proof.State state) throws ResolutionError {
 		Expr lhsValue = lhs.getOperand(0);
 		Expr lhsSize = lhs.getOperand(1);
 		Expr rhsValue = rhs.getOperand(0);
@@ -239,7 +247,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	}
 
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
-			Proof.State state) {
+			Proof.State state) throws ResolutionError {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
 		Expr rhsSize = state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs),types);
 		Expr[] lhsOperands = lhs.getOperands();
@@ -255,7 +263,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		return state.subsume(this, eq, state.allocate(Formulae.simplifyFormula(f, types)));
 	}
 
-	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) {
+	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 				new Identifier("i:" + Formulae.skolem++));
 		Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
@@ -273,7 +281,7 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		return state.subsume(this, eq, state.allocate(axiom));
 	}
 
-	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) {
+	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {
 		Type lhs_t = lhs.getReturnType(types);
 		Type rhs_t = rhs.getReturnType(types);
 		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {

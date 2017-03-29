@@ -12,6 +12,7 @@ import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 
 /**
  * <p>
@@ -62,7 +63,7 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		// FIXME: there is a bug here because we might not find an array length
 		// expression; rather we might find only the representative from its
 		// equivalence class.

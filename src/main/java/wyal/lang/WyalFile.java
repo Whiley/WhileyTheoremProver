@@ -7,11 +7,14 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+import javax.lang.model.element.Element;
+
 import wyal.heap.AbstractSyntacticHeap;
 import wyal.heap.AbstractSyntacticItem;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.Formulae;
@@ -286,6 +289,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			super(Opcode.ITEM_name, components);
 		}
 
+		@Override
+		public Identifier getOperand(int i) {
+			return (Identifier) super.getOperand(i);
+		}
+
 		public Identifier[] getComponents() {
 			return (Identifier[]) getOperands();
 		}
@@ -293,6 +301,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		@Override
 		public Name clone(SyntacticItem[] operands) {
 			return new Name((Identifier[]) operands);
+		}
+
+		@Override
+		public String toString() {
+			String r = getOperand(0).get();
+			for(int i=1;i!=size();++i) {
+				r += "." + getOperand(1).get();
+			}
+			return r;
 		}
 	}
 
@@ -457,6 +474,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				public Tuple<VariableDeclaration> getParameters() {
 					return (Tuple) getOperand(1);
 				}
+
+				public abstract WyalFile.Type.FunctionOrMacro getSignatureType();
 			}
 
 			// ============================================================
@@ -474,6 +493,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 				public Tuple<VariableDeclaration> getReturns() {
 					return (Tuple<VariableDeclaration>) getOperand(2);
+				}
+
+				@Override
+				public WyalFile.Type.Function getSignatureType() {
+					return new WyalFile.Type.Function(projectTypes(getParameters()), projectTypes(getReturns()));
 				}
 
 				@Override
@@ -497,7 +521,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				public Stmt.Block getBody() {
 					return (Stmt.Block) getOperand(2);
 				}
-
+				@Override
+				public WyalFile.Type.Macro getSignatureType() {
+					return new WyalFile.Type.Macro(projectTypes(getParameters()));
+				}
 				@Override
 				public Macro clone(SyntacticItem[] operands) {
 					return new Macro((Identifier) operands[0], (Tuple<VariableDeclaration>) operands[1], (Stmt.Block) operands[2]);
@@ -559,6 +586,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Any clone(SyntacticItem[] operands) {
 				return new Any();
 			}
+			@Override
+			public String toString() {
+				return "any";
+			}
 		}
 
 		public static class Void extends Atom implements Primitive {
@@ -566,6 +597,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Void clone(SyntacticItem[] operands) {
 				return new Void();
+			}
+			@Override
+			public String toString() {
+				return "void";
 			}
 		}
 
@@ -575,6 +610,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Null clone(SyntacticItem[] operands) {
 				return new Null();
 			}
+			@Override
+			public String toString() {
+				return "null";
+			}
 		}
 
 		public static class Bool extends Atom implements Primitive {
@@ -583,6 +622,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Bool clone(SyntacticItem[] operands) {
 				return new Bool();
 			}
+			@Override
+			public String toString() {
+				return "bool";
+			}
 		}
 
 		public static class Int extends Atom implements Primitive {
@@ -590,6 +633,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Int clone(SyntacticItem[] operands) {
 				return new Int();
+			}
+			@Override
+			public String toString() {
+				return "int";
 			}
 		}
 
@@ -612,6 +659,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Array clone(SyntacticItem[] operands) {
 				return new Array((Type) operands[0]);
+			}
+			@Override
+			public String toString() {
+				return getElement() + "[]";
 			}
 		}
 
@@ -735,9 +786,19 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Tuple<Type> getReturns() {
 				return (Tuple<Type>) getOperand(1);
 			}
+			@Override
+			public String toString() {
+				return getParameters() + "->" + getReturns();
+			}
 		}
 
-		public static class Function extends FunctionOrMacroOrInvariant implements Type {
+		public static abstract class FunctionOrMacro extends FunctionOrMacroOrInvariant {
+			public FunctionOrMacro(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
+				super(opcode, parameters, returns);
+			}
+		}
+
+		public static class Function extends FunctionOrMacro implements Type {
 			public Function(Tuple<Type> parameters, Tuple<Type> returns) {
 				super(Opcode.TYPE_fun,parameters,returns);
 			}
@@ -746,16 +807,29 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Function clone(SyntacticItem[] operands) {
 				return new Function((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
 			}
+
+			@Override
+			public String toString() {
+				return "function" + super.toString();
+			}
 		}
 
-		public static class Macro extends FunctionOrMacroOrInvariant implements Type {
-			public Macro(Tuple<Type> parameters, Tuple<Type> returns) {
+		public static class Macro extends FunctionOrMacro implements Type {
+			public Macro(Tuple<Type> parameters) {
+				super(Opcode.TYPE_macro, parameters, new Tuple<>(new Type.Bool()));
+			}
+			private Macro(Tuple<Type> parameters, Tuple<Type> returns) {
 				super(Opcode.TYPE_macro, parameters, returns);
 			}
 
 			@Override
 			public Macro clone(SyntacticItem[] operands) {
 				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			}
+
+			@Override
+			public String toString() {
+				return "macro" + super.toString();
 			}
 		}
 
@@ -771,6 +845,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Invariant clone(SyntacticItem[] operands) {
 				return new Invariant((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			}
+
+			@Override
+			public String toString() {
+				return "invariant" + super.toString();
 			}
 		}
 	}
@@ -915,7 +994,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 *            Used to expand nominal types in various situations.
 		 * @return
 		 */
-		public Type getReturnType(TypeSystem types);
+		public Type getReturnType(TypeSystem types) throws ResolutionError;
 
 		public static class Cast extends AbstractSyntacticItem implements Expr {
 			public Cast(Type type, Expr rhs) {
@@ -943,7 +1022,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
-			public Type getReturnType(TypeSystem types) {
+			public Type getReturnType(TypeSystem types) throws ResolutionError {
 				switch (getOpcode()) {
 				case EXPR_not:
 				case EXPR_and:
@@ -1148,7 +1227,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
-			public Type getReturnType(TypeSystem types) {
+			public Type getReturnType(TypeSystem types) throws ResolutionError {
 				Type src = getSource().getReturnType(types);
 				Type.EffectiveRecord effectiveRecord = types.expandAsEffectiveRecord(src);
 				if(effectiveRecord != null) {
@@ -1183,7 +1262,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
-			public Type getReturnType(TypeSystem types) {
+			public Type getReturnType(TypeSystem types) throws ResolutionError {
 				Pair<Identifier, Expr>[] fields = getFields();
 				FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 				for (int i = 0; i != fields.length; ++i) {
@@ -1344,6 +1423,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			return new VerificationError((Declaration.Assert) operands[0]);
 		}
 
+	}
+
+	// ===========================================================
+	// Misc
+	// ===========================================================
+	public static Tuple<Type> projectTypes(Tuple<VariableDeclaration> decls) {
+		Type[] types = new Type[decls.size()];
+		for(int i=0;i!=types.length;++i) {
+			types[i] = decls.getOperand(i).getType();
+		}
+		return new Tuple<>(types);
 	}
 
 	// ===========================================================

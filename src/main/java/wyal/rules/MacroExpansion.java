@@ -2,6 +2,7 @@ package wyal.rules;
 
 import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 import wyal.heap.SyntacticHeaps;
@@ -9,6 +10,8 @@ import wyal.lang.Formula;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.NameNotFoundError;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
@@ -66,7 +69,7 @@ public class MacroExpansion implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
 			expanded = state.allocate(expanded);
@@ -75,20 +78,18 @@ public class MacroExpansion implements Proof.LinearRule {
 		return state;
 	}
 
-	private Formula expandFormula(Proof.State state, Formula formula) {
+	private Formula expandFormula(Proof.State state, Formula formula) throws ResolutionError {
 		if (formula instanceof Formula.Invoke) {
 			Formula.Invoke ivk = (Formula.Invoke) formula;
 			// Determine the type declaration in question
 			Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
-			// Resolve the declaration corresponding to this invocation
-			Declaration.Named decl;
-			if (af instanceof Type.Macro) {
-				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Macro.class);
-			} else if (af instanceof Type.Invariant) {
-				decl = types.resolveAsDeclaration(ivk.getName(), Declaration.Named.Type.class);
-			} else {
+			if(af instanceof Type.Function) {
+				// We ignore function macros here
 				return null;
 			}
+			// Resolve the declaration corresponding to this invocation
+			Declaration.Named decl = resolve(ivk);
+			//
 			Formula invariant = extractDeclarationInvariant(state, decl, ivk.getArguments());
 			if (invariant != null) {
 				if (!ivk.getSign()) {
@@ -128,7 +129,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return formula;
 	}
 
-	private Formula[] expandFormula(Proof.State state, Formula... children) {
+	private Formula[] expandFormula(Proof.State state, Formula... children) throws ResolutionError {
 		Formula[] nChildren = children;
 		for(int i=0;i!=children.length;++i) {
 			Formula child = nChildren[i];
@@ -141,7 +142,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return nChildren;
 	}
 
-	private Formula extractDeclarationInvariant(Proof.State state, Declaration.Named decl, Tuple<Expr> arguments) {
+	private Formula extractDeclarationInvariant(Proof.State state, Declaration.Named decl, Tuple<Expr> arguments) throws ResolutionError {
 		if (decl instanceof Declaration.Named.Type) {
 			// This is a type invariant macro call. In such case, we
 			// need to first determine what the invariant actually is.
@@ -158,7 +159,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		}
 	}
 
-	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) {
+	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) throws ResolutionError {
 		VariableDeclaration[] parameters = md.getParameters().getOperands();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
@@ -180,7 +181,7 @@ public class MacroExpansion implements Proof.LinearRule {
 		return body;
 	}
 
-	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) {
+	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) throws ResolutionError {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
 		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(), argument, types);
@@ -203,6 +204,25 @@ public class MacroExpansion implements Proof.LinearRule {
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
 			result = (Formula) state.substitute(parameter, argument, result, types);
 			return result;
+		}
+	}
+
+	private Declaration.Named resolve(Expr.Invoke ivk) throws ResolutionError {
+		if (ivk.getSignatureType() instanceof Type.Macro) {
+			List<Declaration.Named.Macro> candidates = types.resolveAll(ivk.getName(), Declaration.Named.Macro.class,
+					ivk);
+			Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
+			for (int i = 0; i != candidates.size(); ++i) {
+				Declaration.Named.Macro macro = candidates.get(i);
+				if (macro.getSignatureType().equals(signature)) {
+					return macro;
+				}
+			}
+			//
+			// Should really be impossible to get here
+			throw new NameNotFoundError(ivk.getName(), ivk);
+		} else {
+			return types.resolveExactly(ivk.getName(), Declaration.Named.Type.class, ivk);
 		}
 	}
 }
