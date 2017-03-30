@@ -15,7 +15,7 @@ import wyal.lang.WyalFile;
 public class ProofPrinter {
 	private final PrintWriter out;
 	private final int width = 120;
-	private final boolean fullDelta = true;
+	private final boolean fullDelta = false;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));

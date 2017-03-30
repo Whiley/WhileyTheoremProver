@@ -33,7 +33,6 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Expr.Operator match = matches.get(i);
 				Formula[] cases = generateCaseAnalysis(match, truth, state);
 				if(cases.length > 0) {
-					WyalFile.println(new Formula.Disjunct(cases));
 					Formula disjunct = state.allocate(Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types));
 					state = state.subsume(this, truth, disjunct);
 				}

@@ -10,6 +10,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Tuple;
+import wycc.util.ArrayUtils;
 
 public class AbstractProof<T extends Proof.State> implements Proof {
 	protected final WyalFile.Declaration.Assert assertion;

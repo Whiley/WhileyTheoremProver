@@ -859,13 +859,20 @@ public class Formulae {
 		Expr rhs = eq.getOperand(1);
 		Expr nLhs = simplify(lhs, types);
 		Expr nRhs = simplify(rhs, types);
-		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+		if (nLhs.equals(nRhs)) {
+			return new Formula.Truth(true);
+		} else if (nLhs instanceof Expr.Polynomial && nRhs instanceof Expr.Polynomial) {
+			Expr.Polynomial pLhs = (Expr.Polynomial) nLhs;
+			Expr.Polynomial pRhs = (Expr.Polynomial) nRhs;
+			if(pLhs.isConstant() && pRhs.isConstant()) {
+				return evaluateEquality(eq.getOpcode(), pLhs.toConstant(),pRhs.toConstant());
+			}
+		} else if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
 			Value lhs_v = ((Expr.Constant) nLhs).getValue();
 			Value rhs_v = ((Expr.Constant) nRhs).getValue();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
-		} else if (nLhs.equals(nRhs)) {
-			return new Formula.Truth(true);
-		} if(nLhs == lhs && nRhs == rhs) {
+		}
+		if(nLhs == lhs && nRhs == rhs) {
 			return eq;
 		} else {
 			return new Assignment(nLhs,nRhs);

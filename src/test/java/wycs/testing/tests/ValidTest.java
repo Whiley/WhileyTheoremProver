@@ -42,7 +42,6 @@ public class ValidTest {
 		IGNORED.put("test_array_06", "??");
 		IGNORED.put("test_array_15", "??");
 		IGNORED.put("test_array_26", "??");
-		IGNORED.put("test_array_38", "??");
 		IGNORED.put("test_array_44", "??");
 		IGNORED.put("test_array_50", "??");
 		IGNORED.put("test_array_60", "??");
