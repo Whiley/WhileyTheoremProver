@@ -19,11 +19,10 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class QuantifierInstantiation implements Proof.LinearRule {
-	private final TypeSystem types;
+public class QuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
 
 	public QuantifierInstantiation(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -189,7 +188,7 @@ public class QuantifierInstantiation implements Proof.LinearRule {
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
-		grounded = (Formula) state.substitute(access, binding, grounded, types);
+		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
 		Formula invariant = Formulae.expandTypeInvariant(variable,types);
 		// Add type invariants (if appropriate)

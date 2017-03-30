@@ -106,7 +106,7 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 			// NOTE: we must call construct here since we are creating a new
 			// term from scratch.
 			Polynomial length = Formulae
-					.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0)),types));
+					.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0))));
 			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
 				Formula.Inequality ieq = (Formula.Inequality) target;

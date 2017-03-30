@@ -171,27 +171,6 @@ public interface Proof {
 		 * @return
 		 */
 		Formula allocate(Formula truth);
-
-		/**
-		 * When generating an entirely new term within a given rule (i.e. one
-		 * that has not been previously seen in the proof), we need to check
-		 * whether it is the subject of some existing assignment or not.
-		 *
-		 * @param newTerm
-		 * @return
-		 */
-		Expr construct(Expr newTerm, TypeSystem types);
-
-		/**
-		 * Replace all occurrences of a given expression (from) with all
-		 * occurrences of a given expression (to) in a given term.
-		 *
-		 * @param from
-		 * @param to
-		 * @param item
-		 * @return
-		 */
-		SyntacticItem substitute(SyntacticItem from, SyntacticItem to, SyntacticItem term, TypeSystem types);
 	}
 
 	/**

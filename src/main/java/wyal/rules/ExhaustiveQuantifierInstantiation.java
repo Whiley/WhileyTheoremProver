@@ -2,6 +2,7 @@ package wyal.rules;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -23,11 +24,10 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
-	private final TypeSystem types;
+public class ExhaustiveQuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
 
 	public ExhaustiveQuantifierInstantiation(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -196,7 +196,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
-		grounded = (Formula) state.substitute(access, binding, grounded, types);
+		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
 		Formula invariant = Formulae.expandTypeInvariant(variable, types);
 		// Add type invariants (if appropriate)
@@ -253,7 +253,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Formula quantified, Formula.Equation ground) throws ResolutionError {
 		ArrayList<Expr> result = new ArrayList<>();
 		//
-		if (quantified instanceof Formula.Inequality) {
+		if (quantified instanceof Formula.Inequality && ground instanceof Formula.Inequality) {
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
@@ -264,8 +264,8 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			result.addAll(negPosMatches);
 		} else if (quantified instanceof Formula.Equation) {
 			Formula.Equation ieq = (Formula.Equation) quantified;
-			Match leftSign = getSign(ground,0);
-			Match rightSign = getSign(ground,1);
+			Match leftSign = getSign(ieq,ground,0);
+			Match rightSign = getSign(ieq,ground,1);
 			List<Expr> posPosMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(0), leftSign);
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), rightSign);
 			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), leftSign);
@@ -289,8 +289,8 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		return result;
 	}
 
-	private Match getSign(Formula.Equation e, int operand) {
-		if (e instanceof Formula.Equality || e instanceof Formula.Assignment) {
+	private Match getSign(Formula.Equation quantified, Formula.Equation ground, int operand) {
+		if (quantified instanceof Formula.Equality && ground instanceof Formula.Equality) {
 			return Match.EXACT;
 		} else if (operand == 0) {
 			return Match.POSITIVE;
@@ -336,7 +336,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
-				Expr attempt = (Expr) state.substitute(access, candidate, quantified, types);
+				Expr attempt = (Expr) substitute(access, candidate, quantified);
 				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {
@@ -433,5 +433,6 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	private boolean isTrigger(Expr e) {
 		return e.getOpcode() == Opcode.EXPR_arridx;
 	}
+
 
 }

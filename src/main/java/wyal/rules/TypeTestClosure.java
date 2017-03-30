@@ -14,11 +14,10 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class TypeTestClosure implements Proof.LinearRule {
-	private final TypeSystem types;
+public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRule {
 
 	public TypeTestClosure(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -134,7 +133,7 @@ public class TypeTestClosure implements Proof.LinearRule {
 				//
 				for (int i = 0; i != additions.size(); ++i) {
 					Formula existing = additions.get(i);
-					Formula updated = (Formula) state.substitute(oldVar, newVar, existing, types);
+					Formula updated = (Formula) substitute(oldVar, newVar, existing);
 					if (updated != existing) {
 						updated = state.allocate(updated);
 						state = state.subsume(this, existing, updated, dependencies);

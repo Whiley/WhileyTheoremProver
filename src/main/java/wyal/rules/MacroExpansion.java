@@ -56,11 +56,10 @@ import wyal.util.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class MacroExpansion implements Proof.LinearRule {
-	private final TypeSystem types;
+public class MacroExpansion extends AbstractProofRule implements Proof.LinearRule {
 
 	public MacroExpansion(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -176,7 +175,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
-			body = (Formula) state.substitute(parameter, arguments[i], body, types);
+			body = (Formula) substitute(parameter, arguments[i], body);
 		}
 		return body;
 	}
@@ -202,7 +201,7 @@ public class MacroExpansion implements Proof.LinearRule {
 			// extracted type invariant.
 
 			Expr.VariableAccess parameter = new Expr.VariableAccess(td.getVariableDeclaration());
-			result = (Formula) state.substitute(parameter, argument, result, types);
+			result = (Formula) substitute(parameter, argument, result);
 			return result;
 		}
 	}

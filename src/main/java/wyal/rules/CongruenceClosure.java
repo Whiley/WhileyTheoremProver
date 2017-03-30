@@ -59,11 +59,10 @@ import wyal.util.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class CongruenceClosure implements Proof.LinearRule {
-	private final TypeSystem types;
+public class CongruenceClosure extends AbstractProofRule implements Proof.LinearRule {
 
 	public CongruenceClosure(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -74,9 +73,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 	@Override
 	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 		//
-		if (newTruth instanceof Formula.Assignment) {
-			state = applyAssignment((Formula.Assignment)newTruth,state);
-		} else if (newTruth instanceof Formula.Equality) {
+		if (newTruth instanceof Formula.Equality) {
 			state = substituteAgainstEquality(state, (Formula.Equality) newTruth);
 		}
 		//
@@ -88,11 +85,8 @@ public class CongruenceClosure implements Proof.LinearRule {
 		if (newTruth.getSign()) {
 			state = applyEqualityTypeAxiom(state, newTruth);
 			//
-			Formula.Assignment assignment = rearrangeToAssignment(newTruth);
+			Assignment assignment = rearrangeToAssignment(newTruth);
 			if (assignment != null) {
-				assignment = (Formula.Assignment) Formulae.simplifyFormula(assignment,types);
-				assignment = (Formula.Assignment) state.allocate(assignment);
-				state = state.subsume(this,newTruth,assignment);
 				return applyAssignment(assignment,state);
 			}
 		}
@@ -140,19 +134,21 @@ public class CongruenceClosure implements Proof.LinearRule {
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
+			//return state.subsume(this, newTruth, state.allocate(axiom));
 			return state.subsume(this, newTruth, state.allocate(axiom));
 		}
 	}
 
-	private State applyAssignment(Formula.Assignment assignment, Proof.State state) throws ResolutionError {
+	private State applyAssignment(Assignment assignment, Proof.State state) throws ResolutionError {
+		Formula newTruth = assignment.getDependency();
 		Proof.Delta history = state.getDelta(null);
 		Proof.Delta.Set additions = history.getAdditions();
 		//
 		for (int i = 0; i != additions.size(); ++i) {
 			Formula existingTruth = additions.get(i);
-			if(existingTruth != assignment) {
-				Formula updatedTruth = (Formula) state.substitute(assignment.getLeftHandSide(),
-						assignment.getRightHandSide(), existingTruth, types);
+			if(existingTruth != newTruth) {
+				Formula updatedTruth = (Formula) substitute(assignment.getLeftHandSide(), assignment.getRightHandSide(),
+						existingTruth);
 				if (existingTruth != updatedTruth) {
 					updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
 					// The following is needed because substitution can
@@ -161,7 +157,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 					// need to avoid "recursive substitutions" somehow.
 					if (!existingTruth.equals(updatedTruth)) {
 						updatedTruth = state.allocate(updatedTruth);
-						state = state.subsume(this, existingTruth, updatedTruth, assignment);
+						state = state.subsume(this, existingTruth, updatedTruth, newTruth);
 					}
 				}
 			}
@@ -182,7 +178,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 	 *            --- The equality being rearranged
 	 * @return
 	 */
-	public static Formula.Assignment rearrangeToAssignment(Formula.Equality equality) {
+	public static Assignment rearrangeToAssignment(Formula.Equality equality) {
 		Expr candidate;
 		Expr bound;
 		if (equality instanceof Formula.ArithmeticEquality) {
@@ -224,7 +220,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			}
 		}
 
-		return new Formula.Assignment(candidate, bound);
+		return new Assignment(candidate,bound,equality);
 	}
 
 	private static Expr extractCandidate(Polynomial.Term term) {
@@ -327,6 +323,30 @@ public class CongruenceClosure implements Proof.LinearRule {
 				}
 			}
 			return false;
+		}
+	}
+
+	public static class Assignment {
+		private final Expr lhs;
+		private final Expr rhs;
+		private final Formula dependency;
+
+		public Assignment(Expr lhs, Expr rhs, Formula dep) {
+			this.lhs = lhs;
+			this.rhs = rhs;
+			this.dependency = dep;
+		}
+
+		public Expr getLeftHandSide() {
+			return lhs;
+		}
+
+		public Expr getRightHandSide() {
+			return rhs;
+		}
+
+		public Formula getDependency() {
+			return dependency;
 		}
 	}
 }
