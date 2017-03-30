@@ -6,11 +6,14 @@ import java.util.Collections;
 import java.util.List;
 
 import wyal.lang.Formula;
+import wyal.lang.NameResolver;
 import wyal.lang.Proof;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
 public abstract class AbstractProofRule implements Proof.Rule {
@@ -141,6 +144,141 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		}
 		//
 		return false;
+	}
+
+	/**
+	 * When generating an entirely new term within a given rule (i.e. one
+	 * that has not been previously seen in the proof), we need to check
+	 * whether it is the subject of some existing assignment or not.
+	 *
+	 * @param newTerm
+	 * @return
+	 */
+	public SyntacticItem construct(Proof.State state, SyntacticItem term) {
+		SyntacticItem[] children = term.getOperands();
+		SyntacticItem[] nChildren = children;
+		if(children != null) {
+			for (int i = 0; i != children.length; ++i) {
+				SyntacticItem child = children[i];
+				SyntacticItem nChild;
+				if(child instanceof Expr) {
+					 nChild = construct(state, (Expr) child);
+				} else if(child instanceof Tuple) {
+					nChild = construct(state,(Tuple)child);
+				} else {
+					nChild = child;
+				}
+				if (child != nChild && nChildren == children) {
+					// Clone the new children array to avoid interfering
+					// with original item.
+					nChildren = Arrays.copyOf(children, children.length);
+				}
+				nChildren[i] = nChild;
+			}
+		}
+		if (nChildren != children) {
+			// At least one child was changed, therefore clone the original
+			// item with the new children.
+			term = (SyntacticItem) term.clone(nChildren);
+		}
+		if(term instanceof Expr) {
+			return localConstruct(state,(Expr) term);
+		} else {
+			return term;
+		}
+	}
+
+	public Expr localConstruct(Proof.State state, Expr term) {
+		try {
+			Expr tmp = Formulae.simplify(term, types);
+			CongruenceClosure.Assignment assignment = lookupAssignment(state,tmp);
+			if (assignment != null) {
+				return assignment.getRightHandSide();
+			} else {
+				return term;
+			}
+		} catch (NameResolver.ResolutionError e) {
+			// FIXME: now this is clearly scaffolding (i.e. a hack).
+			throw new RuntimeException("name resolution error", e);
+		}
+	}
+
+
+	private CongruenceClosure.Assignment lookupAssignment(Proof.State state, Expr term) {
+		Proof.State parent = state.getParent();
+		Proof.Delta.Set additions = state.getDelta().getAdditions();
+		//
+		for (int i = additions.size()-1; i >= 0; --i) {
+			Formula f = additions.get(i);
+			if (f instanceof Formula.Equality) {
+				Formula.Equality eq = (Formula.Equality) f;
+				if(eq.getSign()) {
+					CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
+					// FIXME: this is essentially pretty broken. Need to find a
+					// much better way to handle congruence closure.
+					if (assign != null && assign.getLeftHandSide().equals(term)) {
+						return assign;
+					}
+				}
+			}
+		}
+		if (parent == null) {
+			return null;
+		} else {
+			return lookupAssignment(parent,term);
+		}
+	}
+
+	/**
+	 * <p>
+	 * Substitute for a given variable within a given syntactic item.
+	 * Specifically, this replaces all instances of VariableAccess which match
+	 * the given declaration. Observe that the substitution is performed
+	 * verbatim and (for example) without simplifying the underlying item.
+	 * </p>
+	 * <p>
+	 * This function preserves the aliasing structure of the original item up to
+	 * the substitution itself. Furthermore, if no substitution was performed
+	 * then the original item is returned as is.
+	 * </p>
+	 * @param from
+	 * @param to
+	 * @param item
+	 * @return
+	 */
+	public SyntacticItem substitute(SyntacticItem from, SyntacticItem to, SyntacticItem item) {
+		if (item.equals(from)) {
+			// Yes, we made a substitution!
+			return to;
+		} else {
+			// No immediate substitution possible. Instead, recursively traverse
+			// term looking for substitution.
+			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] nChildren = children;
+			if(children != null) {
+				for (int i = 0; i != children.length; ++i) {
+					SyntacticItem child = children[i];
+					if(child != null) {
+						SyntacticItem nChild = substitute(from, to, child);
+						if (child != nChild && nChildren == children) {
+							// Clone the new children array to avoid interfering with
+							// original item.
+							nChildren = Arrays.copyOf(children, children.length);
+						}
+						nChildren[i] = nChild;
+					}
+				}
+			}
+			if (nChildren == children) {
+				// No children were updated, hence simply return the original
+				// item.
+				return item;
+			} else {
+				// At least one child was changed, therefore clone the original
+				// item with the new children.
+				return item.clone(nChildren);
+			}
+		}
 	}
 
 	// =====================================================================

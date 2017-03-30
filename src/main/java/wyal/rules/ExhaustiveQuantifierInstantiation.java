@@ -24,11 +24,10 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
-	private final TypeSystem types;
+public class ExhaustiveQuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
 
 	public ExhaustiveQuantifierInstantiation(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -197,7 +196,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
-		grounded = (Formula) state.substitute(access, binding, grounded, types);
+		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
 		Formula invariant = Formulae.expandTypeInvariant(variable, types);
 		// Add type invariants (if appropriate)
@@ -337,7 +336,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
-				Expr attempt = (Expr) substitute(access, candidate, quantified, types);
+				Expr attempt = (Expr) substitute(access, candidate, quantified);
 				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {
@@ -435,38 +434,5 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		return e.getOpcode() == Opcode.EXPR_arridx;
 	}
 
-	private static SyntacticItem substitute(SyntacticItem from, SyntacticItem to, SyntacticItem item, TypeSystem types) {
-		if (item.equals(from)) {
-			// Yes, we made a substitution!
-			return to;
-		} else {
-			// No immediate substitution possible. Instead, recursively traverse
-			// term looking for substitution.
-			SyntacticItem[] children = item.getOperands();
-			SyntacticItem[] nChildren = children;
-			if(children != null) {
-				for (int i = 0; i != children.length; ++i) {
-					SyntacticItem child = children[i];
-					if(child != null) {
-						SyntacticItem nChild = substitute(from, to, child, types);
-						if (child != nChild && nChildren == children) {
-							// Clone the new children array to avoid interfering with
-							// original item.
-							nChildren = Arrays.copyOf(children, children.length);
-						}
-						nChildren[i] = nChild;
-					}
-				}
-			}
-			if (nChildren == children) {
-				// No children were updated, hence simply return the original
-				// item.
-				return item;
-			} else {
-				// At least one child was changed, therefore clone the original
-				// item with the new children.
-				return item.clone(nChildren);
-			}
-		}
-	}
+
 }

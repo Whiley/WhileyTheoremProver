@@ -59,11 +59,10 @@ import wyal.util.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class CongruenceClosure implements Proof.LinearRule {
-	private final TypeSystem types;
+public class CongruenceClosure extends AbstractProofRule implements Proof.LinearRule {
 
 	public CongruenceClosure(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -135,6 +134,7 @@ public class CongruenceClosure implements Proof.LinearRule {
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
+			//return state.subsume(this, newTruth, state.allocate(axiom));
 			return state.subsume(this, newTruth, state.allocate(axiom));
 		}
 	}
@@ -147,8 +147,8 @@ public class CongruenceClosure implements Proof.LinearRule {
 		for (int i = 0; i != additions.size(); ++i) {
 			Formula existingTruth = additions.get(i);
 			if(existingTruth != newTruth) {
-				Formula updatedTruth = (Formula) state.substitute(assignment.getLeftHandSide(),
-						assignment.getRightHandSide(), existingTruth, types);
+				Formula updatedTruth = (Formula) substitute(assignment.getLeftHandSide(), assignment.getRightHandSide(),
+						existingTruth);
 				if (existingTruth != updatedTruth) {
 					updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
 					// The following is needed because substitution can

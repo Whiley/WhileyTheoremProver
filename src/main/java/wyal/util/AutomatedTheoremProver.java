@@ -34,7 +34,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 500;
+	private final int maxProofSize = 1000;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.

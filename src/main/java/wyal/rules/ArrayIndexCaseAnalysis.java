@@ -53,11 +53,11 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
 				Expr v = (Expr) src.getOperand(2);
 				result = new Formula[2];
-				Formula case1 = (Formula) state.substitute(split, v, truth, types);
+				Formula case1 = (Formula) substitute(split, v, truth);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = state.construct(new Expr.Operator(Opcode.EXPR_arridx, xs, j), types);
-				Formula case2 = (Formula) state.substitute(split, arridx, truth, types);
+				WyalFile.Expr arridx = (Expr) construct(state,new Expr.Operator(Opcode.EXPR_arridx, xs, j));
+				Formula case2 = (Formula) substitute(split, arridx, truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
 				break;
@@ -66,7 +66,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				result = new Formula[src.size()];
 				for (int i = 0; i != src.size(); ++i) {
 					// a >= 0 && j == 0
-					Formula lhs = (Formula) state.substitute(split, src.getOperand(i), truth, types);
+					Formula lhs = (Formula) substitute(split, src.getOperand(i), truth);
 					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(i));
 					result[i] = Formulae.and(lhs, rhs);
 				}

@@ -150,45 +150,5 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		public Formula allocate(Formula truth) {
 			return proof.getHeap().allocate(truth);
 		}
-
-		@Override
-		public Expr construct(Expr term, TypeSystem types) {
-			try {
-				Expr tmp = Formulae.simplify((Expr) term, types);
-				CongruenceClosure.Assignment assignment = lookupAssignment(tmp);
-				if (assignment != null) {
-					return assignment.getRightHandSide();
-				} else {
-					return term;
-				}
-			} catch (NameResolver.ResolutionError e) {
-				// FIXME: now this is clearly scaffolding (i.e. a hack).
-				throw new RuntimeException("name resolution error", e);
-			}
-		}
-
-		private CongruenceClosure.Assignment lookupAssignment(Expr term) {
-			Proof.Delta.Set additions = delta.getAdditions();
-			//
-			for (int i = additions.size()-1; i >= 0; --i) {
-				Formula f = additions.get(i);
-				if (f instanceof Formula.Equality) {
-					Formula.Equality eq = (Formula.Equality) f;
-					if(eq.getSign()) {
-						CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
-						// FIXME: this is essentially pretty broken. Need to find a
-						// much better way to handle congruence closure.
-						if (assign != null && assign.getLeftHandSide().equals(term)) {
-							return assign;
-						}
-					}
-				}
-			}
-			if (parent == null) {
-				return null;
-			} else {
-				return parent.lookupAssignment(term);
-			}
-		}
 	}
 }

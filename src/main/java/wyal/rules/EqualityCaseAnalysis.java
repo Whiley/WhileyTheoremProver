@@ -14,11 +14,10 @@ import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
-public class EqualityCaseAnalysis implements Proof.LinearRule {
-	private final TypeSystem types;
+public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
 
 	public EqualityCaseAnalysis(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -131,8 +130,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
-			Expr lf = state.construct(new Expr.RecordAccess(lhs, fields[i].getVariableName()),types);
-			Expr rf = state.construct(new Expr.RecordAccess(rhs, fields[i].getVariableName()),types);
+			Expr lf = (Expr) construct(state,new Expr.RecordAccess(lhs, fields[i].getVariableName()));
+			Expr rf = (Expr) construct(state,new Expr.RecordAccess(rhs, fields[i].getVariableName()));
 			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
 		}
 		Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(clauses), types);
@@ -249,13 +248,13 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
 			Proof.State state) throws ResolutionError {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
-		Expr rhsSize = state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs),types);
+		Expr rhsSize = (Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, rhs));
 		Expr[] lhsOperands = lhs.getOperands();
 		Formula[] clauses = new Formula[lhsOperands.length + 1];
 		for (int i = 0; i != lhsOperands.length; ++i) {
 			Expr index = new Expr.Constant(new Value.Int(i));
 			Expr lhsOperand = lhsOperands[i];
-			Expr rhsOperand = state.construct(new Expr.Operator(Opcode.EXPR_arridx, rhs, index),types);
+			Expr rhsOperand = (Expr) construct(state, new Expr.Operator(Opcode.EXPR_arridx, rhs, index));
 			clauses[i] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsOperand, rhsOperand), types);
 		}
 		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsSize, rhsSize), types);
@@ -270,8 +269,8 @@ public class EqualityCaseAnalysis implements Proof.LinearRule {
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
 		Formula body = notEquals(lhsAccess, rhsAccess, types);
-		Polynomial lhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, lhs),types));
-		Polynomial rhsLen = Formulae.toPolynomial(state.construct(new Expr.Operator(Opcode.EXPR_arrlen, rhs),types));
+		Polynomial lhsLen = Formulae.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, lhs)));
+		Polynomial rhsLen = Formulae.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, rhs)));
 		// The following axiom simply states that the length of every array
 		// type is greater than or equal to zero.
 		Formula axiom = new ArithmeticEquality(false, lhsLen, rhsLen);
