@@ -2,6 +2,7 @@ package wyal.rules;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -253,7 +254,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Formula quantified, Formula.Equation ground) throws ResolutionError {
 		ArrayList<Expr> result = new ArrayList<>();
 		//
-		if (quantified instanceof Formula.Inequality) {
+		if (quantified instanceof Formula.Inequality && ground instanceof Formula.Inequality) {
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
@@ -264,8 +265,8 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			result.addAll(negPosMatches);
 		} else if (quantified instanceof Formula.Equation) {
 			Formula.Equation ieq = (Formula.Equation) quantified;
-			Match leftSign = getSign(ground,0);
-			Match rightSign = getSign(ground,1);
+			Match leftSign = getSign(ieq,ground,0);
+			Match rightSign = getSign(ieq,ground,1);
 			List<Expr> posPosMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(0), leftSign);
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), rightSign);
 			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), leftSign);
@@ -289,8 +290,8 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		return result;
 	}
 
-	private Match getSign(Formula.Equation e, int operand) {
-		if (e instanceof Formula.Equality || e instanceof Formula.Assignment) {
+	private Match getSign(Formula.Equation quantified, Formula.Equation ground, int operand) {
+		if (quantified instanceof Formula.Equality && ground instanceof Formula.Equality) {
 			return Match.EXACT;
 		} else if (operand == 0) {
 			return Match.POSITIVE;
@@ -336,7 +337,7 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
-				Expr attempt = (Expr) state.substitute(access, candidate, quantified, types);
+				Expr attempt = (Expr) substitute(access, candidate, quantified, types);
 				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {
@@ -434,4 +435,38 @@ public class ExhaustiveQuantifierInstantiation implements Proof.LinearRule {
 		return e.getOpcode() == Opcode.EXPR_arridx;
 	}
 
+	private static SyntacticItem substitute(SyntacticItem from, SyntacticItem to, SyntacticItem item, TypeSystem types) {
+		if (item.equals(from)) {
+			// Yes, we made a substitution!
+			return to;
+		} else {
+			// No immediate substitution possible. Instead, recursively traverse
+			// term looking for substitution.
+			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] nChildren = children;
+			if(children != null) {
+				for (int i = 0; i != children.length; ++i) {
+					SyntacticItem child = children[i];
+					if(child != null) {
+						SyntacticItem nChild = substitute(from, to, child, types);
+						if (child != nChild && nChildren == children) {
+							// Clone the new children array to avoid interfering with
+							// original item.
+							nChildren = Arrays.copyOf(children, children.length);
+						}
+						nChildren[i] = nChild;
+					}
+				}
+			}
+			if (nChildren == children) {
+				// No children were updated, hence simply return the original
+				// item.
+				return item;
+			} else {
+				// At least one child was changed, therefore clone the original
+				// item with the new children.
+				return item.clone(nChildren);
+			}
+		}
+	}
 }

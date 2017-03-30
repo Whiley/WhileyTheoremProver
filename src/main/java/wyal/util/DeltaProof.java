@@ -12,6 +12,7 @@ import wyal.util.AbstractProof.AbstractState;
 import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wyal.lang.WyalFile.Expr;
+import wyal.rules.CongruenceClosure;
 
 public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
@@ -154,7 +155,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		public Expr construct(Expr term, TypeSystem types) {
 			try {
 				Expr tmp = Formulae.simplify((Expr) term, types);
-				Formula.Assignment assignment = lookupAssignment(tmp);
+				CongruenceClosure.Assignment assignment = lookupAssignment(tmp);
 				if (assignment != null) {
 					return assignment.getRightHandSide();
 				} else {
@@ -166,17 +167,20 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			}
 		}
 
-		private Formula.Assignment lookupAssignment(Expr term) {
+		private CongruenceClosure.Assignment lookupAssignment(Expr term) {
 			Proof.Delta.Set additions = delta.getAdditions();
 			//
-			for (int i = 0; i != additions.size(); ++i) {
+			for (int i = additions.size()-1; i >= 0; --i) {
 				Formula f = additions.get(i);
-				if (f instanceof Formula.Assignment) {
-					Formula.Assignment assign = (Formula.Assignment) f;
-					// Found an assignment, so check whether term is being
-					// assigned or not.
-					if (assign.getLeftHandSide().equals(term)) {
-						return assign;
+				if (f instanceof Formula.Equality) {
+					Formula.Equality eq = (Formula.Equality) f;
+					if(eq.getSign()) {
+						CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
+						// FIXME: this is essentially pretty broken. Need to find a
+						// much better way to handle congruence closure.
+						if (assign != null && assign.getLeftHandSide().equals(term)) {
+							return assign;
+						}
 					}
 				}
 			}

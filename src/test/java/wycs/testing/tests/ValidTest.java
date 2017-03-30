@@ -40,17 +40,12 @@ public class ValidTest {
 
 	static {
 		IGNORED.put("test_array_06", "??");
-		IGNORED.put("test_array_15", "??");
 		IGNORED.put("test_array_26", "??");
-		IGNORED.put("test_array_44", "??");
+		IGNORED.put("test_array_41", "??");
 		IGNORED.put("test_array_50", "??");
 		IGNORED.put("test_array_60", "??");
-		IGNORED.put("test_array_63", "??");
-		IGNORED.put("test_array_66", "??");
-		IGNORED.put("test_array_67", "??");
+//		IGNORED.put("test_fun_09", "??");
 		IGNORED.put("test_type_44", "??");
-		IGNORED.put("test_type_64", "??");
-
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//
