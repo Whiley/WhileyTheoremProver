@@ -22,32 +22,91 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 
 	@Override
 	public String getName() {
-		return "Is-Ia";
+		return "Is-I";
 	}
 
 	@Override
 	public State apply(State state, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			if(test.getExpr() instanceof Expr.VariableAccess){
-				// FIXME: I think we probably can do better here in some cases
-				// by back propagating type information through the expression
-				// in question.
-				state = retypeVariable(test, state, test);
+			state = apply(test, state);
+		}
+		return state;
+	}
+
+	/**
+	 * Effect the given type test by retyping the variable in question. The type
+	 * test is made redundant at this point.
+	 *
+	 * @param typeTest
+	 * @param state
+	 * @param dependencies
+	 * @return
+	 */
+	private State apply(Formula.Is typeTest, Proof.State state) throws ResolutionError {
+		Expr lhs = typeTest.getExpr();
+		Type lhsT = lhs.getReturnType(types);
+		Type rhsT = typeTest.getTypeTest();
+		if (lhsT != null) {
+			// FIXME: at the moment, TypeSystem.intersect is not working
+			// properly. It's possible that using Type.intersection could
+			// potentially lead to unbounded growth of the overall type.
+			//Type intersection = TypeSystem.intersect(lhsT, rhsT);
+			Type intersection = new Type.Intersection(lhsT,rhsT);
+			//
+			if (types.isSubtype(new Type.Void(), intersection)) {
+				// No possible intersection exists between the types in
+				// question. Therefore, the test cannot be true.
+				return state.subsume(this, typeTest, state.allocate(new Formula.Truth(false)));
 			} else {
-				// At this point, we have a type test which potentially could be
-				// closed with one or more other type tests. Therefore, we need to
-				// look back through the history to determine any inequalities which
-				// are currently "active".
-				List<Formula.Is> matches = findMatches(test,state);
-				if(matches.size() > 1) {
-					state = closeOver(matches,state);
+				// At this point, it seems that the type test cannot be
+				// eliminated. The next thing is to assert any type invariants
+				// which now hold as a result of this test holding.
+				Formula invariant = Formulae.extractTypeInvariant(intersection, lhs, types);
+				// Assume extracted type invariant (if one exists)
+				if (invariant != null) {
+					invariant = state.allocate(invariant);
+					state = state.infer(this, invariant, typeTest);
+				}
+				// In the case of a variable being retyped, we now need to go
+				// through a properly effect that by retyping all truths which
+				// use that variable. This may allow some of those truths to now
+				// type themselves correctly.
+				if (lhs instanceof Expr.VariableAccess) {
+					state = retypeVariable(typeTest,intersection,state);
+				} else {
+					List<Formula.Is> matches = findMatches(typeTest,state);
+					if(matches.size() > 1) {
+						state = closeOver(matches,state);
+					}
 				}
 			}
 		}
 		return state;
 	}
 
+	private Proof.State retypeVariable(Formula.Is typeTest, Type intersection, Proof.State state) {
+		Expr.VariableAccess oldVar = (Expr.VariableAccess) typeTest.getOperand(0);
+		VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
+		String tmp = oldDeclaration.getVariableName().get() + "'";
+		VariableDeclaration newDeclaration = new VariableDeclaration(intersection,
+				new WyalFile.Identifier(tmp));
+		Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
+		//
+		Proof.Delta history = state.getDelta(null);
+		Proof.Delta.Set additions = history.getAdditions();
+		//
+		for (int i = 0; i != additions.size(); ++i) {
+			Formula existing = additions.get(i);
+			Formula updated = (Formula) substitute(oldVar, newVar, existing);
+			if (existing != typeTest && updated != existing) {
+				updated = state.allocate(updated);
+				state = state.subsume(this, existing, updated, typeTest);
+			}
+		}
+		//
+		return state;
+	}
 
 	/**
 	 * Find the complete set of matching type tests. A type test is matching if
@@ -65,9 +124,9 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		//
 		List<Formula.Is> matches = new ArrayList<>();
 		//
-		for(int i=0;i!=additions.size();++i) {
+		for (int i = 0; i != additions.size(); ++i) {
 			Formula existing = additions.get(i);
-			if(existing instanceof Formula.Is) {
+			if (existing instanceof Formula.Is) {
 				Formula.Is rhs = (Formula.Is) existing;
 				if (lhs.getExpr().equals(rhs.getExpr())) {
 					matches.add(rhs);
@@ -94,53 +153,6 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		state = state.subsume(this, froms, new Formula[] { test });
 		//
 		return state;
-}
-
-	/**
-	 * Effect the given type test by retyping the variable in question. The type
-	 * test is made redundant at this point.
-	 *
-	 * @param typeTest
-	 * @param state
-	 * @param dependencies
-	 * @return
-	 */
-	private State retypeVariable(Formula.Is typeTest, Proof.State state, Formula... dependencies) throws ResolutionError {
-		Expr lhs = typeTest.getExpr();
-		Type lhsT = lhs.getReturnType(types);
-		Type rhsT = typeTest.getTypeTest();
-		if (lhsT == null) {
-			return state;
-		} else if (types.isSubtype(rhsT, lhsT)) {
-			// Don't need to do anything in this situation.
-			return state;
-		} else if (lhs instanceof Expr.VariableAccess) {
-			Expr.VariableAccess oldVar = (Expr.VariableAccess) lhs;
-			VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
-			Type intersection = TypeSystem.intersect(oldDeclaration.getType(), rhsT);
-			if (types.isSubtype(new Type.Void(), intersection)) {
-				// This indicates something of a problem has occurred. The type
-				// of this variable is void ... so it definitely cannot be
-				// instantiated.
-				return state.subsume(this, typeTest, state.allocate(new Formula.Truth(false)));
-			} else {
-				VariableDeclaration newDeclaration = new VariableDeclaration(intersection,
-						oldDeclaration.getVariableName());
-				Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
-				//
-				Proof.Delta history = state.getDelta(null);
-				Proof.Delta.Set additions = history.getAdditions();
-				//
-				for (int i = 0; i != additions.size(); ++i) {
-					Formula existing = additions.get(i);
-					Formula updated = (Formula) substitute(oldVar, newVar, existing);
-					if (updated != existing) {
-						updated = state.allocate(updated);
-						state = state.subsume(this, existing, updated, dependencies);
-					}
-				}
-			}
-		}
-		return state;
 	}
+
 }
