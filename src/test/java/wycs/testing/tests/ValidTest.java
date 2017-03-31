@@ -68,6 +68,10 @@ public class ValidTest {
 		IGNORED.put("test_array_31", "#42");
 		//
 		IGNORED.put("test_record_08", "#59");
+		//
+		IGNORED.put("test_type_74", "#62");
+		IGNORED.put("test_type_75", "#62");
+		IGNORED.put("test_type_76", "#62");
 	}
 
 	// ======================================================================

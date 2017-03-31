@@ -1,0 +1,10 @@
+type nullint is (null|int x)
+type boolint is (bool|int x)
+
+assert:
+   forall({any f} x):
+       if:
+          x.f is nullint
+          x.f is boolint
+       then:
+          x.f is int

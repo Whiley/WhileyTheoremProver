@@ -14,6 +14,76 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
 import wyal.util.TypeSystem;
 
+/**
+ * <p>
+ * Responsible for handling type tests. There are three essential cases that it
+ * covers: first, the expansion of type invariants; second, the closure of
+ * multiple tests over the same left-hand side; third, the retyping of a given
+ * variable. We now consider each of these in turn.
+ * </p>
+ * <p>
+ * <b>Expansion of type invariants.</b> Consider the following assertion:
+ *
+ * <pre>
+ * type nat is (int x) where x >= 0
+ *
+ * assert:
+ *    forall(int x):
+ *        if:
+ *           x is nat
+ *        then:
+ *           x >= 0
+ * </pre>
+ *
+ * For proof-by-contradiction we have <code>x is nat && x < 0</code>. Type
+ * expansion takes the test <code>x is nat</code> and infers
+ * <code>nat(x)</code>, which represents the invariant for type <code>nat</code>
+ * applied to <code>x</code>. This is then separately expanded to
+ * <code>x >= 0</code> as expected, thus giving the contradiction.
+ * </p>
+ * <p>
+ * <b>Closure over Type Tests.</b> Consider the following assertion
+ *
+ * <pre>
+ * type nullint is (null|int x)
+ * type boolint is (bool|int x)
+ *
+ * assert:
+ *    forall({any f} x):
+ *        if:
+ *           x.f is nullint
+ *           x.f is boolint
+ *        then:
+ *           x.f is int
+ * </pre>
+ *
+ * In this case, to arrive at the contradiction we have to "close over"
+ * <code>x.f is nullint</code> and <code>x.f is boolint</code> to conclude that
+ * <code>x is int</code>. This is done by intersecting <code>nullint</code> with
+ * <code>boolint</code>.
+ * </p>
+ * <p>
+ * <b>Retyping of Variables.</b> In the case of a variable being tested (e.g.
+ * <code>x is int</code>), we can perform a <i>complete retyping</i> of all
+ * expressions involving <code>x</code> to exploit this additional information.
+ * As an example, consider this assertion:
+ *
+ * <pre>
+ * assert:
+ *   forall(int[] xs, any i):
+ *      if:
+ *         i is int
+ *      then:
+ *         xs[i] is int
+ * </pre>
+ *
+ * In this case, the expression <code>xs[i]</code> <i>can only be typed after
+ * variable <code>i</code> is retyped to <code>int</code>.
+ * </p>
+ *
+ * @author David J. Pearce
+ *
+ */
 public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRule {
 
 	public TypeTestClosure(TypeSystem types) {
@@ -49,9 +119,8 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		Type rhsT = typeTest.getTypeTest();
 		if (lhsT != null) {
 			// FIXME: at the moment, TypeSystem.intersect is not working
-			// properly. It's possible that using Type.intersection could
+			// properly. It's possible that using new Type.Intersection could
 			// potentially lead to unbounded growth of the overall type.
-			//Type intersection = TypeSystem.intersect(lhsT, rhsT);
 			Type intersection = new Type.Intersection(lhsT,rhsT);
 			//
 			if (types.isSubtype(new Type.Void(), intersection)) {
@@ -75,6 +144,9 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 				if (lhs instanceof Expr.VariableAccess) {
 					state = retypeVariable(typeTest,intersection,state);
 				} else {
+					// FIXME: in the case of a field access, we can actually do
+					// better here. For example, "x.f is int" can be reduced to
+					// "x is {int f,...}".
 					List<Formula.Is> matches = findMatches(typeTest,state);
 					if(matches.size() > 1) {
 						state = closeOver(matches,state);
@@ -139,13 +211,14 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 
 	private State closeOver(List<Formula.Is> matches, Proof.State state) throws ResolutionError {
 		Formula.Is first = matches.get(0);
-		Type type = first.getTypeTest();
+		Type[] bounds = new Type[matches.size()];
 		//
-		for (int i = 1; i != matches.size(); ++i) {
+		for (int i = 0; i != matches.size(); ++i) {
 			Formula.Is match = matches.get(i);
-			type = TypeSystem.intersect(type, match.getTypeTest());
+			bounds[i] = match.getTypeTest();
 		}
 		//
+		Type type = new Type.Intersection(bounds);
 		Formula test = Formulae.simplifyFormula(new Formula.Is(first.getExpr(), type), types);
 		test = state.allocate(test);
 		//

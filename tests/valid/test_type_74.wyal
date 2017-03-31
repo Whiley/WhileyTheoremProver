@@ -1,0 +1,6 @@
+assert:
+   forall(int[] xs, any i):
+       if:
+          i is int
+       then:
+          xs[i] is int
