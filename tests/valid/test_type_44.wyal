@@ -2,11 +2,7 @@ type nat is (int n)
 where:
     n >= 0
 
-
 type T is (int|(int[]) this)
-
-
-function f(TypeEquals_Valid_47.T x) -> (int $)
 
 assert "type invariant not satisfied":
     forall(T x):
@@ -15,11 +11,10 @@ assert "type invariant not satisfied":
         then:
             0 is int
 
-
 assert "type invariant not satisfied":
-    forall(T x, !(int[])&!nat&T x$1):
+    forall(T x, !(int[])&!(nat)&T y):
         if:
-            x$1 == x
+            y == x
             x is !((int[])|nat)
         then:
-            x$1 is int
+            y is int

@@ -52,7 +52,7 @@ public class AutomatedTheoremProver {
 				new AndElimination(),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
-				new TypeTestExpansion(types),
+				//new TypeTestExpansion(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
