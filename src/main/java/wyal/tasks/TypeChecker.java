@@ -401,7 +401,7 @@ public class TypeChecker {
 			}
 			return arrT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 
@@ -419,7 +419,7 @@ public class TypeChecker {
 			}
 			return recT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 
@@ -437,7 +437,7 @@ public class TypeChecker {
 		try {
 			// Identify all function or macro declarations which should be
 			// considered
-			List<Named.FunctionOrMacro> candidates = types.resolveAll(name, Named.FunctionOrMacro.class, context);
+			List<Named.FunctionOrMacro> candidates = types.resolveAll(name, Named.FunctionOrMacro.class);
 			// Based on given argument types, select the most precise signature
 			// from
 			// the candidates.
@@ -520,24 +520,24 @@ public class TypeChecker {
 			// each argument is a subtype of its corresponding parameter.
 			for (int i = 0; i != args.length; ++i) {
 				Type param = parameters.getOperand(i).getType();
-				if (!types.isSubtype(param, args[i])) {
+				if (!types.isRawSubtype(param, args[i])) {
 					return false;
 				}
 			}
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 
 	private void checkIsSubtype(Type lhs, Type rhs) {
 		try {
-			if (!types.isSubtype(lhs, rhs)) {
+			if (!types.isRawSubtype(lhs, rhs)) {
 				throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 
@@ -564,14 +564,14 @@ public class TypeChecker {
 			for (int i = 0; i != parentParams.size(); ++i) {
 				Type parentParam = parentParams.getOperand(i).getType();
 				Type childParam = childParams.getOperand(i).getType();
-				if (!types.isSubtype(parentParam, childParam)) {
+				if (!types.isRawSubtype(parentParam, childParam)) {
 					return false;
 				}
 			}
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getContext(), e);
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 }

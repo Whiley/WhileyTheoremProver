@@ -123,7 +123,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 			// potentially lead to unbounded growth of the overall type.
 			Type intersection = new Type.Intersection(lhsT,rhsT);
 			//
-			if (types.isSubtype(new Type.Void(), intersection)) {
+			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in
 				// question. Therefore, the test cannot be true.
 				return state.subsume(this, typeTest, state.allocate(new Formula.Truth(false)));

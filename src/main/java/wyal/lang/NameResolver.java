@@ -8,6 +8,15 @@ import wybs.lang.SyntacticElement;
 
 public interface NameResolver {
 
+	/**
+	 * Fully resolve a given name which occurs at some position in a compilation
+	 * unit. This takes into account the context and, if necessary, will
+	 * traverse important statements to resolve the query.
+	 *
+	 * @param name
+	 * @return
+	 */
+	public Name resolveFully(Name name);
 
 	/**
 	 * <p>
@@ -28,16 +37,9 @@ public interface NameResolver {
 	 *            The kind of declaration we are looking for, which can simply
 	 *            be <code>Declaration.Named</code> in the case we are looking
 	 *            for any kind of declaration.
-	 * @param context
-	 *            The enclosing compilation unit from where we are attempting
-	 *            resolve the name. This is important for several reasons.
-	 *            Firstly, we may be able to resolve the name directly within
-	 *            this compilation unit. Secondly, if we can't resolve within,
-	 *            then we will examine those compilation units that are (in some
-	 *            way) imported into this one.
 	 * @return
 	 */
-	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind, SyntacticElement context)
+	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind)
 			throws NameNotFoundError, AmbiguousNameError;
 
 	/**
@@ -55,16 +57,9 @@ public interface NameResolver {
 	 *            The kind of declaration we are looking for, which can simply
 	 *            be <code>Declaration.Named</code> in the case we are looking
 	 *            for any kind of declaration.
-	 * @param context
-	 *            The enclosing compilation unit from where we are attempting
-	 *            resolve the name. This is important for several reasons.
-	 *            Firstly, we may be able to resolve the name directly within
-	 *            this compilation unit. Secondly, if we can't resolve within,
-	 *            then we will examine those compilation units that are (in some
-	 *            way) imported into this one.
 	 * @return
 	 */
-	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind, SyntacticElement context)
+	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind)
 			throws NameNotFoundError;
 
 	/**
@@ -82,17 +77,13 @@ public interface NameResolver {
 		 */
 		private static final long serialVersionUID = 1L;
 		private final Name name;
-		private final SyntacticElement context;
 
-		public ResolutionError(Name name, SyntacticElement context, String message) {
+		public ResolutionError(Name name, String message) {
 			super(message);
 			if(name == null) {
 				throw new IllegalArgumentException("name is null");
-			} else if(context == null) {
-				throw new IllegalArgumentException("context is null");
 			}
 			this.name = name;
-			this.context = context;
 		}
 
 		/**
@@ -100,19 +91,8 @@ public interface NameResolver {
 		 *
 		 * @return
 		 */
-		public Name getNameBeingResolved() {
+		public Name getName() {
 			return name;
-		}
-
-		/**
-		 * Get the syntactic element which led to this name resolution query.
-		 * This is important for properly attributing error messages to
-		 * element(s) in the original source file which caused the problem.
-		 *
-		 * @return
-		 */
-		public SyntacticElement getContext() {
-			return context;
 		}
 	}
 
@@ -129,8 +109,8 @@ public interface NameResolver {
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public NameNotFoundError(Name name, SyntacticElement context) {
-			super(name,context,"name \"" + name + "\" not found");
+		public NameNotFoundError(Name name) {
+			super(name,"name \"" + name + "\" not found");
 		}
 	}
 
@@ -147,8 +127,8 @@ public interface NameResolver {
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public AmbiguousNameError(Name name, SyntacticElement context) {
-			super(name,context,"name \"" + name + "\" is ambiguous");
+		public AmbiguousNameError(Name name) {
+			super(name,"name \"" + name + "\" is ambiguous");
 		}
 	}
 }

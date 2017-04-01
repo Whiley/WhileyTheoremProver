@@ -122,7 +122,7 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
@@ -137,7 +137,7 @@ public class Formulae {
 			Expr rhs = operator.getOperand(1);
 			Type lhs_t = lhs.getReturnType(types);
 			Type rhs_t = rhs.getReturnType(types);
-			if (types.isSubtype(new Type.Int(), lhs_t) && types.isSubtype(new Type.Int(), rhs_t)) {
+			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
@@ -194,7 +194,7 @@ public class Formulae {
 			Expr.Is operator = (Expr.Is) stmt;
 			Expr lhs = operator.getExpr();
 			Type lhs_t = lhs.getReturnType(types);
-			if(types.isSubtype(new Type.Bool(), lhs_t)) {
+			if(types.isRawSubtype(new Type.Bool(), lhs_t)) {
 				lhs = toFormula(lhs,types);
 			}
 			return new Formula.Is(lhs,operator.getTypeTest());
@@ -349,7 +349,7 @@ public class Formulae {
 			return null; // no invariant
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
-			Declaration.Named.Type td = types.resolveExactly(nom.getName(),Named.Type.class,nom);
+			Declaration.Named.Type td = types.resolveExactly(nom.getName(),Named.Type.class);
 			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
 			if (td.getInvariant().size() == 0 && invariant == null) {
 				return null;

@@ -54,13 +54,13 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
 				Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
-				if (types.isSubtype(new Type.Void(), intersection)) {
+				if (types.isRawSubtype(new Type.Void(), intersection)) {
 					// In this case, no possible intersection exists between the
 					// lhs and
 					// rhs. Therefore, we're done as this equality cannot ever
 					// be true.
 					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
-				} else if (types.isSubtype(new Type.Bool(), lhsT) && types.isSubtype(new Type.Bool(), rhsT)) {
+				} else if (types.isRawSubtype(new Type.Bool(), lhsT) && types.isRawSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);
 				} else if (types.isEffectiveRecord(lhsT) && types.isEffectiveRecord(rhsT)) {
 					return expandRecordEquality(eq, state);
@@ -283,7 +283,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {
 		Type lhs_t = lhs.getReturnType(types);
 		Type rhs_t = rhs.getReturnType(types);
-		if (types.isSubtype(new Type.Int(), lhs_t) || types.isSubtype(new Type.Int(), rhs_t)) {
+		if (types.isRawSubtype(new Type.Int(), lhs_t) || types.isRawSubtype(new Type.Int(), rhs_t)) {
 			return new ArithmeticEquality(false, Formulae.toPolynomial(lhs), Formulae.toPolynomial(rhs));
 		} else {
 			return new Formula.Equality(false, lhs, rhs);

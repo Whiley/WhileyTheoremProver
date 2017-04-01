@@ -15,23 +15,28 @@ import wybs.lang.SyntacticElement;
 public class WyalFileResolver implements NameResolver {
 
 	@Override
-	public <T extends Named> T resolveExactly(Name name, Class<T> kind, SyntacticElement context)
+	public Name resolveFully(Name name) {
+		// FIXME: this is clearly broken.
+		return name;
+	}
+
+	@Override
+	public <T extends Named> T resolveExactly(Name name, Class<T> kind)
 			throws NameNotFoundError, AmbiguousNameError {
-		List<T> matches = resolveAll(name,kind,context);
+		List<T> matches = resolveAll(name,kind);
 		if(matches.size() == 1) {
 			return matches.get(0);
 		} else {
-			throw new NameResolver.AmbiguousNameError(name, context);
+			throw new NameResolver.AmbiguousNameError(name);
 		}
 	}
 
 	@Override
-	public <T extends Named> List<T> resolveAll(Name name, Class<T> kind, SyntacticElement context)
+	public <T extends Named> List<T> resolveAll(Name name, Class<T> kind)
 			throws NameNotFoundError {
 		ArrayList<T> result = new ArrayList<>();
 		Identifier[] components = name.getComponents(); // FIXME: need to handle
-		// case where more than
-		// one component
+		// case where more than one component
 		Identifier last = components[components.length - 1];
 		// Look through the enclosing file first!
 		SyntacticHeap parent = name.getParent();
@@ -46,7 +51,7 @@ public class WyalFileResolver implements NameResolver {
 		}
 		//
 		if (result.isEmpty()) {
-			throw new NameResolver.NameNotFoundError(name, context);
+			throw new NameResolver.NameNotFoundError(name);
 		} else {
 			//
 			return result;

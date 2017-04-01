@@ -109,7 +109,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 
 	private Declaration.Named.Function resolve(Expr.Invoke ivk) throws ResolutionError {
 		Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
-		List<Declaration.Named.Function> candidates = types.resolveAll(ivk.getName(),Declaration.Named.Function.class,ivk);
+		List<Declaration.Named.Function> candidates = types.resolveAll(ivk.getName(),Declaration.Named.Function.class);
 		for(int i=0;i!=candidates.size();++i) {
 			Declaration.Named.Function fun = candidates.get(i);
 			if(fun.getSignatureType().equals(signature)) {
@@ -118,7 +118,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		}
 		//
 		// Should really be impossible to get here
-		throw new NameNotFoundError(ivk.getName(), ivk);
+		throw new NameNotFoundError(ivk.getName());
 	}
 
 }

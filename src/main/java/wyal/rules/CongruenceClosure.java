@@ -107,8 +107,8 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
 			Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
 			Type intersection = TypeSystem.intersect(lhsExpanded,rhsExpanded);
-			boolean left = types.isSubtype(lhsT, rhsT);
-			boolean right = types.isSubtype(rhsT, lhsT);
+			boolean left = types.isRawSubtype(lhsT, rhsT);
+			boolean right = types.isRawSubtype(rhsT, lhsT);
 			Formula axiom;
 			if (left && right) {
 				// In this case, the types are equivalent so we don't need to do
@@ -122,7 +122,7 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 				// In this case, the type of lhs is contained within that of rhs.
 				// Therefore, that type must be the type for rhs.
 				axiom = new Formula.Is(rhs, lhsT);
-			} else if (types.isSubtype(new Type.Void(), intersection)) {
+			} else if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// In this case, no possible intersection exists between the lhs and
 				// rhs. Therefore, we're done as this equality cannot ever be true.
 				return state.subsume(this, newTruth, state.allocate(new Formula.Truth(false)));

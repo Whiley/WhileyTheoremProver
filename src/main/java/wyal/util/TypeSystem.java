@@ -10,7 +10,7 @@ import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.AmbiguousNameError;
 import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SubtypeOperator;
+import wyal.lang.RawSubtypeOperator;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -30,34 +30,51 @@ import wyal.lang.WyalFile.FieldDeclaration;
 public class TypeSystem {
 	private final WyalFile parent;
 	private final NameResolver resolver;
-	private final SubtypeOperator coerciveSubtypeOperator;
+	private final RawSubtypeOperator coerciveRawSubtypeOperator;
 
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
 		this.resolver = new WyalFileResolver();
-		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
+		this.coerciveRawSubtypeOperator = new CoerciveRawSubtypeOperator(resolver);
 	}
 
 	/**
-	 * Determine whether one type is a <i>subtype</i> of another. Specifically,
-	 * whether the <code>rhs</code> is a subtype of the <code>lhs</code>
-	 * (denoted <code>lhs :> rhs</code>). Depending on the exact language of
-	 * types involved, this can be a surprisingly complex operation. For
-	 * example, in the presence of <i>union</i>, <i>intersection</i> and
-	 * <i>negation</i> types, the subtype algorithm is surprisingly intricate.
+	 * <p>
+	 * Determine whether one type is a <i>raw subtype</i> of another.
+	 * Specifically, whether the raw type of <code>rhs</code> is a subtype of
+	 * <code>lhs</code>'s raw type (i.e.
+	 * "<code>&lfloor;lhs&rfloor; :> &lfloor;rhs&rfloor;</code>"). The raw type
+	 * is that which ignores any type invariants involved. Thus, one must be
+	 * careful when interpreting the meaning of this operation. Specifically,
+	 * "<code>&lfloor;lhs&rfloor; :> &lfloor;rhs&rfloor;</code>" <b>does not
+	 * imply</b> that "<code>lhs :> rhs</code>" holds. However, if
+	 * "<code>&lfloor;lhs&rfloor; :> &lfloor;rhs&rfloor;</code>" does not hold,
+	 * then it <b>does follow</b> that "<code>lhs :> rhs</code>" also does not
+	 * hold.
+	 * </p>
+	 *
+	 * <p>
+	 * Depending on the exact language of types involved, this can be a
+	 * surprisingly complex operation. For example, in the presence of
+	 * <i>union</i>, <i>intersection</i> and <i>negation</i> types, the subtype
+	 * algorithm is surprisingly intricate.
+	 * </p>
 	 *
 	 * @param lhs
-	 *            The candidate "supertype". That is, the type for which the
-	 *            <code>rhs</code> may be a subtype.
+	 *            The candidate "supertype". That is, lhs's raw type may be a
+	 *            supertype of <code>rhs</code>'s raw type.
 	 * @param rhs
-	 *            The candidate "subtype". That is, the type for which the
-	 *            <code>lhs</code> may be a supertype.
+	 *            The candidate "subtype". That is, rhs's raw type may be a
+	 *            subtype of <code>lhs</code>'s raw type.
 	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
+	 *             Occurs when a nominal type is encountered whose name cannot
+	 *             be resolved properly. For example, it resolves to more than
+	 *             one possible matching declaration, or it cannot be resolved
+	 *             to a corresponding type declaration.
 	 */
-	public boolean isSubtype(Type lhs, Type rhs) throws ResolutionError {
-		return coerciveSubtypeOperator.isSubtype(lhs,rhs);
+	public boolean isRawSubtype(Type lhs, Type rhs) throws ResolutionError {
+		return coerciveRawSubtypeOperator.isRawSubtype(lhs,rhs);
 	}
 
 	public boolean isEffectiveRecord(Type type) throws ResolutionError {
@@ -157,7 +174,7 @@ public class TypeSystem {
 		}
 		case TYPE_nom: {
 			Type.Nominal nom = (Type.Nominal) type;
-			Named.Type decl = resolveExactly(nom.getName(),Named.Type.class,nom);
+			Named.Type decl = resolveExactly(nom.getName(),Named.Type.class);
 			return expandAsEffectiveType(sign, decl.getVariableDeclaration().getType());
 		}
 		case TYPE_and:
@@ -631,14 +648,14 @@ public class TypeSystem {
 	// Resolution
 	// ========================================================================
 
-	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind, SyntacticElement context)
+	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind)
 			throws ResolutionError {
-		return resolver.resolveExactly(name,kind,context);
+		return resolver.resolveExactly(name,kind);
 	}
 
-	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind, SyntacticElement context)
+	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind)
 			throws ResolutionError {
-		return resolver.resolveAll(name,kind,context);
+		return resolver.resolveAll(name,kind);
 	}
 
 }
