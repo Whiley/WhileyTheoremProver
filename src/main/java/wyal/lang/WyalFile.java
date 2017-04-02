@@ -660,7 +660,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 			@Override
 			public String toString() {
-				return getElement() + "[]";
+				return "(" + getElement() + ")[]";
 			}
 		}
 
@@ -674,6 +674,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Reference clone(SyntacticItem[] operands) {
 				return new Reference((Type) operands[0]);
+			}
+			@Override
+			public String toString() {
+				return "&(" + getElement() + ")";
 			}
 		}
 
@@ -722,6 +726,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Nominal clone(SyntacticItem[] operands) {
 				return new Nominal((Name) operands[0]);
 			}
+
+			@Override
+			public String toString() {
+				return getName().toString();
+			}
 		}
 
 		public static class Negation extends AbstractSyntacticItem implements Type {
@@ -735,6 +744,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Negation clone(SyntacticItem[] operands) {
 				return new Negation((Type) operands[0]);
+			}
+
+			@Override
+			public String toString() {
+				return "!(" + getElement() + ")";
 			}
 		}
 
@@ -762,6 +776,18 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Union clone(SyntacticItem[] operands) {
 				return new Union((Type[]) operands);
 			}
+
+			@Override
+			public String toString() {
+				String r = "";
+				for(int i=0;i!=size();++i) {
+					if(i != 0) {
+						r += "|";
+					}
+					r += getOperand(i);
+				}
+				return "(" + r + ")";
+			}
 		}
 
 		public static class Intersection extends UnionOrIntersection {
@@ -771,6 +797,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Intersection clone(SyntacticItem[] operands) {
 				return new Intersection((Type[]) operands);
+			}
+			@Override
+			public String toString() {
+				String r = "";
+				for(int i=0;i!=size();++i) {
+					if(i != 0) {
+						r += "&";
+					}
+					r += getOperand(i);
+				}
+				return "(" + r + ")";
 			}
 		}
 

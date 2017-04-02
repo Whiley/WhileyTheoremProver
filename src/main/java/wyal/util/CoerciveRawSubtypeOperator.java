@@ -1,34 +1,41 @@
 package wyal.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 
 import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.AmbiguousNameError;
-import wyal.lang.NameResolver.NameNotFoundError;
-import wyal.lang.SubtypeOperator;
+import wyal.lang.NameResolver.ResolutionError;
+import wyal.lang.RawSubtypeOperator;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.FieldDeclaration;
+import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
 
-public class CoerciveSubtypeOperator implements SubtypeOperator {
-	private NameResolver resolver;
+public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
+	protected NameResolver resolver;
 
-	public CoerciveSubtypeOperator(NameResolver resolver) {
+	public CoerciveRawSubtypeOperator(NameResolver resolver) {
 		this.resolver = resolver;
 
 	}
 
 	@Override
-	public boolean isSubtype(Type parent, Type child) throws NameNotFoundError, AmbiguousNameError {
+	public Result isSubtype(Type parent, Type child) throws ResolutionError {
 		// A :> B iff (!A & B) == void
 		return isVoid(false, parent, true, child, null);
 	}
 
-	private boolean isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2, BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
+	@Override
+	public boolean isRawSubtype(Type parent, Type child) throws ResolutionError {
+		// A :> B iff (!A & B) == void
+		return isVoid(false, parent, true, child, null) == Result.True ? true : false;
+	}
+
+	protected Result isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2, BitSet assumptions) throws ResolutionError {
 		assumptions = createAssumptions(t1, t2, assumptions);
 		//
 		if (isAssumedVoid(t1sign, t1, t2sign, t2, assumptions)) {
@@ -36,14 +43,14 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// encountered a pair of recursive types whose "voidness" depends
 			// circularly on itself. In such case, we assume they are indeed
 			// void.
-			return true;
+			return Result.True;
 		} else {
 			setAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
 			ArrayList<Atom> truths = new ArrayList<>();
 			Worklist worklist = new Worklist();
 			worklist.push(t1sign, t1);
 			worklist.push(t2sign, t2);
-			boolean r = isVoid(truths, worklist, assumptions);
+			Result r = isVoid(truths, worklist, assumptions);
 			clearAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
 			return r;
 		}
@@ -66,10 +73,9 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @param assumptions
 	 *            The set of assumed subtype relationships
 	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
 	 */
-	private boolean isVoid(ArrayList<Atom> truths, Worklist worklist, BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
+	protected Result isVoid(ArrayList<Atom> truths, Worklist worklist, BitSet assumptions) throws ResolutionError {
 
 		// FIXME: there is a bug in the following case which needs to be
 		// addressed:
@@ -94,14 +100,21 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			//
 			// Therefore, we consider each possible pair of truths looking for
 			// consistency.
+			Result result = Result.False;
+
 			for (int i = 0; i != truths.size(); ++i) {
+				Atom ith = truths.get(i);
 				for (int j = i + 1; j != truths.size(); ++j) {
-					if (isVoid(truths.get(i), truths.get(j), assumptions)) {
-						return true;
+					Atom jth = truths.get(j);
+					Result r = isVoid(ith, jth, assumptions);
+					if (r == Result.True) {
+						return r;
+					} else if (r == Result.Unknown) {
+						result = Result.Unknown;
 					}
 				}
 			}
-			return false;
+			return result;
 		} else {
 			// In this case, we still have items on the worklist which need to
 			// be processed. That is, broken down into "atomic" terms.
@@ -120,14 +133,26 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 					worklist.push(item.sign, operands);
 				} else {
 					// Disjunction
+					Result result = Result.True;
+					//
 					for (int i = 0; i != operands.length; ++i) {
 						Worklist tmp = (Worklist) worklist.clone();
 						tmp.push(item.sign, operands[i]);
-						if (!isVoid((ArrayList<Atom>) truths.clone(), tmp, assumptions)) {
-							return false;
+						Result r = isVoid((ArrayList<Atom>) truths.clone(), tmp, assumptions);
+						if (r == Result.False) {
+							// If a single clause of the disjunct is definitely
+							// not void, then the whole thing is not void.
+							return r;
+						} else if(r == Result.Unknown) {
+							// If a single clause of the disjunct is unknown,
+							// then we cannot conclude that the whole thing is
+							// void. However, we could still conclude that it
+							// definitely isn't false if a subsequent clause is
+							// determined to be false.
+							result = Result.Unknown;
 						}
 					}
-					return true;
+					return result;
 				}
 				break;
 			}
@@ -138,14 +163,31 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			}
 			case TYPE_nom: {
 				Type.Nominal nom = (Type.Nominal) t;
-				Named.Type decl = resolver.resolveExactly(nom.getName(),Named.Type.class, nom);
+				Named.Type decl = resolver.resolveExactly(nom.getName(), Named.Type.class);
+//				Name[] constraints = item.constraints;
+//				if(decl.getInvariant().size() > 0) {
+//					// Indicates a constrained type
+//					Name resolvedName = resolver.resolveFully(new Name(decl.getName()));
+//					constraints = append(constraints,resolvedName);
+//				}
 				worklist.push(conjunct, decl.getVariableDeclaration().getType());
 				break;
 			}
+
 			default:
 				truths.add(new Atom(item.sign, (Type.Atom) item.type));
 			}
 			return isVoid(truths, worklist, assumptions);
+		}
+	}
+
+	protected Name[] append(Name[] lhs, Name rhs) {
+		if(rhs == null) {
+			return lhs;
+		} else {
+			lhs = Arrays.copyOf(lhs, lhs.length+1);
+			lhs[lhs.length-1] = rhs;
+			return lhs;
 		}
 	}
 
@@ -159,10 +201,9 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @param assumptions
 	 *            The set of assumed subtype relationships
 	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
 	 */
-	private boolean isVoid(Atom a, Atom b, BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
+	protected Result isVoid(Atom a, Atom b, BitSet assumptions) throws ResolutionError {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -178,14 +219,14 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			case TYPE_void:
 				// void & void => void
 				// !void & void => void
-				return true;
+				return Result.True;
 			case TYPE_any:
 			case TYPE_null:
 			case TYPE_bool:
 			case TYPE_int:
 				// any & !any => void
 				// int & !int => void
-				return aSign != bSign;
+				return (aSign != bSign) ? Result.True : Result.False;
 			case TYPE_arr:
 				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type, assumptions);
 			case TYPE_rec:
@@ -201,24 +242,24 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// We have two positive atoms of different kind. For example, int
 			// and {int f}, or int and !bool. This always reduces to void,
 			// unless one of them is any.
-			return aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any;
+			return (aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any) ? Result.True : Result.False;
 		} else if (aSign) {
 			// We have a positive atom and a negative atom of different kinds.
 			// For example, int and !bool or int and !(bool[]). This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any;
+			return (aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any) ? Result.True : Result.False;
 		} else if (bSign) {
 			// We have a negative atom and a positive atom of different kinds.
 			// For example, !int and bool or !(int[]) and bool[]. This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void;
+			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void) ? Result.True : Result.False;
 		} else {
 			// We have two negative atoms of different kinds. For example, !int
 			// and !bool or !int[] and !bool. This only reduces to void in the
 			// case that one of them is equivalent to void (i.e. is !any).
-			return aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any;
+			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any) ? Result.True : Result.False;
 		}
 	}
 
@@ -247,11 +288,10 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @param assumptions
 	 *            The set of assumed subtype relationships
 	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
 	 */
-	private boolean isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs, BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
-		if (lhsSign != rhsSign) {
+	protected Result isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs, BitSet assumptions) throws ResolutionError {
+		if (lhsSign || rhsSign) {
 			// In this case, we are intersecting two array types, of which at
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
@@ -260,7 +300,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
-			return false;
+			return Result.False;
 		}
 	}
 
@@ -289,23 +329,23 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @param assumptions
 	 *            The set of assumed subtype relationships
 	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
 	 */
-	private boolean isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs,
-			BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
+	protected Result isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs,
+			BitSet assumptions) throws ResolutionError {
 		FieldDeclaration[] lhsFields = lhs.getFields();
 		FieldDeclaration[] rhsFields = rhs.getFields();
 		//
 		if (lhsSign || rhsSign) {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
-			boolean sign = lhsSign == rhsSign;
+			Result sign = lhsSign == rhsSign ? Result.True : Result.False;
 			// Attempt to match all fields In the positive-positive case this
 			// reduces to void if the fields in either of these differ (e.g.
 			// {int f} and {int g}), or if there is no intersection between the
 			// same field in either (e.g. {int f} and {bool f}).
 			int matches = 0;
+			boolean isUnknown = false;
 			//
 			for (int i = 0; i != lhsFields.length; ++i) {
 				FieldDeclaration lhsField = lhsFields[i];
@@ -313,27 +353,39 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 					FieldDeclaration rhsField = rhsFields[j];
 					if (!lhsField.getVariableName().equals(rhsField.getVariableName())) {
 						continue;
-					} else if (isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions) == sign) {
-						// For pos-pos case, there is no intersection
-						// between these fields and, hence, no intersection
-						// overall; for pos-neg case, there is some
-						// intersection between these fields which means
-						// that some intersections
-						// exists overall. For example, consider the case
-						// {int f, int|null g} & !{int f, int g}. There is no
-						// intersection for field f (i.e. since int & !int =
-						// void), whilst there is an intersection for field g
-						// (i.e. since int|null & !int = null). Hence, we can
-						// conclude that there is an intersection between them
-						// with {int f, null g}.
-						return sign;
 					} else {
-						matches = matches + 1;
+						Result r = isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions);
+						if(r == sign) {
+							// For pos-pos case, there is no intersection
+							// between these fields and, hence, no intersection
+							// overall; for pos-neg case, there is some
+							// intersection between these fields which means
+							// that some intersections
+							// exists overall. For example, consider the case
+							// {int f, int|null g} & !{int f, int g}. There is no
+							// intersection for field f (i.e. since int & !int =
+							// void), whilst there is an intersection for field g
+							// (i.e. since int|null & !int = null). Hence, we can
+							// conclude that there is an intersection between them
+							// with {int f, null g}.
+							return sign;
+						} else if(r == Result.Unknown) {
+							// In this case, the intersection of a field was
+							// undetermined. We don't return unknown immediately
+							// in this case, since its possible that a definite
+							// case can still be made that an intersection
+							// exists between some other field pairing.
+							isUnknown = true;
+						} else {
+							matches = matches + 1;
+						}
 					}
 				}
 			}
 
-			if (matches < lhsFields.length && !rhs.isOpen()) {
+			if(isUnknown) {
+				return Result.Unknown;
+			} else if (matches < lhsFields.length && !rhs.isOpen()) {
 				// We have matched fewer fields than contained in the lhs.
 				// However, if the rhs is an open record, then it can match the
 				// remainder. Otherwise, there is no match here. In the pos-pos
@@ -350,12 +402,12 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			} else {
 				// If we get here, then: for pos-pos case, all fields have
 				// intersection; for pos-neg case, no fields have intersection.
-				return !sign;
+				return sign == Result.True ? Result.False : Result.True;
 			}
 		} else {
 			// In this case, we are intersecting two negative record types. For
 			// example, !({int f}) and !({int g}). This never reduces to void.
-			return false;
+			return Result.False;
 		}
 	}
 
@@ -387,45 +439,49 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 *            "right-hand side".
 	 * @param assumptions
 	 *            The set of assumed subtype relationships private boolean
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
+	 * @throws ResolutionError
 	 */
-	public boolean isVoidFunction(boolean lhsSign, Type.Function lhs, boolean rhsSign, Type.Function rhs,
-			BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
+	public Result isVoidFunction(boolean lhsSign, Type.Function lhs, boolean rhsSign, Type.Function rhs,
+			BitSet assumptions) throws ResolutionError {
 		if (lhsSign || rhsSign) {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
 			Tuple<Type> lhsParameters = lhs.getParameters();
 			Tuple<Type> rhsParameters = rhs.getParameters();
 			//
-			if(isVoidParameters(!lhsSign, lhsParameters, !rhsSign, rhsParameters, assumptions)) {
-				return true;
-			} else if(isVoidParameters(lhsSign, lhsParameters, rhsSign, rhsParameters, assumptions)) {
-				return true;
+			Result pr = isVoidParameters(!lhsSign, lhsParameters, !rhsSign, rhsParameters, assumptions);
+			Result rr = isVoidParameters(lhsSign, lhsParameters, rhsSign, rhsParameters, assumptions);
+			if(pr == Result.True || rr == Result.True) {
+				return Result.True;
+			} else if(pr == Result.False && rr == Result.False) {
+				return Result.False;
 			} else {
-				return false;
+				return Result.Unknown;
 			}
 		} else {
 			// In this case, we are intersecting two negative function types.
 			// For example, !(function(int)->(int)) and
 			// !(function(bool)->(int)). This never reduces to void.
-			return false;
+			return Result.False;
 		}
 	}
 
-	public boolean isVoidParameters(boolean lhsSign, Tuple<Type> lhs, boolean rhsSign, Tuple<Type> rhs,
-			BitSet assumptions) throws NameNotFoundError, AmbiguousNameError {
-		boolean sign = lhsSign == rhsSign;
+	public Result isVoidParameters(boolean lhsSign, Tuple<Type> lhs, boolean rhsSign, Tuple<Type> rhs,
+			BitSet assumptions) throws ResolutionError {
+		Result sign = lhsSign == rhsSign ? Result.True : Result.False;
 		//
 		if (lhs.size() != rhs.size()) {
 			// Different number of parameters. In either pos-pos or neg-neg
 			// cases, this reduces to void. Otherwise, it doesn't.
-			return sign;
+			return Result.False;
 		} else {
+			boolean isUnknown = false;
+			//
 			for (int i = 0; i != lhs.size(); ++i) {
 				Type lhsParameter = lhs.getOperand(i);
 				Type rhsParameter = rhs.getOperand(i);
-				if (isVoid(lhsSign, lhsParameter, rhsSign, rhsParameter, assumptions) == sign) {
+				Result r = isVoid(lhsSign, lhsParameter, rhsSign, rhsParameter, assumptions);
+				if (r == sign) {
 					// For pos-pos / neg-neg case, there is no intersection
 					// between this parameterand, hence, no intersection
 					// overall; for pos-neg case, there is some
@@ -438,11 +494,23 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 					// can conclude that there is an intersection between them
 					// with (int,null).
 					return sign;
+				} else if(r == Result.Unknown) {
+					isUnknown = true;
 				}
 			}
-			// If we get here, then: for pos-pos case, all parameters have
-			// intersection; for pos-neg case, no parameters have intersection.
-			return !sign;
+			if(isUnknown) {
+				// Result in at least one case was undetermined. Hence, cannot
+				// make any concrete determination here.
+				return Result.Unknown;
+			} else if(sign == Result.True) {
+				// for pos-pos case, all parameters have intersection. Hence,
+				// there is a possible intersection.
+				return Result.False;
+			} else {
+				// for pos-neg case, no parameters have intersection. Hence, no
+				// possible intersection.
+				return Result.True;
+			}
 		}
 	}
 
@@ -450,14 +518,14 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	// Helpers
 	// ========================================================================
 
-	private static class Worklist extends ArrayList<Worklist.Item<Type>> {
+	protected static class Worklist extends ArrayList<Worklist.Item<Type>> {
 
 		/**
 		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		private static class Item<T extends Type> {
+		protected static class Item<T extends Type> {
 			public final boolean sign;
 			public final T type;
 
@@ -465,6 +533,10 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				this.type = type;
 				this.sign = sign;
 			}
+		}
+
+		public Item<Type> top() {
+			return get(size() - 1);
 		}
 
 		public void push(boolean sign, Type type) {
@@ -491,22 +563,23 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		}
 	}
 
-	private static class Atom extends Worklist.Item<Type.Atom> {
+	protected static class Atom extends Worklist.Item<Type.Atom> {
 		public Atom(boolean sign, Type.Atom type) {
 			super(sign, type);
 		}
 
 		@Override
 		public String toString() {
+			String r = type.toString();
 			if (sign) {
-				return type.toString();
+				return r;
 			} else {
-				return "!" + type;
+				return "!" + r;
 			}
 		}
 	}
 
-	private boolean isAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected boolean isAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
 		if (assumptions != null) {
 			return assumptions.get(indexOf(lhsSign, lhs, rhsSign, rhs));
 		} else {
@@ -514,19 +587,19 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		}
 	}
 
-	private void setAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected void setAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
 		if (assumptions != null) {
 			assumptions.set(indexOf(lhsSign, lhs, rhsSign, rhs));
 		}
 	}
 
-	private void clearAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected void clearAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
 		if (assumptions != null) {
 			assumptions.clear(indexOf(lhsSign, lhs, rhsSign, rhs));
 		}
 	}
 
-	private int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
+	protected int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
 		int lhsSize = lhs.getParent().size();
 		int rhsSize = rhs.getParent().size();
 		int lhsIndex = lhs.getIndex();
@@ -540,7 +613,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		return (lhsIndex * rhsSize * 2) + rhsIndex;
 	}
 
-	private static BitSet createAssumptions(Type lhs, Type rhs, BitSet assumptions) {
+	protected static BitSet createAssumptions(Type lhs, Type rhs, BitSet assumptions) {
 		if (assumptions != null) {
 			return assumptions;
 		} else if (lhs.getParent() != null && rhs.getParent() != null) {

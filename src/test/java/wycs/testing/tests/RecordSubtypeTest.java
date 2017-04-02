@@ -5217,7 +5217,7 @@ public class RecordSubtypeTest {
 			WyalFile.Type ft = parser.parseType(scope);
 			WyalFile.Type tt = parser.parseType(scope);
 			//
-			assertTrue(new TypeSystem(wf).isSubtype(ft,tt));
+			assertTrue(new TypeSystem(wf).isRawSubtype(ft,tt));
 		} catch(NameResolver.ResolutionError e) {
 			// It should be impossible to get here
 			throw new RuntimeException("name resolution error",e);
@@ -5234,7 +5234,7 @@ public class RecordSubtypeTest {
 			WyalFile.Type ft = parser.parseType(scope);
 			WyalFile.Type tt = parser.parseType(scope);
 			//
-			assertFalse(new TypeSystem(wf).isSubtype(ft, tt));
+			assertFalse(new TypeSystem(wf).isRawSubtype(ft, tt));
 		} catch (NameResolver.ResolutionError e) {
 			// It should be impossible to get here
 			throw new RuntimeException("name resolution error", e);

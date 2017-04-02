@@ -208,8 +208,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 
 	private Declaration.Named resolve(Expr.Invoke ivk) throws ResolutionError {
 		if (ivk.getSignatureType() instanceof Type.Macro) {
-			List<Declaration.Named.Macro> candidates = types.resolveAll(ivk.getName(), Declaration.Named.Macro.class,
-					ivk);
+			List<Declaration.Named.Macro> candidates = types.resolveAll(ivk.getName(), Declaration.Named.Macro.class);
 			Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Declaration.Named.Macro macro = candidates.get(i);
@@ -219,9 +218,9 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			}
 			//
 			// Should really be impossible to get here
-			throw new NameNotFoundError(ivk.getName(), ivk);
+			throw new NameNotFoundError(ivk.getName());
 		} else {
-			return types.resolveExactly(ivk.getName(), Declaration.Named.Type.class, ivk);
+			return types.resolveExactly(ivk.getName(), Declaration.Named.Type.class);
 		}
 	}
 }

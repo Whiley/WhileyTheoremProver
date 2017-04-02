@@ -1,4 +1,4 @@
-type Recursive is ((Recursive|null)[] r)
+type Recursive is ((Recursive|int)[] r)
 
 assert:
     forall(Recursive x, int[] y):
