@@ -1,0 +1,3 @@
+assert:
+    forall((int&null) x):
+        (x is int)
