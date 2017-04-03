@@ -6,7 +6,8 @@ import java.util.BitSet;
 
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.RawSubtypeOperator;
+import wyal.lang.SubtypeOperator;
+import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Name;
@@ -15,43 +16,53 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
 
-public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
+public class CoerciveSubtypeOperator implements SubtypeOperator {
 	protected NameResolver resolver;
 
-	public CoerciveRawSubtypeOperator(NameResolver resolver) {
+	public CoerciveSubtypeOperator(NameResolver resolver) {
 		this.resolver = resolver;
 
 	}
 
 	@Override
 	public Result isSubtype(Type parent, Type child) throws ResolutionError {
-		// A :> B iff (!A & B) == void
-		return isVoid(false, parent, true, child, null);
+		// FIXME: we can do better in some situations here. For example, if we
+		// have the same nominal types they can cancel each other.
+		Term<?> lhsMaxTerm = new Term<>(false, parent, true);
+		Term<?> rhsMaxTerm = new Term<>(true, child, true);
+		boolean max = isVoid(lhsMaxTerm, rhsMaxTerm, null);
+		// FIXME: I don't think this logic is correct yet for some reason.
+		if(!max) {
+			return Result.False;
+		} else {
+			Term<?> lhsMinTerm = new Term<>(false, parent, false);
+			Term<?> rhsMinTerm = new Term<>(true, child, false);
+			boolean min = isVoid(lhsMinTerm, rhsMinTerm, null);
+			if(min) {
+				return Result.True;
+			} else {
+				return Result.Unknown;
+			}
+		}
 	}
 
-	@Override
-	public boolean isRawSubtype(Type parent, Type child) throws ResolutionError {
-		// A :> B iff (!A & B) == void
-		return isVoid(false, parent, true, child, null) == Result.True ? true : false;
-	}
-
-	protected Result isVoid(boolean t1sign, Type t1, boolean t2sign, Type t2, BitSet assumptions) throws ResolutionError {
-		assumptions = createAssumptions(t1, t2, assumptions);
+	protected boolean isVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) throws ResolutionError {
+		assumptions = createAssumptions(lhs, rhs, assumptions);
 		//
-		if (isAssumedVoid(t1sign, t1, t2sign, t2, assumptions)) {
+		if (isAssumedVoid(lhs, rhs, assumptions)) {
 			// This represents the "coinductive" case. That is, we have
 			// encountered a pair of recursive types whose "voidness" depends
 			// circularly on itself. In such case, we assume they are indeed
 			// void.
-			return Result.True;
+			return true;
 		} else {
-			setAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
-			ArrayList<Atom> truths = new ArrayList<>();
+			setAssumedVoid(lhs, rhs, assumptions);
+			ArrayList<Atom<?>> truths = new ArrayList<>();
 			Worklist worklist = new Worklist();
-			worklist.push(t1sign, t1);
-			worklist.push(t2sign, t2);
-			Result r = isVoid(truths, worklist, assumptions);
-			clearAssumedVoid(t1sign, t1, t2sign, t2, assumptions);
+			worklist.push(lhs);
+			worklist.push(rhs);
+			boolean r = isVoid(truths, worklist, assumptions);
+			clearAssumedVoid(lhs, rhs, assumptions);
 			return r;
 		}
 	}
@@ -75,7 +86,7 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected Result isVoid(ArrayList<Atom> truths, Worklist worklist, BitSet assumptions) throws ResolutionError {
+	protected boolean isVoid(ArrayList<Atom<?>> truths, Worklist worklist, BitSet assumptions) throws ResolutionError {
 
 		// FIXME: there is a bug in the following case which needs to be
 		// addressed:
@@ -100,25 +111,20 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 			//
 			// Therefore, we consider each possible pair of truths looking for
 			// consistency.
-			Result result = Result.False;
-
 			for (int i = 0; i != truths.size(); ++i) {
-				Atom ith = truths.get(i);
+				Atom<?> ith = truths.get(i);
 				for (int j = i + 1; j != truths.size(); ++j) {
-					Atom jth = truths.get(j);
-					Result r = isVoid(ith, jth, assumptions);
-					if (r == Result.True) {
-						return r;
-					} else if (r == Result.Unknown) {
-						result = Result.Unknown;
+					Atom<?> jth = truths.get(j);
+					if (isVoid(ith, jth, assumptions)) {
+						return true;
 					}
 				}
 			}
-			return result;
+			return false;
 		} else {
 			// In this case, we still have items on the worklist which need to
 			// be processed. That is, broken down into "atomic" terms.
-			Worklist.Item<Type> item = worklist.pop();
+			Term<Type> item = worklist.pop();
 			Type t = item.type;
 			boolean conjunct = item.sign;
 			//
@@ -130,63 +136,52 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 				Type[] operands = ut.getOperands();
 				if (conjunct) {
 					// Conjunction
-					worklist.push(item.sign, operands);
+					worklist.push(item.sign, operands, item.maximise);
 				} else {
 					// Disjunction
-					Result result = Result.True;
-					//
 					for (int i = 0; i != operands.length; ++i) {
 						Worklist tmp = (Worklist) worklist.clone();
-						tmp.push(item.sign, operands[i]);
-						Result r = isVoid((ArrayList<Atom>) truths.clone(), tmp, assumptions);
-						if (r == Result.False) {
+						tmp.push(item.sign, operands[i], item.maximise);
+						if (!isVoid((ArrayList<Atom<?>>) truths.clone(), tmp, assumptions)) {
 							// If a single clause of the disjunct is definitely
 							// not void, then the whole thing is not void.
-							return r;
-						} else if(r == Result.Unknown) {
-							// If a single clause of the disjunct is unknown,
-							// then we cannot conclude that the whole thing is
-							// void. However, we could still conclude that it
-							// definitely isn't false if a subsequent clause is
-							// determined to be false.
-							result = Result.Unknown;
+							return false;
 						}
 					}
-					return result;
+					return true;
 				}
 				break;
 			}
 			case TYPE_not: {
 				Type.Negation nt = (Type.Negation) t;
-				worklist.push(!conjunct, nt.getElement());
+				worklist.push(!item.sign, nt.getElement(), !item.maximise);
 				break;
 			}
 			case TYPE_nom: {
 				Type.Nominal nom = (Type.Nominal) t;
 				Named.Type decl = resolver.resolveExactly(nom.getName(), Named.Type.class);
-//				Name[] constraints = item.constraints;
-//				if(decl.getInvariant().size() > 0) {
-//					// Indicates a constrained type
-//					Name resolvedName = resolver.resolveFully(new Name(decl.getName()));
-//					constraints = append(constraints,resolvedName);
-//				}
-				worklist.push(conjunct, decl.getVariableDeclaration().getType());
+				if (item.maximise || decl.getInvariant().size() == 0) {
+					worklist.push(item.sign, decl.getVariableDeclaration().getType(), item.maximise);
+				} else if (item.sign) {
+					// Corresponds to void, so we're done on this path.
+					return true;
+				}
 				break;
 			}
 
 			default:
-				truths.add(new Atom(item.sign, (Type.Atom) item.type));
+				truths.add(new Atom(item.sign, (Type.Atom) item.type, item.maximise));
 			}
 			return isVoid(truths, worklist, assumptions);
 		}
 	}
 
 	protected Name[] append(Name[] lhs, Name rhs) {
-		if(rhs == null) {
+		if (rhs == null) {
 			return lhs;
 		} else {
-			lhs = Arrays.copyOf(lhs, lhs.length+1);
-			lhs[lhs.length-1] = rhs;
+			lhs = Arrays.copyOf(lhs, lhs.length + 1);
+			lhs[lhs.length - 1] = rhs;
 			return lhs;
 		}
 	}
@@ -203,7 +198,7 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected Result isVoid(Atom a, Atom b, BitSet assumptions) throws ResolutionError {
+	protected boolean isVoid(Atom a, Atom b, BitSet assumptions) throws ResolutionError {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -219,22 +214,22 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 			case TYPE_void:
 				// void & void => void
 				// !void & void => void
-				return Result.True;
+				return true;
 			case TYPE_any:
 			case TYPE_null:
 			case TYPE_bool:
 			case TYPE_int:
 				// any & !any => void
 				// int & !int => void
-				return (aSign != bSign) ? Result.True : Result.False;
+				return (aSign != bSign) ? true : false;
 			case TYPE_arr:
-				return isVoidArray(aSign, (Type.Array) a.type, bSign, (Type.Array) b.type, assumptions);
+				return isVoidArray((Atom<Type.Array>) a, (Atom<Type.Array>) b, assumptions);
 			case TYPE_rec:
-				return isVoidRecord(aSign, (Type.Record) a.type, bSign, (Type.Record) b.type, assumptions);
+				return isVoidRecord((Atom<Type.Record>) a, (Atom<Type.Record>) b, assumptions);
 			case TYPE_ref:
 				throw new RuntimeException("Implement me!");
 			case TYPE_fun:
-				return isVoidFunction(aSign, (Type.Function) a.type, bSign, (Type.Function) b.type, assumptions);
+				return isVoidFunction((Atom<Type.Function>) a, (Atom<Type.Function>) b, assumptions);
 			default:
 				throw new RuntimeException("invalid type encountered: " + aOpcode);
 			}
@@ -242,24 +237,24 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 			// We have two positive atoms of different kind. For example, int
 			// and {int f}, or int and !bool. This always reduces to void,
 			// unless one of them is any.
-			return (aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any) ? Result.True : Result.False;
+			return (aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any) ? true : false;
 		} else if (aSign) {
 			// We have a positive atom and a negative atom of different kinds.
 			// For example, int and !bool or int and !(bool[]). This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return (aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any) ? Result.True : Result.False;
+			return (aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any) ? true : false;
 		} else if (bSign) {
 			// We have a negative atom and a positive atom of different kinds.
 			// For example, !int and bool or !(int[]) and bool[]. This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void) ? Result.True : Result.False;
+			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void) ? true : false;
 		} else {
 			// We have two negative atoms of different kinds. For example, !int
 			// and !bool or !int[] and !bool. This only reduces to void in the
 			// case that one of them is equivalent to void (i.e. is !any).
-			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any) ? Result.True : Result.False;
+			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any) ? true : false;
 		}
 	}
 
@@ -290,17 +285,20 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected Result isVoidArray(boolean lhsSign, Type.Array lhs, boolean rhsSign, Type.Array rhs, BitSet assumptions) throws ResolutionError {
-		if (lhsSign || rhsSign) {
+	protected boolean isVoidArray(Atom<Type.Array> lhs, Atom<Type.Array> rhs, BitSet assumptions)
+			throws ResolutionError {
+		if (lhs.sign || rhs.sign) {
+			Term<?> lhsTerm = new Term<>(lhs.sign, lhs.type.getElement(), lhs.maximise);
+			Term<?> rhsTerm = new Term<>(rhs.sign, rhs.type.getElement(), rhs.maximise);
 			// In this case, we are intersecting two array types, of which at
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
 			// and bool[] is void, whilst (int|null)[] and int[] is not.
-			return isVoid(lhsSign, lhs.getElement(), rhsSign, rhs.getElement(), assumptions);
+			return isVoid(lhsTerm, rhsTerm, assumptions);
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
-			return Result.False;
+			return false;
 		}
 	}
 
@@ -331,51 +329,48 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected Result isVoidRecord(boolean lhsSign, Type.Record lhs, boolean rhsSign, Type.Record rhs,
-			BitSet assumptions) throws ResolutionError {
-		FieldDeclaration[] lhsFields = lhs.getFields();
-		FieldDeclaration[] rhsFields = rhs.getFields();
+	protected boolean isVoidRecord(Atom<Type.Record> lhs, Atom<Type.Record> rhs, BitSet assumptions)
+			throws ResolutionError {
+		FieldDeclaration[] lhsFields = lhs.type.getFields();
+		FieldDeclaration[] rhsFields = rhs.type.getFields();
 		//
-		if (lhsSign || rhsSign) {
+		if (lhs.sign || rhs.sign) {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
-			Result sign = lhsSign == rhsSign ? Result.True : Result.False;
+			boolean sign = lhs.sign == rhs.sign;
 			// Attempt to match all fields In the positive-positive case this
 			// reduces to void if the fields in either of these differ (e.g.
 			// {int f} and {int g}), or if there is no intersection between the
 			// same field in either (e.g. {int f} and {bool f}).
 			int matches = 0;
-			boolean isUnknown = false;
 			//
 			for (int i = 0; i != lhsFields.length; ++i) {
 				FieldDeclaration lhsField = lhsFields[i];
+				Term<?> lhsTerm = new Term<>(lhs.sign, lhsField.getType(), lhs.maximise);
 				for (int j = 0; j != rhsFields.length; ++j) {
 					FieldDeclaration rhsField = rhsFields[j];
 					if (!lhsField.getVariableName().equals(rhsField.getVariableName())) {
 						continue;
 					} else {
-						Result r = isVoid(lhsSign, lhsField.getType(), rhsSign, rhsField.getType(), assumptions);
-						if(r == sign) {
+						Term<?> rhsTerm = new Term<>(rhs.sign, rhsField.getType(), rhs.maximise);
+						if (sign == isVoid(lhsTerm, rhsTerm, assumptions)) {
 							// For pos-pos case, there is no intersection
 							// between these fields and, hence, no intersection
 							// overall; for pos-neg case, there is some
 							// intersection between these fields which means
 							// that some intersections
 							// exists overall. For example, consider the case
-							// {int f, int|null g} & !{int f, int g}. There is no
+							// {int f, int|null g} & !{int f, int g}. There is
+							// no
 							// intersection for field f (i.e. since int & !int =
-							// void), whilst there is an intersection for field g
-							// (i.e. since int|null & !int = null). Hence, we can
-							// conclude that there is an intersection between them
+							// void), whilst there is an intersection for field
+							// g
+							// (i.e. since int|null & !int = null). Hence, we
+							// can
+							// conclude that there is an intersection between
+							// them
 							// with {int f, null g}.
 							return sign;
-						} else if(r == Result.Unknown) {
-							// In this case, the intersection of a field was
-							// undetermined. We don't return unknown immediately
-							// in this case, since its possible that a definite
-							// case can still be made that an intersection
-							// exists between some other field pairing.
-							isUnknown = true;
 						} else {
 							matches = matches + 1;
 						}
@@ -383,16 +378,14 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 				}
 			}
 
-			if(isUnknown) {
-				return Result.Unknown;
-			} else if (matches < lhsFields.length && !rhs.isOpen()) {
+			if (matches < lhsFields.length && !rhs.type.isOpen()) {
 				// We have matched fewer fields than contained in the lhs.
 				// However, if the rhs is an open record, then it can match the
 				// remainder. Otherwise, there is no match here. In the pos-pos
 				// case, this means there is no intersection. In the pos-neg
 				// case, this means there is an intersection.
 				return sign;
-			} else if (matches < rhsFields.length && !lhs.isOpen()) {
+			} else if (matches < rhsFields.length && !lhs.type.isOpen()) {
 				// We have matched fewer fields than contained in the rhs.
 				// However, if the lhs is an open record, then it can match the
 				// remainder. Otherwise, there is no match here. In the pos-pos
@@ -402,12 +395,12 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 			} else {
 				// If we get here, then: for pos-pos case, all fields have
 				// intersection; for pos-neg case, no fields have intersection.
-				return sign == Result.True ? Result.False : Result.True;
+				return sign == true ? false : true;
 			}
 		} else {
 			// In this case, we are intersecting two negative record types. For
 			// example, !({int f}) and !({int g}). This never reduces to void.
-			return Result.False;
+			return false;
 		}
 	}
 
@@ -441,47 +434,47 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	 *            The set of assumed subtype relationships private boolean
 	 * @throws ResolutionError
 	 */
-	public Result isVoidFunction(boolean lhsSign, Type.Function lhs, boolean rhsSign, Type.Function rhs,
-			BitSet assumptions) throws ResolutionError {
-		if (lhsSign || rhsSign) {
+	public boolean isVoidFunction(Atom<Type.Function> lhs, Atom<Type.Function> rhs, BitSet assumptions)
+			throws ResolutionError {
+		if (lhs.sign || rhs.sign) {
 			// The sign indicates whether were in the pos-pos case, or in the
 			// pos-neg case.
-			Tuple<Type> lhsParameters = lhs.getParameters();
-			Tuple<Type> rhsParameters = rhs.getParameters();
+			Tuple<Type> lhsParameters = lhs.type.getParameters();
+			Tuple<Type> rhsParameters = rhs.type.getParameters();
+			Tuple<Type> lhsReturns = lhs.type.getParameters();
+			Tuple<Type> rhsReturns = rhs.type.getParameters();
 			//
-			Result pr = isVoidParameters(!lhsSign, lhsParameters, !rhsSign, rhsParameters, assumptions);
-			Result rr = isVoidParameters(lhsSign, lhsParameters, rhsSign, rhsParameters, assumptions);
-			if(pr == Result.True || rr == Result.True) {
-				return Result.True;
-			} else if(pr == Result.False && rr == Result.False) {
-				return Result.False;
-			} else {
-				return Result.Unknown;
-			}
+			// FIXME: should maximise be flipped for parameters as well?
+			//
+			boolean pr = isVoidParameters(!lhs.sign, lhs.maximise, lhsParameters, !rhs.sign, rhs.maximise,
+					rhsParameters, assumptions);
+			boolean rr = isVoidParameters(lhs.sign, lhs.maximise, lhsReturns, rhs.sign, rhs.maximise, rhsReturns,
+					assumptions);
+			return pr || rr;
 		} else {
 			// In this case, we are intersecting two negative function types.
 			// For example, !(function(int)->(int)) and
 			// !(function(bool)->(int)). This never reduces to void.
-			return Result.False;
+			return false;
 		}
 	}
 
-	public Result isVoidParameters(boolean lhsSign, Tuple<Type> lhs, boolean rhsSign, Tuple<Type> rhs,
-			BitSet assumptions) throws ResolutionError {
-		Result sign = lhsSign == rhsSign ? Result.True : Result.False;
+	public boolean isVoidParameters(boolean lhsSign, boolean lhsMax, Tuple<Type> lhs, boolean rhsSign, boolean rhsMax,
+			Tuple<Type> rhs, BitSet assumptions) throws ResolutionError {
+		boolean sign = lhsSign == rhsSign;
 		//
 		if (lhs.size() != rhs.size()) {
 			// Different number of parameters. In either pos-pos or neg-neg
 			// cases, this reduces to void. Otherwise, it doesn't.
-			return Result.False;
+			return false;
 		} else {
-			boolean isUnknown = false;
 			//
 			for (int i = 0; i != lhs.size(); ++i) {
 				Type lhsParameter = lhs.getOperand(i);
 				Type rhsParameter = rhs.getOperand(i);
-				Result r = isVoid(lhsSign, lhsParameter, rhsSign, rhsParameter, assumptions);
-				if (r == sign) {
+				Term<?> lhsTerm = new Term<>(lhsSign, lhsParameter, lhsMax);
+				Term<?> rhsTerm = new Term<>(rhsSign, rhsParameter, rhsMax);
+				if (sign == isVoid(lhsTerm, rhsTerm, assumptions)) {
 					// For pos-pos / neg-neg case, there is no intersection
 					// between this parameterand, hence, no intersection
 					// overall; for pos-neg case, there is some
@@ -494,22 +487,16 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 					// can conclude that there is an intersection between them
 					// with (int,null).
 					return sign;
-				} else if(r == Result.Unknown) {
-					isUnknown = true;
 				}
 			}
-			if(isUnknown) {
-				// Result in at least one case was undetermined. Hence, cannot
-				// make any concrete determination here.
-				return Result.Unknown;
-			} else if(sign == Result.True) {
+			if (sign == true) {
 				// for pos-pos case, all parameters have intersection. Hence,
 				// there is a possible intersection.
-				return Result.False;
+				return false;
 			} else {
 				// for pos-neg case, no parameters have intersection. Hence, no
 				// possible intersection.
-				return Result.True;
+				return true;
 			}
 		}
 	}
@@ -518,39 +505,32 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 	// Helpers
 	// ========================================================================
 
-	protected static class Worklist extends ArrayList<Worklist.Item<Type>> {
-
+	protected static class Worklist extends ArrayList<Term<Type>> {
 		/**
 		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		protected static class Item<T extends Type> {
-			public final boolean sign;
-			public final T type;
-
-			public Item(boolean sign, T type) {
-				this.type = type;
-				this.sign = sign;
-			}
-		}
-
-		public Item<Type> top() {
+		public Term<Type> top() {
 			return get(size() - 1);
 		}
 
-		public void push(boolean sign, Type type) {
-			add(new Item(sign, type));
+		public void push(Term item) {
+			add(item);
 		}
 
-		public void push(boolean sign, Type[] types) {
+		public void push(boolean sign, Type type, boolean maximise) {
+			add(new Term(sign, type, maximise));
+		}
+
+		public void push(boolean sign, Type[] types, boolean maximise) {
 			for (int i = 0; i != types.length; ++i) {
-				add(new Item(sign, types[i]));
+				add(new Term(sign, types[i], maximise));
 			}
 		}
 
-		public Item<Type> pop() {
-			Item<Type> i = get(size() - 1);
+		public Term<Type> pop() {
+			Term<Type> i = get(size() - 1);
 			remove(size() - 1);
 			return i;
 		}
@@ -563,9 +543,21 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 		}
 	}
 
-	protected static class Atom extends Worklist.Item<Type.Atom> {
-		public Atom(boolean sign, Type.Atom type) {
-			super(sign, type);
+	protected static class Term<T extends Type> {
+		public final boolean sign;
+		public final T type;
+		public final boolean maximise;
+
+		public Term(boolean sign, T type, boolean maximise) {
+			this.type = type;
+			this.sign = sign;
+			this.maximise = maximise;
+		}
+	}
+
+	protected static class Atom<T extends Type.Atom> extends Term<T> {
+		public Atom(boolean sign, T type, boolean maximise) {
+			super(sign, type, maximise);
 		}
 
 		@Override
@@ -579,23 +571,23 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 		}
 	}
 
-	protected boolean isAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected boolean isAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
 		if (assumptions != null) {
-			return assumptions.get(indexOf(lhsSign, lhs, rhsSign, rhs));
+			return assumptions.get(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
 		} else {
 			return false;
 		}
 	}
 
-	protected void setAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected void setAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
 		if (assumptions != null) {
-			assumptions.set(indexOf(lhsSign, lhs, rhsSign, rhs));
+			assumptions.set(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
 		}
 	}
 
-	protected void clearAssumedVoid(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs, BitSet assumptions) {
+	protected void clearAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
 		if (assumptions != null) {
-			assumptions.clear(indexOf(lhsSign, lhs, rhsSign, rhs));
+			assumptions.clear(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
 		}
 	}
 
@@ -613,14 +605,16 @@ public class CoerciveRawSubtypeOperator implements RawSubtypeOperator {
 		return (lhsIndex * rhsSize * 2) + rhsIndex;
 	}
 
-	protected static BitSet createAssumptions(Type lhs, Type rhs, BitSet assumptions) {
+	protected static BitSet createAssumptions(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
+		SyntacticHeap lhsHeap = lhs.type.getParent();
+		SyntacticHeap rhsHeap = rhs.type.getParent();
 		if (assumptions != null) {
 			return assumptions;
-		} else if (lhs.getParent() != null && rhs.getParent() != null) {
+		} else if (lhsHeap != null && rhsHeap != null) {
 			// We multiply by 2 here because we want to encode both positive and
 			// negative signs.
-			int lhsSize = lhs.getParent().size() * 2;
-			int rhsSize = rhs.getParent().size() * 2;
+			int lhsSize = lhsHeap.size() * 2;
+			int rhsSize = rhsHeap.size() * 2;
 			return new BitSet(lhsSize * rhsSize);
 		} else {
 			return null;

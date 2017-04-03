@@ -39,11 +39,7 @@ public class InvalidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-		IGNORED.put("test_026", "#65");
-		IGNORED.put("test_027", "#65");
-		IGNORED.put("test_028", "#65");
 		IGNORED.put("test_058", "unclassified");
-		IGNORED.put("test_104", "unclassified");
 	}
 
 	// ======================================================================

@@ -10,7 +10,7 @@ import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.AmbiguousNameError;
 import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.RawSubtypeOperator;
+import wyal.lang.SubtypeOperator;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -30,12 +30,12 @@ import wyal.lang.WyalFile.FieldDeclaration;
 public class TypeSystem {
 	private final WyalFile parent;
 	private final NameResolver resolver;
-	private final RawSubtypeOperator coerciveRawSubtypeOperator;
+	private final SubtypeOperator coerciveSubtypeOperator;
 
 	public TypeSystem(WyalFile parent) {
 		this.parent = parent;
 		this.resolver = new WyalFileResolver();
-		this.coerciveRawSubtypeOperator = new CoerciveRawSubtypeOperator(resolver);
+		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 	}
 
 	/**
@@ -74,7 +74,7 @@ public class TypeSystem {
 	 *             to a corresponding type declaration.
 	 */
 	public boolean isRawSubtype(Type lhs, Type rhs) throws ResolutionError {
-		return coerciveRawSubtypeOperator.isRawSubtype(lhs,rhs);
+		return coerciveSubtypeOperator.isSubtype(lhs,rhs) != SubtypeOperator.Result.False;
 	}
 
 	public boolean isEffectiveRecord(Type type) throws ResolutionError {
