@@ -3,7 +3,7 @@
 //
 // This software may be modified and distributed under the terms
 // of the BSD license.  See the LICENSE file for details.
-package wyal.tasks;
+package wyal.types;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +17,6 @@ import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
-import wyal.util.TypeSystem;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyal.lang.WyalFile.Expr;

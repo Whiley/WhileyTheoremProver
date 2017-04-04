@@ -19,8 +19,8 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Stmt.Block;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 /**
  * <p>

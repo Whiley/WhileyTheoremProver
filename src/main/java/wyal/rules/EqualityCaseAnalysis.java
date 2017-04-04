@@ -11,8 +11,8 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
 

@@ -6,8 +6,8 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class TypeTestExpansion implements Proof.LinearRule {
 	private final TypeSystem types;

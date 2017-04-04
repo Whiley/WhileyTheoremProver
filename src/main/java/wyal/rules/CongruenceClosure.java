@@ -10,8 +10,8 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 /**
  * <p>

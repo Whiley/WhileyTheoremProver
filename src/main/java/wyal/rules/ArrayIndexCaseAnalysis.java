@@ -11,8 +11,8 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
 

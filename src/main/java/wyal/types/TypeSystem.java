@@ -1,4 +1,4 @@
-package wyal.util;
+package wyal.types;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,7 +10,6 @@ import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.AmbiguousNameError;
 import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SubtypeOperator;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
@@ -21,6 +20,7 @@ import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
+import wyal.util.WyalFileResolver;
 import wyal.lang.WyalFile.Expr;
 import wybs.lang.SyntacticElement;
 import wybs.util.ResolveError;
@@ -28,12 +28,10 @@ import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.FieldDeclaration;
 
 public class TypeSystem {
-	private final WyalFile parent;
 	private final NameResolver resolver;
 	private final SubtypeOperator coerciveSubtypeOperator;
 
 	public TypeSystem(WyalFile parent) {
-		this.parent = parent;
 		this.resolver = new WyalFileResolver();
 		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 	}

@@ -9,6 +9,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.lang.Formula.*;
 import wyal.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;

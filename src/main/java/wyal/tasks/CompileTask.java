@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import wyal.lang.WyalFile;
+import wyal.types.TypeChecker;
 import wyal.util.AutomatedTheoremProver;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;

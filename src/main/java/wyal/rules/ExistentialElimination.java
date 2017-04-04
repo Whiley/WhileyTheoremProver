@@ -5,8 +5,8 @@ import wyal.lang.Proof;
 import wyal.lang.Formula.Conjunct;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 /**
  * <p>
