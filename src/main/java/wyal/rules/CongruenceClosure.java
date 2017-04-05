@@ -122,7 +122,7 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			} else if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// In this case, no possible intersection exists between the lhs and
 				// rhs. Therefore, we're done as this equality cannot ever be true.
-				return state.subsume(this, newTruth, state.allocate(new Formula.Truth(false)));
+				return state.subsume(this, newTruth, new Formula.Truth(false));
 			} else {
 				// In this case, neither type is contained within the other.
 				// Therefore, their intersection must be the type for both.
@@ -131,8 +131,7 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
-			//return state.subsume(this, newTruth, state.allocate(axiom));
-			return state.subsume(this, newTruth, state.allocate(axiom));
+			return state.subsume(this, newTruth, axiom);
 		}
 	}
 
@@ -153,7 +152,6 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 					// simplification, is the same. To avoid this, we
 					// need to avoid "recursive substitutions" somehow.
 					if (!existingTruth.equals(updatedTruth)) {
-						updatedTruth = state.allocate(updatedTruth);
 						state = state.subsume(this, existingTruth, updatedTruth, newTruth);
 					}
 				}

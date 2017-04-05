@@ -113,6 +113,9 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			for (int i = 0; i != tos.length; ++i) {
 				Formula ith = tos[i];
 				if(ith != null) {
+					// Make sure target is allocated
+					ith = allocate(ith);
+					// Check whether target already known
 					final int toIndex = ith.getIndex();
 					if (!truths.get(toIndex)) {
 						additions = additions.add(ith);
@@ -127,6 +130,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		@Override
 		public State infer(Proof.Rule rule, Formula truth, Formula... dependencies) {
 			//
+			truth = allocate(truth);
 			final int index = truth.getIndex();
 			if(!truths.get(index)) {
 				FastDelta delta = new FastDelta(new FastDelta.Set(truth), FastDelta.EMPTY_SET);

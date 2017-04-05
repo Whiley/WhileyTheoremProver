@@ -206,7 +206,7 @@ public class QuantifierInstantiation extends AbstractProofRule implements Proof.
 		}
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
-		grounded = state.allocate(Formulae.simplifyFormula(grounded, types));
+		grounded = Formulae.simplifyFormula(grounded, types);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 

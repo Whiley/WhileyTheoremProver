@@ -126,7 +126,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in
 				// question. Therefore, the test cannot be true.
-				return state.subsume(this, typeTest, state.allocate(new Formula.Truth(false)));
+				return state.subsume(this, typeTest, new Formula.Truth(false));
 			} else {
 				// At this point, it seems that the type test cannot be
 				// eliminated. The next thing is to assert any type invariants
@@ -134,7 +134,6 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 				Formula invariant = types.extractInvariant(intersection, lhs);
 				// Assume extracted type invariant (if one exists)
 				if (invariant != null) {
-					invariant = state.allocate(invariant);
 					state = state.infer(this, invariant, typeTest);
 				}
 				// In the case of a variable being retyped, we now need to go
@@ -172,7 +171,6 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 			Formula existing = additions.get(i);
 			Formula updated = (Formula) substitute(oldVar, newVar, existing);
 			if (existing != typeTest && updated != existing) {
-				updated = state.allocate(updated);
 				state = state.subsume(this, existing, updated, typeTest);
 			}
 		}
@@ -220,7 +218,6 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		//
 		Type type = new Type.Intersection(bounds);
 		Formula test = Formulae.simplifyFormula(new Formula.Is(first.getExpr(), type), types);
-		test = state.allocate(test);
 		//
 		Formula[] froms = matches.toArray(new Formula[matches.size()]);
 		state = state.subsume(this, froms, new Formula[] { test });

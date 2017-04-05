@@ -52,7 +52,6 @@ public class ExistentialElimination implements Proof.LinearRule {
 				// Add type invariants (if appropriate)
 				if (invariant != null) {
 					body = Formulae.simplifyFormula(new Conjunct(invariant, body),types);
-					body = state.allocate(body);
 				}
 				state = state.subsume(this, qf, body);
 			}

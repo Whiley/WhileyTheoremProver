@@ -63,7 +63,6 @@ public class InequalityIntroduction implements Proof.LinearRule {
 		//
 		Formula inferred = closeOver(ith, jth);
 		if (inferred != null) {
-			inferred = state.allocate(inferred);
 			state = state.infer(this, inferred, ith, jth);
 		}
 		return state;

@@ -26,7 +26,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 		if (truth instanceof Formula.Is) {
 			Formula nTruth = expand((Formula.Is) truth);
 			if (nTruth != truth) {
-				nTruth = state.allocate(Formulae.simplifyFormula(nTruth, types));
+				nTruth = Formulae.simplifyFormula(nTruth, types);
 				return state.subsume(this, truth, nTruth);
 			}
 		}

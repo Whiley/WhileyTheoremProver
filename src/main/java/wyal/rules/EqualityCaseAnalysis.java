@@ -40,7 +40,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				Inequality lt = Formulae.lessThan(lhs,rhs);
 				Inequality gt = Formulae.lessThan(rhs,lhs);
 				Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(lt, gt),types);
-				return state.subsume(this, truth, state.allocate(disjunct));
+				return state.subsume(this, truth, disjunct);
 			}
 		} else if(truth instanceof Formula.Equality) {
 			Formula.Equality eq = (Formula.Equality) truth;
@@ -55,8 +55,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 					// In this case, no possible intersection exists between the
 					// lhs and rhs. Therefore, we're done as this equality
 					// cannot ever be true.
-					System.out.println("GOT HERE: " + intersection);
-					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
+					return state.subsume(this, truth, new Formula.Truth(true));
 				} else if (types.isRawSubtype(new Type.Bool(), lhsT) && types.isRawSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);
 				}
@@ -96,14 +95,14 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Formula l = new Conjunct(lhs_f, rhs_f);
 			Formula r = new Conjunct(Formulae.invert(lhs_f), Formulae.invert(rhs_f));
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
-			return state.subsume(this, eq, state.allocate(disjunct));
+			return state.subsume(this, eq, disjunct);
 		} else {
 			Formula l = new Conjunct(Formulae.invert(lhs_f),rhs_f);
 			Formula r = new Conjunct(lhs_f,Formulae.invert(rhs_f));
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
 			// NOTE: at the moment, we can't do a subsume here because we can
 			// end up losing critical information.
-			return state.infer(this, state.allocate(disjunct), eq);
+			return state.infer(this, disjunct, eq);
 		}
 	}
 
@@ -132,7 +131,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
 		}
 		Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(clauses), types);
-		return state.subsume(this, eq, state.allocate(disjunct));
+		return state.subsume(this, eq, disjunct);
 	}
 
 	private State expandRecordInitialiserEquality(Formula.Equality eq, Expr.RecordInitialiser lhs,
@@ -159,7 +158,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_eq, lf, rf), types);
 			}
 			Formula disjunct = Formulae.simplifyFormula(new Formula.Conjunct(clauses), types);
-			return state.subsume(this, eq, state.allocate(disjunct));
+			return state.subsume(this, eq, disjunct);
 		}
 	}
 
@@ -204,7 +203,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			}
 			//
 			Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
-			return state.subsume(this, eq, state.allocate(Formulae.simplifyFormula(f, types)));
+			return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
 		}
 	}
 
@@ -224,7 +223,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		clauses[rhsOperands.length] = Formulae.toFormula(new Expr.Operator(opcode, lhsSize, rhsSize), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
-		return state.subsume(this, eq, state.allocate(Formulae.simplifyFormula(f, types)));
+		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
 	}
 
 	private State expandArrayGeneratorGeneratorEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
@@ -239,7 +238,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Formula c2 = Formulae.toFormula(new Expr.Operator(opcode, lhsValue, rhsValue), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(c1, c2) : new Formula.Disjunct(c1, c2);
-		return state.subsume(this, eq, state.allocate(Formulae.simplifyFormula(f, types)));
+		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
 	}
 
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
@@ -256,7 +255,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		}
 		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsSize, rhsSize), types);
 		Formula f = new Formula.Disjunct(clauses);
-		return state.subsume(this, eq, state.allocate(Formulae.simplifyFormula(f, types)));
+		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
 	}
 
 	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
@@ -274,7 +273,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		axiom = Formulae.or(axiom, new Quantifier(false, var, body));
 		axiom = Formulae.simplifyFormula(axiom, types);
 		//
-		return state.subsume(this, eq, state.allocate(axiom));
+		return state.subsume(this, eq, axiom);
 	}
 
 	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {

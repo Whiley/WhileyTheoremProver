@@ -138,12 +138,12 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Polynomial zero = new Polynomial(BigInteger.ZERO);
 		Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(index, zero), types);
-		return state.infer(this, state.allocate(axiom), dependencies);
+		return state.infer(this, axiom, dependencies);
 	}
 
 	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Formula axiom = Formulae.simplifyFormula(Formulae.lessThan(index, length), types);
-		return state.infer(this, state.allocate(axiom), dependencies);
+		return state.infer(this, axiom, dependencies);
 	}
 
 
