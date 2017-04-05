@@ -12,8 +12,8 @@ import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class FunctionCallAxiom extends AbstractProofRule implements Proof.LinearRule {
 
@@ -80,7 +80,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		for (int i = 0; i != parameters.size(); ++i) {
 			VariableDeclaration parameter = parameters.getOperand(i);
 			Expr argument = arguments.getOperand(i);
-			Formula clause = Formulae.extractTypeInvariant(parameter.getType(), argument, types);
+			Formula clause = types.extractInvariant(parameter.getType(), argument);
 			precondition = or(precondition, clause);
 		}
 		return precondition;
@@ -91,7 +91,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		Tuple<VariableDeclaration> returns = decl.getReturns();
 		for (int i = 0; i != returns.size(); ++i) {
 			VariableDeclaration parameter = returns.getOperand(i);
-			Formula clause = Formulae.extractTypeInvariant(parameter.getType(), ivk, types);
+			Formula clause = types.extractInvariant(parameter.getType(), ivk);
 			precondition = or(precondition, clause);
 		}
 		return precondition;

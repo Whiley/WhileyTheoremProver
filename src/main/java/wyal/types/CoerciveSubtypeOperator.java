@@ -1,4 +1,4 @@
-package wyal.util;
+package wyal.types;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,7 +6,6 @@ import java.util.BitSet;
 
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SubtypeOperator;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.FieldDeclaration;

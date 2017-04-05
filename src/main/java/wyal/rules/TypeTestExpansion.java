@@ -6,8 +6,8 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class TypeTestExpansion implements Proof.LinearRule {
 	private final TypeSystem types;
@@ -45,13 +45,13 @@ public class TypeTestExpansion implements Proof.LinearRule {
 			// type to be applied before we can proceed.);
 			return e;
 		} else {
-			Formula invariant = Formulae.extractTypeInvariant(e.getTypeTest(), nLhs, types);
+			Formula invariant = types.extractInvariant(e.getTypeTest(), nLhs);
 			// See whether we can do anything useful with this type test.
 
 			// x : int|null && x is nat
 
 			boolean isSubtype = types.isRawSubtype(lhsT, e.getTypeTest());
-			boolean isNotSubtype = types.isRawSubtype(lhsT, TypeSystem.negate(e.getTypeTest()));
+			boolean isNotSubtype = types.isRawSubtype(lhsT, new Type.Negation(e.getTypeTest()));
 			if (isSubtype && invariant != null) {
 				return invariant;
 			} else if (isSubtype) {

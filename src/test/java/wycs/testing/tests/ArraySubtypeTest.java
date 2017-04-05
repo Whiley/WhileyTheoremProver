@@ -11,7 +11,7 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.NameResolver;
 import wyal.lang.WyalFile;
-import wyal.util.TypeSystem;
+import wyal.types.TypeSystem;
 
 import java.util.List;
 

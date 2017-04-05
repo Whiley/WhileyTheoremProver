@@ -3,7 +3,7 @@
 //
 // This software may be modified and distributed under the terms
 // of the BSD license.  See the LICENSE file for details.
-package wyal.tasks;
+package wyal.types;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +17,6 @@ import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
-import wyal.util.TypeSystem;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyal.lang.WyalFile.Expr;
@@ -358,7 +357,7 @@ public class TypeChecker {
 		for (int i = 0; i != ts.length; ++i) {
 			ts[i] = check(expr.getOperand(i));
 		}
-		Type element = types.union(ts);
+		Type element = new Type.Union(ts);
 		return new Type.Array(element);
 	}
 
@@ -395,7 +394,7 @@ public class TypeChecker {
 	 */
 	private Type.EffectiveArray checkIsArrayType(Type type) {
 		try {
-			Type.EffectiveArray arrT = types.expandAsEffectiveArray(type);
+			Type.EffectiveArray arrT = types.extractReadableArray(type);
 			if(arrT == null) {
 				throw new RuntimeException("expected array type, got " + type);
 			}
@@ -413,7 +412,7 @@ public class TypeChecker {
 	 */
 	private Type.EffectiveRecord checkIsRecordType(Type type) {
 		try {
-			Type.EffectiveRecord recT = types.expandAsEffectiveRecord(type);
+			Type.EffectiveRecord recT = types.extractReadableRecord(type);
 			if(recT == null) {
 				throw new RuntimeException("expected record type, got " + type);
 			}

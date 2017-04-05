@@ -1,8 +1,9 @@
-package wyal.lang;
+package wyal.types;
 
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
 
-public interface TypeExtractor {
+public interface TypeExtractor<T,S> {
 	/**
 	 * Attempt to extract a certain kind of type from an arbitrary type. This is
 	 * necessary in the presence of powerful type connectives such as
@@ -11,8 +12,10 @@ public interface TypeExtractor {
 	 * <code>{int x}</code>.
 	 *
 	 * @param type
-	 * @param kind
+	 *            The type for which information is to be extracted
+	 * @param supplementary
+	 *            Supplementary information which may be used by the extractor.
 	 * @return
 	 */
-	public <T extends Type> T extractFrom(Type type, Class<T> kind);
+	public T extract(Type type, S supplementary) throws ResolutionError;
 }

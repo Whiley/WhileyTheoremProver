@@ -19,8 +19,8 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.lang.WyalFile.Stmt.Block;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 /**
  * <p>
@@ -183,7 +183,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 	private Formula expandTypeInvariant(Proof.State state, Declaration.Named.Type td, Expr argument) throws ResolutionError {
 		// Extract only the explicit invariants given using where clauses.
 		Tuple<Block> invariant = td.getInvariant();
-		Formula result = Formulae.extractTypeInvariant(td.getVariableDeclaration().getType(), argument, types);
+		Formula result = types.extractInvariant(td.getVariableDeclaration().getType(), argument);
 		for (int i = 0; i != invariant.size(); ++i) {
 			// Convert the invariant clause into a formula
 			Formula ith = Formulae.toFormula(invariant.getOperand(i), types);

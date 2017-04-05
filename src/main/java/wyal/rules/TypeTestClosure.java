@@ -11,8 +11,8 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 /**
  * <p>
@@ -131,7 +131,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 				// At this point, it seems that the type test cannot be
 				// eliminated. The next thing is to assert any type invariants
 				// which now hold as a result of this test holding.
-				Formula invariant = Formulae.extractTypeInvariant(intersection, lhs, types);
+				Formula invariant = types.extractInvariant(intersection, lhs);
 				// Assume extracted type invariant (if one exists)
 				if (invariant != null) {
 					invariant = state.allocate(invariant);

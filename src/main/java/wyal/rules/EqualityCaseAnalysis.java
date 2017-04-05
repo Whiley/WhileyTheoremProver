@@ -11,10 +11,11 @@ import wyal.lang.Proof.State;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
+	private int skolem = 0;
 
 	public EqualityCaseAnalysis(TypeSystem types) {
 		super(types);
@@ -49,22 +50,24 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Type rhsT = rhs.getReturnType(types);
 
 			if (lhsT != null && rhsT != null) {
-				// NOTE: the type expansion below is currently necessary to
-				// allow intersect to its job properly.
-				Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
-				Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
-				Type intersection = TypeSystem.intersect(lhsExpanded, rhsExpanded);
+				Type intersection = new Type.Intersection(lhsT, rhsT);
+				//
 				if (types.isRawSubtype(new Type.Void(), intersection)) {
 					// In this case, no possible intersection exists between the
-					// lhs and
-					// rhs. Therefore, we're done as this equality cannot ever
-					// be true.
+					// lhs and rhs. Therefore, we're done as this equality
+					// cannot ever be true.
 					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
 				} else if (types.isRawSubtype(new Type.Bool(), lhsT) && types.isRawSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);
-				} else if (types.isEffectiveRecord(lhsT) && types.isEffectiveRecord(rhsT)) {
+				}
+				Type.Record lhsRecord = types.extractReadableRecord(lhsT);
+				Type.Record rhsRecord = types.extractReadableRecord(rhsT);
+				if(lhsRecord != null && rhsRecord != null) {
 					return expandRecordEquality(eq, state);
-				} else if (types.isEffectiveArray(lhsT) && types.isEffectiveArray(rhsT)) {
+				}
+				Type.Array lhsArray = types.extractReadableArray(lhsT);
+				Type.Array rhsArray = types.extractReadableArray(rhsT);
+				if(lhsArray != null && rhsArray != null) {
 					return expandArrayEquality(eq, state);
 				}
 			} else {
@@ -107,26 +110,20 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	private State expandRecordEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
 		if (eq.getSign()) {
 			if (lhs instanceof Expr.RecordInitialiser && rhs instanceof Expr.RecordInitialiser) {
 				return expandRecordInitialiserEquality(eq, (Expr.RecordInitialiser) lhs, (Expr.RecordInitialiser) rhs,
 						state);
 			}
 		} else {
-			if (types.isEffectiveRecord(lhs_t)) {
-				return expandRecordNonEquality(eq, lhs, rhs, state);
-			} else if (types.isEffectiveRecord(rhs_t)) {
-				return expandRecordNonEquality(eq, rhs, lhs, state);
-			}
+			return expandRecordNonEquality(eq, lhs, rhs, state);
 		}
 		return state;
 	}
 
 	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		Type lhs_t = lhs.getReturnType(types);
-		Type.EffectiveRecord lhs_r = types.expandAsEffectiveRecord(lhs_t);
+		Type.EffectiveRecord lhs_r = types.extractReadableRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
@@ -264,7 +261,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 
 	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-				new Identifier("i:" + Formulae.skolem++));
+				new Identifier("i:" + skolem++));
 		Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);

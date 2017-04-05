@@ -9,6 +9,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.lang.Formula.*;
 import wyal.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
@@ -244,211 +245,6 @@ public class Formulae {
 		}
 	}
 
-	/**
-	 * For a given sequence of variable declarations expand their type
-	 * invariants as appropriate. This expansion is done lazily, in that it
-	 * produces invocations to the type invariants themselves. Such invocations
-	 * must then be separately expanded (like macros) later on. As an example,
-	 * consider this:
-	 *
-	 * <pre>
-	 * type nat is (int x) where x >= 0
-	 *
-	 * assert:
-	 *     forall(nat x):
-	 *         x >= 0
-	 * </pre>
-	 *
-	 * The type invariant given for <code>x</code> in the quantifier will be
-	 * expanded, to give then body <code>nat(x) ==> x >= 0</code>. The call
-	 * <code>nat(x)</code> will later be expanded during theorem proving to
-	 * <code>x >= 0</code>. The reason this is done lazily is to properly
-	 * support recursive types and their invariants.
-	 *
-	 * @param declarations
-	 * @param types
-	 * @return
-	 * @throws ResolutionError
-	 */
-	public static Formula expandTypeInvariants(Tuple<VariableDeclaration> declarations, TypeSystem types) throws ResolutionError {
-		Formula result = null;
-		for (int i = 0; i != declarations.size(); ++i) {
-			VariableDeclaration decl = declarations.getOperand(i);
-			Formula invariant = expandTypeInvariant(decl,types);
-			// FIXME: need to perform appropriate variable substitution here?
-			if (invariant != null && result == null) {
-				result = invariant;
-			} else if (invariant != null) {
-				result = new Conjunct(result, invariant);
-			}
-		}
-		return result;
-	}
-	public static Formula expandTypeInvariant(VariableDeclaration decl, TypeSystem types) throws ResolutionError {
-		return extractTypeInvariant(decl.getType(), new Expr.VariableAccess(decl), types);
-	}
-	public static int skolem = 0;
-
-	/**
-	 * Expand the type invariant associated with a given type (if any). For
-	 * example, primitive types have no invariant associated with them. In
-	 * contrast, nominal types may have as the following example illustrates:
-	 *
-	 * <pre>
-	 * type nat is (int x) where x >= 0
-	 * </pre>
-	 *
-	 * Here, the resulting invariant produced is <code>nat(x)</code>. Another
-	 * interesting example is that for a record:
-	 *
-	 * <pre>
-	 * type Point is ({nat x, nat y} p)
-	 * </pre>
-	 *
-	 * Here, the resulting invariant would be <code>nat(p.x) && nat(p.y)</code>.
-	 *
-	 * @param type
-	 * @param types
-	 * @return
-	 * @throws ResolutionError
-	 */
-	public static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types) throws ResolutionError {
-		return extractTypeInvariant(type,root,types,new BitSet());
-	}
-
-	/**
-	 *
-	 * @param type
-	 * @param root
-	 * @param types
-	 * @param visited
-	 *            Used to identify types previously encountered during this
-	 *            search. Such types are necessarily recursive, and should only
-	 *            be visited once to prevent infinite loops.
-	 * @return
-	 * @throws ResolutionError
-	 */
-	private static Formula extractTypeInvariant(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
-		Formula invariant = null;
-		if(type.getParent() == null) {
-			invariant = extractTypeInvariantInner(type,root,types,visited);
-		} else if(!visited.get(type.getIndex())) {
-			visited.set(type.getIndex());
-			invariant = extractTypeInvariantInner(type,root,types,visited);
-			visited.clear(type.getIndex());
-		}
-		return invariant;
-	}
-	public static Formula extractTypeInvariantInner(Type type, Expr root, TypeSystem types, BitSet visited) throws ResolutionError {
-		switch(type.getOpcode()) {
-		case TYPE_void:
-		case TYPE_any:
-		case TYPE_null:
-		case TYPE_bool:
-		case TYPE_int:
-			return null; // no invariant
-		case TYPE_nom: {
-			Type.Nominal nom = (Type.Nominal) type;
-			Declaration.Named.Type td = types.resolveExactly(nom.getName(),Named.Type.class);
-			Formula invariant = extractTypeInvariant(td.getVariableDeclaration().getType(), root, types, visited);
-			if (td.getInvariant().size() == 0 && invariant == null) {
-				return null;
-			} else {
-				Type parameter = td.getVariableDeclaration().getType();
-				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
-				return new Formula.Invoke(true, ft, nom.getName(), root);
-			}
-		}
-		case TYPE_rec: {
-			Type.Record r = (Type.Record) type;
-			FieldDeclaration[] fields = r.getFields();
-			Formula inv = null;
-			for(int i=0;i!=fields.length;++i) {
-				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
-				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
-				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, types, visited);
-				if(fieldInv != null) {
-					if(inv == null) {
-						inv = fieldInv;
-					} else {
-						inv = and(inv,fieldInv);
-					}
-				}
-			}
-			return inv;
-		}
-		case TYPE_arr: {
-			Type.Array t = (Type.Array) type;
-			// FIXME: trying to get rid of this would somehow be useful
-			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-					new Identifier("i:" + skolem++));
-			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
-			Expr el = new Expr.Operator(Opcode.EXPR_arridx, root, va);
-			Formula inv = extractTypeInvariant(t.getElement(), el, types, visited);
-			Polynomial zero = toPolynomial(0);
-			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
-			if (inv != null) {
-				// forall i.(0 <= i && i <|root|) ==> inv
-				Formula gt = greaterOrEqual(va, zero);
-				Formula lt = lessThan(va, len);
-				inv = new Quantifier(true, var, implies(and(gt, lt), inv));
-			}
-			return inv;
-		}
-		case TYPE_or: {
-			Type.Union t = (Type.Union) type;
-			Formula result = null;
-			boolean hasInvariant = false;
-			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
-				Formula.Is tt = new Formula.Is(root, t.getOperand(i));
-				if(result == null) {
-					result = tt;
-				} else {
-					result = new Disjunct(result,tt);
-				}
-				hasInvariant |= inv != null;
-			}
-			if(hasInvariant) {
-				return result;
-			} else {
-				return null;
-			}
-		}
-		case TYPE_and: {
-			Type.Intersection t = (Type.Intersection) type;
-			Formula result = null;
-			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root,types, visited);
-				if(inv != null && result == null) {
-					result = inv;
-				} else if(inv != null) {
-					result = new Conjunct(result,inv);
-				}
-			}
-			return result;
-		}
-		case TYPE_not: {
-			Type.Negation t = (Type.Negation) type;
-			Formula inv = extractTypeInvariant(t.getElement(),root,types, visited);
-			if(inv == null) {
-				return null;
-			} else {
-				return invert(inv);
-			}
-		}
-		case TYPE_fun:
-		case TYPE_macro: {
-			// NOTE: not very clear whether we can useful extract a type
-			// invariant from here or not.
-			return null;
-		}
-		case TYPE_ref:
-		default:
-			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
-		}
-	}
-
 	public static Formula.Inequality lessThan(Polynomial lhs, Polynomial rhs) {
 		// lhs < rhs ===> rhs >= (lhs+1)
 		Polynomial lhsP1 = lhs.add(new Polynomial(BigInteger.ONE));
@@ -535,7 +331,7 @@ public class Formulae {
 		case EXPR_is: {
 			Formula.Is c = (Formula.Is) f;
 			// FIXME: could simplify the type here I think
-			return new Is(c.getExpr(), TypeSystem.negate(c.getTypeTest()));
+			return new Is(c.getExpr(), new Type.Negation(c.getTypeTest()));
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());

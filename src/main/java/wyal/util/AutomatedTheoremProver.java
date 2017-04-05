@@ -16,6 +16,7 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.Proof.State;
 import wyal.rules.*;
+import wyal.types.TypeSystem;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 

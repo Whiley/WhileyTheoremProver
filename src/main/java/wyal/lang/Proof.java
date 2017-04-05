@@ -5,7 +5,7 @@ import java.util.List;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
-import wyal.util.TypeSystem;
+import wyal.types.TypeSystem;
 
 public interface Proof {
 

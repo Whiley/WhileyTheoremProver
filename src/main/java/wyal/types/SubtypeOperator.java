@@ -1,4 +1,4 @@
-package wyal.lang;
+package wyal.types;
 
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;

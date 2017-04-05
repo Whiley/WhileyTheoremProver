@@ -13,11 +13,11 @@ import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.Proof.State;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Expr.Polynomial;
+import wyal.types.TypeSystem;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public class QuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
 
@@ -190,7 +190,7 @@ public class QuantifierInstantiation extends AbstractProofRule implements Proof.
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
 		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
-		Formula invariant = Formulae.expandTypeInvariant(variable,types);
+		Formula invariant = types.extractInvariant(variable.getType(), new Expr.VariableAccess(variable));
 		// Add type invariants (if appropriate)
 		if (invariant != null) {
 			grounded = new Disjunct(Formulae.invert(invariant), grounded);

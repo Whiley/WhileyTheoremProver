@@ -13,8 +13,8 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.types.TypeSystem;
 import wyal.util.Formulae;
-import wyal.util.TypeSystem;
 
 public abstract class AbstractProofRule implements Proof.Rule {
 	protected TypeSystem types;
