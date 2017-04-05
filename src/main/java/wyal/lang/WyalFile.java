@@ -1112,12 +1112,16 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				case EXPR_arrlen:
 					return new Type.Int();
 				case EXPR_arrinit: {
-					Type[] ts = new Type[size()];
-					for (int i = 0; i != ts.length; ++i) {
-						ts[i] = getOperand(i).getReturnType(types);
+					if (size() > 0) {
+						Type[] ts = new Type[size()];
+						for (int i = 0; i != ts.length; ++i) {
+							ts[i] = getOperand(i).getReturnType(types);
+						}
+						Type element = new Type.Union(ts);
+						return new Type.Array(element);
+					} else {
+						return new Type.Array(new Type.Void());
 					}
-					Type element = new Type.Union(ts);
-					return new Type.Array(element);
 				}
 				case EXPR_arrgen: {
 					Type element = getOperand(0).getReturnType(types);

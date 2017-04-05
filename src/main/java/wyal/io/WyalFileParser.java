@@ -944,22 +944,20 @@ public class WyalFileParser {
 		int start = index;
 		match(LeftSquare);
 		ArrayList<Expr> operands = new ArrayList<>();
-
-		boolean firstTime = true;
+		//
+		operands.add(parseUnitExpression(scope, true));
+		//
 		boolean isArray = true;
 		while (eventuallyMatch(RightSquare) == null) {
-			if (!firstTime) {
-				if (!isArray) {
-					// Force failure
-					match(RightSquare);
-				} else if (tryAndMatch(true, SemiColon) == null) {
-					match(Comma);
-				} else {
-					// This indicates an array
-					isArray = false;
-				}
+			if (!isArray) {
+				// Force failure
+				match(RightSquare);
+			} else if (tryAndMatch(true, SemiColon) == null) {
+				match(Comma);
+			} else {
+				// This indicates an array generator
+				isArray = false;
 			}
-			firstTime = false;
 			// NOTE: we require the following expression be a "non-tuple"
 			// expression. That is, it cannot be composed using ',' unless
 			// braces enclose the entire expression. This is because the outer

@@ -48,7 +48,6 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Expr rhs = eq.getOperand(1);
 			Type lhsT = lhs.getReturnType(types);
 			Type rhsT = rhs.getReturnType(types);
-
 			if (lhsT != null && rhsT != null) {
 				Type intersection = new Type.Intersection(lhsT, rhsT);
 				//
@@ -56,6 +55,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 					// In this case, no possible intersection exists between the
 					// lhs and rhs. Therefore, we're done as this equality
 					// cannot ever be true.
+					System.out.println("GOT HERE: " + intersection);
 					return state.subsume(this, truth, state.allocate(new Formula.Truth(true)));
 				} else if (types.isRawSubtype(new Type.Bool(), lhsT) && types.isRawSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);

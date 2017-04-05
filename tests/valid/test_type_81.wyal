@@ -1,0 +1,6 @@
+assert:
+    forall(int[] xs):
+        if:
+            |xs| > 0
+        then:
+            xs != [0;0]
