@@ -31,14 +31,14 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		// have the same nominal types they can cancel each other.
 		Term<?> lhsMaxTerm = new Term<>(false, parent, true);
 		Term<?> rhsMaxTerm = new Term<>(true, child, true);
-		boolean max = isVoid(lhsMaxTerm, rhsMaxTerm, null);
+		boolean max = isVoidTerm(lhsMaxTerm, rhsMaxTerm, null);
 		// FIXME: I don't think this logic is correct yet for some reason.
 		if(!max) {
 			return Result.False;
 		} else {
 			Term<?> lhsMinTerm = new Term<>(false, parent, false);
 			Term<?> rhsMinTerm = new Term<>(true, child, false);
-			boolean min = isVoid(lhsMinTerm, rhsMinTerm, null);
+			boolean min = isVoidTerm(lhsMinTerm, rhsMinTerm, null);
 			if(min) {
 				return Result.True;
 			} else {
@@ -47,7 +47,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		}
 	}
 
-	protected boolean isVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) throws ResolutionError {
+	protected boolean isVoidTerm(Term<?> lhs, Term<?> rhs, BitSet assumptions) throws ResolutionError {
 		assumptions = createAssumptions(lhs, rhs, assumptions);
 		//
 		if (isAssumedVoid(lhs, rhs, assumptions)) {
@@ -116,7 +116,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				Atom<?> ith = truths.get(i);
 				for (int j = i + 1; j != truths.size(); ++j) {
 					Atom<?> jth = truths.get(j);
-					if (isVoid(ith, jth, assumptions)) {
+					if (isVoidAtom(ith, jth, assumptions)) {
 						return true;
 					}
 				}
@@ -199,7 +199,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoid(Atom a, Atom b, BitSet assumptions) throws ResolutionError {
+	protected boolean isVoidAtom(Atom<?> a, Atom<?> b, BitSet assumptions) throws ResolutionError {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -295,7 +295,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// least one is positive. This is void only if there is no
 			// intersection of the underlying element types. For example, int[]
 			// and bool[] is void, whilst (int|null)[] and int[] is not.
-			return isVoid(lhsTerm, rhsTerm, assumptions);
+			return isVoidTerm(lhsTerm, rhsTerm, assumptions);
 		} else {
 			// In this case, we are intersecting two negative array types. For
 			// example, !(int[]) and !(bool[]). This never reduces to void.
@@ -354,7 +354,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 						continue;
 					} else {
 						Term<?> rhsTerm = new Term<>(rhs.sign, rhsField.getType(), rhs.maximise);
-						if (sign == isVoid(lhsTerm, rhsTerm, assumptions)) {
+						if (sign == isVoidTerm(lhsTerm, rhsTerm, assumptions)) {
 							// For pos-pos case, there is no intersection
 							// between these fields and, hence, no intersection
 							// overall; for pos-neg case, there is some
@@ -475,7 +475,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				Type rhsParameter = rhs.getOperand(i);
 				Term<?> lhsTerm = new Term<>(lhsSign, lhsParameter, lhsMax);
 				Term<?> rhsTerm = new Term<>(rhsSign, rhsParameter, rhsMax);
-				if (sign == isVoid(lhsTerm, rhsTerm, assumptions)) {
+				if (sign == isVoidTerm(lhsTerm, rhsTerm, assumptions)) {
 					// For pos-pos / neg-neg case, there is no intersection
 					// between this parameterand, hence, no intersection
 					// overall; for pos-neg case, there is some
