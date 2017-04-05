@@ -45,6 +45,7 @@ public class ValidTest {
 		IGNORED.put("test_array_41", "??");
 		IGNORED.put("test_array_50", "??");
 		IGNORED.put("test_array_60", "??");
+		IGNORED.put("test_array_61", "???");
 		IGNORED.put("test_array_66", "??");
 		IGNORED.put("test_array_67", "??");
 		//
@@ -57,10 +58,6 @@ public class ValidTest {
 		IGNORED.put("test_arith_40", "#12");
 		//
 		IGNORED.put("test_array_59", "#29");
-		//
-		IGNORED.put("test_type_38", "#31");
-		//
-		IGNORED.put("test_type_48", "#39");
 		//
 		IGNORED.put("test_arith_28", "#40");
 		//
@@ -78,8 +75,6 @@ public class ValidTest {
 		IGNORED.put("test_type_78", "#31");
 		//
 		IGNORED.put("test_array_23", "66");
-		//
-		IGNORED.put("test_array_61", "???");
 	}
 
 	// ======================================================================
