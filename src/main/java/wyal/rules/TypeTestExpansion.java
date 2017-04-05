@@ -51,7 +51,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 			// x : int|null && x is nat
 
 			boolean isSubtype = types.isRawSubtype(lhsT, e.getTypeTest());
-			boolean isNotSubtype = types.isRawSubtype(lhsT, TypeSystem.negate(e.getTypeTest()));
+			boolean isNotSubtype = types.isRawSubtype(lhsT, new Type.Negation(e.getTypeTest()));
 			if (isSubtype && invariant != null) {
 				return invariant;
 			} else if (isSubtype) {

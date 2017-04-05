@@ -1,7 +1,13 @@
 package wyal.types;
 
+import java.util.ArrayList;
+
 import wyal.lang.NameResolver;
+import wyal.lang.WyalFile.FieldDeclaration;
+import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.Type.Atom;
+import wyal.lang.WyalFile.Type.Record;
 
 /**
  * <p>
@@ -28,38 +34,167 @@ import wyal.lang.WyalFile.Type;
  * @author David J. Pearce
  *
  */
-public class ReadableRecordExtractor implements TypeExtractor<Type.Record> {
-	private final NameResolver resolver;
+public class ReadableRecordExtractor extends AbstractTypeExtractor<Type.Record> {
 
-	public ReadableRecordExtractor(NameResolver resolver) {
-		this.resolver = resolver;
+	public ReadableRecordExtractor(NameResolver resolver, TypeSystem typeSystem) {
+		super(resolver, typeSystem);
 	}
 
 	@Override
-	public Type.Record extract(Type type) {
-		if (type instanceof Type.Primitive || type instanceof Type.Array || type instanceof Type.Reference
-				|| type instanceof Type.Negation) {
-			return null;
-		} else if (type instanceof Type.Record) {
-			return (Type.Record) type;
-		} else if (type instanceof Type.Nominal) {
-			return extract((Type.Nominal) type);
-		} else if (type instanceof Type.Union) {
-			return extract((Type.Union) type);
+	protected Record construct(Atom type) {
+		if(type instanceof Record) {
+			return (Record) type;
 		} else {
-			return extract((Type.Intersection) type);
+			return null;
 		}
 	}
 
-	private Type.Record extract(Type.Union type) {
+	@Override
+	protected Type.Record union(Type.Record lhs, Type.Record rhs) {
+		ArrayList<FieldDeclaration> fields = new ArrayList<>();
+		FieldDeclaration[] lhsFields = lhs.getFields();
+		FieldDeclaration[] rhsFields = rhs.getFields();
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					Type type = unionHelper(lhsField.getType(), rhsField.getType());
+					fields.add(new FieldDeclaration(type, lhsFieldName));
+				}
+			}
+		}
+		//
+		boolean isOpenRecord = lhs.isOpen() || rhs.isOpen();
+		isOpenRecord |= (lhsFields.length > fields.size() || rhsFields.length > fields.size());
+		//
+		return new Type.Record(isOpenRecord, fields.toArray(new FieldDeclaration[fields.size()]));
+	}
+
+	@Override
+	protected Type.Record subtract(Type.Record lhs, Type.Record rhs) {
+		// FIXME: implement this
 		return null;
 	}
 
-	private Type.Record extract(Type.Intersection type) {
-		return null;
+	@Override
+	protected Type.Record intersect(Type.Record lhs, Type.Record rhs) {
+		//
+		FieldDeclaration[] lhsFields = lhs.getFields();
+		FieldDeclaration[] rhsFields = rhs.getFields();
+		// Determine the number of matching fields. That is, fields with the
+		// same name.
+		int matches = countMatchingFields(lhsFields, rhsFields);
+		// When intersecting two records, the number of fields is only
+		// allowed to differ if one of them is an open record. Therefore, we
+		// need to pay careful attention to the size of the resulting match
+		// in comparison with the original records.
+		if (matches < lhsFields.length && !rhs.isOpen()) {
+			// Not enough matches made to meet the requirements of the lhs
+			// type.
+			return null;
+		} else if (matches < rhsFields.length && !lhs.isOpen()) {
+			// Not enough matches made to meet the requirements of the rhs
+			// type.
+			return null;
+		} else {
+			// At this point, we know the intersection succeeds. The next
+			// job is to determine the final set of field declarations.
+			int lhsRemainder = lhsFields.length - matches;
+			int rhsRemainder = rhsFields.length - matches;
+			FieldDeclaration[] fields = new FieldDeclaration[matches + lhsRemainder + rhsRemainder];
+			// Extract all matching fields first
+			int index = extractMatchingFields(lhsFields, rhsFields, fields);
+			// Extract remaining lhs fields second
+			index = extractNonMatchingFields(lhsFields, rhsFields, fields, index);
+			// Extract remaining rhs fields last
+			index = extractNonMatchingFields(rhsFields, lhsFields, fields, index);
+			// The intersection of two records can only be open when both
+			// are themselves open.
+			boolean isOpen = lhs.isOpen() && rhs.isOpen();
+			//
+			return new Type.Record(isOpen, fields);
+		}
 	}
 
-	public Type.Record extract(Type.Nominal nominal) {
-		return null;
+	/**
+	 * Count the number of matching fields. That is, fields with the same name.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @return
+	 */
+	protected int countMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields) {
+		int count = 0;
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					count = count + 1;
+				}
+			}
+		}
+		return count;
+	}
+
+	/**
+	 * Extract all matching fields (i.e. fields with the same name) into the
+	 * result array.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @param result
+	 * @return
+	 */
+	protected int extractMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields,
+			FieldDeclaration[] result) {
+		int index = 0;
+		// Extract all matching fields first.
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					FieldDeclaration combined = new FieldDeclaration(
+							intersectionHelper(lhsField.getType(), rhsField.getType()), lhsFieldName);
+					result[index++] = combined;
+				}
+			}
+		}
+		return index;
+	}
+
+	/**
+	 * Extract fields from lhs which do not match any field in the rhs. That is,
+	 * there is no field in the rhs with the same name.
+	 *
+	 * @param lhsFields
+	 * @param rhsFields
+	 * @param result
+	 * @param index
+	 * @return
+	 */
+	protected int extractNonMatchingFields(FieldDeclaration[] lhsFields, FieldDeclaration[] rhsFields,
+			FieldDeclaration[] result, int index) {
+		outer: for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				Identifier lhsFieldName = lhsFields[i].getVariableName();
+				Identifier rhsFieldName = rhsFields[j].getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					// This is a matching field. Therefore, continue on to the
+					// next lhs field
+					continue outer;
+				}
+			}
+			result[index++] = lhsFields[i];
+		}
+		return index;
 	}
 }

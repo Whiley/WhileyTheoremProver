@@ -1,6 +1,6 @@
 package wyal.types;
 
-import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
 
 public interface TypeExtractor<T> {
@@ -14,5 +14,5 @@ public interface TypeExtractor<T> {
 	 * @param type
 	 * @return
 	 */
-	public T extract(Type type);
+	public T extract(Type type) throws ResolutionError;
 }

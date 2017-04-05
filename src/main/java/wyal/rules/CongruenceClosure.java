@@ -102,11 +102,8 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			// Defer processing of this equality
 			return state;
 		} else {
-			// NOTE: the type expansion below is currently necessary to allow
-			// intersect to its job properly.
-			Type lhsExpanded = types.expandAsEffectiveType(true, lhsT);
-			Type rhsExpanded = types.expandAsEffectiveType(true, rhsT);
-			Type intersection = TypeSystem.intersect(lhsExpanded,rhsExpanded);
+			Type intersection = new Type.Intersection(lhsT,rhsT);
+			//
 			boolean left = types.isRawSubtype(lhsT, rhsT);
 			boolean right = types.isRawSubtype(rhsT, lhsT);
 			Formula axiom;

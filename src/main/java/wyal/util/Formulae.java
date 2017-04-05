@@ -536,7 +536,7 @@ public class Formulae {
 		case EXPR_is: {
 			Formula.Is c = (Formula.Is) f;
 			// FIXME: could simplify the type here I think
-			return new Is(c.getExpr(), TypeSystem.negate(c.getTypeTest()));
+			return new Is(c.getExpr(), new Type.Negation(c.getTypeTest()));
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());

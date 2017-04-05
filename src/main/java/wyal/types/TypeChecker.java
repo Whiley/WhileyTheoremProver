@@ -357,7 +357,7 @@ public class TypeChecker {
 		for (int i = 0; i != ts.length; ++i) {
 			ts[i] = check(expr.getOperand(i));
 		}
-		Type element = types.union(ts);
+		Type element = new Type.Union(ts);
 		return new Type.Array(element);
 	}
 
@@ -394,7 +394,7 @@ public class TypeChecker {
 	 */
 	private Type.EffectiveArray checkIsArrayType(Type type) {
 		try {
-			Type.EffectiveArray arrT = types.expandAsEffectiveArray(type);
+			Type.EffectiveArray arrT = types.extractReadableArray(type);
 			if(arrT == null) {
 				throw new RuntimeException("expected array type, got " + type);
 			}
@@ -412,7 +412,7 @@ public class TypeChecker {
 	 */
 	private Type.EffectiveRecord checkIsRecordType(Type type) {
 		try {
-			Type.EffectiveRecord recT = types.expandAsEffectiveRecord(type);
+			Type.EffectiveRecord recT = types.extractReadableRecord(type);
 			if(recT == null) {
 				throw new RuntimeException("expected record type, got " + type);
 			}
