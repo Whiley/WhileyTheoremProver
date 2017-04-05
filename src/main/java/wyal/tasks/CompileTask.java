@@ -7,8 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import wyal.lang.WyalFile;
-import wyal.types.TypeChecker;
-import wyal.util.AutomatedTheoremProver;
+import wyal.util.TypeChecker;
 import wybs.lang.Build;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;
@@ -17,6 +16,7 @@ import wycc.util.Pair;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
 import wyfs.lang.Path.Root;
+import wytp.provers.AutomatedTheoremProver;
 
 public class CompileTask implements Build.Task {
 

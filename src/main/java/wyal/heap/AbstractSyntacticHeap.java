@@ -7,11 +7,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import wyal.lang.Formula;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wybs.lang.Attribute;
+import wytp.proof.Formula;
 
 public abstract class AbstractSyntacticHeap implements SyntacticHeap {
 	protected final ArrayList<SyntacticItem> syntacticItems = new ArrayList<>();

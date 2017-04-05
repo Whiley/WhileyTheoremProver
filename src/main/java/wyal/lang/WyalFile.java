@@ -17,14 +17,15 @@ import wyal.io.WyalFilePrinter;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.types.TypeSystem;
-import wyal.util.Formulae;
-import wyal.util.Polynomials;
 import wybs.lang.CompilationUnit;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
+import wytp.proof.Proof;
+import wytp.proof.util.Formulae;
+import wytp.proof.util.Polynomials;
+import wytp.types.TypeSystem;
 
 public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 

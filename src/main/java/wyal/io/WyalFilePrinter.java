@@ -11,7 +11,6 @@ import java.util.List;
 
 import static wyal.lang.WyalFile.*;
 
-import wyal.lang.Formula;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Value;
@@ -19,6 +18,7 @@ import wybs.lang.Attribute;
 import wybs.lang.SyntaxError.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
+import wytp.proof.Formula;
 
 public class WyalFilePrinter {
 	private final PrintWriter out;
