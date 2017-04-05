@@ -1117,7 +1117,10 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 						for (int i = 0; i != ts.length; ++i) {
 							ts[i] = getOperand(i).getReturnType(types);
 						}
-						Type element = new Type.Union(ts);
+						// Perform a little simplification here by collapsing
+						// identical types together.
+						ts = ArrayUtils.removeDuplicates(ts);
+						Type element = ts.length == 1 ? ts[0] : new Type.Union(ts);
 						return new Type.Array(element);
 					} else {
 						return new Type.Array(new Type.Void());

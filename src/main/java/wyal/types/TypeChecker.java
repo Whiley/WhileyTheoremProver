@@ -19,6 +19,7 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Declaration.Named;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
+import wycc.util.ArrayUtils;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
@@ -357,7 +358,8 @@ public class TypeChecker {
 		for (int i = 0; i != ts.length; ++i) {
 			ts[i] = check(expr.getOperand(i));
 		}
-		Type element = new Type.Union(ts);
+		ts = ArrayUtils.removeDuplicates(ts);
+		Type element = ts.length == 1 ? ts[0] : new Type.Union(ts);
 		return new Type.Array(element);
 	}
 
