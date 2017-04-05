@@ -45,7 +45,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 			// type to be applied before we can proceed.);
 			return e;
 		} else {
-			Formula invariant = Formulae.extractTypeInvariant(e.getTypeTest(), nLhs, types);
+			Formula invariant = types.extractInvariant(e.getTypeTest(), nLhs);
 			// See whether we can do anything useful with this type test.
 
 			// x : int|null && x is nat

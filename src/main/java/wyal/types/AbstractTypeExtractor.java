@@ -56,7 +56,7 @@ import wycc.util.ArrayUtils;
  *
  * @param <T>
  */
-public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtractor<T> {
+public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtractor<T,Object> {
 	protected final NameResolver resolver;
 	protected final TypeSystem typeSystem;
 
@@ -66,7 +66,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 	}
 
 	@Override
-	public T extract(Type type) throws ResolutionError {
+	public T extract(Type type, Object supplementary) throws ResolutionError {
 		Disjunct dnf = toDisjunctiveNormalForm(type);
 		return construct(dnf);
 	}

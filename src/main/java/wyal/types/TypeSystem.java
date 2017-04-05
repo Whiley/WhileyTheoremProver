@@ -2,10 +2,12 @@ package wyal.types;
 
 import java.util.List;
 
+import wyal.lang.Formula;
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
+import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
 import wyal.util.WyalFileResolver;
@@ -15,12 +17,14 @@ public class TypeSystem {
 	private final SubtypeOperator coerciveSubtypeOperator;
 	private final ReadableRecordExtractor readableRecordExtractor;
 	private final ReadableArrayExtractor readableArrayExtractor;
+	private final TypeInvariantExtractor typeInvariantExtractor;
 
 	public TypeSystem(WyalFile parent) {
 		this.resolver = new WyalFileResolver();
 		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
+		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
 	}
 
 	/**
@@ -82,7 +86,7 @@ public class TypeSystem {
 	 * @throws ResolutionError
 	 */
 	public Type.Record extractReadableRecord(Type type) throws ResolutionError {
-		return readableRecordExtractor.extract(type);
+		return readableRecordExtractor.extract(type,null);
 	}
 
 	/**
@@ -95,7 +99,29 @@ public class TypeSystem {
 	 * @throws ResolutionError
 	 */
 	public Type.Array extractReadableArray(Type type) throws ResolutionError {
-		return readableArrayExtractor.extract(type);
+		return readableArrayExtractor.extract(type,null);
+	}
+
+	/**
+	 * Extracting the invariant (if any) from a given type. For example,
+	 * consider the following type declaration:
+	 *
+	 * <pre>
+	 * type nat is (int x) where x >= 0
+	 * </pre>
+	 *
+	 * Then, extracting the invariant from type <code>nat</code> gives
+	 * <code>x >= 0</code>. Likewise, extracting the invariant from the type
+	 * <code>bool|int</code> gives the invariant
+	 * <code>(x is int) ==> (x >= 0)</code>. Finally, extracting the invariant
+	 * from the type <code>nat[]</code> gives the invariant
+	 * <code>forall(int i).(0 <= i
+	 * && i < |xs| ==> xs[i] >= 0)</code>.
+	 *
+	 *
+	 */
+	public Formula extractInvariant(Type type, Expr root)  throws ResolutionError {
+		return typeInvariantExtractor.extract(type,root);
 	}
 
 	// ========================================================================

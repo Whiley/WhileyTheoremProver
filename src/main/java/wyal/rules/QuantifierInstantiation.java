@@ -190,7 +190,7 @@ public class QuantifierInstantiation extends AbstractProofRule implements Proof.
 		Expr.VariableAccess access = new Expr.VariableAccess(variable);
 		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
-		Formula invariant = Formulae.expandTypeInvariant(variable,types);
+		Formula invariant = types.extractInvariant(variable.getType(), new Expr.VariableAccess(variable));
 		// Add type invariants (if appropriate)
 		if (invariant != null) {
 			grounded = new Disjunct(Formulae.invert(invariant), grounded);

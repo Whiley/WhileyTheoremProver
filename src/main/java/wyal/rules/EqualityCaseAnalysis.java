@@ -15,6 +15,7 @@ import wyal.types.TypeSystem;
 import wyal.util.Formulae;
 
 public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
+	private int skolem = 0;
 
 	public EqualityCaseAnalysis(TypeSystem types) {
 		super(types);
@@ -260,7 +261,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 
 	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
-				new Identifier("i:" + Formulae.skolem++));
+				new Identifier("i:" + skolem++));
 		Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
