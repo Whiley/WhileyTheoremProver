@@ -38,91 +38,62 @@ public class ProofPrinter {
 		print(0, p.getState(0));
 	}
 
+	private static final char BOX_TOP='\u2500';
+	private static final char BOX_BOTTOM='\u2500';
+	private static final char BOX_SPLIT='\u2500';
+	private static final char BOX_LEFTSIDE='\u2502';
+	private static final char BOX_TOPLEFTCORNER='\u250c';
+	private static final char BOX_TOPRIGHTCORNER='\u2510';
+	private static final char BOX_BOTTOMLEFTCORNER='\u2514';
+	private static final char BOX_BOTTOMRIGHTCORNER='\u2518';
+	private static final char BOX_SPLITLEFT='\u251c';
+	private static final char BOX_SPLITRIGHT='\u2524';
+
 	public void print(int depth, Proof.State step) {
-		tab(depth);
+		printBoxContents(depth,step);
+		// now print any children
+		if(step.numberOfChildren() == 0) {
+			// do nothing
+		} else if(step.numberOfChildren() == 1) {
+			print(depth,step.getChild(0));
+		} else {
+			printOpenBox(depth);
+			for(int i=0;i!=step.numberOfChildren();++i) {
+				print(depth+1,step.getChild(i));
+				if((i+1) != step.numberOfChildren()) {
+					printSplitBox(depth);
+				}
+			}
+			printCloseBox(depth);
+		}
+	}
+
+	public void printBoxContents(int depth, Proof.State step) {
 		String[] lines = toLines(step);
 		String title = title(step);
-		int indent = depth*3;
+		int lineWidth = width - (depth*2);
 		for(int i=0;i!=lines.length;++i) {
 			String t;
 			if(i == 0) {
 				t = title;
 			} else {
-				out.println();
-				tab(depth);
 				t = "";
 			}
-			out.print(pad(lines[i],t,width - indent));
-		}
-		out.println();
-		// now print any children
-		if(step.numberOfChildren() == 0) {
 			tab(depth);
-			out.println("_|_");
+			out.print(pad(lines[i],t,lineWidth));
 			tab(depth);
-		} else if(step.numberOfChildren() == 1) {
-			//tab(depth);
-			print(depth,step.getChild(0));
-		} else {
-			indent += 3;
-			tab(depth+1);
-			printLine(width-indent,'>');
-			for(int i=0;i!=step.numberOfChildren();++i) {
-				print(depth+1,step.getChild(i));
-				if((i+1) != step.numberOfChildren()) {
-					printLine(width-indent,'=');
-				}
-			}
-			printLine(width-indent,'<');
+			out.println();
 		}
 	}
-
 	public void tab(int indent) {
 		if(indent > 0) {
 			for (int i = 0; i < (indent-1); ++i) {
-				out.print(" | ");
+				out.print(BOX_LEFTSIDE);
 			}
-			out.print(" | ");
-		}
-	}
-	private Proof.State[] expandFrontier(Proof.State[] steps) {
-		ArrayList<Proof.State> nSteps = new ArrayList<>();
-		boolean allLeaf = true;
-		for(int i=0;i!=steps.length;++i) {
-			Proof.State step = steps[i];
-			if(step.numberOfChildren() == 0) {
-				nSteps.add(step);
-			} else {
-				for(int j=0;j!=step.numberOfChildren();++j) {
-					nSteps.add(step.getChild(j));
-				}
-				allLeaf = false;
-			}
-		}
-		if(allLeaf) {
-			return new Proof.State[0];
-		} else {
-			return nSteps.toArray(new Proof.State[nSteps.size()]);
+			out.print(BOX_LEFTSIDE);
 		}
 	}
 
-	private int calculateColumnWidth(Proof.State step, int maxWidth) {
-		Proof.State parent = step.getParent();
-		if(parent == null) {
-			return maxWidth;
-		} else {
-			int parentWidth = calculateColumnWidth(parent,maxWidth);
-			return parentWidth / parent.numberOfChildren();
-		}
-	}
-
-	private int maxDepth(String[][] lines) {
-		int max = 0;
-		for(int i=0;i!=lines.length;++i) {
-			max = Math.max(lines[i].length, max);
-		}
-		return max;
-	}
 
 	private String pad(String left, String right, int width) {
 		if(width <= 0) {
@@ -187,16 +158,34 @@ public class ProofPrinter {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		PrintWriter pw = new PrintWriter(out);
 		WyalFilePrinter printer = new WyalFilePrinter(pw);
-		pw.print(e.getIndex() + ". ");
+		pw.print(" " + e.getIndex() + ". ");
 		printer.writeExpression(e);
 		printer.flush();
 		return new String(out.toByteArray());
 	}
 
-	private void printLine(int width, char c) {
-		for(int i=0;i<width;i++) {
-			out.print(c);
+
+	private void printOpenBox(int depth) {
+		printBoxLine(depth,BOX_TOPLEFTCORNER,BOX_TOP,BOX_TOPRIGHTCORNER);
+	}
+
+	private void printCloseBox(int depth) {
+		printBoxLine(depth,BOX_BOTTOMLEFTCORNER,BOX_BOTTOM,BOX_BOTTOMRIGHTCORNER);
+	}
+
+	private void printSplitBox(int depth) {
+		printBoxLine(depth,BOX_SPLITLEFT,BOX_SPLIT,BOX_SPLITRIGHT);
+	}
+
+	private void printBoxLine(int depth, char lc, char mc, char rc) {
+		tab(depth);
+		int boxWidth = this.width - (depth*2);
+		out.print(lc);
+		for(int i=1;i<(boxWidth-1);i++) {
+			out.print(mc);
 		}
+		out.print(rc);
+		tab(depth);
 		out.println();
 	}
 }
