@@ -86,7 +86,9 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 	 * @throws ResolutionError
 	 */
 	protected Disjunct toDisjunctiveNormalForm(Type type) throws ResolutionError {
-		if (type instanceof Type.Primitive) {
+		if(type == null) {
+			throw new IllegalArgumentException("type to extract cannot be null");
+		} else if (type instanceof Type.Primitive) {
 			return toDisjunctiveNormalForm((Type.Primitive) type);
 		} else if(type instanceof Type.Array) {
 			return toDisjunctiveNormalForm((Type.Array) type);

@@ -264,7 +264,7 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.EffectiveRecord effectiveRecord = checkIsRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src);
 		//
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
@@ -350,7 +350,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		return new Type.Int();
 	}
 
@@ -372,19 +372,19 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
-		return effectiveArray.getReadableElement();
+		return effectiveArray.getElement();
 	}
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.EffectiveArray effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src);
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
-		checkIsSubtype(effectiveArray.getReadableElement(), valueType);
+		checkIsSubtype(effectiveArray.getElement(), valueType);
 		return effectiveArray;
 	}
 
@@ -395,9 +395,9 @@ public class TypeChecker {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Type.EffectiveArray checkIsArrayType(Type type) {
+	private Type.Array checkIsArrayType(Type type) {
 		try {
-			Type.EffectiveArray arrT = types.extractReadableArray(type);
+			Type.Array arrT = types.extractReadableArray(type);
 			if(arrT == null) {
 				throw new RuntimeException("expected array type, got " + type);
 			}
@@ -413,9 +413,9 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.EffectiveRecord checkIsRecordType(Type type) {
+	private Type.Record checkIsRecordType(Type type) {
 		try {
-			Type.EffectiveRecord recT = types.extractReadableRecord(type);
+			Type.Record recT = types.extractReadableRecord(type);
 			if(recT == null) {
 				throw new RuntimeException("expected record type, got " + type);
 			}

@@ -123,7 +123,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 
 	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		Type lhs_t = lhs.getReturnType(types);
-		Type.EffectiveRecord lhs_r = types.extractReadableRecord(lhs_t);
+		Type.Record lhs_r = types.extractReadableRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {

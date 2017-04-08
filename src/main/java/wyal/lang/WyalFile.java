@@ -650,20 +650,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public interface EffectiveArray extends Type {
-			public Type getReadableElement();
-		}
-
-
-		public static class Array extends Atom implements EffectiveArray {
+		public static class Array extends Atom {
 			public Array(Type element) {
 				super(Opcode.TYPE_arr, element);
 			}
 			public Type getElement() {
-				return (Type) getOperand(0);
-			}
-			@Override
-			public Type getReadableElement() {
 				return (Type) getOperand(0);
 			}
 			@Override
@@ -693,11 +684,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public interface EffectiveRecord extends Type {
-			public FieldDeclaration[] getFields();
-		}
-
-		public static class Record extends Atom implements EffectiveRecord {
+		public static class Record extends Atom  {
 			public Record(boolean isOpen, FieldDeclaration... fields) {
 				super(Opcode.TYPE_rec, ArrayUtils.append(SyntacticItem.class,new Value.Bool(isOpen), fields));
 			}
@@ -711,7 +698,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return flag.get();
 			}
 
-			@Override
 			public FieldDeclaration[] getFields() {
 				SyntacticItem[] operands = getOperands();
 				FieldDeclaration[] fields = new FieldDeclaration[size()-1];
@@ -1133,17 +1119,21 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				case EXPR_arridx: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.EffectiveArray effectiveArray = types.extractReadableArray(src);
-					if(effectiveArray != null) {
-						return effectiveArray.getReadableElement();
-					} else {
-						return null;
+					if(src != null) {
+						Type.Array effectiveArray = types.extractReadableArray(src);
+						if(effectiveArray != null) {
+							return effectiveArray.getElement();
+						}
 					}
+					return null;
 				}
 				case EXPR_arrupdt: {
 					Type src = getOperand(0).getReturnType(types);
-					Type.EffectiveArray effectiveArray = types.extractReadableArray(src);
-					return effectiveArray;
+					if(src != null) {
+						return types.extractReadableArray(src);
+					} else {
+						return null;
+					}
 				}
 				default:
 					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());
@@ -1304,15 +1294,17 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Type getReturnType(TypeSystem types) throws ResolutionError {
 				Type src = getSource().getReturnType(types);
-				Type.EffectiveRecord effectiveRecord = types.extractReadableRecord(src);
-				if(effectiveRecord != null) {
-					FieldDeclaration[] fields = effectiveRecord.getFields();
-					String actualFieldName = getField().get();
-					for (int i = 0; i != fields.length; ++i) {
-						FieldDeclaration vd = fields[i];
-						String declaredFieldName = vd.getVariableName().get();
-						if (declaredFieldName.equals(actualFieldName)) {
-							return vd.getType();
+				if (src != null) {
+					Type.Record effectiveRecord = types.extractReadableRecord(src);
+					if (effectiveRecord != null) {
+						FieldDeclaration[] fields = effectiveRecord.getFields();
+						String actualFieldName = getField().get();
+						for (int i = 0; i != fields.length; ++i) {
+							FieldDeclaration vd = fields[i];
+							String declaredFieldName = vd.getVariableName().get();
+							if (declaredFieldName.equals(actualFieldName)) {
+								return vd.getType();
+							}
 						}
 					}
 				}
