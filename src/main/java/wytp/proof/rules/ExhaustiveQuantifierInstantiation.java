@@ -216,6 +216,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
 		grounded = Formulae.simplifyFormula(grounded, types);
+		grounded = (Formula) construct(state,grounded);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 
