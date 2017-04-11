@@ -71,7 +71,8 @@ public class ProofPrinter {
 	public void printBoxContents(int depth, Proof.State step) {
 		String[] lines = toLines(step);
 		String title = title(step);
-		int lineWidth = width - (depth*2);
+		int lineWidth = width - depth;
+		lineWidth = depth == 0 ? lineWidth : lineWidth-1;
 		for(int i=0;i!=lines.length;++i) {
 			String t;
 			if(i == 0) {
@@ -81,7 +82,9 @@ public class ProofPrinter {
 			}
 			tab(depth);
 			out.print(pad(lines[i],t,lineWidth));
-			tab(depth);
+			if(depth > 0) {
+				out.print(BOX_LEFTSIDE);
+			}
 			out.println();
 		}
 	}
@@ -179,13 +182,16 @@ public class ProofPrinter {
 
 	private void printBoxLine(int depth, char lc, char mc, char rc) {
 		tab(depth);
-		int boxWidth = this.width - (depth*2);
+		int boxWidth = this.width - depth;
 		out.print(lc);
 		for(int i=1;i<(boxWidth-1);i++) {
 			out.print(mc);
 		}
-		out.print(rc);
-		tab(depth);
+		if(depth != 0) {
+			out.print(BOX_SPLITRIGHT);
+		} else {
+			out.print(rc);
+		}
 		out.println();
 	}
 }
