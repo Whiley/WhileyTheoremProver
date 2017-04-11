@@ -1,0 +1,6 @@
+assert:
+   forall(int[] xs, any[] ys):
+       if:
+          ys[0] is int
+       then:
+          xs[ys[0]] is int

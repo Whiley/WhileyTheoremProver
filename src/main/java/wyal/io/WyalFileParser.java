@@ -1,10 +1,8 @@
 package wyal.io;
 
 import static wyal.io.WyalFileLexer.Token.Kind.*;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,13 +10,10 @@ import java.util.Map;
 
 import wyal.io.WyalFileLexer.Token;
 import static wyal.lang.WyalFile.*;
-import wyal.lang.SyntacticItem;
+
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Opcode;
-import wycc.util.ArrayUtils;
-import wycc.util.Pair;
 import wybs.lang.Attribute;
-import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
@@ -175,7 +170,11 @@ public class WyalFileParser {
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		//
-		match(Type);
+		// Match identifier rather than kind e.g. keyword type to avoid "type"
+		// being a keyword. We already know that the identifier in question must
+		// be "type" as, otherwise, this method would not have been called.
+		match(Identifier);
+		//
 		Identifier name = parseIdentifier(scope);
 		match(Is);
 		// Parse parameter declaration and invariant (if applicable)
@@ -945,22 +944,20 @@ public class WyalFileParser {
 		int start = index;
 		match(LeftSquare);
 		ArrayList<Expr> operands = new ArrayList<>();
-
-		boolean firstTime = true;
+		//
+		operands.add(parseUnitExpression(scope, true));
+		//
 		boolean isArray = true;
 		while (eventuallyMatch(RightSquare) == null) {
-			if (!firstTime) {
-				if (!isArray) {
-					// Force failure
-					match(RightSquare);
-				} else if (tryAndMatch(true, SemiColon) == null) {
-					match(Comma);
-				} else {
-					// This indicates an array
-					isArray = false;
-				}
+			if (!isArray) {
+				// Force failure
+				match(RightSquare);
+			} else if (tryAndMatch(true, SemiColon) == null) {
+				match(Comma);
+			} else {
+				// This indicates an array generator
+				isArray = false;
 			}
-			firstTime = false;
 			// NOTE: we require the following expression be a "non-tuple"
 			// expression. That is, it cannot be composed using ',' unless
 			// braces enclose the entire expression. This is because the outer
@@ -1414,6 +1411,8 @@ public class WyalFileParser {
 			return parseNegationType(scope);
 		case Identifier:
 			return parseNominalType(scope);
+		case Function:
+			return parseFunctionType(scope);
 		default:
 			syntaxError("unknown type encountered", token);
 			return null; // deadcode
@@ -1463,7 +1462,7 @@ public class WyalFileParser {
 	private Type parseNegationType(EnclosingScope scope) {
 		int start = index;
 		match(Shreak);
-		Type element = parseType(scope);
+		Type element = parseBaseType(scope);
 		Type type = new Type.Negation(element);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
@@ -1513,6 +1512,7 @@ public class WyalFileParser {
 		int start = index;
 		match(LeftCurly);
 		List<FieldDeclaration> fields = new ArrayList<>();
+		boolean isOpenRecord = false;
 		boolean firstTime = true;
 		while (eventuallyMatch(RightCurly) == null) {
 			if (!firstTime) {
@@ -1521,14 +1521,23 @@ public class WyalFileParser {
 				firstTime = false;
 			}
 			int fieldStart = index;
-			Type fieldType = parseType(scope);
-			Identifier fieldName = parseIdentifier(scope);
-			FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
-			var.attributes().add(sourceAttr(fieldStart, index - 1));
-			fields.add(var);
+			// Check whether this is the end of an open record, or not.
+			if(tryAndMatch(true, DotDotDot) == null) {
+				// No, this is not an open record
+				Type fieldType = parseType(scope);
+				Identifier fieldName = parseIdentifier(scope);
+				FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
+				var.attributes().add(sourceAttr(fieldStart, index - 1));
+				fields.add(var);
+			} else {
+				isOpenRecord = true;
+				// The "..." of an open record can only come at the end.
+				match(RightCurly);
+				break;
+			}
 		}
 		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
-		Type type = new Type.Record(arr);
+		Type type = new Type.Record(isOpenRecord,arr);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
@@ -1556,6 +1565,43 @@ public class WyalFileParser {
 		Type type = new Type.Nominal(nameID);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
+	}
+
+	/**
+	 * Parse a function type of the form:
+	 *
+	 * <pre>
+	 * FunctionType ::= "function" [Type (',' Type)* ] "->" Type
+	 * </pre>
+	 *
+	 * Observer, it is required that parameters and returns for a function type
+	 * are enclosed in braces.
+	 *
+	 * @param scope
+	 * @return
+	 */
+	private Type parseFunctionType(EnclosingScope scope) {
+		int start = index;
+		match(Function);
+		Tuple<Type> parameters = parseTypeParameters(scope);
+		match(MinusGreater);
+		Tuple<Type> returns = parseTypeParameters(scope);
+		Type.Function type = new Type.Function(parameters, returns);
+		type.attributes().add(sourceAttr(start, index - 1));
+		return type;
+	}
+
+	private Tuple<Type> parseTypeParameters(EnclosingScope scope) {
+		match(LeftBrace);
+		ArrayList<Type> types = new ArrayList<>();
+		boolean firstTime = true;
+		while(eventuallyMatch(RightBrace) == null) {
+			if(!firstTime) {
+				match(Comma);
+			}
+			types.add(parseType(scope));
+		}
+		return new Tuple<>(types.toArray(new Type[types.size()]));
 	}
 
 	private Identifier parseIdentifier(EnclosingScope scope) {

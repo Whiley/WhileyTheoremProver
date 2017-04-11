@@ -1,0 +1,7 @@
+type Point2D is ({int x,int y} p)
+type Point3D is ({int x,int y, int z} p)
+type OpenPoint is ({int x,int y, ...} p)
+
+assert:
+    forall(Point2D|Point3D p):
+        p is OpenPoint

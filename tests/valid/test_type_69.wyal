@@ -1,0 +1,10 @@
+type LeftPoint is ({int x,int y} p)
+type RightPoint is ({int y,int x} p)
+
+assert:
+    forall(LeftPoint p, RightPoint q):
+        if:
+            p.x == q.x
+            p.y == q.y
+        then:
+            p == q

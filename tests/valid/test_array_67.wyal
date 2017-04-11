@@ -1,0 +1,8 @@
+assert "loop invariant does not hold on entry":
+    forall(int[] str, int i):
+        if:
+            exists(int w):
+              (0 <= w) && (w < |str|) && (str[w] == 0)
+        then:
+            exists(int k):
+                (0 <= k) && (k < |str|) && (str[k] == 0)

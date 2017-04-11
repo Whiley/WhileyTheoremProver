@@ -1,0 +1,16 @@
+define contains(int[] items, int item, int end) is:
+    exists(int k).(((0 <= k) && (k < end)) && (items[k] == item))
+
+type nat is (int x)
+where:
+    x >= 0
+
+assert "loop invariant not restored":
+    forall(nat j, nat i, int m, int[] items):
+        if:
+            contains(items, m, i)
+            i < |items|
+            j == (i + 1)
+        then:
+            contains(items, items[i], i+1)
+

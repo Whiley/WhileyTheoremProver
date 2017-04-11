@@ -1,0 +1,11 @@
+define invariant(int x) is:
+    x >= 0
+
+define invariant(int[] xs) is:
+    xs == [1,2,3]
+
+assert:
+    invariant([1,2,3])
+
+assert:
+    invariant(1)

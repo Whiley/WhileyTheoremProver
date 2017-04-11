@@ -1,0 +1,11 @@
+type nat is (int n) where n >= 0
+
+function f(int x) -> (nat r)
+
+assert:
+    forall (int[] ys, int i):
+        if:
+           (f(0) < 0) || (i >= 0)
+        then:
+           i >= 0
+

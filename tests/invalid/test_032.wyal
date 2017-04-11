@@ -1,0 +1,16 @@
+type nat is (int n) where n >= 0
+
+function f(nat x) -> (int r)
+
+define invariant(int[] xs, int x) is:
+    forall(int k):
+        (f(x) > xs[k]) || (f(-1) < xs[k])
+        
+assert:
+    forall (int[] ys, int i):
+        if:
+            i < 0
+            invariant(ys,i)
+        then:
+            i > 0
+

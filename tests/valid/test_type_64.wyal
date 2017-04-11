@@ -1,0 +1,12 @@
+define contains(int[] items, int item, int end) is:
+    exists(int k):
+        items[k] == item
+
+assert "loop invariant not restored":
+    forall(int j, int i, int[] items):
+        if:
+            items[i] == 1
+            i == (j+1)
+        then:
+            contains(items, items[i], i+1)
+

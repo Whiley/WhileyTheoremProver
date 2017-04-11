@@ -1,0 +1,6 @@
+type Point1D is ({int x} p)
+type OpenPoint is ({int x,int y, ...} p)
+
+assert:
+    forall(Point1D p):
+        p is OpenPoint

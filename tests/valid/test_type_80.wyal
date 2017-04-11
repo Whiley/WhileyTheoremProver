@@ -1,0 +1,6 @@
+assert:
+    forall(int[] xs, bool[] ys):
+        if:
+            xs == ys
+        then:
+            xs is (int[])&(bool[])
