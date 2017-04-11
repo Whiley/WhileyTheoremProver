@@ -57,6 +57,11 @@ public class AutomatedTheoremProver {
 	private boolean printProof = false;
 
 	/**
+	 * Set the width for displaying proofs
+	 */
+	private int proofWidth = 80;
+
+	/**
 	 * The list of proof rules which can be applied by this theorem prover.
 	 */
 	private Proof.Rule[] rules;
@@ -67,6 +72,10 @@ public class AutomatedTheoremProver {
 
 	public void setProofLimit(int size) {
 		this.maxProofSize = size;
+	}
+
+	public void setProofWidth(int width) {
+		this.proofWidth= width;
 	}
 
 	public AutomatedTheoremProver(TypeSystem typeSystem) {
@@ -355,8 +364,8 @@ public class AutomatedTheoremProver {
 	}
 
 	// Useful for debugging
-	public static void print(Proof proof) {
-		ProofPrinter printer = new ProofPrinter(System.out);
+	public void print(Proof proof) {
+		ProofPrinter printer = new ProofPrinter(System.out).setWidth(proofWidth);
 		printer.print(proof);
 		printer.flush();
 	}

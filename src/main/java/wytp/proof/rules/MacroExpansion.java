@@ -72,6 +72,8 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
+			expanded = (Formula) construct(state,expanded);
+			expanded = Formulae.simplifyFormula(expanded, types);
 			state = state.subsume(this, truth, expanded);
 		}
 		return state;
@@ -95,7 +97,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 					invariant = Formulae.invert(invariant);
 				}
 				// Update the state
-				return Formulae.simplifyFormula(invariant, types);
+				return invariant;
 			}
 		} else if(formula instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) formula;
@@ -104,8 +106,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 				// expanded anyway,
 				Formula body = expandFormula(state, quantifier.getBody());
 				if(body != quantifier.getBody()) {
-					quantifier = new Formula.Quantifier(true, quantifier.getParameters(), body);
-					return Formulae.simplifyFormula(quantifier, types);
+					return new Formula.Quantifier(true, quantifier.getParameters(), body);
 				}
 			}
 		} else if(formula instanceof Formula.Disjunct) {
@@ -113,16 +114,14 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			Formula[] children = disjunct.getOperands();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
-				disjunct = new Formula.Disjunct(nChildren);
-				return Formulae.simplifyFormula(disjunct, types);
+				return new Formula.Disjunct(nChildren);
 			}
 		} else if(formula instanceof Formula.Conjunct) {
 			Formula.Conjunct disjunct = (Formula.Conjunct) formula;
 			Formula[] children = disjunct.getOperands();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
-				disjunct = new Formula.Conjunct(nChildren);
-				return Formulae.simplifyFormula(disjunct, types);
+				return new Formula.Conjunct(nChildren);
 			}
 		}
 		return formula;

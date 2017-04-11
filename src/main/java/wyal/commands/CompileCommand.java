@@ -67,6 +67,11 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	protected int proofLimit = 1000;
 
 	/**
+	 * Set the display width for the proof printer
+	 */
+	protected int proofWidth = 80;
+
+	/**
 	 * Identifies which wyal source files should be considered for compilation.
 	 * By default, all files reachable from srcdir are considered.
 	 */
@@ -109,6 +114,8 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			return "Enable verification";
 		case "proof":
 			return "Print proofs to console";
+		case "width":
+			return "Set display width for printing proofs";
 		default:
 			return super.describe(option);
 		}
@@ -125,6 +132,9 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			break;
 		case "proof":
 			this.printProof = true;
+			break;
+		case "width":
+			this.proofWidth = (Integer) value;
 			break;
 		case "limit":
 			this.proofLimit = (Integer) value;
@@ -234,6 +244,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
 		prover.setPrintProof(printProof);
 		prover.setProofLimit(proofLimit);
+		prover.setProofWidth(proofWidth);
 		CompileTask wyalBuildTask = new CompileTask(project, typeSystem, prover);
 		wyalBuildTask.setVerify(verify);
 		if (verbose) {
