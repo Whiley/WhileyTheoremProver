@@ -168,14 +168,6 @@ public interface Proof {
 		 * @return
 		 */
 		State infer(Proof.Rule rule, Formula truth, Formula... dependencies);
-
-		/**
-		 * Allocate a new truth into the underlying SyntacticHeap.
-		 *
-		 * @param truth
-		 * @return
-		 */
-		Formula allocate(Formula truth);
 	}
 
 	/**

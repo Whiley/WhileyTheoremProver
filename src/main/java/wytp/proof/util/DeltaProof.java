@@ -150,8 +150,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			return result;
 		}
 
-		@Override
-		public Formula allocate(Formula truth) {
+		private Formula allocate(Formula truth) {
 			return proof.getHeap().allocate(truth);
 		}
 	}

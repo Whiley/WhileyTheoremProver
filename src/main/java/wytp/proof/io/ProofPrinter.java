@@ -15,8 +15,8 @@ import wytp.proof.Proof;
 
 public class ProofPrinter {
 	private final PrintWriter out;
-	private final int width = 120;
-	private final boolean fullDelta = false;
+	private int width = 120;
+	private boolean fullDelta = false;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -28,6 +28,16 @@ public class ProofPrinter {
 
 	public ProofPrinter(PrintWriter writer) {
 		this.out = writer;
+	}
+
+	public ProofPrinter setWidth(int width) {
+		this.width = width;
+		return this;
+	}
+
+	public ProofPrinter setShowAll(boolean flag) {
+		this.fullDelta = flag;
+		return this;
 	}
 
 	public void flush() {
