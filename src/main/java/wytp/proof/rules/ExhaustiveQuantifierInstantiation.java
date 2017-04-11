@@ -216,6 +216,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
 		grounded = Formulae.simplifyFormula(grounded, types);
+		grounded = (Formula) construct(state,grounded);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 
@@ -331,7 +332,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 */
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) throws ResolutionError {
 		//
-		if (containsTrigger(quantified)) {
+		if (containsTrigger(quantified,variable)) {
 			Expr.VariableAccess access = new Expr.VariableAccess(variable);
 			List<Expr> candidates = determineGroundTerms(ground, new ArrayList<>());
 			List<Expr> result = new ArrayList<>();
@@ -404,14 +405,14 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 * @param ground
 	 * @return
 	 */
-	private boolean containsTrigger(Expr e) {
-		if(isTrigger(e)) {
+	private boolean containsTrigger(Expr e, VariableDeclaration variable) {
+		if(isTrigger(e, variable)) {
 			return true;
 		} else {
 			for (int i = 0; i != e.size(); ++i) {
 				SyntacticItem child = e.getOperand(i);
 				if (child instanceof Expr) {
-					if(containsTrigger((Expr) child)) {
+					if(containsTrigger((Expr) child, variable)) {
 						return true;
 					}
 				} else if(child instanceof WyalFile.Tuple) {
@@ -420,7 +421,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 					Tuple<?> t = (Tuple<?>) child;
 					for(SyntacticItem p : t.getOperands()) {
 						if (p instanceof Expr) {
-							if(containsTrigger((Expr) p)) {
+							if(containsTrigger((Expr) p, variable)) {
 								return true;
 							}
 						}
@@ -431,9 +432,57 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		}
 	}
 
-	private boolean isTrigger(Expr e) {
-		return e.getOpcode() == Opcode.EXPR_arridx;
+	private boolean isTrigger(Expr e, VariableDeclaration variable) {
+		if(e.getOpcode() == Opcode.EXPR_arridx) {
+			Expr.Operator arridx = (Expr.Operator) e;
+			// Check whether the index includes the quantified variable or not.
+			return containsQuantifiedVariable(arridx.getOperand(1),variable);
+		}
+		return false;
 	}
 
+	/**
+	 * Determine whether a given expression contains the quantified variable or
+	 * not.
+	 *
+	 * @param e
+	 *            --- expression we are checking to see whether it's quantified.
+	 * @param variable
+	 *            --- the quantified variable we are looking for.
+	 * @return
+	 */
+	private boolean containsQuantifiedVariable(Expr e, VariableDeclaration variable) {
+		if(isQuantifiedVariableAccess(e,variable)) {
+			return true;
+		} else {
+			for (int i = 0; i != e.size(); ++i) {
+				SyntacticItem child = e.getOperand(i);
+				if (child instanceof Expr) {
+					if(containsQuantifiedVariable((Expr) child, variable)) {
+						return true;
+					}
+				} else if(child instanceof WyalFile.Tuple) {
+					// FIXME: this can occur for the parameters of a function
+					// invocation. Perhaps not ideal actually.
+					Tuple<?> t = (Tuple<?>) child;
+					for(SyntacticItem p : t.getOperands()) {
+						if (p instanceof Expr) {
+							if(containsQuantifiedVariable((Expr) p, variable)) {
+								return true;
+							}
+						}
+					}
+				}
+			}
+			return false;
+		}
+	}
 
+	private boolean isQuantifiedVariableAccess(Expr e, VariableDeclaration variable) {
+		if(e instanceof Expr.VariableAccess) {
+			Expr.VariableAccess va = (Expr.VariableAccess) e;
+			return va.getVariableDeclaration().equals(variable);
+		}
+		return false;
+	}
 }
