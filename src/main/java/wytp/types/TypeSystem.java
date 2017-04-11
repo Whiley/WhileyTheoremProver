@@ -23,7 +23,7 @@ public class TypeSystem {
 	private final ReadableArrayExtractor readableArrayExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
 
-	public TypeSystem(WyalFile parent) {
+	public TypeSystem() {
 		this.resolver = new WyalFileResolver();
 		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);

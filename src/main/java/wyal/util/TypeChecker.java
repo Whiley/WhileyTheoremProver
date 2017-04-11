@@ -52,9 +52,9 @@ public class TypeChecker {
 	 */
 	private TypeSystem types;
 
-	public TypeChecker(final WyalFile parent) {
+	public TypeChecker(TypeSystem typeSystem, final WyalFile parent) {
 		this.parent = parent;
-		this.types = new TypeSystem(parent);
+		this.types = typeSystem;
 	}
 
 	public void check() {

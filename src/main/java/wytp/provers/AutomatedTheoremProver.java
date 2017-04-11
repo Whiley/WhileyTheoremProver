@@ -43,25 +43,34 @@ public class AutomatedTheoremProver {
 	 * and subtyping testing.
 	 */
 	private final TypeSystem types;
-	/**
-	 * The enclosing WyAL file being checked.
-	 */
-	private final WyalFile parent;
 
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private final int maxProofSize = 1000;
+	private int maxProofSize = 1000;
+
+	/**
+	 * Debugging option which prints the proof to the console. This should
+	 * eventually be deprecated in favour of a more formal mechanism for
+	 * extracting and examining the proof.
+	 */
+	private boolean printProof = false;
 
 	/**
 	 * The list of proof rules which can be applied by this theorem prover.
 	 */
 	private Proof.Rule[] rules;
 
-	public AutomatedTheoremProver(final WyalFile parent) {
-		this.parent = parent;
-		// FIXME: this should be shared between different compilation stages
-		this.types = new TypeSystem(parent);
+	public void setPrintProof(boolean flag) {
+		this.printProof = flag;
+	}
+
+	public void setProofLimit(int size) {
+		this.maxProofSize = size;
+	}
+
+	public AutomatedTheoremProver(TypeSystem typeSystem) {
+		this.types = typeSystem;
 		//
 		this.rules = new Proof.Rule[] {
 				new CongruenceClosure(types),
@@ -69,7 +78,7 @@ public class AutomatedTheoremProver {
 				new AndElimination(),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
-				//new TypeTestExpansion(types),
+				// new TypeTestExpansion(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
@@ -77,21 +86,20 @@ public class AutomatedTheoremProver {
 				new FunctionCallAxiom(types),
 				new EqualityCaseAnalysis(types),
 				new OrElimination(),
-				new ExhaustiveQuantifierInstantiation(types)
-				};
+				new ExhaustiveQuantifierInstantiation(types) };
 	}
 
-	public void check(Path.Entry<?> originalSource) {
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
+	public void check(WyalFile source, Path.Entry<?> originalSource) {
+		for (int i = 0; i != source.size(); ++i) {
+			SyntacticItem item = source.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
 				try {
-				if (!check(ast)) {
-					throw new SyntaxError(ast.getMessage(), originalSource, item);
-				}
-				} catch(NameResolver.ResolutionError e) {
-					throw new SyntaxError(e.getMessage(),originalSource,e.getName(),e);
+					if (!check(ast)) {
+						throw new SyntaxError(ast.getMessage(), originalSource, item);
+					}
+				} catch (NameResolver.ResolutionError e) {
+					throw new SyntaxError(e.getMessage(), originalSource, e.getName(), e);
 				}
 			}
 		}
@@ -121,24 +129,22 @@ public class AutomatedTheoremProver {
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
-		//
-		WyalFile.println(formula);
 		// Simplify the formula, since inversion does not do this.
 		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
-		//
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
-		//
 		// Create initial state
 		DeltaProof proof = new DeltaProof(null, heap, formula);
 		Proof.State state = proof.getState(0);
 		//
 		boolean r = checkUnsat(state, new FastDelta.Set(formula), FALSE);
 		//
-		simplifyProof(state,FALSE);
+		simplifyProof(state, FALSE);
 		//
-		System.out.println("******************* PROOF (" + proof.size() + ") ******************");
-		print(proof);
+		if (printProof) {
+			print(proof);
+		}
+		//
 		return r;
 	}
 
@@ -162,17 +168,18 @@ public class AutomatedTheoremProver {
 	private boolean checkUnsat(Proof.State state, FastDelta.Set carries, Formula.Truth FALSE) throws ResolutionError {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
-		if(state.getProof().size() > maxProofSize) {
-			//throw new IllegalArgumentException("Maximum proof size reached");
+		if (state.getProof().size() > maxProofSize) {
+			// throw new IllegalArgumentException("Maximum proof size reached");
 			return false;
 		}
 		// Hard limit not reached, therefore continue exploring!
-		FastDelta delta = new FastDelta(carries,FastDelta.EMPTY_SET);
+		FastDelta delta = new FastDelta(carries, FastDelta.EMPTY_SET);
 		// Infer information from current state and delta
 		for (int i = 0; i != carries.size() && !state.isKnown(FALSE); ++i) {
 			Formula truth = carries.get(i);
 			for (int j = 0; j != rules.length; ++j) {
-				// Check whether the given truth is actually active or not. If not,
+				// Check whether the given truth is actually active or not. If
+				// not,
 				// it has been subsumed at some point, and must be ignored.
 				if (delta.isRemoval(truth)) {
 					break;
@@ -201,7 +208,7 @@ public class AutomatedTheoremProver {
 							state = splits[0];
 						}
 					}
-					if(state != before) {
+					if (state != before) {
 						// Given our current delta as processed thus far, we now
 						// need to include the delta for the step that was just
 						// taken (if any).
@@ -229,7 +236,8 @@ public class AutomatedTheoremProver {
 		}
 	}
 
-	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth, Formula.Truth FALSE) throws ResolutionError {
+	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth,
+			Formula.Truth FALSE) throws ResolutionError {
 		State parent = state.getParent();
 		// Now, try to find a contradiction for each case
 		for (int j = 0; j != splits.length; ++j) {
@@ -271,28 +279,28 @@ public class AutomatedTheoremProver {
 	 */
 	private BitSet computeDependencyCone(Proof.State state, Formula.Truth FALSE) {
 		Proof.Delta delta = state.getDelta();
-		if(delta.isAddition(FALSE)) {
+		if (delta.isAddition(FALSE)) {
 			// This is the leaf case
 			BitSet dependencies = new BitSet();
-			for(Formula dep : state.getDependencies()) {
+			for (Formula dep : state.getDependencies()) {
 				dependencies.set(dep.getIndex());
 			}
 			return dependencies;
 		} else {
 			BitSet dependencies = new BitSet();
 			// Determine recurisve dependencies
-			for(int i=0;i!=state.numberOfChildren();++i) {
+			for (int i = 0; i != state.numberOfChildren(); ++i) {
 				Proof.State child = state.getChild(i);
-				dependencies.or(computeDependencyCone(child,FALSE));
+				dependencies.or(computeDependencyCone(child, FALSE));
 			}
 			//
 			Proof.Delta.Set additions = delta.getAdditions();
-			for(int i=0;i!=additions.size();++i) {
+			for (int i = 0; i != additions.size(); ++i) {
 				Formula addition = additions.get(i);
-				if(dependencies.get(addition.getIndex())) {
+				if (dependencies.get(addition.getIndex())) {
 					// One of the additions for this state contributed to the
 					// contradiction. Therefore, include our dependencies.
-					for(Formula dep : state.getDependencies()) {
+					for (Formula dep : state.getDependencies()) {
 						dependencies.set(dep.getIndex());
 					}
 					break;
@@ -307,11 +315,11 @@ public class AutomatedTheoremProver {
 		Proof.Delta delta = state.getDelta();
 		Proof.Delta.Set additions = delta.getAdditions();
 		// First, simplify children
-		for(int i=0;i<state.numberOfChildren();++i) {
+		for (int i = 0; i < state.numberOfChildren(); ++i) {
 			Proof.State child = state.getChild(i);
-			if(!simplifyProof(child,FALSE) && !additions.contains(FALSE)) {
+			if (!simplifyProof(child, FALSE) && !additions.contains(FALSE)) {
 				return false;
-			} else if(child.getParent() != state) {
+			} else if (child.getParent() != state) {
 				// This indicates the given child has been bypassed. Therefore,
 				// all remaining children would have been moved down and
 				// therefore, we want to rewind one step.
@@ -319,10 +327,10 @@ public class AutomatedTheoremProver {
 			}
 		}
 		// Now, see whether we can bypass this state or not
-		if(additions.contains(FALSE)) {
+		if (additions.contains(FALSE)) {
 			state.applyBypass(null);
 			return true;
-		} else if(state.numberOfChildren() == 0) {
+		} else if (state.numberOfChildren() == 0) {
 			return false;
 		} else {
 			BitSet cone = computeDependencyCone(state, FALSE);
@@ -340,7 +348,7 @@ public class AutomatedTheoremProver {
 		// was actually required for the final proof. Therefore, we can
 		// eliminate this state
 		Proof.State parent = state.getParent();
-		if(parent.numberOfChildren() == 1) {
+		if (parent.numberOfChildren() == 1) {
 			parent.applyBypass(state);
 		}
 		return true;

@@ -17,6 +17,7 @@ import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
 import wyfs.lang.Path.Root;
 import wytp.provers.AutomatedTheoremProver;
+import wytp.types.TypeSystem;
 
 public class CompileTask implements Build.Task {
 
@@ -28,6 +29,16 @@ public class CompileTask implements Build.Task {
 	private final Build.Project project;
 
 	/**
+	 * The type system used by this task.
+	 */
+	private final TypeSystem typeSystem;
+
+	/**
+	 * The theorem prover this task uses for verification.
+	 */
+	private final AutomatedTheoremProver prover;
+
+	/**
 	 * The logger used for logging system events
 	 */
 	private Logger logger;
@@ -35,11 +46,13 @@ public class CompileTask implements Build.Task {
 	/**
 	 * Signals whether or not verification should be enabled.
 	 */
-	private boolean verify;
+	private  boolean verify = true;
 
-	public CompileTask(Build.Project project) {
+	public CompileTask(Build.Project project, TypeSystem typeSystem, AutomatedTheoremProver prover) {
 		this.logger = Logger.NULL;
 		this.project = project;
+		this.typeSystem = typeSystem;
+		this.prover = prover;
 	}
 
 	@Override
@@ -51,8 +64,8 @@ public class CompileTask implements Build.Task {
 		this.logger = logger;
 	}
 
-	public void setVerify(boolean flag) {
-		this.verify = flag;
+	public void setVerify(boolean verify) {
+		this.verify = verify;
 	}
 
 	@Override
@@ -95,12 +108,10 @@ public class CompileTask implements Build.Task {
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
 				WyalFile wf = source.read();
-				// new WyalFilePrinter(System.out).write(wf);
-				new TypeChecker(wf).check();
+				new TypeChecker(typeSystem,wf).check();
 				if(verify) {
 					Path.Entry<?> original = determineSource(source,graph);
-					//new OldAutomatedTheoremProver(wf).check(original);
-					new AutomatedTheoremProver(wf).check(original);
+					prover.check(wf,original);
 				}
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the

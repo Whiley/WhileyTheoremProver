@@ -17,6 +17,8 @@ import wybs.util.StdProject;
 import wycc.util.Logger;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
+import wytp.provers.AutomatedTheoremProver;
+import wytp.types.TypeSystem;
 import wyfs.lang.Content.Registry;
 
 public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result> {
@@ -26,9 +28,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 *
 	 */
 	public enum Result {
-		SUCCESS,
-		ERRORS,
-		INTERNAL_FAILURE
+		SUCCESS, ERRORS, INTERNAL_FAILURE
 	}
 
 	/**
@@ -52,11 +52,23 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 * Signals that compile-time verification of source files should be
 	 * performed.
 	 */
-	protected boolean verify = false;
+	protected boolean verify = true;
 
 	/**
-	 * Identifies which wyal source files should be considered for
-	 * compilation. By default, all files reachable from srcdir are considered.
+	 * Signals whether proofs should be printed to the console. This is useful
+	 * for debugging purposes.
+	 */
+	protected boolean printProof = false;
+
+	/**
+	 * Set the maximum size for a proof. This in effect limits the search space
+	 * to ensure termination.
+	 */
+	protected int proofLimit = 1000;
+
+	/**
+	 * Identifies which wyal source files should be considered for compilation.
+	 * By default, all files reachable from srcdir are considered.
 	 */
 	protected Content.Filter<WyalFile> wyalIncludes = Content.filter("**", WyalFile.ContentType);
 
@@ -83,59 +95,39 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	// Configuration
 	// =======================================================================
 
-	public String describeVerify() {
-		return "Enable verification of Whiley source files";
-	}
-
-	public void setVerify() {
-		verify = true;
-	}
-
-	public void setVerify(boolean b) {
-		verify = b;
-	}
-
-	public String describeVerbose() {
-		return "Enable verbose output from Whiley compiler";
-	}
-
-	public void setVerbose() {
-		setVerbose(true);
-	}
-
-	public void setVerbose(boolean b) {
-		verbose = b;
-	}
-
-	public String describeIncludes() {
-		return "Specify where find Whiley source files";
-	}
-
-	public void setIncludes(Content.Filter<WyalFile> includes) {
-		this.wyalIncludes = includes;
-	}
-
-	public String describeExcludes() {
-		return "Specify WyAL source files to be excluded from consideration";
-	}
-
-	public void setExcludes(Content.Filter<WyalFile> excludes) {
-		this.wyalExcludes = excludes;
-	}
-
 	@Override
 	public String getDescription() {
 		return "Compile and verify one or more WyAL files";
 	}
 
 	@Override
-	public void set(String option, Object value) throws ConfigurationError {
-		switch(option) {
+	public String describe(String option) {
+		switch (option) {
 		case "verbose":
-			setVerbose();
+			return "Enable verbose output from verifier";
+		case "verify":
+			return "Enable verification";
+		case "proof":
+			return "Print proofs to console";
+		default:
+			return super.describe(option);
+		}
+	}
+
+	@Override
+	public void set(String option, Object value) throws ConfigurationError {
+		switch (option) {
+		case "verbose":
+			this.verbose = (Boolean) value;
 			break;
 		case "verify":
-			setVerify();
+			this.verify = (Boolean) value;
+			break;
+		case "proof":
+			this.printProof = true;
+			break;
+		case "limit":
+			this.proofLimit = (Integer) value;
 			break;
 		default:
 			super.set(option, value);
@@ -169,8 +161,8 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			// Determine source files to build
 			List<Path.Entry<WyalFile>> entries = wyaldir.find(delta, WyalFile.ContentType);
 			// Execute the build over the set of files requested
-			return compile(project,entries);
-		} catch(RuntimeException e) {
+			return compile(project, entries);
+		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			// FIXME: this is a problem because it is swallowing exceptions!!
@@ -178,11 +170,10 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		}
 	}
 
-
 	public Result execute(List<Path.Entry<WyalFile>> entries) {
 		try {
 			StdProject project = initialiseProject();
-			return compile(project,entries);
+			return compile(project, entries);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -208,10 +199,10 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			wycsdir.flush();
 			//
 			return Result.SUCCESS;
-		} catch(InternalFailure e) {
+		} catch (InternalFailure e) {
 			throw e;
 		} catch (SyntaxError e) {
-			e.outputSourceError(syserr,false);
+			e.outputSourceError(syserr, false);
 			if (verbose) {
 				printStackTrace(syserr, e);
 			}
@@ -239,16 +230,17 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 */
 	protected void addWhiley2WyalBuildRule(StdProject project) {
 		// Rule for compiling Whiley to WyIL
-		CompileTask wyalBuildTask = new CompileTask(project);
-		if(verbose) {
+		TypeSystem typeSystem = new TypeSystem();
+		AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
+		prover.setPrintProof(printProof);
+		prover.setProofLimit(proofLimit);
+		CompileTask wyalBuildTask = new CompileTask(project, typeSystem, prover);
+		wyalBuildTask.setVerify(verify);
+		if (verbose) {
 			wyalBuildTask.setLogger(logger);
-		}
-		if(verify) {
-			wyalBuildTask.setVerify(true);
 		}
 		project.add(new StdBuildRule(wyalBuildTask, wyaldir, wyalIncludes, wyalExcludes, wycsdir));
 	}
-
 
 	/**
 	 * Print a complete stack trace. This differs from
@@ -259,12 +251,12 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 */
 	private static void printStackTrace(PrintStream out, Throwable err) {
 		out.println(err.getClass().getName() + ": " + err.getMessage());
-		for(StackTraceElement ste : err.getStackTrace()) {
+		for (StackTraceElement ste : err.getStackTrace()) {
 			out.println("\tat " + ste.toString());
 		}
-		if(err.getCause() != null) {
+		if (err.getCause() != null) {
 			out.print("Caused by: ");
-			printStackTrace(out,err.getCause());
+			printStackTrace(out, err.getCause());
 		}
 	}
 

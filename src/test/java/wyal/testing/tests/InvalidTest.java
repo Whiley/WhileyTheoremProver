@@ -21,6 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import wyal.commands.CompileCommand;
+import wycc.lang.Feature.ConfigurationError;
 import wycc.util.Logger;
 import wycc.util.Pair;
 import wyfs.lang.Content;
@@ -72,19 +73,22 @@ public class InvalidTest {
 	}
 
 	public static Pair<CompileCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
-		ByteArrayOutputStream syserr = new ByteArrayOutputStream();
-		ByteArrayOutputStream sysout = new ByteArrayOutputStream();
-		Content.Registry registry = new wyal.Activator.Registry();
-		CompileCommand cmd = new CompileCommand(registry,Logger.NULL,sysout,syserr);
-		cmd.setWyaldir(wyaldir);
-		if(verify) {
-			cmd.setVerify();
+		try {
+			ByteArrayOutputStream syserr = new ByteArrayOutputStream();
+			ByteArrayOutputStream sysout = new ByteArrayOutputStream();
+			Content.Registry registry = new wyal.Activator.Registry();
+			CompileCommand cmd = new CompileCommand(registry, Logger.NULL, sysout, syserr);
+			cmd.setWyaldir(wyaldir);
+			cmd.set("verify",verify);
+			CompileCommand.Result result = cmd.execute(args);
+			byte[] errBytes = syserr.toByteArray();
+			byte[] outBytes = sysout.toByteArray();
+			String output = new String(errBytes) + new String(outBytes);
+			return new Pair<>(result,output);
+		} catch (ConfigurationError e) {
+			// should be dead code
+			throw new IllegalArgumentException(e);
 		}
-		CompileCommand.Result result = cmd.execute(args);
-		byte[] errBytes = syserr.toByteArray();
-		byte[] outBytes = sysout.toByteArray();
-		String output = new String(errBytes) + new String(outBytes);
-		return new Pair<>(result,output);
 	}
 
 	// ======================================================================
