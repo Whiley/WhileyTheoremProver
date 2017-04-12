@@ -33,7 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import wyal.commands.CompileCommand;
+import wyal.commands.VerifyCommand;
 import wycc.lang.Feature.ConfigurationError;
 import wycc.util.Logger;
 import wycc.util.Pair;
@@ -98,18 +98,18 @@ public class ValidTest {
 			String whileyFilename = WYAL_SRC_DIR + File.separatorChar + testName
 					+ ".wyal";
 
-			Pair<CompileCommand.Result,String> p = compile(
+			Pair<VerifyCommand.Result,String> p = compile(
 					WYAL_SRC_DIR,      // location of source directory
 					true,               // no verification
 					whileyFilename);     // name of test to compile
 
-			CompileCommand.Result r = p.first();
+			VerifyCommand.Result r = p.first();
 
 			System.out.print(p.second());
 
-			if (r != CompileCommand.Result.SUCCESS) {
+			if (r != VerifyCommand.Result.SUCCESS) {
 				fail("Test failed to compile!");
-			} else if (r == CompileCommand.Result.INTERNAL_FAILURE) {
+			} else if (r == VerifyCommand.Result.INTERNAL_FAILURE) {
 				fail("Test caused internal failure!");
 			}
 		} catch(IOException e) {
@@ -117,15 +117,15 @@ public class ValidTest {
 		}
 	}
 
-	public static Pair<CompileCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
+	public static Pair<VerifyCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
 		try {
 			ByteArrayOutputStream syserr = new ByteArrayOutputStream();
 			ByteArrayOutputStream sysout = new ByteArrayOutputStream();
 			Content.Registry registry = new wyal.Activator.Registry();
-			CompileCommand cmd = new CompileCommand(registry, Logger.NULL, sysout, syserr);
+			VerifyCommand cmd = new VerifyCommand(registry, Logger.NULL, sysout, syserr);
 			cmd.setWyaldir(wyaldir);
 			cmd.set("verify", verify);
-			CompileCommand.Result result = cmd.execute(args);
+			VerifyCommand.Result result = cmd.execute(args);
 			byte[] errBytes = syserr.toByteArray();
 			byte[] outBytes = sysout.toByteArray();
 			String output = new String(errBytes) + new String(outBytes);

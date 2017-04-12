@@ -274,7 +274,7 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record effectiveRecord = checkIsRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src, expr.getSource());
 		//
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
@@ -292,7 +292,7 @@ public class TypeChecker {
 	private Type checkRecordUpdate(Expr.RecordUpdate expr) {
 		Type src = check(expr.getSource());
 		Type val = check(expr.getValue());
-		Type.Record effectiveRecord = checkIsRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src, expr.getSource());
 		//
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
@@ -380,7 +380,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		return new Type.Int();
 	}
 
@@ -402,7 +402,7 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
@@ -410,7 +410,7 @@ public class TypeChecker {
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
@@ -425,11 +425,11 @@ public class TypeChecker {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Type.Array checkIsArrayType(Type type) {
+	private Type.Array checkIsArrayType(Type type, SyntacticElement element) {
 		try {
 			Type.Array arrT = types.extractReadableArray(type);
 			if(arrT == null) {
-				throw new RuntimeException("expected array type, got " + type);
+				throw new SyntaxError("expected array type", parent.getEntry(), element);
 			}
 			return arrT;
 		} catch (NameResolver.ResolutionError e) {
@@ -443,11 +443,11 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.Record checkIsRecordType(Type type) {
+	private Type.Record checkIsRecordType(Type type, SyntacticElement element) {
 		try {
 			Type.Record recT = types.extractReadableRecord(type);
 			if(recT == null) {
-				throw new RuntimeException("expected record type, got " + type);
+				throw new SyntaxError("expected record type", parent.getEntry(), element);
 			}
 			return recT;
 		} catch (NameResolver.ResolutionError e) {

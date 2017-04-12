@@ -35,7 +35,7 @@ import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
 import wyfs.lang.Content.Registry;
 
-public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result> {
+public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> {
 
 	/**
 	 * Result kind for this command
@@ -98,13 +98,13 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 */
 	protected Content.Filter<WyalFile> wyalExcludes = null;
 
-	public CompileCommand(Registry registry, Logger logger) {
+	public VerifyCommand(Registry registry, Logger logger) {
 		super(registry, logger);
 		this.sysout = System.out;
 		this.syserr = System.err;
 	}
 
-	public CompileCommand(Registry registry, Logger logger, OutputStream sysout, OutputStream syserr) {
+	public VerifyCommand(Registry registry, Logger logger, OutputStream sysout, OutputStream syserr) {
 		super(registry, logger);
 		this.sysout = new PrintStream(sysout);
 		this.syserr = new PrintStream(syserr);
@@ -176,7 +176,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			for (File f : delta) {
 				if (!f.exists()) {
 					// FIXME: sort this out!
-					sysout.println("compile: file not found: " + f.getName());
+					sysout.println("verify: file not found: " + f.getName());
 					return Result.ERRORS;
 				}
 			}

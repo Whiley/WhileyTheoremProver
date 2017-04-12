@@ -1,0 +1,8 @@
+type LinkedList is (null|{int data, LinkedList next} this)
+
+assert "type invariant not satisfied":
+    forall(LinkedList l, int r):
+        if:
+            l is !null
+        then:
+            (r + l.data) is int

@@ -13,7 +13,7 @@
 // limitations under the License.
 package wyal;
 
-import wyal.commands.CompileCommand;
+import wyal.commands.VerifyCommand;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wycc.lang.Command;
@@ -65,7 +65,7 @@ public class Activator implements Module.Activator {
 		// FIXME: logger is a hack!
 		final Logger logger = new Logger.Default(System.err);
 		// List of commands to use
-		final Command[] commands = { new CompileCommand(registry, logger) };
+		final Command[] commands = { new VerifyCommand(registry, logger) };
 		// Register all commands
 		for (Command c : commands) {
 			context.register(wycc.lang.Command.class, c);
