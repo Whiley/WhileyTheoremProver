@@ -139,7 +139,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	public void set(String option, Object value) throws ConfigurationError {
 		switch (option) {
 		case "verbose":
-			this.verbose = (Boolean) value;
+			this.verbose = true;
 			break;
 		case "verify":
 			this.verify = (Boolean) value;

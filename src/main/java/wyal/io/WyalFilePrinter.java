@@ -357,6 +357,9 @@ public class WyalFilePrinter {
 		case EXPR_recfield:
 			writeRecordAccess((Expr.RecordAccess)expr);
 			break;
+		case EXPR_recupdt:
+			writeRecordUpdate((Expr.RecordUpdate)expr);
+			break;
 		case EXPR_recinit:
 			writeRecordInitialiser((Expr.RecordInitialiser)expr);
 			break;
@@ -527,6 +530,15 @@ public class WyalFilePrinter {
 		out.print(":=");
 		writeExpression(expr.getOperand(2));
 		out.print("]");
+	}
+
+	public void writeRecordUpdate(Expr.RecordUpdate expr) {
+		writeExpressionWithBrackets(expr.getSource());
+		out.print("{");
+		out.print(expr.getField().get());
+		out.print(":=");
+		writeExpression(expr.getValue());
+		out.print("}");
 	}
 
 	public void writeRecordAccess(Expr.RecordAccess expr) {

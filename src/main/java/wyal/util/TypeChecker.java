@@ -130,6 +130,8 @@ public class TypeChecker {
 			return checkRecordInitialiser((Expr.RecordInitialiser) expr);
 		case EXPR_recfield:
 			return checkRecordAccess((Expr.RecordAccess) expr);
+		case EXPR_recupdt:
+			return checkRecordUpdate((Expr.RecordUpdate) expr);
 		// Array expressions
 		case EXPR_arrlen:
 			return checkArrayLength((Expr.Operator) expr);
@@ -285,6 +287,26 @@ public class TypeChecker {
 		}
 		//
 		throw new RuntimeException("invalid field access: " + actualFieldName);
+	}
+
+	private Type checkRecordUpdate(Expr.RecordUpdate expr) {
+		Type src = check(expr.getSource());
+		Type val = check(expr.getValue());
+		Type.Record effectiveRecord = checkIsRecordType(src);
+		//
+		FieldDeclaration[] fields = effectiveRecord.getFields();
+		String actualFieldName = expr.getField().get();
+		for (int i = 0; i != fields.length; ++i) {
+			FieldDeclaration vd = fields[i];
+			String declaredFieldName = vd.getVariableName().get();
+			if (declaredFieldName.equals(actualFieldName)) {
+				// Matched the field type
+				checkIsSubtype(vd.getType(),val);
+				return src;
+			}
+		}
+		//
+		throw new RuntimeException("invalid field update: " + actualFieldName);
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
