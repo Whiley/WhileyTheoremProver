@@ -635,8 +635,7 @@ public class WyalFileParser {
 		Expr lhs = parseTermExpression(scope, terminated);
 		Token token;
 
-		while ((token = tryAndMatchOnLine(LeftSquare)) != null
-				|| (token = tryAndMatch(terminated, Dot, MinusGreater)) != null) {
+		while ((token = tryAndMatch(terminated, LeftSquare,LeftCurly, Dot, MinusGreater)) != null) {
 			switch (token.kind) {
 			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
@@ -653,6 +652,16 @@ public class WyalFileParser {
 					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				}
+				break;
+			}
+			case LeftCurly: {
+				// This is a record update update expression
+				Identifier mhs = parseIdentifier(scope);
+				match(ColonEquals);
+				Expr rhs = parseUnitExpression(scope, true);
+				match(RightCurly);
+				lhs = new Expr.RecordUpdate(lhs, mhs, rhs);
+				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
 			case Dot: {
