@@ -233,7 +233,7 @@ public class TypeChecker {
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
-			throw new RuntimeException("invalid number of returns");
+			throw new SyntaxError("invalid number of returns", parent.getEntry(), expr);
 		} else {
 			return type.getReturns().getOperand(0);
 		}
@@ -286,7 +286,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new RuntimeException("invalid field access: " + actualFieldName);
+		throw new SyntaxError("invalid field access", parent.getEntry(), expr.getField());
 	}
 
 	private Type checkRecordUpdate(Expr.RecordUpdate expr) {
@@ -306,7 +306,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new RuntimeException("invalid field update: " + actualFieldName);
+		throw new SyntaxError("invalid field update", parent.getEntry(), expr.getField());
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
@@ -566,7 +566,7 @@ public class TypeChecker {
 	private void checkIsSubtype(Type lhs, Type rhs) {
 		try {
 			if (!types.isRawSubtype(lhs, rhs)) {
-				throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
+				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, parent.getEntry(), rhs);
 			}
 		} catch (NameResolver.ResolutionError e) {
 			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
