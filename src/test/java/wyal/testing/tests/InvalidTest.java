@@ -54,6 +54,7 @@ public class InvalidTest {
 
 	static {
 		IGNORED.put("test_058", "unclassified");
+		IGNORED.put("test_061", "unclassified");
 	}
 
 	// ======================================================================
