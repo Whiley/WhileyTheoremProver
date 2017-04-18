@@ -1,3 +1,17 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wyal.lang;
 
 import java.io.IOException;
@@ -167,14 +181,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_div(54),
 		EXPR_rem(55),
 		EXPR_recfield(56),
-		EXPR_arridx(57),
-		EXPR_arrlen(58),
-		EXPR_arrupdt(59),
+		EXPR_recupdt(57),
+		EXPR_arridx(58),
+		EXPR_arrlen(59),
+		EXPR_arrupdt(60),
 		// Initialisers come later so they not given preference for
 		// substitution.
-		EXPR_arrgen(60),
-		EXPR_arrinit(61),
-		EXPR_recinit(62),
+		EXPR_arrgen(61),
+		EXPR_arrinit(62),
+		EXPR_recinit(63),
 
 		// BASE
 		CONST_null(66),
@@ -1320,6 +1335,34 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public RecordAccess clone(SyntacticItem[] operands) {
 				return new RecordAccess((Expr) operands[0], (Identifier) operands[1]);
+			}
+		}
+
+		public static class RecordUpdate extends AbstractSyntacticItem implements Expr {
+			public RecordUpdate(Expr lhs, Identifier mhs, Expr rhs) {
+				super(Opcode.EXPR_recupdt, lhs, mhs, rhs);
+			}
+
+			@Override
+			public Type getReturnType(TypeSystem types) throws ResolutionError {
+				return getSource().getReturnType(types);
+			}
+
+			public Expr getSource() {
+				return (Expr) getOperand(0);
+			}
+
+			public Identifier getField() {
+				return (Identifier) getOperand(1);
+			}
+
+			public Expr getValue() {
+				return (Expr) getOperand(2);
+			}
+
+			@Override
+			public RecordUpdate clone(SyntacticItem[] operands) {
+				return new RecordUpdate((Expr) operands[0], (Identifier) operands[1], (Expr) operands[2]);
 			}
 		}
 

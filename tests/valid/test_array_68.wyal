@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+assert:
+    forall(int[] xs, int[] ys, nat i, int v):
+        if:
+            i < |xs|
+            ys == xs[i:=v]
+        then:
+            contains(ys, v, |ys|)
+
+define contains(int[] xs, int x, int n) is:
+    exists(int k):
+        (0 <= k) && (k < n) && (xs[k] == x)
+
+

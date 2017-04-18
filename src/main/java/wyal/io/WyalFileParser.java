@@ -1,3 +1,17 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wyal.io;
 
 import static wyal.io.WyalFileLexer.Token.Kind.*;
@@ -621,8 +635,7 @@ public class WyalFileParser {
 		Expr lhs = parseTermExpression(scope, terminated);
 		Token token;
 
-		while ((token = tryAndMatchOnLine(LeftSquare)) != null
-				|| (token = tryAndMatch(terminated, Dot, MinusGreater)) != null) {
+		while ((token = tryAndMatch(terminated, LeftSquare,LeftCurly, Dot, MinusGreater)) != null) {
 			switch (token.kind) {
 			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
@@ -639,6 +652,16 @@ public class WyalFileParser {
 					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				}
+				break;
+			}
+			case LeftCurly: {
+				// This is a record update update expression
+				Identifier mhs = parseIdentifier(scope);
+				match(ColonEquals);
+				Expr rhs = parseUnitExpression(scope, true);
+				match(RightCurly);
+				lhs = new Expr.RecordUpdate(lhs, mhs, rhs);
+				lhs.attributes().add(sourceAttr(start, index - 1));
 				break;
 			}
 			case Dot: {

@@ -1,3 +1,16 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wytp.proof.rules;
 
 import java.util.Arrays;
@@ -72,6 +85,8 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
+			expanded = (Formula) construct(state,expanded);
+			expanded = Formulae.simplifyFormula(expanded, types);
 			state = state.subsume(this, truth, expanded);
 		}
 		return state;
@@ -95,7 +110,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 					invariant = Formulae.invert(invariant);
 				}
 				// Update the state
-				return Formulae.simplifyFormula(invariant, types);
+				return invariant;
 			}
 		} else if(formula instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) formula;
@@ -104,8 +119,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 				// expanded anyway,
 				Formula body = expandFormula(state, quantifier.getBody());
 				if(body != quantifier.getBody()) {
-					quantifier = new Formula.Quantifier(true, quantifier.getParameters(), body);
-					return Formulae.simplifyFormula(quantifier, types);
+					return new Formula.Quantifier(true, quantifier.getParameters(), body);
 				}
 			}
 		} else if(formula instanceof Formula.Disjunct) {
@@ -113,16 +127,14 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			Formula[] children = disjunct.getOperands();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
-				disjunct = new Formula.Disjunct(nChildren);
-				return Formulae.simplifyFormula(disjunct, types);
+				return new Formula.Disjunct(nChildren);
 			}
 		} else if(formula instanceof Formula.Conjunct) {
 			Formula.Conjunct disjunct = (Formula.Conjunct) formula;
 			Formula[] children = disjunct.getOperands();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
-				disjunct = new Formula.Conjunct(nChildren);
-				return Formulae.simplifyFormula(disjunct, types);
+				return new Formula.Conjunct(nChildren);
 			}
 		}
 		return formula;

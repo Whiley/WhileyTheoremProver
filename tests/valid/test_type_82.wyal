@@ -1,0 +1,16 @@
+type nat is (int x)
+where:
+    x >= 0
+
+type Buffer is ({int[] data, nat read, nat write} b)
+where:
+    (b.read < |b.data|) && ((b.write < |b.data|) && (|b.data| > 0))
+
+type NonFull is (Buffer b)
+where:
+    ((b.write + 1) % |b.data|) != b.read
+
+assert "division by zero":
+    forall(NonFull b):
+        |b.data| != 0
+

@@ -1,3 +1,17 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wyal.commands;
 
 import java.io.File;
@@ -21,7 +35,7 @@ import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
 import wyfs.lang.Content.Registry;
 
-public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result> {
+public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> {
 
 	/**
 	 * Result kind for this command
@@ -67,6 +81,11 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	protected int proofLimit = 1000;
 
 	/**
+	 * Set the display width for the proof printer
+	 */
+	protected int proofWidth = 80;
+
+	/**
 	 * Identifies which wyal source files should be considered for compilation.
 	 * By default, all files reachable from srcdir are considered.
 	 */
@@ -79,13 +98,13 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	 */
 	protected Content.Filter<WyalFile> wyalExcludes = null;
 
-	public CompileCommand(Registry registry, Logger logger) {
+	public VerifyCommand(Registry registry, Logger logger) {
 		super(registry, logger);
 		this.sysout = System.out;
 		this.syserr = System.err;
 	}
 
-	public CompileCommand(Registry registry, Logger logger, OutputStream sysout, OutputStream syserr) {
+	public VerifyCommand(Registry registry, Logger logger, OutputStream sysout, OutputStream syserr) {
 		super(registry, logger);
 		this.sysout = new PrintStream(sysout);
 		this.syserr = new PrintStream(syserr);
@@ -109,6 +128,8 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			return "Enable verification";
 		case "proof":
 			return "Print proofs to console";
+		case "width":
+			return "Set display width for printing proofs";
 		default:
 			return super.describe(option);
 		}
@@ -118,13 +139,16 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 	public void set(String option, Object value) throws ConfigurationError {
 		switch (option) {
 		case "verbose":
-			this.verbose = (Boolean) value;
+			this.verbose = true;
 			break;
 		case "verify":
 			this.verify = (Boolean) value;
 			break;
 		case "proof":
 			this.printProof = true;
+			break;
+		case "width":
+			this.proofWidth = (Integer) value;
 			break;
 		case "limit":
 			this.proofLimit = (Integer) value;
@@ -152,7 +176,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 			for (File f : delta) {
 				if (!f.exists()) {
 					// FIXME: sort this out!
-					sysout.println("compile: file not found: " + f.getName());
+					sysout.println("verify: file not found: " + f.getName());
 					return Result.ERRORS;
 				}
 			}
@@ -234,6 +258,7 @@ public class CompileCommand extends AbstractProjectCommand<CompileCommand.Result
 		AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
 		prover.setPrintProof(printProof);
 		prover.setProofLimit(proofLimit);
+		prover.setProofWidth(proofWidth);
 		CompileTask wyalBuildTask = new CompileTask(project, typeSystem, prover);
 		wyalBuildTask.setVerify(verify);
 		if (verbose) {

@@ -1,0 +1,9 @@
+type Buffer is ({int[] data, int wp} this)
+
+assert:
+  forall(Buffer x, Buffer y, int[] ys):
+     if:
+         x == y{data:=ys}
+     then:
+         x.data == ys
+

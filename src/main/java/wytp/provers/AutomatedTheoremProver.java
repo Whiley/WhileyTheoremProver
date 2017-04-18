@@ -1,3 +1,16 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wytp.provers;
 
 import java.util.BitSet;
@@ -57,6 +70,11 @@ public class AutomatedTheoremProver {
 	private boolean printProof = false;
 
 	/**
+	 * Set the width for displaying proofs
+	 */
+	private int proofWidth = 80;
+
+	/**
 	 * The list of proof rules which can be applied by this theorem prover.
 	 */
 	private Proof.Rule[] rules;
@@ -67,6 +85,10 @@ public class AutomatedTheoremProver {
 
 	public void setProofLimit(int size) {
 		this.maxProofSize = size;
+	}
+
+	public void setProofWidth(int width) {
+		this.proofWidth= width;
 	}
 
 	public AutomatedTheoremProver(TypeSystem typeSystem) {
@@ -355,8 +377,8 @@ public class AutomatedTheoremProver {
 	}
 
 	// Useful for debugging
-	public static void print(Proof proof) {
-		ProofPrinter printer = new ProofPrinter(System.out);
+	public void print(Proof proof) {
+		ProofPrinter printer = new ProofPrinter(System.out).setWidth(proofWidth);
 		printer.print(proof);
 		printer.flush();
 	}

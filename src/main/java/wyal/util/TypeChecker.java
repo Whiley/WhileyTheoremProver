@@ -1,8 +1,16 @@
-// Copyright (c) 2011, David J. Pearce (djp@ecs.vuw.ac.nz)
-// All rights reserved.
+// Copyright 2017 David J. Pearce
 //
-// This software may be modified and distributed under the terms
-// of the BSD license.  See the LICENSE file for details.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wyal.util;
 
 import java.util.ArrayList;
@@ -122,6 +130,8 @@ public class TypeChecker {
 			return checkRecordInitialiser((Expr.RecordInitialiser) expr);
 		case EXPR_recfield:
 			return checkRecordAccess((Expr.RecordAccess) expr);
+		case EXPR_recupdt:
+			return checkRecordUpdate((Expr.RecordUpdate) expr);
 		// Array expressions
 		case EXPR_arrlen:
 			return checkArrayLength((Expr.Operator) expr);
@@ -223,7 +233,7 @@ public class TypeChecker {
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
 		if(type.getReturns().size() != 1) {
-			throw new RuntimeException("invalid number of returns");
+			throw new SyntaxError("invalid number of returns", parent.getEntry(), expr);
 		} else {
 			return type.getReturns().getOperand(0);
 		}
@@ -264,7 +274,7 @@ public class TypeChecker {
 
 	private Type checkRecordAccess(Expr.RecordAccess expr) {
 		Type src = check(expr.getSource());
-		Type.Record effectiveRecord = checkIsRecordType(src);
+		Type.Record effectiveRecord = checkIsRecordType(src, expr.getSource());
 		//
 		FieldDeclaration[] fields = effectiveRecord.getFields();
 		String actualFieldName = expr.getField().get();
@@ -276,7 +286,27 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new RuntimeException("invalid field access: " + actualFieldName);
+		throw new SyntaxError("invalid field access", parent.getEntry(), expr.getField());
+	}
+
+	private Type checkRecordUpdate(Expr.RecordUpdate expr) {
+		Type src = check(expr.getSource());
+		Type val = check(expr.getValue());
+		Type.Record effectiveRecord = checkIsRecordType(src, expr.getSource());
+		//
+		FieldDeclaration[] fields = effectiveRecord.getFields();
+		String actualFieldName = expr.getField().get();
+		for (int i = 0; i != fields.length; ++i) {
+			FieldDeclaration vd = fields[i];
+			String declaredFieldName = vd.getVariableName().get();
+			if (declaredFieldName.equals(actualFieldName)) {
+				// Matched the field type
+				checkIsSubtype(vd.getType(),val);
+				return src;
+			}
+		}
+		//
+		throw new SyntaxError("invalid field update", parent.getEntry(), expr.getField());
 	}
 
 	private Type checkRecordInitialiser(Expr.RecordInitialiser expr) {
@@ -350,7 +380,7 @@ public class TypeChecker {
 
 	private Type checkArrayLength(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		return new Type.Int();
 	}
 
@@ -372,7 +402,7 @@ public class TypeChecker {
 
 	private Type checkArrayAccess(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		return effectiveArray.getElement();
@@ -380,7 +410,7 @@ public class TypeChecker {
 
 	private Type checkArrayUpdate(Expr.Operator expr) {
 		Type src = check(expr.getOperand(0));
-		Type.Array effectiveArray = checkIsArrayType(src);
+		Type.Array effectiveArray = checkIsArrayType(src, expr.getOperand(0));
 		Type indexType = check(expr.getOperand(1));
 		checkIsSubtype(new Type.Int(), indexType);
 		Type valueType = check(expr.getOperand(2));
@@ -395,11 +425,11 @@ public class TypeChecker {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Type.Array checkIsArrayType(Type type) {
+	private Type.Array checkIsArrayType(Type type, SyntacticElement element) {
 		try {
 			Type.Array arrT = types.extractReadableArray(type);
 			if(arrT == null) {
-				throw new RuntimeException("expected array type, got " + type);
+				throw new SyntaxError("expected array type", parent.getEntry(), element);
 			}
 			return arrT;
 		} catch (NameResolver.ResolutionError e) {
@@ -413,11 +443,11 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.Record checkIsRecordType(Type type) {
+	private Type.Record checkIsRecordType(Type type, SyntacticElement element) {
 		try {
 			Type.Record recT = types.extractReadableRecord(type);
 			if(recT == null) {
-				throw new RuntimeException("expected record type, got " + type);
+				throw new SyntaxError("expected record type", parent.getEntry(), element);
 			}
 			return recT;
 		} catch (NameResolver.ResolutionError e) {
@@ -536,7 +566,7 @@ public class TypeChecker {
 	private void checkIsSubtype(Type lhs, Type rhs) {
 		try {
 			if (!types.isRawSubtype(lhs, rhs)) {
-				throw new RuntimeException("type " + rhs + " not subtype of " + lhs);
+				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, parent.getEntry(), rhs);
 			}
 		} catch (NameResolver.ResolutionError e) {
 			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);

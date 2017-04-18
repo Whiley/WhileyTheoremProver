@@ -1,12 +1,19 @@
-// Copyright (c) 2011, David J. Pearce (djp@ecs.vuw.ac.nz)
-// All rights reserved.
+// Copyright 2017 David J. Pearce
 //
-// This software may be modified and distributed under the terms
-// of the BSD license.  See the LICENSE file for details.
-
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wyal;
 
-import wyal.commands.CompileCommand;
+import wyal.commands.VerifyCommand;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile;
 import wycc.lang.Command;
@@ -58,7 +65,7 @@ public class Activator implements Module.Activator {
 		// FIXME: logger is a hack!
 		final Logger logger = new Logger.Default(System.err);
 		// List of commands to use
-		final Command[] commands = { new CompileCommand(registry, logger) };
+		final Command[] commands = { new VerifyCommand(registry, logger) };
 		// Register all commands
 		for (Command c : commands) {
 			context.register(wycc.lang.Command.class, c);

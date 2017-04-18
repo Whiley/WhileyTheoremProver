@@ -1,3 +1,16 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wytp.proof.util;
 
 import java.math.BigInteger;
@@ -771,6 +784,8 @@ public class Formulae {
 			return simplify((Expr.RecordInitialiser) e, types);
 		case EXPR_recfield:
 			return simplify((Expr.RecordAccess) e, types);
+		case EXPR_recupdt:
+			return simplify((Expr.RecordUpdate) e, types);
 		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
@@ -838,12 +853,45 @@ public class Formulae {
 					return field.getSecond();
 				}
 			}
+		} else if(nSource instanceof Expr.RecordUpdate) {
+			Expr.RecordUpdate r = (Expr.RecordUpdate) nSource;
+			if(e.getField().equals(r.getField())) {
+				return r.getValue();
+			} else {
+				return new Expr.RecordAccess(r.getSource(), e.getField());
+			}
 		}
 		//
 		if(source == nSource) {
 			return e;
 		} else {
 			return new Expr.RecordAccess(nSource, e.getField());
+		}
+	}
+
+	private static Expr simplify(Expr.RecordUpdate e, TypeSystem types) throws ResolutionError {
+		Expr source = e.getSource();
+		Expr value = e.getValue();
+		Expr nSource = simplify(source,types);
+		Expr nValue = simplify(value,types);
+		//
+		if(nSource instanceof Expr.RecordInitialiser) {
+			Expr.RecordInitialiser ri = (Expr.RecordInitialiser) nSource;
+			WyalFile.Pair<Identifier, Expr>[] oldFields = ri.getFields();
+			WyalFile.Pair<Identifier, Expr>[] newFields = Arrays.copyOf(oldFields, oldFields.length);
+			for(int i=0;i!=oldFields.length;++i) {
+				WyalFile.Pair<Identifier, Expr> field = oldFields[i];
+				if(e.getField().equals(field.getFirst())) {
+					newFields[i] = new WyalFile.Pair<>(field.getFirst(),nValue);
+				}
+			}
+			return new Expr.RecordInitialiser(newFields);
+		}
+		//
+		if(source == nSource && value == nValue) {
+			return e;
+		} else {
+			return new Expr.RecordUpdate(nSource, e.getField(), nValue);
 		}
 	}
 

@@ -1,3 +1,16 @@
+// Copyright 2017 David J. Pearce
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wytp.proof.io;
 
 import java.io.ByteArrayOutputStream;
@@ -15,8 +28,8 @@ import wytp.proof.Proof;
 
 public class ProofPrinter {
 	private final PrintWriter out;
-	private final int width = 120;
-	private final boolean fullDelta = false;
+	private int width = 120;
+	private boolean fullDelta = false;
 
 	public ProofPrinter(OutputStream writer) {
 		this(new OutputStreamWriter(writer));
@@ -28,6 +41,16 @@ public class ProofPrinter {
 
 	public ProofPrinter(PrintWriter writer) {
 		this.out = writer;
+	}
+
+	public ProofPrinter setWidth(int width) {
+		this.width = width;
+		return this;
+	}
+
+	public ProofPrinter setShowAll(boolean flag) {
+		this.fullDelta = flag;
+		return this;
 	}
 
 	public void flush() {
@@ -71,7 +94,8 @@ public class ProofPrinter {
 	public void printBoxContents(int depth, Proof.State step) {
 		String[] lines = toLines(step);
 		String title = title(step);
-		int lineWidth = width - (depth*2);
+		int lineWidth = width - depth;
+		lineWidth = depth == 0 ? lineWidth : lineWidth-1;
 		for(int i=0;i!=lines.length;++i) {
 			String t;
 			if(i == 0) {
@@ -81,7 +105,9 @@ public class ProofPrinter {
 			}
 			tab(depth);
 			out.print(pad(lines[i],t,lineWidth));
-			tab(depth);
+			if(depth > 0) {
+				out.print(BOX_LEFTSIDE);
+			}
 			out.println();
 		}
 	}
@@ -179,13 +205,16 @@ public class ProofPrinter {
 
 	private void printBoxLine(int depth, char lc, char mc, char rc) {
 		tab(depth);
-		int boxWidth = this.width - (depth*2);
+		int boxWidth = this.width - depth;
 		out.print(lc);
 		for(int i=1;i<(boxWidth-1);i++) {
 			out.print(mc);
 		}
-		out.print(rc);
-		tab(depth);
+		if(depth != 0) {
+			out.print(BOX_SPLITRIGHT);
+		} else {
+			out.print(rc);
+		}
 		out.println();
 	}
 }
