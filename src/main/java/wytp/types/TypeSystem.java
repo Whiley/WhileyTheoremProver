@@ -23,6 +23,7 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
 import wyal.util.WyalFileResolver;
+import wyal.util.WyalTypeInferer;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
@@ -35,6 +36,7 @@ public class TypeSystem {
 	private final ReadableRecordExtractor readableRecordExtractor;
 	private final ReadableArrayExtractor readableArrayExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
+	private final TypeInferer typeInferer;
 
 	public TypeSystem() {
 		this.resolver = new WyalFileResolver();
@@ -42,6 +44,7 @@ public class TypeSystem {
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
 		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
+		this.typeInferer = new WyalTypeInferer(this);
 	}
 
 	/**
@@ -137,8 +140,25 @@ public class TypeSystem {
 	 *
 	 *
 	 */
-	public Formula extractInvariant(Type type, Expr root)  throws ResolutionError {
+	public Formula extractInvariant(Type type, Expr root) throws ResolutionError {
 		return typeInvariantExtractor.extract(type,root);
+	}
+
+	// ========================================================================
+	// Inference
+	// ========================================================================
+
+	/**
+	 * Get the type inferred for a given expression in a given environment.
+	 *
+	 * @param environment
+	 * @param expression
+	 * @return
+	 * @throws ResolutionError
+	 *             Occurs when a particular named type cannot be resolved.
+	 */
+	public Type inferType(Expr expression) throws ResolutionError {
+		return typeInferer.getInferredType(null, expression);
 	}
 
 	// ========================================================================

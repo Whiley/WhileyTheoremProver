@@ -471,8 +471,7 @@ public class TypeChecker {
 			// considered
 			List<Named.FunctionOrMacro> candidates = types.resolveAll(name, Named.FunctionOrMacro.class);
 			// Based on given argument types, select the most precise signature
-			// from
-			// the candidates.
+			// from the candidates.
 			Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates, args);
 			return selected;
 		} catch (ResolutionError e) {

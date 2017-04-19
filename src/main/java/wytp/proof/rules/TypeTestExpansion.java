@@ -50,7 +50,7 @@ public class TypeTestExpansion implements Proof.LinearRule {
 		System.out.print("EXPANDING: ");
 		WyalFile.println(e);
 		WyalFile.Expr nLhs = e.getExpr();
-		Type lhsT = nLhs.getReturnType(types);
+		Type lhsT = types.inferType(nLhs);
 		if (lhsT == null) {
 			// NOTE: this can arise in a situation where some other type test
 			// has yet to be applied. As a result, the given expression cannot

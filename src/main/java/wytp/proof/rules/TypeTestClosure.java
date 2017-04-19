@@ -129,7 +129,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	 */
 	private State apply(Formula.Is typeTest, Proof.State state) throws ResolutionError {
 		Expr lhs = typeTest.getExpr();
-		Type lhsT = lhs.getReturnType(types);
+		Type lhsT = types.inferType(lhs);
 		Type rhsT = typeTest.getTypeTest();
 		if (lhsT != null) {
 			// FIXME: at the moment, TypeSystem.intersect is not working

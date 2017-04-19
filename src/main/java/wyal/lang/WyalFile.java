@@ -1056,23 +1056,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 	public interface Expr extends Stmt {
 
-		/**
-		 * Get the type of value returned from evaluating this expression.
-		 *
-		 * @param types
-		 *            Used to expand nominal types in various situations.
-		 * @return
-		 */
-		public Type getReturnType(TypeSystem types) throws ResolutionError;
-
 		public static class Cast extends AbstractSyntacticItem implements Expr {
 			public Cast(Type type, Expr rhs) {
 				super(Opcode.EXPR_cast, type, rhs);
 			}
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				return (Type) super.getOperand(0);
-			}
+
 			public Type getCastType() {
 				return (Type) super.getOperand(0);
 			}
@@ -1088,71 +1076,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public static class Operator extends AbstractSyntacticItem implements Expr {
 			public Operator(Opcode opcode, Expr... operands) {
 				super(opcode, operands);
-			}
-
-			@Override
-			public Type getReturnType(TypeSystem types) throws ResolutionError {
-				switch (getOpcode()) {
-				case EXPR_not:
-				case EXPR_and:
-				case EXPR_or:
-				case EXPR_implies:
-				case EXPR_iff:
-				case EXPR_eq:
-				case EXPR_neq:
-				case EXPR_lt:
-				case EXPR_lteq:
-				case EXPR_gt:
-				case EXPR_gteq:
-					return new Type.Bool();
-				case EXPR_neg:
-				case EXPR_add:
-				case EXPR_sub:
-				case EXPR_mul:
-				case EXPR_div:
-				case EXPR_rem:
-				case EXPR_arrlen:
-					return new Type.Int();
-				case EXPR_arrinit: {
-					if (size() > 0) {
-						Type[] ts = new Type[size()];
-						for (int i = 0; i != ts.length; ++i) {
-							ts[i] = getOperand(i).getReturnType(types);
-						}
-						// Perform a little simplification here by collapsing
-						// identical types together.
-						ts = ArrayUtils.removeDuplicates(ts);
-						Type element = ts.length == 1 ? ts[0] : new Type.Union(ts);
-						return new Type.Array(element);
-					} else {
-						return new Type.Array(new Type.Void());
-					}
-				}
-				case EXPR_arrgen: {
-					Type element = getOperand(0).getReturnType(types);
-					return new Type.Array(element);
-				}
-				case EXPR_arridx: {
-					Type src = getOperand(0).getReturnType(types);
-					if(src != null) {
-						Type.Array effectiveArray = types.extractReadableArray(src);
-						if(effectiveArray != null) {
-							return effectiveArray.getElement();
-						}
-					}
-					return null;
-				}
-				case EXPR_arrupdt: {
-					Type src = getOperand(0).getReturnType(types);
-					if(src != null) {
-						return types.extractReadableArray(src);
-					} else {
-						return null;
-					}
-				}
-				default:
-					throw new IllegalArgumentException("invalid operator opcode: " + getOpcode());
-				}
 			}
 
 			@Override
@@ -1183,12 +1106,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Term getOperand(int i) {
 				return (Term) super.getOperand(i);
-			}
-
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				// FIXME: we could do better than this.
-				return new Type.Int();
 			}
 
 			@Override
@@ -1306,26 +1223,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				super(Opcode.EXPR_recfield, lhs, rhs);
 			}
 
-			@Override
-			public Type getReturnType(TypeSystem types) throws ResolutionError {
-				Type src = getSource().getReturnType(types);
-				if (src != null) {
-					Type.Record effectiveRecord = types.extractReadableRecord(src);
-					if (effectiveRecord != null) {
-						FieldDeclaration[] fields = effectiveRecord.getFields();
-						String actualFieldName = getField().get();
-						for (int i = 0; i != fields.length; ++i) {
-							FieldDeclaration vd = fields[i];
-							String declaredFieldName = vd.getVariableName().get();
-							if (declaredFieldName.equals(actualFieldName)) {
-								return vd.getType();
-							}
-						}
-					}
-				}
-				//
-				return null;
-			}
 			public Expr getSource() {
 				return (Expr) getOperand(0);
 			}
@@ -1341,11 +1238,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public static class RecordUpdate extends AbstractSyntacticItem implements Expr {
 			public RecordUpdate(Expr lhs, Identifier mhs, Expr rhs) {
 				super(Opcode.EXPR_recupdt, lhs, mhs, rhs);
-			}
-
-			@Override
-			public Type getReturnType(TypeSystem types) throws ResolutionError {
-				return getSource().getReturnType(types);
 			}
 
 			public Expr getSource() {
@@ -1371,20 +1263,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				super(Opcode.EXPR_recinit, fields);
 			}
 
-			@Override
-			public Type getReturnType(TypeSystem types) throws ResolutionError {
-				Pair<Identifier, Expr>[] fields = getFields();
-				FieldDeclaration[] decls = new FieldDeclaration[fields.length];
-				for (int i = 0; i != fields.length; ++i) {
-					Identifier fieldName = fields[i].getFirst();
-					Type fieldType = fields[i].getSecond().getReturnType(types);
-					decls[i] = new FieldDeclaration(fieldType, fieldName);
-				}
-				// NOTE: a record initialiser never produces an open record
-				// type. But definition, an initialiser always produces a closed
-				// (i.e. concrete) type.
-				return new Type.Record(false,decls);
-			}
 			public Pair<Identifier,Expr>[] getFields() {
 				return ArrayUtils.toArray(Pair.class, getOperands());
 			}
@@ -1398,10 +1276,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public VariableAccess(VariableDeclaration decl) {
 				super(Opcode.EXPR_var, decl);
 			}
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				return getVariableDeclaration().getType();
-			}
+
 			public VariableDeclaration getVariableDeclaration() {
 				return (VariableDeclaration) getOperand(0);
 			}
@@ -1414,10 +1289,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public static class Constant extends AbstractSyntacticItem implements Expr {
 			public Constant(Value value) {
 				super(Opcode.EXPR_const, value);
-			}
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				return getValue().getType();
 			}
 			public Value getValue() {
 				return (Value) getOperand(0);
@@ -1432,16 +1303,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Is(Expr lhs, Type rhs) {
 				super(Opcode.EXPR_is, lhs, rhs);
 			}
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				return new Type.Bool();
-			}
+
 			public Expr getExpr() {
 				return (Expr) getOperand(0);
 			}
+
 			public Type getTypeTest() {
 				return (Type) getOperand(1);
 			}
+
 			@Override
 			public Is clone(SyntacticItem[] operands) {
 				return new Is((Expr) operands[0], (Type) operands[1]);
@@ -1459,17 +1329,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Tuple<Expr> arguments) {
 				super(Opcode.EXPR_invoke, type, name, arguments);
-			}
-
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				Type.FunctionOrMacroOrInvariant type = getSignatureType();
-				Tuple<Type> returns = type.getReturns();
-				if (returns.size() != 1) {
-					throw new IllegalArgumentException("need support for multiple returns");
-				} else {
-					return returns.getOperand(0);
-				}
 			}
 
 			public Type.FunctionOrMacroOrInvariant getSignatureType() {
@@ -1503,10 +1362,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 			public Tuple<VariableDeclaration> getParameters() {
 				return (Tuple<VariableDeclaration>) getOperand(0);
-			}
-			@Override
-			public Type getReturnType(TypeSystem types) {
-				return new Type.Bool();
 			}
 			public Expr getBody() {
 				return (Expr) getOperand(1);

@@ -110,8 +110,8 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
 		Expr lhs = newTruth.getOperand(0);
 		Expr rhs = newTruth.getOperand(1);
-		Type lhsT = lhs.getReturnType(types);
-		Type rhsT = rhs.getReturnType(types);
+		Type lhsT = types.inferType(lhs);
+		Type rhsT = types.inferType(rhs);
 		if(lhsT == null || rhsT == null) {
 			// Defer processing of this equality
 			return state;
