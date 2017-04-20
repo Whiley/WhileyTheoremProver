@@ -1,0 +1,9 @@
+function test() -> ()
+
+assert "assertion failed":
+    forall(bool y, bool x):
+        if:
+            x == true
+            y == false
+        then:
+            (x && x) == true

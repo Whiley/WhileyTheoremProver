@@ -208,7 +208,7 @@ public class Formulae {
 			Expr.Is operator = (Expr.Is) stmt;
 			Expr lhs = operator.getExpr();
 			Type lhs_t = types.inferType(lhs);
-			if(types.isRawSubtype(new Type.Bool(), lhs_t)) {
+			if(lhs_t != null && types.isRawSubtype(new Type.Bool(), lhs_t)) {
 				lhs = toFormula(lhs,types);
 			}
 			return new Formula.Is(lhs,operator.getTypeTest());

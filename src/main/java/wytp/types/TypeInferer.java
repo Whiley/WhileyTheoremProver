@@ -13,6 +13,7 @@
 // limitations under the License.
 package wytp.types;
 
+import java.util.Set;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
@@ -65,5 +66,21 @@ public interface TypeInferer {
 		 * @return
 		 */
 		WyalFile.Type getType(WyalFile.VariableDeclaration var);
+
+		/**
+		 * Refine the type associated with a given variable declaration in this
+		 * environment, which produces a completely new environment containing
+		 * the refined type. Observe that the variable need not have been
+		 * previously declared for this to make sense. Also, observe that the
+		 * resulting type for a given variable is the intersection of its
+		 * original type and the refined type.
+		 *
+		 * @param var
+		 * @param type
+		 * @return
+		 */
+		Environment refineType(WyalFile.VariableDeclaration var, Type type);
+
+		Set<WyalFile.VariableDeclaration> getRefinedVariables();
 	}
 }

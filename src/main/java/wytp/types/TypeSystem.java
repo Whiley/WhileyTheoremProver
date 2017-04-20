@@ -22,6 +22,7 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.WyalFileResolver;
 import wyal.util.WyalTypeInferer;
 import wytp.proof.Formula;
@@ -29,8 +30,15 @@ import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
 import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
+import wytp.types.util.NullTypeEnvironment;
 
 public class TypeSystem {
+	/**
+	 * The "null" environment provides a simple environment which simply falls
+	 * back to using the declared type for a given variable.
+	 */
+	public  final static TypeInferer.Environment NULL_ENVIRONMENT = new NullTypeEnvironment();
+	//
 	private final NameResolver resolver;
 	private final SubtypeOperator coerciveSubtypeOperator;
 	private final ReadableRecordExtractor readableRecordExtractor;
