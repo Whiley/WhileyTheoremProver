@@ -134,8 +134,8 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			Type lhs_t = lhs.getReturnType(types);
-			Type rhs_t = rhs.getReturnType(types);
+			Type lhs_t = types.inferType(lhs);
+			Type rhs_t = types.inferType(rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
@@ -149,8 +149,8 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			Type lhs_t = lhs.getReturnType(types);
-			Type rhs_t = rhs.getReturnType(types);
+			Type lhs_t = types.inferType(lhs);
+			Type rhs_t = types.inferType(rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				Polynomial lhs_p = toPolynomial(lhs);
 				Polynomial rhs_p = toPolynomial(rhs);
@@ -207,8 +207,8 @@ public class Formulae {
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
 			Expr lhs = operator.getExpr();
-			Type lhs_t = lhs.getReturnType(types);
-			if(types.isRawSubtype(new Type.Bool(), lhs_t)) {
+			Type lhs_t = types.inferType(lhs);
+			if(lhs_t != null && types.isRawSubtype(new Type.Bool(), lhs_t)) {
 				lhs = toFormula(lhs,types);
 			}
 			return new Formula.Is(lhs,operator.getTypeTest());

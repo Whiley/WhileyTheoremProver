@@ -60,8 +60,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Formula.Equality eq = (Formula.Equality) truth;
 			Expr lhs = eq.getOperand(0);
 			Expr rhs = eq.getOperand(1);
-			Type lhsT = lhs.getReturnType(types);
-			Type rhsT = rhs.getReturnType(types);
+			Type lhsT = types.inferType(lhs);
+			Type rhsT = types.inferType(rhs);
 			if (lhsT != null && rhsT != null) {
 				Type intersection = new Type.Intersection(lhsT, rhsT);
 				//
@@ -135,7 +135,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	}
 
 	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
-		Type lhs_t = lhs.getReturnType(types);
+		Type lhs_t = types.inferType(lhs);
 		Type.Record lhs_r = types.extractReadableRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
@@ -291,8 +291,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	}
 
 	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {
-		Type lhs_t = lhs.getReturnType(types);
-		Type rhs_t = rhs.getReturnType(types);
+		Type lhs_t = types.inferType(lhs);
+		Type rhs_t = types.inferType(rhs);
 		if (types.isRawSubtype(new Type.Int(), lhs_t) || types.isRawSubtype(new Type.Int(), rhs_t)) {
 			return new ArithmeticEquality(false, Formulae.toPolynomial(lhs), Formulae.toPolynomial(rhs));
 		} else {

@@ -1,0 +1,2 @@
+type x is (int&!int r)
+

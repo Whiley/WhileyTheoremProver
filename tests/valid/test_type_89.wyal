@@ -1,0 +1,15 @@
+type nat is (int x)
+where:
+    x >= 0
+
+type neg is (!nat this)
+
+assert "type invariant not satisfied":
+    forall(neg x, int&neg y):
+        if:
+            y == x
+            x is int
+        then:
+            y is int
+
+
