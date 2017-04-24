@@ -13,6 +13,7 @@
 // limitations under the License.
 package wytp.proof.rules;
 
+import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Tuple;
@@ -64,7 +65,7 @@ public class ExistentialElimination implements Proof.LinearRule {
 				Formula invariant = expandTypeInvariants(qf.getParameters(),types);
 				// Add type invariants (if appropriate)
 				if (invariant != null) {
-					body = Formulae.simplifyFormula(new Conjunct(invariant, body),types);
+					body = new Conjunct(invariant, body);
 				}
 				state = state.subsume(this, qf, body);
 			}

@@ -13,11 +13,15 @@
 // limitations under the License.
 package wytp.proof.rules;
 
+import java.util.Arrays;
+
+import wyal.lang.NameResolver;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Pair;
+import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
@@ -87,7 +91,11 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	@Override
 	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
 		//
-		if (newTruth instanceof Formula.Equality) {
+		Formula constructed = (Formula) construct(state, newTruth, newTruth);
+
+		if(constructed != newTruth) {
+			state = state.subsume(this, newTruth, constructed);
+		} else if (newTruth instanceof Formula.Equality && ((Formula.Equality) newTruth).getSign()) {
 			state = substituteAgainstEquality(state, (Formula.Equality) newTruth);
 		}
 		//
@@ -160,7 +168,6 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 				Formula updatedTruth = (Formula) substitute(assignment.getLeftHandSide(), assignment.getRightHandSide(),
 						existingTruth);
 				if (existingTruth != updatedTruth) {
-					updatedTruth = Formulae.simplifyFormula(updatedTruth, types);
 					// The following is needed because substitution can
 					// produce a different looking term which, after
 					// simplification, is the same. To avoid this, we
@@ -358,4 +365,83 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			return dependency;
 		}
 	}
+
+
+	/**
+	 * When generating an entirely new term within a given rule (i.e. one
+	 * that has not been previously seen in the proof), we need to check
+	 * whether it is the subject of some existing assignment or not.
+	 *
+	 * @param newTerm
+	 * @return
+	 */
+	public SyntacticItem construct(Proof.State state, SyntacticItem term, Formula truth) {
+		SyntacticItem[] children = term.getOperands();
+		SyntacticItem[] nChildren = children;
+		if(children != null) {
+			for (int i = 0; i != children.length; ++i) {
+				SyntacticItem child = children[i];
+				SyntacticItem nChild;
+				if (child instanceof Expr) {
+					nChild = construct(state, (Expr) child, truth);
+				} else if (child instanceof Tuple) {
+					nChild = construct(state, (Tuple) child, truth);
+				} else {
+					nChild = child;
+				}
+				if (child != nChild && nChildren == children) {
+					// Clone the new children array to avoid interfering
+					// with original item.
+					nChildren = Arrays.copyOf(children, children.length);
+				}
+				nChildren[i] = nChild;
+			}
+		}
+		if (nChildren != children) {
+			// At least one child was changed, therefore clone the original
+			// item with the new children.
+			term = (SyntacticItem) term.clone(nChildren);
+		}
+		if(term instanceof Expr) {
+			return localConstruct(state,(Expr) term, truth);
+		} else {
+			return term;
+		}
+	}
+
+	public Expr localConstruct(Proof.State state, Expr term, Formula truth) {
+		Assignment assignment = lookupAssignment(state,term,truth);
+		if (assignment != null) {
+			return assignment.getRightHandSide();
+		} else {
+			return term;
+		}
+	}
+
+
+	private Assignment lookupAssignment(Proof.State state, Expr term, Formula truth) {
+		Proof.State parent = state.getParent();
+		Proof.Delta.Set additions = state.getDelta().getAdditions();
+		//
+		for (int i = additions.size()-1; i >= 0; --i) {
+			Formula f = additions.get(i);
+			if (f instanceof Formula.Equality && f != truth) {
+				Formula.Equality eq = (Formula.Equality) f;
+				if(eq.getSign()) {
+					CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
+					// FIXME: this is essentially pretty broken. Need to find a
+					// much better way to handle congruence closure.
+					if (assign != null && assign.getLeftHandSide().equals(term)) {
+						return assign;
+					}
+				}
+			}
+		}
+		if (parent == null) {
+			return null;
+		} else {
+			return lookupAssignment(parent,term,truth);
+		}
+	}
+
 }

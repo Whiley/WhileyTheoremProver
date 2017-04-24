@@ -87,7 +87,7 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 				WyalFile.Expr match = matches.get(i);
 				Polynomial len = Formulae.toPolynomial(match);
 				Polynomial zero = Formulae.toPolynomial(0);
-				Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(len, zero),types);
+				Formula axiom = Formulae.greaterOrEqual(len, zero);
 				state = state.infer(this, axiom, inequality);
 			}
 			return state;

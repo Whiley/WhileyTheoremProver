@@ -231,7 +231,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		}
 		//
 		Type type = new Type.Intersection(bounds);
-		Formula test = Formulae.simplifyFormula(new Formula.Is(first.getExpr(), type), types);
+		Formula test = new Formula.Is(first.getExpr(), type);
 		//
 		Formula[] froms = matches.toArray(new Formula[matches.size()]);
 		state = state.subsume(this, froms, new Formula[] { test });

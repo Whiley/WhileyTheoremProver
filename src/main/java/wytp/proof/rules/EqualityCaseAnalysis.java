@@ -53,7 +53,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				// purposes, this works well enough for now.
 				Inequality lt = Formulae.lessThan(lhs,rhs);
 				Inequality gt = Formulae.lessThan(rhs,lhs);
-				Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(lt, gt),types);
+				Formula disjunct = new Formula.Disjunct(lt, gt);
 				return state.subsume(this, truth, disjunct);
 			}
 		} else if(truth instanceof Formula.Equality) {
@@ -108,12 +108,12 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		if(eq.getSign()) {
 			Formula l = new Conjunct(lhs_f, rhs_f);
 			Formula r = new Conjunct(Formulae.invert(lhs_f), Formulae.invert(rhs_f));
-			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
+			Formula disjunct = new Formula.Disjunct(l, r);
 			return state.subsume(this, eq, disjunct);
 		} else {
 			Formula l = new Conjunct(Formulae.invert(lhs_f),rhs_f);
 			Formula r = new Conjunct(lhs_f,Formulae.invert(rhs_f));
-			Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(l, r), types);
+			Formula disjunct = new Formula.Disjunct(l, r);
 			// NOTE: at the moment, we can't do a subsume here because we can
 			// end up losing critical information.
 			return state.infer(this, disjunct, eq);
@@ -140,11 +140,11 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
-			Expr lf = (Expr) construct(state,new Expr.RecordAccess(lhs, fields[i].getVariableName()));
-			Expr rf = (Expr) construct(state,new Expr.RecordAccess(rhs, fields[i].getVariableName()));
+			Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
+			Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
 			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
 		}
-		Formula disjunct = Formulae.simplifyFormula(new Formula.Disjunct(clauses), types);
+		Formula disjunct = new Formula.Disjunct(clauses);
 		return state.subsume(this, eq, disjunct);
 	}
 
@@ -171,7 +171,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				// formula.
 				clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_eq, lf, rf), types);
 			}
-			Formula disjunct = Formulae.simplifyFormula(new Formula.Conjunct(clauses), types);
+			Formula disjunct = new Formula.Conjunct(clauses);
 			return state.subsume(this, eq, disjunct);
 		}
 	}
@@ -217,7 +217,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			}
 			//
 			Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
-			return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
+			return state.subsume(this, eq, f);
 		}
 	}
 
@@ -237,7 +237,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		clauses[rhsOperands.length] = Formulae.toFormula(new Expr.Operator(opcode, lhsSize, rhsSize), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
-		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
+		return state.subsume(this, eq, f);
 	}
 
 	private State expandArrayGeneratorGeneratorEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
@@ -252,24 +252,24 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Formula c2 = Formulae.toFormula(new Expr.Operator(opcode, lhsValue, rhsValue), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(c1, c2) : new Formula.Disjunct(c1, c2);
-		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
+		return state.subsume(this, eq, f);
 	}
 
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
 			Proof.State state) throws ResolutionError {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
-		Expr rhsSize = (Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+		Expr rhsSize = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
 		Expr[] lhsOperands = lhs.getOperands();
 		Formula[] clauses = new Formula[lhsOperands.length + 1];
 		for (int i = 0; i != lhsOperands.length; ++i) {
 			Expr index = new Expr.Constant(new Value.Int(i));
 			Expr lhsOperand = lhsOperands[i];
-			Expr rhsOperand = (Expr) construct(state, new Expr.Operator(Opcode.EXPR_arridx, rhs, index));
+			Expr rhsOperand = new Expr.Operator(Opcode.EXPR_arridx, rhs, index);
 			clauses[i] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsOperand, rhsOperand), types);
 		}
 		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsSize, rhsSize), types);
 		Formula f = new Formula.Disjunct(clauses);
-		return state.subsume(this, eq, Formulae.simplifyFormula(f, types));
+		return state.subsume(this, eq, f);
 	}
 
 	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
@@ -279,13 +279,12 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
 		Formula body = notEquals(lhsAccess, rhsAccess, types);
-		Polynomial lhsLen = Formulae.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, lhs)));
-		Polynomial rhsLen = Formulae.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, rhs)));
+		Polynomial lhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
+		Polynomial rhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
 		// The following axiom simply states that the length of every array
 		// type is greater than or equal to zero.
 		Formula axiom = new ArithmeticEquality(false, lhsLen, rhsLen);
 		axiom = Formulae.or(axiom, new Quantifier(false, var, body));
-		axiom = Formulae.simplifyFormula(axiom, types);
 		//
 		return state.subsume(this, eq, axiom);
 	}

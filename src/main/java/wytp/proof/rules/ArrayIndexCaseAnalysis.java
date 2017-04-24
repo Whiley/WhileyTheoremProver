@@ -47,7 +47,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Expr.Operator match = matches.get(i);
 				Formula[] cases = generateCaseAnalysis(match, truth, state);
 				if(cases.length > 0) {
-					Formula disjunct = Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types);
+					Formula disjunct = new Formula.Disjunct(cases);
 					state = state.subsume(this, truth, disjunct);
 				}
 			}
@@ -70,7 +70,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Formula case1 = (Formula) substitute(split, v, truth);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = (Expr) construct(state,new Expr.Operator(Opcode.EXPR_arridx, xs, j));
+				WyalFile.Expr arridx = (Expr) new Expr.Operator(Opcode.EXPR_arridx, xs, j);
 				Formula case2 = (Formula) substitute(split, arridx, truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);

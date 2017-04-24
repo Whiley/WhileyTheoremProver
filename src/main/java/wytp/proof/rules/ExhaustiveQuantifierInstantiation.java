@@ -51,7 +51,6 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 
 	@Override
 	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
-
 		if (newTruth instanceof Formula.Equation) {
 			Formula.Equation ground = (Formula.Equation) newTruth;
 			return instantiateQuantifiers(ground, state);
@@ -126,7 +125,6 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 
 	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Equation groundTerm,
 			State state) throws ResolutionError {
-
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
 		// against the same ground term.
@@ -209,7 +207,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
-		Expr.VariableAccess access = new Expr.VariableAccess(variable);
+		Expr access = new Expr.VariableAccess(variable);
 		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
 		Formula invariant = types.extractInvariant(variable.getType(), new Expr.VariableAccess(variable));
@@ -228,8 +226,6 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		}
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
-		grounded = Formulae.simplifyFormula(grounded, types);
-		grounded = (Formula) construct(state,grounded);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 
@@ -269,6 +265,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		ArrayList<Expr> result = new ArrayList<>();
 		//
 		if (quantified instanceof Formula.Inequality && ground instanceof Formula.Inequality) {
+			//
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
@@ -346,13 +343,15 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) throws ResolutionError {
 		//
 		if (containsTrigger(quantified,variable)) {
-			Expr.VariableAccess access = new Expr.VariableAccess(variable);
+			// FIXME: the following is something of a hack. Since we know we'll
+			// always be substituting into a variable access at the index position,
+			// and this will be a polynomial of some sort.
+			Expr access = Formulae.toPolynomial(new Expr.VariableAccess(variable));
 			List<Expr> candidates = determineGroundTerms(ground, new ArrayList<>());
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
 				Expr attempt = (Expr) substitute(access, candidate, quantified);
-				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {
 					// Awesome, we made a correct guess!!!

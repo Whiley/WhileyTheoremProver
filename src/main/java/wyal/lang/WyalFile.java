@@ -1094,7 +1094,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-
 		public final static class Polynomial extends Expr.Operator {
 			public Polynomial(BigInteger constant) {
 				super(Opcode.EXPR_add,new Polynomial.Term[]{new Polynomial.Term(constant)});
@@ -1296,6 +1295,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Constant clone(SyntacticItem[] operands) {
 				return new Constant((Value) operands[0]);
+			}
+
+			@Override
+			public String toString() {
+				return getValue().toString();
 			}
 		}
 

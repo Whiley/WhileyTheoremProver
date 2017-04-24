@@ -127,10 +127,10 @@ public class InequalityIntroduction implements Proof.LinearRule {
 			lhsCandidate = rCandidate.getSecond();
 		}
 		if(lower.equals(upper)) {
-			return Formulae.simplifyArithmeticEquality(new Formula.ArithmeticEquality(true, Formulae.toPolynomial(lhsCandidate), lower), types);
+			return new Formula.ArithmeticEquality(true, Formulae.toPolynomial(lhsCandidate), lower);
 		} else {
 			// Result is not-strict as had something like ... <= x <= ...
-			return Formulae.simplifyInequality(Formulae.greaterOrEqual(upper,lower), types);
+			return Formulae.greaterOrEqual(upper,lower);
 		}
 	}
 

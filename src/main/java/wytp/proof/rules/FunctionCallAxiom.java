@@ -74,14 +74,12 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 			Formula precondition = expandFunctionPrecondition(decl, ivk.getArguments());
 			//
 			if (precondition != null) {
-				precondition = Formulae.simplifyFormula(precondition, types);
 				state = state.infer(this, precondition, truth);
 			}
 			// Calculate the postcondition
 			Formula postcondition = expandFunctionPostcondition(decl, ivk);
 			//
 			if (postcondition != null) {
-				postcondition = Formulae.simplifyFormula(postcondition, types);
 				state = state.infer(this, postcondition, truth);
 			}
 		}

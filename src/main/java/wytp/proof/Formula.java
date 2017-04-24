@@ -13,10 +13,7 @@
 // limitations under the License.
 package wytp.proof;
 
-import java.util.Arrays;
-
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
@@ -24,14 +21,6 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.lang.WyalFile.Expr.Constant;
-import wyal.lang.WyalFile.Expr.Invoke;
-import wyal.lang.WyalFile.Expr.Is;
-import wyal.lang.WyalFile.Expr.Operator;
-import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Expr.Quantifier;
-import wyal.lang.WyalFile.Type.FunctionOrMacroOrInvariant;
-import wyal.lang.WyalFile.Value.Bool;
 
 /**
  * A special kind of expression which maintains a normal form representation. As

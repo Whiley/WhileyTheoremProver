@@ -42,6 +42,7 @@ import wytp.proof.rules.FunctionCallAxiom;
 import wytp.proof.rules.InequalityIntroduction;
 import wytp.proof.rules.MacroExpansion;
 import wytp.proof.rules.OrElimination;
+import wytp.proof.rules.Simplification;
 import wytp.proof.rules.TypeTestClosure;
 import wytp.proof.util.DeltaProof;
 import wytp.proof.util.FastDelta;
@@ -95,12 +96,12 @@ public class AutomatedTheoremProver {
 		this.types = typeSystem;
 		//
 		this.rules = new Proof.Rule[] {
+				new Simplification(types),
 				new CongruenceClosure(types),
 				new InequalityIntroduction(types),
 				new AndElimination(),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
-				// new TypeTestExpansion(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
@@ -152,7 +153,6 @@ public class AutomatedTheoremProver {
 		// "proof-by-contradiction".
 		formula = Formulae.invert(formula);
 		// Simplify the formula, since inversion does not do this.
-		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
 		formula = heap.allocate(SyntacticHeaps.clone(formula));
 		// Create initial state
