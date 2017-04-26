@@ -16,7 +16,6 @@ package wytp.proof.rules;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.ArithmeticEquality;
@@ -45,8 +44,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		if(truth instanceof Formula.ArithmeticEquality) {
 			Formula.ArithmeticEquality eq = (Formula.ArithmeticEquality) truth;
 			if(!eq.getSign()) {
-				Polynomial lhs = eq.getOperand(0);
-				Polynomial rhs = eq.getOperand(1);
+				Expr lhs = eq.getOperand(0);
+				Expr rhs = eq.getOperand(1);
 				// For an arithmetic equality of the form x != y, we return a
 				// disjunction of the form (x < y) || (x > y). This is not
 				// necessarily the most efficient thing to do. However, for our
@@ -275,12 +274,12 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	private State expandArrayArrayNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
 		WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 				new Identifier("i:" + skolem++));
-		Polynomial va = Formulae.toPolynomial(new Expr.VariableAccess(var));
+		Expr va = new Expr.VariableAccess(var);
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
 		Formula body = notEquals(lhsAccess, rhsAccess, types);
-		Polynomial lhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, lhs));
-		Polynomial rhsLen = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, rhs));
+		Expr lhsLen = new Expr.Operator(Opcode.EXPR_arrlen, lhs);
+		Expr rhsLen = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
 		// The following axiom simply states that the length of every array
 		// type is greater than or equal to zero.
 		Formula axiom = new ArithmeticEquality(false, lhsLen, rhsLen);
@@ -293,7 +292,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Type lhs_t = types.inferType(lhs);
 		Type rhs_t = types.inferType(rhs);
 		if (types.isRawSubtype(new Type.Int(), lhs_t) || types.isRawSubtype(new Type.Int(), rhs_t)) {
-			return new ArithmeticEquality(false, Formulae.toPolynomial(lhs), Formulae.toPolynomial(rhs));
+			return new ArithmeticEquality(false, lhs, rhs);
 		} else {
 			return new Formula.Equality(false, lhs, rhs);
 		}

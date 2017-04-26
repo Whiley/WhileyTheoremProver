@@ -19,27 +19,19 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
-import java.util.ArrayList;
-
-import javax.lang.model.element.Element;
 
 import wyal.heap.AbstractSyntacticHeap;
 import wyal.heap.AbstractSyntacticItem;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wybs.lang.CompilationUnit;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
 import wytp.proof.Proof;
-import wytp.proof.util.Formulae;
-import wytp.proof.util.Polynomials;
-import wytp.types.TypeSystem;
 
 public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
@@ -1091,129 +1083,6 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Expr clone(SyntacticItem[] operands) {
 				return new Operator(getOpcode(), (Expr[]) operands);
-			}
-		}
-
-		public final static class Polynomial extends Expr.Operator {
-			public Polynomial(BigInteger constant) {
-				super(Opcode.EXPR_add,new Polynomial.Term[]{new Polynomial.Term(constant)});
-			}
-			public Polynomial(Term... terms) {
-				super(Opcode.EXPR_add, terms);
-			}
-
-			@Override
-			public Term getOperand(int i) {
-				return (Term) super.getOperand(i);
-			}
-
-			@Override
-			public Polynomial.Term[] getOperands() {
-				return (Polynomial.Term[]) super.getOperands();
-			}
-
-			/**
-			 * Check whether a polynomial is a constant or not.
-			 *
-			 * @param p
-			 * @return
-			 */
-			public boolean isConstant() {
-				return size() == 1 && getOperand(0).getAtoms().length == 0;
-			}
-
-			/**
-			 * Extract the constant that this polynomial represents (assuming it
-			 * does).
-			 *
-			 * @param p
-			 * @return
-			 */
-			public Value.Int toConstant() {
-				if (size() == 1) {
-					Polynomial.Term term = getOperand(0);
-					if (term.getAtoms().length == 0) {
-						return term.getCoefficient();
-					}
-				}
-				throw new IllegalArgumentException("polynomial is not constant");
-			}
-
-			public Polynomial negate() {
-				return Polynomials.negate(this);
-			}
-
-			public Polynomial add(Polynomial poly) {
-				return Polynomials.add(this, poly);
-			}
-
-			public Polynomial add(Polynomial.Term term) {
-				return Polynomials.add(this, term);
-			}
-
-			public Polynomial subtract(Polynomial p) {
-				return add(p.negate());
-			}
-
-			public Polynomial subtract(Polynomial.Term term) {
-				return Polynomials.add(this, Polynomials.negate(term));
-			}
-
-			public Polynomial multiply(Polynomial rhs) {
-				return Polynomials.multiply(this, rhs);
-			}
-
-			public Polynomial multiply(Polynomial.Term rhs) {
-				return Polynomials.multiply(this, rhs);
-			}
-
-			@Override
-			public Polynomial clone(SyntacticItem[] children) {
-				return new Polynomial((Term[]) children);
-			}
-
-			public static class Term extends Expr.Operator {
-				public Term(BigInteger constant) {
-					this(new Value.Int(constant));
-				}
-				public Term(Value.Int constant) {
-					super(Opcode.EXPR_mul,new Constant(constant));
-				}
-				public Term(Expr atom) {
-					super(Opcode.EXPR_mul,append(new Value.Int(1),atom));
-				}
-				public Term(Value.Int coefficient, Expr... variables) {
-					super(Opcode.EXPR_mul,append(coefficient,variables));
-				}
-				Term(Expr[] operands) {
-					super(Opcode.EXPR_mul,operands);
-				}
-				public Value.Int getCoefficient() {
-					Constant c = (Constant) getOperand(0);
-					return (Value.Int) c.getValue();
-				}
-
-				public Expr[] getAtoms() {
-					Expr[] children = getOperands();
-					Expr[] atoms = new Expr[children.length-1];
-					System.arraycopy(children, 1, atoms, 0, atoms.length);
-					return atoms;
-				}
-
-				static Expr[] append(Value.Int i, Expr... variables) {
-					Expr[] exprs = new Expr[variables.length+1];
-					exprs[0] = new Expr.Constant(i);
-					for(int k=0;k!=variables.length;++k) {
-						exprs[k+1] = variables[k];
-					}
-					return exprs;
-				}
-
-				@Override
-				public Term clone(SyntacticItem[] children) {
-					return new Term((Expr[])children);
-				}
-
 			}
 		}
 

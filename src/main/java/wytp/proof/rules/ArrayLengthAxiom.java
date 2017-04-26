@@ -14,11 +14,11 @@
 package wytp.proof.rules;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -85,8 +85,8 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 			List<WyalFile.Expr> matches = findMatches(inequality.getOperand(1));
 			for (int i = 0; i != matches.size(); ++i) {
 				WyalFile.Expr match = matches.get(i);
-				Polynomial len = Formulae.toPolynomial(match);
-				Polynomial zero = Formulae.toPolynomial(0);
+				Expr len = match;
+				Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
 				Formula axiom = Formulae.greaterOrEqual(len, zero);
 				state = state.infer(this, axiom, inequality);
 			}
@@ -109,18 +109,27 @@ public class ArrayLengthAxiom implements Proof.LinearRule {
 	 * @param poly
 	 * @return
 	 */
-	private List<WyalFile.Expr> findMatches(Expr.Polynomial poly) {
-		ArrayList<WyalFile.Expr> matches = new ArrayList<>();
-		for (int i = 0; i != poly.size(); ++i) {
-			Polynomial.Term term = poly.getOperand(i);
-			Expr[] atoms = term.getAtoms();
-			for (int j = 0; j != atoms.length; ++j) {
-				Expr atom = atoms[j];
-				if (atom.getOpcode() == Opcode.EXPR_arrlen) {
-					matches.add(atom);
+	private List<WyalFile.Expr> findMatches(Expr poly) {
+		if (poly instanceof Expr.Operator) {
+			ArrayList<WyalFile.Expr> matches = new ArrayList<>();
+			Expr.Operator op = (Expr.Operator) poly;
+			switch (op.getOpcode()) {
+			case EXPR_arrlen:
+				matches.add(poly);
+				break;
+			case EXPR_add:
+			case EXPR_sub:
+			case EXPR_mul:
+			case EXPR_div:
+			case EXPR_rem:
+				for (int i = 0; i != poly.size(); ++i) {
+					Expr term = op.getOperand(i);
+					matches.addAll(findMatches(term));
 				}
 			}
+			return matches;
+		} else {
+			return Collections.EMPTY_LIST;
 		}
-		return matches;
 	}
 }

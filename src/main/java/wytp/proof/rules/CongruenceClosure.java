@@ -13,22 +13,21 @@
 // limitations under the License.
 package wytp.proof.rules;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
-import wyal.lang.NameResolver;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.util.AbstractProofRule;
-import wytp.proof.util.Formulae;
+import wytp.proof.util.Arithmetic;
+import wytp.proof.util.Arithmetic.Polynomial;
 import wytp.types.TypeSystem;
 
 /**
@@ -195,52 +194,44 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	 * @return
 	 */
 	public static Assignment rearrangeToAssignment(Formula.Equality equality) {
-		Expr candidate;
-		Expr bound;
 		if (equality instanceof Formula.ArithmeticEquality) {
 			// Arithmetic equalities are a special case because we can actually
 			// rearrange them.
 			Formula.ArithmeticEquality e = (Formula.ArithmeticEquality) equality;
-			Polynomial lhs = e.getOperand(0);
-			Polynomial rhs = e.getOperand(1);
-			Polynomial.Term lhsCandidate = selectCandidateForSubstitution(lhs, rhs);
-			Polynomial.Term rhsCandidate = selectCandidateForSubstitution(rhs, lhs);
-			if (lhsCandidate != null && rhsCandidate != null) {
-				if (lessThan(lhsCandidate,rhsCandidate)) {
-					candidate = extractCandidate(lhsCandidate);
-					bound = rhs.subtract(lhs.subtract(lhsCandidate));
-				} else {
-					candidate = extractCandidate(rhsCandidate);
-					bound = lhs.subtract(rhs.subtract(rhsCandidate));
-				}
-			} else if (lhsCandidate != null) {
-				candidate = extractCandidate(lhsCandidate);
-				bound = rhs.subtract(lhs.subtract(lhsCandidate));
-			} else if (rhsCandidate != null) {
-				candidate = extractCandidate(rhsCandidate);
-				bound = lhs.subtract(rhs.subtract(rhsCandidate));
-			} else {
+			Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(e.getOperand(0));
+			Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(e.getOperand(1));
+			Arithmetic.Polynomial diff = lhs.subtract(rhs);
+			Polynomial.Term candidate = selectCandidateForSubstitution(diff);
+			if(candidate == null) {
 				return null;
 			}
+			Arithmetic.Polynomial bound = diff.subtract(candidate);
+			if(candidate.getCoefficient().compareTo(BigInteger.ZERO) < 0) {
+				candidate = candidate.negate();
+			} else {
+				bound = bound.negate();
+			}
+			if(candidate.getAtoms().length > 1) {
+				throw new RuntimeException("Need support for non-linear arithmetic");
+			} else if(candidate.getCoefficient().compareTo(BigInteger.ONE) != 0) {
+				throw new RuntimeException("Need to fix this prexisting bug: " + candidate.getCoefficient());
+			}
+			return new Assignment(candidate.toExpression(),bound.toExpression(),equality);
 		} else {
 			// For non-arithmetic equalities, we can't rearrange them.
 			// Therefore, there are relatively few options.
 			Expr lhs = equality.getOperand(0);
 			Expr rhs = equality.getOperand(1);
 			//
-			candidate = min(lhs,rhs);
+			Expr candidate = min(lhs,rhs);
+			Expr bound;
 			if(candidate == null) {
 				return null;
 			} else {
 				bound = max(lhs,rhs);
 			}
+			return new Assignment(candidate,bound,equality);
 		}
-
-		return new Assignment(candidate,bound,equality);
-	}
-
-	private static Expr extractCandidate(Polynomial.Term term) {
-		return term.getAtoms()[0];
 	}
 
 	/**
@@ -251,25 +242,53 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	 * @param p
 	 * @return
 	 */
-	public static Polynomial.Term selectCandidateForSubstitution(Polynomial p, Polynomial other) {
-		Expr candidateAtom = null;
+	public static Polynomial.Term selectCandidateForSubstitution(Polynomial p) {
 		Polynomial.Term candidate = null;
 		for (int i = 0; i != p.size(); ++i) {
-			Polynomial.Term term = p.getOperand(i);
-			Expr[] atoms = term.getAtoms();
-			if (term.getAtoms().length == 1) {
-				Expr atom = atoms[0];
-				// FIXME: the problem here is that the given polynomial is not
-				// taking into account the other side of the equation, which may
-				// contain a recursive reference.
-				if ((candidate == null || lessThan(atom,candidateAtom)) && !recursive(atom, i, p)
-						&& !recursive(atom, -1, other)) {
-					candidate = term;
-					candidateAtom = atom;
-				}
+			Polynomial.Term term = p.getTerm(i);
+			if (term.getAtoms().length > 0 && !hasRecursiveReference(term, p)) {
+				candidate = selectCandidate(candidate,term);
 			}
 		}
 		return candidate;
+	}
+
+	/**
+	 * Given two candidate terms, select the best option.
+	 *
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	private static Polynomial.Term selectCandidate(Polynomial.Term lhs, Polynomial.Term rhs) {
+		if (lhs == null) {
+			return rhs;
+		} else if (rhs == null) {
+			return lhs;
+		} else if (lessThan(lhs, rhs)) {
+			return lhs;
+		} else {
+			return rhs;
+		}
+	}
+
+	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
+		Expr[] lhs_atoms = lhs.getAtoms();
+		Expr[] rhs_atoms = rhs.getAtoms();
+		//
+		int lengthDifference = lhs_atoms.length - rhs_atoms.length;
+		if (lengthDifference < 0) {
+			return true;
+		} else if (lengthDifference > 0) {
+			return false;
+		} else {
+			for (int i = 0; i != lhs_atoms.length; ++i) {
+				if (lessThan(lhs_atoms[i], rhs_atoms[i])) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 	private static boolean lessThan(Expr lhs, Expr rhs) {
@@ -294,6 +313,7 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 
 	public static Expr max(Expr lhs, Expr rhs) {
 		Expr r = min(lhs,rhs);
+		//
 		if(r == lhs) {
 			return rhs;
 		} else if(r == rhs) {
@@ -316,18 +336,54 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 		}
 	}
 
-	private static boolean recursive(Expr atom, int i, Polynomial p) {
-		for (int j = 0; j != p.size(); ++j) {
-			if (i != j) {
-				Polynomial.Term term = p.getOperand(j);
-				if (isParentOf(term, atom)) {
-					return true;
+	/**
+	 * Check whether a given polynomial contains a recursive reference to a
+	 * given term. A recursive reference is simply an occurrence of the term as
+	 * some component of a constructor contained within. For example, in
+	 * <code>x</code> has a recursive reference in <code>x + y + f(x)</code>,
+	 * whereas <code>y</code> does not.
+	 *
+	 * @param term
+	 *            --- The term which we are checking to see whether it has a
+	 *            recursive reference or not.
+	 * @param poly
+	 *            --- The polynomial within which we are looking for the
+	 *            recursive reference.
+	 * @return
+	 */
+	private static boolean hasRecursiveReference(Polynomial.Term term, Polynomial poly) {
+		Expr[] atoms = term.getAtoms();
+		//
+		for (int i = 0; i != poly.size(); ++i) {
+			Polynomial.Term t = poly.getTerm(i);
+			// The polynomial is expected to contain the given term we're
+			// looking for and, obviously, we don't want to use that when
+			// looking for a recursive reference (since that would always be
+			// true).
+			if (t != term) {
+				Expr[] t_atoms = t.getAtoms();
+				for (int j = 0; j != atoms.length; ++j) {
+					Expr atom = atoms[j];
+					for (int k = 0; k != t_atoms.length; ++k) {
+						if (isParentOf(t_atoms[k], atom)) {
+							return true;
+						}
+					}
 				}
 			}
 		}
+		//
 		return false;
 	}
 
+	/**
+	 * Check whether a given expression is a parent of a given child. Or, put
+	 * another way, whether the given parent contains the given child.
+	 *
+	 * @param parent
+	 * @param child
+	 * @return
+	 */
 	private static boolean isParentOf(Expr parent, Expr child) {
 		if (parent.equals(child)) {
 			return true;

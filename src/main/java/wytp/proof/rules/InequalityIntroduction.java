@@ -13,18 +13,20 @@
 // limitations under the License.
 package wytp.proof.rules;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Expr.Polynomial;
+import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
+import wytp.proof.util.Arithmetic.Polynomial;
 
 /**
  * Responsible for emplying a form of <i>transitive closure</i> over
@@ -101,41 +103,38 @@ public class InequalityIntroduction implements Proof.LinearRule {
 		Polynomial ithUpperBound = extractBound(true, ith);
 		Polynomial jthLowerBound = extractBound(false, jth);
 		Polynomial jthUpperBound = extractBound(true, jth);
-
 		Pair<Polynomial.Term, Polynomial.Term> lCandidate = selectCandidateTerm(ithLowerBound, jthUpperBound);
 		Pair<Polynomial.Term, Polynomial.Term> rCandidate = selectCandidateTerm(jthLowerBound, ithUpperBound);
 		Polynomial.Term lhsCandidate;
-		Polynomial lower;
-		Polynomial upper;
+		Expr lower;
+		Expr upper;
 		if (lCandidate != null && rCandidate == null) {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-			lhsCandidate = lCandidate.getFirst();
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.first());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.second());
+			lhsCandidate = lCandidate.first();
 		} else if (lCandidate == null && rCandidate != null) {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			lhsCandidate = rCandidate.getSecond();
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.second());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.first());
+			lhsCandidate = rCandidate.second();
 		} else if(lCandidate == null && rCandidate == null) {
 			return null;
-		} else if(lessThan(lCandidate.getFirst(),rCandidate.getFirst())) {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.getFirst());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.getSecond());
-			lhsCandidate = lCandidate.getFirst();
+		} else if(lessThan(lCandidate.first(),rCandidate.first())) {
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, lCandidate.first());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, lCandidate.second());
+			lhsCandidate = lCandidate.first();
 		} else {
-			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.getSecond());
-			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.getFirst());
-			lhsCandidate = rCandidate.getSecond();
+			lower = rearrangeForLowerBound(ithLowerBound, ithUpperBound, rCandidate.second());
+			upper = rearrangeForUpperBound(jthLowerBound, jthUpperBound, rCandidate.first());
+			lhsCandidate = rCandidate.second();
+		}
+		if(lhsCandidate.getCoefficient().compareTo(BigInteger.ONE) != 0) {
+			throw new RuntimeException("Need to fix this prexisting problem");
 		}
 		if(lower.equals(upper)) {
-			return new Formula.ArithmeticEquality(true, Formulae.toPolynomial(lhsCandidate), lower);
+			return new Formula.ArithmeticEquality(true, lhsCandidate.toExpression(), lower);
 		} else {
-			// Result is not-strict as had something like ... <= x <= ...
 			return Formulae.greaterOrEqual(upper,lower);
 		}
-	}
-
-	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
-		return lhs.getIndex() < rhs.getIndex();
 	}
 
 	/**
@@ -148,9 +147,8 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	 */
 	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
 		int i = sign ? 0 : 1;
-		return (Polynomial) inequality.getOperand(i);
+		return Arithmetic.asPolynomial(inequality.getOperand(i));
 	}
-
 
 	/**
 	 * <p>
@@ -179,15 +177,15 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	 */
 	private static Pair<Polynomial.Term, Polynomial.Term> selectCandidateTerm(Polynomial lower, Polynomial upper) {
 		for (int i = 0; i != lower.size(); ++i) {
-			Polynomial.Term ith = lower.getOperand(i);
+			Polynomial.Term ith = lower.getTerm(i);
 			Expr[] ithAtoms = ith.getAtoms();
 			if (ithAtoms.length > 0) {
 				for (int j = 0; j != upper.size(); ++j) {
-					Polynomial.Term jth = upper.getOperand(j);
+					Polynomial.Term jth = upper.getTerm(j);
 					Expr[] jthAtoms = jth.getAtoms();
 					if (Arrays.equals(ithAtoms, jthAtoms)) {
 						// Select lexicographically least term
-						return new Pair<>(min(ith, jth),max(ith,jth));
+						return new Pair<>(min(ith, jth), max(ith, jth));
 					}
 				}
 			}
@@ -197,7 +195,7 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	}
 
 	private static Polynomial.Term min(Polynomial.Term lhs, Polynomial.Term rhs) {
-		if(lhs.getIndex() < rhs.getIndex()) {
+		if(lessThan(lhs,rhs)) {
 			return lhs;
 		} else {
 			return rhs;
@@ -205,11 +203,34 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	}
 
 	private static Polynomial.Term max(Polynomial.Term lhs, Polynomial.Term rhs) {
-		if(lhs.getIndex() > rhs.getIndex()) {
-			return lhs;
-		} else {
+		if(lessThan(lhs,rhs)) {
 			return rhs;
+		} else {
+			return lhs;
 		}
+	}
+
+	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
+		Expr[] lhs_atoms = lhs.getAtoms();
+		Expr[] rhs_atoms = rhs.getAtoms();
+		//
+		int lengthDifference = lhs_atoms.length - rhs_atoms.length;
+		if (lengthDifference < 0) {
+			return true;
+		} else if (lengthDifference > 0) {
+			return false;
+		} else {
+			for (int i = 0; i != lhs_atoms.length; ++i) {
+				if (lessThan(lhs_atoms[i], rhs_atoms[i])) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	private static boolean lessThan(Expr lhs, Expr rhs) {
+		return lhs.getIndex() < rhs.getIndex();
 	}
 
 	/**
@@ -231,9 +252,9 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	 * @param term
 	 *            the given term being rearranged for.
 	 */
-	private static Polynomial rearrangeForLowerBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
+	private static Expr rearrangeForLowerBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
 		rhs = rhs.subtract(term);
-		return lhs.add(rhs.negate());
+		return lhs.add(rhs.negate()).toExpression();
 	}
 
 	/**
@@ -255,8 +276,8 @@ public class InequalityIntroduction implements Proof.LinearRule {
 	 * @param term
 	 *            the given term being rearranged for.
 	 */
-	private static Polynomial rearrangeForUpperBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
+	private static Expr rearrangeForUpperBound(Polynomial lhs, Polynomial rhs, Polynomial.Term term) {
 		lhs = lhs.subtract(term);
-		return rhs.add(lhs.negate());
+		return rhs.add(lhs.negate()).toExpression();
 	}
 }

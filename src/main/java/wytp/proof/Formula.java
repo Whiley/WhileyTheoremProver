@@ -150,31 +150,21 @@ public interface Formula extends Expr {
 
 	public interface ArithmeticEquation extends Equation {
 		@Override
-		public Polynomial getOperand(int i);
+		public Expr getOperand(int i);
 
 		@Override
-		public Polynomial[] getOperands();
+		public Expr[] getOperands();
 	}
 
 	public static class Inequality extends Expr.Operator implements ArithmeticEquation {
 
-		public Inequality(Polynomial lhs, Polynomial rhs) {
-			super(Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
-		}
-
-		@Override
-		public Polynomial getOperand(int i) {
-			return (Polynomial) super.getOperand(i);
-		}
-
-		@Override
-		public Polynomial[] getOperands() {
-			return (Polynomial[]) super.getOperands();
+		public Inequality(Expr lhs, Expr rhs) {
+			super(Opcode.EXPR_gteq, lhs, rhs);
 		}
 
 		@Override
 		public Inequality clone(SyntacticItem[] children) {
-			return new Inequality((Polynomial) children[0],(Polynomial) children[1]);
+			return new Inequality((Expr) children[0],(Expr) children[1]);
 		}
 	}
 
@@ -183,7 +173,7 @@ public interface Formula extends Expr {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
-		public Equality(boolean sign, Polynomial[] arr) {
+		public Equality(boolean sign, Expr[] arr) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, arr);
 		}
 
@@ -198,23 +188,13 @@ public interface Formula extends Expr {
 	}
 
 	public static class ArithmeticEquality extends Equality implements ArithmeticEquation {
-		public ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
-			super(sign, new Polynomial[]{lhs, rhs});
-		}
-
-		@Override
-		public Polynomial getOperand(int i) {
-			return (Polynomial) super.getOperand(i);
-		}
-
-		@Override
-		public Polynomial[] getOperands() {
-			return (Polynomial[]) super.getOperands();
+		public ArithmeticEquality(boolean sign, Expr lhs, Expr rhs) {
+			super(sign, lhs, rhs);
 		}
 
 		@Override
 		public ArithmeticEquality clone(SyntacticItem[] children) {
-			return new ArithmeticEquality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
+			return new ArithmeticEquality(getSign(),(Expr) children[0],(Expr) children[1]);
 		}
 	}
 

@@ -24,11 +24,11 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.util.AbstractProofRule;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 import wyal.lang.WyalFile;
@@ -116,10 +116,10 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			Expr.Operator match = matches.get(i);
-			Polynomial index = Formulae.toPolynomial(match.getOperand(1));
+			Expr index = match.getOperand(1);
 			// NOTE: we must call construct here since we are creating a new
 			// term from scratch.
-			Polynomial length = Formulae.toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0)));
+			Expr length = new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0));
 			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
 				Formula.Inequality ieq = (Formula.Inequality) target;
@@ -148,13 +148,13 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) throws ResolutionError {
-		Polynomial zero = new Polynomial(BigInteger.ZERO);
+	private State instantiateIndexAxiom(Expr index, Proof.State state, Formula... dependencies) throws ResolutionError {
+		Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
 		Formula axiom = Formulae.greaterOrEqual(index, zero);
 		return state.infer(this, axiom, dependencies);
 	}
 
-	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) throws ResolutionError {
+	private State instantiateLengthAxiom(Expr index, Expr length, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Formula axiom = Formulae.lessThan(index, length);
 		return state.infer(this, axiom, dependencies);
 	}
@@ -167,14 +167,14 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	private boolean match(Expr attempt, Expr ground, Match kind) {
-		if (kind == Match.EXACT || !(attempt instanceof Expr.Polynomial) || !(ground instanceof Polynomial)) {
+		if (kind == Match.EXACT) {
 			return attempt.equals(ground);
 		}
-		Polynomial lhs = (Polynomial) attempt;
-		Polynomial rhs = (Polynomial) ground;
-		Polynomial difference = lhs.subtract(rhs);
+		Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(attempt);
+		Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(ground);
+		Arithmetic.Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
-			BigInteger diff = difference.toConstant().get();
+			BigInteger diff = difference.toConstant();
 			if (kind == Match.NONNEGATIVE) {
 				return diff.compareTo(BigInteger.ZERO) >= 0;
 			} else {

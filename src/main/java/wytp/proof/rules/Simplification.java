@@ -11,7 +11,6 @@ import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wycc.util.ArrayUtils;
 import wytp.proof.Formula;
 import wytp.proof.Formula.ArithmeticEquality;
@@ -24,8 +23,9 @@ import wytp.proof.Formula.Quantifier;
 import wytp.proof.Formula.Truth;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
-import wytp.proof.util.Polynomials;
+import wytp.proof.util.Arithmetic.Polynomial;
 import wytp.types.TypeSystem;
 
 public class Simplification implements Proof.LinearRule {
@@ -180,20 +180,21 @@ public class Simplification implements Proof.LinearRule {
 	 * @throws NameNotFoundError
 	 */
 	public Formula simplifyInequality(Inequality ieq) throws ResolutionError {
-		Polynomial lhs = ieq.getOperand(0);
-		Polynomial rhs = ieq.getOperand(1);
-		Polynomial nLhs = simplify(lhs);
-		Polynomial nRhs = simplify(rhs);
-		Pair<Polynomial, Polynomial> bs = simplifyBounds(nLhs, nRhs);
+		Expr lhs = ieq.getOperand(0);
+		Expr rhs = ieq.getOperand(1);
+		Expr nLhs = simplifyExpression(lhs);
+		Expr nRhs = simplifyExpression(rhs);
+		Pair<Expr, Expr> bs = simplifyBounds(nLhs, nRhs);
 		nLhs = bs.getFirst();
 		nRhs = bs.getSecond();
 		//
-		if (nLhs.isConstant() && nRhs.isConstant()) {
-			return evaluateInequality(ieq.getOpcode(), nLhs.toConstant(), nRhs.toConstant());
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value.Int lhs_v = (Value.Int) ((Expr.Constant) nLhs).getValue();
+			Value.Int rhs_v = (Value.Int) ((Expr.Constant) nRhs).getValue();
+			return evaluateInequality(ieq.getOpcode(), lhs_v, rhs_v);
 		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(true);
 		} else if(lhs.equals(nLhs) && rhs.equals(nRhs)) {
-			// FIXME: above could be more efficient
 			return ieq;
 		} else {
 			return new Inequality(bs.getFirst(), bs.getSecond());
@@ -223,28 +224,28 @@ public class Simplification implements Proof.LinearRule {
 	 * @throws NameNotFoundError
 	 */
 	public Formula simplifyArithmeticEquality(ArithmeticEquality eq) throws ResolutionError {
-		Expr.Polynomial lhs = eq.getOperand(0);
-		Expr.Polynomial rhs = eq.getOperand(1);
-		Polynomial nLhs = simplify(lhs);
-		Polynomial nRhs = simplify(rhs);
-		Pair<Polynomial, Polynomial> bs = simplifyBounds(nLhs, nRhs);
+		Expr lhs = eq.getOperand(0);
+		Expr rhs = eq.getOperand(1);
+		Expr nLhs = simplifyExpression(lhs);
+		Expr nRhs = simplifyExpression(rhs);
+		Pair<Expr, Expr> bs = simplifyBounds(nLhs, nRhs);
 		nLhs = bs.getFirst();
 		nRhs = bs.getSecond();
-		if (nLhs.isConstant() && nRhs.isConstant()) {
-			Value lhs_v = nLhs.toConstant();
-			Value rhs_v = nRhs.toConstant();
+		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
+			Value lhs_v = ((Expr.Constant) nLhs).getValue();
+			Value rhs_v = ((Expr.Constant) nRhs).getValue();
 			return evaluateEquality(eq.getOpcode(), lhs_v, rhs_v);
 		} else if (nLhs.equals(nRhs)) {
 			return new Formula.Truth(eq.getSign());
 		}
-		Polynomial difference = nLhs.subtract(nRhs);
+		Arithmetic.Polynomial difference = Arithmetic.asPolynomial(nLhs).subtract(Arithmetic.asPolynomial(nRhs));
 		if(difference.isConstant()) {
-			BigInteger constant = difference.toConstant().get();
+			BigInteger constant = difference.toConstant();
 			return new Formula.Truth(constant.equals(BigInteger.ZERO));
 		}
 		// Handle orientation
 		if(nLhs.compareTo(nRhs) > 0) {
-			Polynomial tmp = nLhs;
+			Expr tmp = nLhs;
 			nLhs = nRhs;
 			nRhs = tmp;
 		}
@@ -299,10 +300,7 @@ public class Simplification implements Proof.LinearRule {
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
 			Expr nChild = simplifyExpression(child);
-			// Attempt to simplify parameters which have integer type. This is
-			// necessary because, after substitution, we may end up with a
-			// poltnomial here which should match with a variable access.
-			nChild = collapseVariableAccessPolynomial(nChild);
+			//
 			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
@@ -314,20 +312,6 @@ public class Simplification implements Proof.LinearRule {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
 			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
 		}
-	}
-
-	private static Expr collapseVariableAccessPolynomial(Expr nChild) {
-		if (nChild instanceof Expr.Polynomial) {
-			Expr.Polynomial p = (Expr.Polynomial) nChild;
-			if (p.size() == 1) {
-				Polynomial.Term term = p.getOperand(0);
-				Expr[] atoms = term.getAtoms();
-				if (term.getCoefficient().get().equals(BigInteger.ONE) && atoms.length == 1) {
-					return atoms[0];
-				}
-			}
-		}
-		return nChild;
 	}
 
 	private Formula simplifyIs(Formula.Is e) throws ResolutionError {
@@ -417,10 +401,7 @@ public class Simplification implements Proof.LinearRule {
 
 	private static Expr simplifyConstant(Expr.Constant e) {
 		Value val = e.getValue();
-		if (val instanceof Value.Int) {
-			Value.Int c = (Value.Int) val;
-			return new Polynomial(new Polynomial.Term(c));
-		} else if (val instanceof Value.Bool) {
+		if (val instanceof Value.Bool) {
 			Value.Bool b = (Value.Bool) val;
 			return new Formula.Truth(b.get());
 		} else {
@@ -509,10 +490,7 @@ public class Simplification implements Proof.LinearRule {
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
 			Expr nChild = simplifyExpression(child);
-			// Attempt to simplify parameters which have integer type. This is
-			// necessary because, after substitution, we may end up with a
-			// poltnomial here which should match with a variable access.
-			nChild = collapseVariableAccessPolynomial(nChild);
+			//
 			if (child != nChild && children == nChildren) {
 				nChildren = Arrays.copyOf(children, children.length);
 			}
@@ -530,16 +508,15 @@ public class Simplification implements Proof.LinearRule {
 		Expr source = e.getOperand(0);
 		Expr index = e.getOperand(1);
 		Expr nSource = simplifyExpression(source);
-		Expr.Polynomial nIndex = Formulae.toPolynomial(simplifyExpression(index));
+		Expr nIndex = simplifyExpression(index);
 		//
-		if (nSource instanceof Expr.Operator && nIndex instanceof Expr.Polynomial) {
+		if (nSource instanceof Expr.Operator && nIndex instanceof Expr.Constant) {
 			// We may have a constant index value into a constant array
 			Expr.Operator arr = (Expr.Operator) nSource;
-			Expr.Polynomial idx = (Expr.Polynomial) nIndex;
-			if (arr.getOpcode() == Opcode.EXPR_arrinit && idx.isConstant()) {
+			if (arr.getOpcode() == Opcode.EXPR_arrinit) {
 				// We definitely have a constant index value into a constant
 				// array
-				BigInteger i = ((Value.Int) idx.toConstant()).get();
+				BigInteger i = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
 				if (i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(arr.size())) < 0) {
 					// The constant index is within bounds
 					return arr.getOperand(i.intValue());
@@ -563,12 +540,12 @@ public class Simplification implements Proof.LinearRule {
 		Expr index = e.getOperand(1);
 		Expr value = e.getOperand(2);
 		Expr nSource = simplifyExpression(source);
-		Expr.Polynomial nIndex = Formulae.toPolynomial(simplifyExpression(index));
+		Expr nIndex = simplifyExpression(index);
 		Expr nValue = simplifyExpression(value);
 		//
-		if(nIndex.isConstant() && nSource.getOpcode() == Opcode.EXPR_arrinit) {
+		if(nIndex instanceof Expr.Constant && nSource.getOpcode() == Opcode.EXPR_arrinit) {
 			Expr.Operator src = (Expr.Operator) nSource;
-			BigInteger b = nIndex.toConstant().get();
+			BigInteger b = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
 			if(b.compareTo(BigInteger.ZERO) >= 0 && b.compareTo(BigInteger.valueOf(nSource.size())) < 0) {
 				int idx = b.intValue();
 				Expr[] nChildren = Arrays.copyOf(src.getOperands(),src.size());
@@ -585,14 +562,14 @@ public class Simplification implements Proof.LinearRule {
 
 	private Expr simplifyArrayLength(Expr.Operator e) throws ResolutionError {
 		Expr r = simplifyNonArithmetic(e);
-		if(r instanceof Expr.Operator) {
+		if (r instanceof Expr.Operator) {
 			Expr src = (Expr) r.getOperand(0);
-			if(src.getOpcode() == Opcode.EXPR_arrinit) {
-				return new Polynomial(BigInteger.valueOf(src.size()));
-			} else if(src.getOpcode() == Opcode.EXPR_arrgen) {
+			if (src.getOpcode() == Opcode.EXPR_arrinit) {
+				return new Expr.Constant(new WyalFile.Value.Int(src.size()));
+			} else if (src.getOpcode() == Opcode.EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
-			} else if(src.getOpcode() == Opcode.EXPR_arrupdt) {
-				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen,(Expr) src.getOperand(0)));
+			} else if (src.getOpcode() == Opcode.EXPR_arrupdt) {
+				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen, (Expr) src.getOperand(0)));
 			}
 		}
 		return r;
@@ -615,134 +592,36 @@ public class Simplification implements Proof.LinearRule {
 	}
 
 	private Expr simplifyArithmetic(Expr.Operator e) throws ResolutionError {
-		if (e instanceof Polynomial) {
-			return simplify((Polynomial) e);
-		} else {
-			Expr[] children = e.getOperands();
-			Polynomial result = Formulae.toPolynomial(simplifyExpression(children[0]));
-			switch (e.getOpcode()) {
-			case EXPR_add: {
-				for (int i = 1; i != children.length; ++i) {
-					result = result.add(Formulae.toPolynomial(simplifyExpression(children[i])));
-				}
-				break;
+		Expr[] children = e.getOperands();
+		Polynomial result = Arithmetic.asPolynomial(simplifyExpression(children[0]));
+		switch (e.getOpcode()) {
+		case EXPR_add: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.add(Arithmetic.asPolynomial(simplifyExpression(children[i])));
 			}
-			case EXPR_sub: {
-				for (int i = 1; i != children.length; ++i) {
-					result = result.subtract(Formulae.toPolynomial(simplifyExpression(children[i])));
-				}
-				break;
-			}
-			case EXPR_mul: {
-				for (int i = 1; i != children.length; ++i) {
-					result = result.multiply(Formulae.toPolynomial(simplifyExpression(children[i])));
-				}
-				break;
-			}
-			case EXPR_neg: {
-				result = result.negate();
-				break;
-			}
-			default:
-				throw new IllegalArgumentException("Unknown arithmetic opcode encountered");
-			}
-			return result;
+			break;
 		}
+		case EXPR_sub: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.subtract(Arithmetic.asPolynomial(simplifyExpression(children[i])));
+			}
+			break;
+		}
+		case EXPR_mul: {
+			for (int i = 1; i != children.length; ++i) {
+				result = result.multiply(Arithmetic.asPolynomial(simplifyExpression(children[i])));
+			}
+			break;
+		}
+		case EXPR_neg: {
+			result = result.negate();
+			break;
+		}
+		default:
+			throw new IllegalArgumentException("Unknown arithmetic opcode encountered");
+		}
+		return result.toExpression();
 	}
-
-	/**
-	 * Simplify a polynomial. This ensures that all terms are simplified, and
-	 * that there are no nested polynomials.
-	 *
-	 * @param p
-	 * @return
-	 * @throws AmbiguousNameError
-	 * @throws NameNotFoundError
-	 */
-	private Polynomial simplify(Polynomial p) throws ResolutionError {
-		Polynomial.Term[] children = p.getOperands();
-		Expr[] nChildren = children;
-		for (int i = 0; i != p.size(); ++i) {
-			Polynomial.Term child = children[i];
-			Expr nChild = simplify(child);
-			if (nChild instanceof Polynomial && nChildren instanceof Polynomial.Term[]) {
-				// At this point, we are now committed to constructing a new
-				// polynomial. For now, we continue simplifying the children as
-				// before. However, we downgrade the enclosing array to hold
-				// only expressions in order that it can hold both terms and
-				// polynomials.
-				Expr[] oChildren = nChildren;
-				nChildren = new Expr[nChildren.length];
-				System.arraycopy(oChildren, 0, nChildren, 0, nChildren.length);
-			} else if (child != nChild && children == nChildren) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
-			nChildren[i] = nChild;
-		}
-		//
-		if (children == nChildren) {
-			// In this case, nothing changed anyway.
-			return p;
-		} else if (nChildren instanceof Polynomial.Term[]) {
-			// FIXME: we need to do some other kinds of simplification here. For
-			// example, coalescing terms.
-			return Polynomials.toNormalForm((Polynomial.Term[]) nChildren);
-		} else {
-			Polynomial result = new Polynomial(BigInteger.ZERO);
-			for (int i = 0; i != nChildren.length; ++i) {
-				Expr nChild = nChildren[i];
-				if (nChild instanceof Polynomial) {
-					result = result.add((Polynomial) nChild);
-				} else {
-					result = result.add((Polynomial.Term) nChild);
-				}
-			}
-			return result;
-		}
-	}
-
-	private Expr simplify(Polynomial.Term p) throws ResolutionError {
-		final Expr[] children = p.getAtoms();
-		Expr[] nChildren = children;
-		int numPolynomials = 0;
-
-		for (int i = 0; i != children.length; ++i) {
-			Expr child = children[i];
-			Expr nChild = simplifyExpression(child);
-			if (nChild instanceof Polynomial) {
-				numPolynomials = numPolynomials + 1;
-			}
-			if (child != nChild && children == nChildren) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
-			nChildren[i] = nChild;
-		}
-
-		if (numPolynomials == 0) {
-			// This is the easy case. No nested polynomials were found.
-			if (nChildren == children) {
-				return p;
-			} else {
-				return new Polynomial.Term(p.getCoefficient(), nChildren);
-			}
-		} else {
-			// This is the harder case. At least one nested polynomial was
-			// found. For now, we don't make much effort to be efficient.
-			Polynomial result = new Polynomial(new Polynomial.Term(p.getCoefficient()));
-			for (int i = 0; i != nChildren.length; ++i) {
-				Expr nChild = nChildren[i];
-				if (nChild instanceof Polynomial) {
-					result = result.multiply((Polynomial) nChild);
-				} else {
-					Polynomial.Term term = new Polynomial.Term(nChild);
-					result = result.multiply(term);
-				}
-			}
-
-			return result;
-		}
-	}
-
 
 	// ========================================================================
 	// Equalities / Inequalities
@@ -814,56 +693,27 @@ public class Simplification implements Proof.LinearRule {
 	 * @param rhs
 	 * @return
 	 */
-	private static Pair<Polynomial, Polynomial> simplifyBounds(Polynomial lhs, Polynomial rhs) {
-		Polynomial bound = factorise(lhs.subtract(rhs));
-		Polynomial pos = new Polynomial(BigInteger.ZERO);
-		Polynomial neg = new Polynomial(BigInteger.ZERO);
-		for (int i = 0; i != bound.size(); ++i) {
-			Polynomial.Term t = bound.getOperand(i);
-			BigInteger coeff = t.getCoefficient().get();
-			if (coeff.compareTo(BigInteger.ZERO) >= 0) {
-				pos = pos.add(t);
-			} else {
-				neg = neg.subtract(t);
-			}
-		}
-		return new Pair<>(pos, neg);
+	private static Pair<Expr, Expr> simplifyBounds(Expr lhs, Expr rhs) {
+		Polynomial bound = Arithmetic.asPolynomial(lhs).subtract(Arithmetic.asPolynomial(rhs));
+		//
+		Polynomial pos = filter(bound, true);
+		Polynomial neg = filter(bound, false);
+		return new Pair<>(pos.toExpression(), neg.toExpression());
 	}
 
-	/**
-	 * Factorise a given polynomial. For example, <code>2x+2</code> is
-	 * factorised to be <code>x+1</code>. Observe that this does not preseve the
-	 * result of the polynomial. However, it is safe to do when simplifying
-	 * equations. For example, <code>2x == 2y</code> can be safely factorised to
-	 * <code>x == y</code>.
-	 *
-	 * @param p
-	 * @return
-	 */
-	private static Polynomial factorise(Polynomial p) {
-		BigInteger factor = p.getOperand(0).getCoefficient().get();
-		// In case of just one coefficient which is negative, we need to compute
-		// abs() here.
-		factor = factor.abs();
-		//
-		for (int i = 1; i != p.size(); ++i) {
-			BigInteger c = p.getOperand(i).getCoefficient().get();
-			factor = factor.gcd(c);
-		}
-		if (factor.equals(BigInteger.ZERO) || factor.equals(BigInteger.ONE)) {
-			// No useful factor discovered
-			return p;
-		} else {
-			// Yes, we found a useful factor. Therefore, divide all coefficients
-			// by this.
-			Polynomial r = new Polynomial(BigInteger.ZERO);
-			for (int i = 0; i != p.size(); ++i) {
-				Polynomial.Term t = p.getOperand(i);
-				BigInteger c = t.getCoefficient().get();
-				c = c.divide(factor);
-				r = r.add(new Polynomial.Term(new Value.Int(c), t.getAtoms()));
+	private static Polynomial filter(Polynomial p, boolean sign) {
+		Polynomial result = Polynomial.ZERO;
+		for (int i = 0; i != p.size(); ++i) {
+			Polynomial.Term term = p.getTerm(i);
+			BigInteger coefficient = term.getCoefficient();
+			int c = coefficient.compareTo(BigInteger.ZERO);
+			if (sign && c >= 0) {
+				result = result.add(term);
+			} else if (!sign && c < 0) {
+				result = result.subtract(term);
 			}
-			return r;
 		}
+		return result;
 	}
+
 }

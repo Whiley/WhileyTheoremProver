@@ -25,7 +25,6 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
@@ -35,6 +34,7 @@ import wytp.proof.Proof;
 import wytp.proof.Formula.Disjunct;
 import wytp.proof.Proof.State;
 import wytp.proof.util.AbstractProofRule;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 
@@ -343,10 +343,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) throws ResolutionError {
 		//
 		if (containsTrigger(quantified,variable)) {
-			// FIXME: the following is something of a hack. Since we know we'll
-			// always be substituting into a variable access at the index position,
-			// and this will be a polynomial of some sort.
-			Expr access = Formulae.toPolynomial(new Expr.VariableAccess(variable));
+			Expr access = new Expr.VariableAccess(variable);
 			List<Expr> candidates = determineGroundTerms(ground, new ArrayList<>());
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
@@ -365,18 +362,12 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	}
 
 	private boolean match(Expr attempt, Expr ground, Match kind) {
-		if(!(ground instanceof Polynomial)) {
-			ground = Formulae.toPolynomial(ground);
-		}
-		if(!(attempt instanceof Polynomial)) {
-			attempt = Formulae.toPolynomial(attempt);
-		}
 		//
-		Polynomial lhs = (Polynomial) attempt;
-		Polynomial rhs = (Polynomial) ground;
-		Polynomial difference = lhs.subtract(rhs);
+		Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(attempt);
+		Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(ground);
+		Arithmetic.Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
-			BigInteger diff = difference.toConstant().get();
+			BigInteger diff = difference.toConstant();
 			if(kind == Match.EXACT) {
 				return diff.compareTo(BigInteger.ZERO) == 0;
 			} else if (kind == Match.POSITIVE) {

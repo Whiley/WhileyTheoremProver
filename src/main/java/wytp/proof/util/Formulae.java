@@ -20,7 +20,6 @@ import java.util.BitSet;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
 import wytp.proof.Formula;
@@ -137,10 +136,8 @@ public class Formulae {
 			Type lhs_t = types.inferType(lhs);
 			Type rhs_t = types.inferType(rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
-				Polynomial lhs_p = toPolynomial(lhs);
-				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
-				return new Formula.ArithmeticEquality(true, lhs_p, rhs_p);
+				return new Formula.ArithmeticEquality(true, lhs, rhs);
 			} else {
 				return new Formula.Equality(true, lhs, rhs);
 			}
@@ -152,37 +149,35 @@ public class Formulae {
 			Type lhs_t = types.inferType(lhs);
 			Type rhs_t = types.inferType(rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
-				Polynomial lhs_p = toPolynomial(lhs);
-				Polynomial rhs_p = toPolynomial(rhs);
 				// Force arithmetic equality
-				return new Formula.ArithmeticEquality(false, lhs_p, rhs_p);
+				return new Formula.ArithmeticEquality(false, lhs, rhs);
 			} else {
 				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
 		case EXPR_lt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Polynomial lhs = toPolynomial(operator.getOperand(0));
-			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
 			return lessThan(lhs,rhs);
 		}
 		case EXPR_lteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Polynomial lhs = toPolynomial(operator.getOperand(0));
-			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
 			return greaterOrEqual(rhs,lhs);
 		}
 		case EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Polynomial lhs = toPolynomial(operator.getOperand(0));
-			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
 			// lhs > rhs ==> lhs+1 >= rhs
 			return lessThan(rhs,lhs);
 		}
 		case EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Polynomial lhs = toPolynomial(operator.getOperand(0));
-			Polynomial rhs = toPolynomial(operator.getOperand(1));
+			Expr lhs = operator.getOperand(0);
+			Expr rhs = operator.getOperand(1);
 			return greaterOrEqual(lhs,rhs);
 		}
 		case EXPR_not: {
@@ -240,31 +235,14 @@ public class Formulae {
 		return exprs;
 	}
 
-	/**
-	 * Convert an arithmetic expression into a polynomial. A polynomial is a
-	 * structured form of an arithmetic expression which is useful for reasoning
-	 * about.
-	 *
-	 * @param e
-	 *            The expression to be converted
-	 * @return
-	 */
-	public static Polynomial toPolynomial(Expr e) {
-		if (e instanceof Polynomial) {
-			return (Polynomial) e;
-		} else {
-			Polynomial.Term term = new Polynomial.Term(e);
-			return new Polynomial(term);
-		}
-	}
-
-	public static Formula.Inequality lessThan(Polynomial lhs, Polynomial rhs) {
+	public static Formula.Inequality lessThan(Expr lhs, Expr rhs) {
 		// lhs < rhs ===> rhs >= (lhs+1)
-		Polynomial lhsP1 = lhs.add(new Polynomial(BigInteger.ONE));
+		Expr one = new Expr.Constant(new Value.Int(1));
+		Expr lhsP1 = new Expr.Operator(Opcode.EXPR_add, lhs, one);
 		return new Formula.Inequality(rhs, lhsP1);
 	}
 
-	public static Formula.Inequality greaterOrEqual(Polynomial lhs, Polynomial rhs) {
+	public static Formula.Inequality greaterOrEqual(Expr lhs, Expr rhs) {
 		return new Formula.Inequality(lhs, rhs);
 	}
 
@@ -278,10 +256,6 @@ public class Formulae {
 
 	public static Formula or(Formula lhs, Formula rhs) {
 		return new Formula.Disjunct(lhs,rhs);
-	}
-
-	public static Polynomial toPolynomial(int value) {
-		return new Polynomial(new Polynomial.Term(BigInteger.valueOf(value)));
 	}
 
 	// ========================================================================
@@ -333,8 +307,8 @@ public class Formulae {
 		case EXPR_gteq: {
 			// !(lhs >= rhs) => lhs < rhs
 			Inequality e = (Inequality) f;
-			Polynomial lhs = e.getOperand(0);
-			Polynomial rhs = e.getOperand(1);
+			Expr lhs = e.getOperand(0);
+			Expr rhs = e.getOperand(1);
 			return lessThan(lhs,rhs);
 		}
 		case EXPR_invoke: {
