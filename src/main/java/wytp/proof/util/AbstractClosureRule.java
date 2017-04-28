@@ -62,7 +62,7 @@ public abstract class AbstractClosureRule extends AbstractProofRule {
 	public abstract Proof.State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula truth)
 			throws ResolutionError;
 
-	private Proof.Delta.Set getExistingTruths(Proof.State current) {
+	protected Proof.Delta.Set getExistingTruths(Proof.State current) {
 		Proof.Delta history = current.getDelta(null);
 		Proof.Delta.Set existingTruths = history.getAdditions().remove(history.getRemovals());
 		// We remove any additions from this state here to ensure that the new

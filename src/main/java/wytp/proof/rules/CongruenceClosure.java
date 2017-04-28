@@ -95,7 +95,6 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		//
 		ArrayList<Formula> dependencies = new ArrayList<>();
 		Formula constructed = (Formula) construct(existingTruths, head, newTruth, newTruth, dependencies);
-		//
 		if(constructed != newTruth) {
 			Formula[] deps = dependencies.toArray(new Formula[dependencies.size()]);
 			head = head.subsume(this, newTruth, constructed, deps);
@@ -228,7 +227,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			//
 			Expr candidate = min(lhs,rhs);
 			Expr bound;
-			if(candidate == null) {
+			if(candidate == null || hasRecursiveReference(lhs,rhs)) {
 				return null;
 			} else {
 				bound = max(lhs,rhs);
@@ -380,6 +379,16 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	}
 
 	/**
+	 * Check whether the rhs contains a recursive reference to the lhs.
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	private static boolean hasRecursiveReference(Expr lhs, Expr rhs) {
+		return isParentOf(rhs,lhs);
+	}
+
+	/**
 	 * Check whether a given expression is a parent of a given child. Or, put
 	 * another way, whether the given parent contains the given child.
 	 *
@@ -486,7 +495,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			if (existingTruth instanceof Formula.Equality) {
 				Formula.Equality eq = (Formula.Equality) existingTruth;
 				if (eq.getSign()) {
-					CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
+					CongruenceClosure.Assignment assign = rearrangeToAssignment(eq);
 					// FIXME: this is essentially pretty broken. Need to find a
 					// much better way to handle congruence closure.
 					if (assign != null && assign.getLeftHandSide().equals(term)) {
