@@ -32,7 +32,7 @@ public class FastDelta implements Proof.Delta {
 	}
 
 	public FastDelta(Set additions, Set removals) {
-		if(additions == removals) {
+		if(additions == removals && additions != EMPTY_SET) {
 			throw new IllegalArgumentException("aliasing of additions and removals not allowed!");
 		}
 		this.additions = additions;

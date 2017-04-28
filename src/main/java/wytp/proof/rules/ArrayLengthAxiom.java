@@ -22,6 +22,7 @@ import wyal.lang.WyalFile.Opcode;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 import wyal.lang.WyalFile;
@@ -63,11 +64,10 @@ import wyal.lang.NameResolver.ResolutionError;
  * @param poly
  * @return
  */
-public class ArrayLengthAxiom implements Proof.LinearRule {
-	private final TypeSystem types;
+public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearRule {
 
 	public ArrayLengthAxiom(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override

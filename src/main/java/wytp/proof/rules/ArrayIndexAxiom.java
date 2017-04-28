@@ -27,6 +27,7 @@ import wyal.lang.WyalFile.Tuple;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
@@ -67,7 +68,7 @@ import wyal.lang.WyalFile;
  * </p>
  *
  */
-public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRule {
+public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.LinearRule {
 	public ArrayIndexAxiom(TypeSystem types) {
 		super(types);
 	}
@@ -78,36 +79,29 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) throws ResolutionError {
-		Proof.Delta history = state.getDelta(null);
-		state = attemptInstantiationByArrayAccess(truth,history,state);
-		state = attemptInstantiationByEquation(truth,history,state);
-		return state;
+	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula truth) throws ResolutionError {
+		head = attemptInstantiationByArrayAccess(truth,existingTruths,head);
+		head = attemptInstantiationByEquation(truth,existingTruths,head);
+		return head;
 	}
 
-	public State attemptInstantiationByEquation(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int j = 0; j != additions.size(); ++j) {
-			Formula existing = additions.get(j);
-			if(existing != truth) {
-				List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
-				state = attemptInstantiation(existing,matches,truth,state);
-			}
+	public State attemptInstantiationByEquation(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
+		for (int j = 0; j != existingTruths.size(); ++j) {
+			Formula existing = existingTruths.get(j);
+			List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
+			state = attemptInstantiation(existing,matches,truth,state);
 		}
 		return state;
 	}
 
-	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
+	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
 		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
 		// At this point, we have one or more array access expressions which
 		// potentially could be introduce some useful facts. Therefore, we need to look
 		// back through the history to determine any cases where this can be applied.
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int j = 0; j != additions.size(); ++j) {
-			Formula existing = additions.get(j);
-			if(existing != truth) {
-				state = attemptInstantiation(truth,matches,existing,state);
-			}
+		for (int j = 0; j != existingTruths.size(); ++j) {
+			Formula existingTruth = existingTruths.get(j);
+			state = attemptInstantiation(truth,matches,existingTruth,state);
 		}
 		return state;
 	}

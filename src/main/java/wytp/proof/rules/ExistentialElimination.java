@@ -22,6 +22,7 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Conjunct;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 
@@ -43,11 +44,10 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class ExistentialElimination implements Proof.LinearRule {
-	private final TypeSystem types;
+public class ExistentialElimination extends AbstractProofRule implements Proof.LinearRule {
 
 	public ExistentialElimination(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class ExistentialElimination implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) throws ResolutionError {
+	public State apply(Proof.State head, Formula truth) throws ResolutionError {
 		if(truth instanceof Formula.Quantifier) {
 			Formula.Quantifier qf = (Formula.Quantifier) truth;
 			if(!qf.getSign()) {
@@ -67,11 +67,11 @@ public class ExistentialElimination implements Proof.LinearRule {
 				if (invariant != null) {
 					body = new Conjunct(invariant, body);
 				}
-				state = state.subsume(this, qf, body);
+				head = head.subsume(this, qf, body);
 			}
 		}
 		// No change in the normal case
-		return state;
+		return head;
 	}
 
 	/**

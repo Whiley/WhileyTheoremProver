@@ -20,6 +20,7 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Value;
 import wycc.util.ArrayUtils;
+import wytp.proof.util.Arithmetic.Polynomial;
 
 
 public class Arithmetic {
@@ -76,7 +77,7 @@ public class Arithmetic {
 
 		public static final Polynomial ZERO = new Polynomial(new Term(BigInteger.ZERO));
 
-		private Term[] terms;
+		private final Term[] terms;
 
 		Polynomial(Term...terms) {
 			this.terms = terms;
@@ -129,6 +130,7 @@ public class Arithmetic {
 			combined[terms.length] = p;
 			return construct(combined);
 		}
+
 		public Polynomial subtract(Polynomial p) {
 			return add(p.negate());
 		}
@@ -173,10 +175,59 @@ public class Arithmetic {
 
 			for (int i = 0; i != lhs_size; ++i) {
 				Polynomial.Term lhsTerm = terms[i];
-				terms[i] = Arithmetic.multiply(lhsTerm, rhs);
+				combined[i] = Arithmetic.multiply(lhsTerm, rhs);
 			}
 
 			return construct(combined);
+		}
+
+		public Polynomial multiply(BigInteger rhs) {
+			int lhs_size = terms.length;
+			Polynomial.Term[] combined = new Polynomial.Term[lhs_size];
+
+			for (int i = 0; i != lhs_size; ++i) {
+				combined[i] = terms[i].multiply(rhs);
+			}
+
+			return construct(combined);
+		}
+
+
+		/**
+		 * Factorise a given polynomial. For example, <code>2x+2</code> is
+		 * factorised to be <code>x+1</code>. Observe that this does not preseve the
+		 * result of the polynomial. However, it is safe to do when simplifying
+		 * equations. For example, <code>2x == 2y</code> can be safely factorised to
+		 * <code>x == y</code>.
+		 *
+		 * @param p
+		 * @return
+		 */
+		public Polynomial factorise() {
+			BigInteger factor = terms[0].getCoefficient();
+			// In case of just one coefficient which is negative, we need to compute
+			// abs() here.
+			factor = factor.abs();
+			//
+			for (int i = 1; i != terms.length; ++i) {
+				BigInteger c = terms[i].getCoefficient();
+				factor = factor.gcd(c);
+			}
+			if (factor.equals(BigInteger.ZERO) || factor.equals(BigInteger.ONE)) {
+				// No useful factor discovered
+				return this;
+			} else {
+				// Yes, we found a useful factor. Therefore, divide all coefficients
+				// by this.
+				Polynomial r = Polynomial.ZERO;
+				for (int i = 0; i != terms.length; ++i) {
+					Polynomial.Term t = terms[i];
+					BigInteger c = t.getCoefficient();
+					c = c.divide(factor);
+					r = r.add(new Polynomial.Term(c, t.getAtoms()));
+				}
+				return r;
+			}
 		}
 
 		@Override
@@ -292,11 +343,26 @@ public class Arithmetic {
 				return new Term(coefficient.negate(),atoms);
 			}
 
+			public Term multiply(BigInteger rhs) {
+				if (coefficient.equals(BigInteger.ZERO)) {
+					return this;
+				} else if (rhs.equals(BigInteger.ZERO)) {
+					return new Polynomial.Term(rhs);
+				} else {
+					BigInteger coefficient = this.coefficient.multiply(rhs);
+					return new Polynomial.Term(coefficient, atoms);
+				}
+			}
+
 			public Expr toExpression() {
 				if (atoms.length == 0) {
 					return new Expr.Constant(new Value.Int(coefficient));
 				} else if (coefficient.equals(BigInteger.ONE)) {
-					return new Expr.Operator(WyalFile.Opcode.EXPR_mul, atoms);
+					if(atoms.length == 1) {
+						return atoms[0];
+					} else {
+						return new Expr.Operator(WyalFile.Opcode.EXPR_mul, atoms);
+					}
 				} else {
 					Expr[] es = new Expr[atoms.length + 1];
 					es[0] = new Expr.Constant(new Value.Int(coefficient));
@@ -424,40 +490,5 @@ public class Arithmetic {
 		} else {
 			return new Polynomial.Term(r, lhs.getAtoms());
 		}
-	}
-
-	/**
-	 * Factorise a given polynomial. For example, <code>2x+2</code> is
-	 * factorised to be <code>x+1</code>. Observe that this does not preseve the
-	 * result of the polynomial. However, it is safe to do when simplifying
-	 * equations. For example, <code>2x == 2y</code> can be safely factorised to
-	 * <code>x == y</code>.
-	 *
-	 * @param p
-	 * @return
-	 */
-	private static Polynomial.Term[] factor(Polynomial.Term[] terms) {
-		if (terms.length > 1) {
-			BigInteger factor = terms[0].getCoefficient();
-			// In case of just one coefficient which is negative, we need to
-			// compute abs() here.
-			factor = factor.abs();
-			//
-			for (int i = 1; i != terms.length; ++i) {
-				BigInteger c = terms[i].getCoefficient();
-				factor = factor.gcd(c);
-			}
-			if (!factor.equals(BigInteger.ZERO) && !factor.equals(BigInteger.ONE)) {
-				// Yes, we found a useful factor. Therefore, divide all
-				// coefficients by this.
-				for (int i = 0; i != terms.length; ++i) {
-					Polynomial.Term t = terms[i];
-					BigInteger c = t.getCoefficient();
-					c = c.divide(factor);
-					terms[i] = new Polynomial.Term(c, t.getAtoms());
-				}
-			}
-		}
-		return terms;
 	}
 }

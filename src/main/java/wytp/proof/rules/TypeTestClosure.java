@@ -24,6 +24,7 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
@@ -98,7 +99,7 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRule {
+public class TypeTestClosure extends AbstractClosureRule implements Proof.LinearRule {
 
 	public TypeTestClosure(TypeSystem types) {
 		super(types);
@@ -110,10 +111,10 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	@Override
-	public State apply(State state, Formula newTruth) throws ResolutionError {
+	public State apply(Proof.Delta.Set existingTruths, State state, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			state = apply(test, state);
+			state = apply(existingTruths, test, state);
 		}
 		return state;
 	}
@@ -127,7 +128,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	 * @param dependencies
 	 * @return
 	 */
-	private State apply(Formula.Is typeTest, Proof.State state) throws ResolutionError {
+	private State apply(Proof.Delta.Set existingTruths, Formula.Is typeTest, Proof.State state) throws ResolutionError {
 		Expr lhs = typeTest.getExpr();
 		Type lhsT = types.inferType(lhs);
 		Type rhsT = typeTest.getTypeTest();
@@ -135,7 +136,7 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 			// FIXME: at the moment, TypeSystem.intersect is not working
 			// properly. It's possible that using new Type.Intersection could
 			// potentially lead to unbounded growth of the overall type.
-			Type intersection = new Type.Intersection(lhsT,rhsT);
+			Type intersection = new Type.Intersection(lhsT, rhsT);
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in
@@ -155,14 +156,14 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 				// use that variable. This may allow some of those truths to now
 				// type themselves correctly.
 				if (lhs instanceof Expr.VariableAccess) {
-					state = retypeVariable(typeTest,intersection,state);
+					state = retypeVariable(typeTest, intersection, state);
 				} else {
 					// FIXME: in the case of a field access, we can actually do
 					// better here. For example, "x.f is int" can be reduced to
 					// "x is {int f,...}".
-					List<Formula.Is> matches = findMatches(typeTest,state);
-					if(matches.size() > 1) {
-						state = closeOver(matches,state);
+					List<Formula.Is> matches = findMatches(existingTruths, typeTest, state);
+					if (matches.size() > 1) {
+						state = closeOver(matches, state);
 					}
 				}
 			}
@@ -174,15 +175,18 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		Expr.VariableAccess oldVar = (Expr.VariableAccess) typeTest.getOperand(0);
 		VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
 		String tmp = oldDeclaration.getVariableName().get() + "'";
-		VariableDeclaration newDeclaration = new VariableDeclaration(intersection,
-				new WyalFile.Identifier(tmp));
+		VariableDeclaration newDeclaration = new VariableDeclaration(intersection, new WyalFile.Identifier(tmp));
 		Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
 		//
+		// FIXME: it's unclear to me whether we can just use the "existing"
+		// truths at this stage, though I don't believe that is the case. This
+		// is because we need to look into the future for anything which may
+		// involve a variable of the given type.
 		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
+		Proof.Delta.Set allKnownTruths = history.getAdditions().remove(history.getRemovals());
 		//
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula existing = additions.get(i);
+		for (int i = 0; i != allKnownTruths.size(); ++i) {
+			Formula existing = allKnownTruths.get(i);
 			Formula updated = (Formula) substitute(oldVar, newVar, existing);
 			if (existing != typeTest && updated != existing) {
 				state = state.subsume(this, existing, updated, typeTest);
@@ -202,14 +206,12 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	 * @param state
 	 * @return
 	 */
-	private List<Formula.Is> findMatches(Formula.Is lhs, Proof.State state) {
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
+	private List<Formula.Is> findMatches(Proof.Delta.Set existingTruths, Formula.Is lhs, Proof.State state) {
 		//
 		List<Formula.Is> matches = new ArrayList<>();
 		//
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula existing = additions.get(i);
+		for (int i = 0; i != existingTruths.size(); ++i) {
+			Formula existing = existingTruths.get(i);
 			if (existing instanceof Formula.Is) {
 				Formula.Is rhs = (Formula.Is) existing;
 				if (lhs.getExpr().equals(rhs.getExpr())) {
@@ -233,8 +235,9 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		Type type = new Type.Intersection(bounds);
 		Formula test = new Formula.Is(first.getExpr(), type);
 		//
-		Formula[] froms = matches.toArray(new Formula[matches.size()]);
-		state = state.subsume(this, froms, new Formula[] { test });
+		for(int i=0;i!=matches.size();++i) {
+			state = state.subsume(this, matches.get(i), test);
+		}
 		//
 		return state;
 	}

@@ -45,7 +45,12 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		List<Expr.Invoke> matches = extractDefinedTerms(truth,Opcode.EXPR_invoke);
 		if (matches.size() > 0) {
 			for (int i = 0; i != matches.size(); ++i) {
-				state = applySpecificationInstantiation(state, truth, matches.get(i));
+				Expr.Invoke ivk = (Expr.Invoke) matches.get(i);
+				// Determine the type declaration in question
+				Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
+				if(af instanceof Type.Function) {
+					state = applySpecificationInstantiation(state, truth, matches.get(i));
+				}
 			}
 		}
 		return state;
@@ -60,8 +65,6 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 	 * @return
 	 */
 	private State applySpecificationInstantiation(Proof.State state, Formula truth, Expr.Invoke ivk) throws ResolutionError {
-		// Determine the type declaration in question
-		Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 		// FIXME: this resolution should have already been performed
 		// elsewhere
 		Declaration.Named.Function decl = resolve(ivk);

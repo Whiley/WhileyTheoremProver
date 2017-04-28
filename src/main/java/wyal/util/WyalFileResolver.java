@@ -19,6 +19,7 @@ import java.util.List;
 import wyal.lang.NameResolver;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
+import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Identifier;

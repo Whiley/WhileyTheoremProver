@@ -13,7 +13,9 @@
 // limitations under the License.
 package wytp.proof.rules;
 
+import java.util.List;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import wyal.lang.SyntacticItem;
@@ -25,6 +27,7 @@ import wyal.lang.WyalFile.Type;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Arithmetic.Polynomial;
@@ -76,7 +79,7 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class CongruenceClosure extends AbstractProofRule implements Proof.LinearRule {
+public class CongruenceClosure extends AbstractClosureRule implements Proof.LinearRule {
 
 	public CongruenceClosure(TypeSystem types) {
 		super(types);
@@ -88,30 +91,32 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
+	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula newTruth) throws ResolutionError {
 		//
-		Formula constructed = (Formula) construct(state, newTruth, newTruth);
-
+		ArrayList<Formula> dependencies = new ArrayList<>();
+		Formula constructed = (Formula) construct(existingTruths, head, newTruth, newTruth, dependencies);
+		//
 		if(constructed != newTruth) {
-			state = state.subsume(this, newTruth, constructed);
+			Formula[] deps = dependencies.toArray(new Formula[dependencies.size()]);
+			head = head.subsume(this, newTruth, constructed, deps);
 		} else if (newTruth instanceof Formula.Equality && ((Formula.Equality) newTruth).getSign()) {
-			state = substituteAgainstEquality(state, (Formula.Equality) newTruth);
+			head = substituteAgainstEquality(existingTruths, head, (Formula.Equality) newTruth);
 		}
 		//
-		return state;
+		return head;
 	}
 
-	private Proof.State substituteAgainstEquality(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
+	private Proof.State substituteAgainstEquality(Proof.Delta.Set existingTruths, Proof.State head, Formula.Equality newTruth) throws ResolutionError {
 		//
 		if (newTruth.getSign()) {
-			state = applyEqualityTypeAxiom(state, newTruth);
+			head = applyEqualityTypeAxiom(head, newTruth);
 			//
 			Assignment assignment = rearrangeToAssignment(newTruth);
 			if (assignment != null) {
-				return applyAssignment(assignment,state);
+				return applyAssignment(assignment,existingTruths,head);
 			}
 		}
-		return state;
+		return head;
 	}
 
 	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
@@ -156,29 +161,27 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 		}
 	}
 
-	private State applyAssignment(Assignment assignment, Proof.State state) throws ResolutionError {
+	private State applyAssignment(Assignment assignment, Proof.Delta.Set existingTruths, Proof.State head) throws ResolutionError {
 		Formula newTruth = assignment.getDependency();
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
 		//
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula existingTruth = additions.get(i);
-			if(existingTruth != newTruth) {
-				Formula updatedTruth = (Formula) substitute(assignment.getLeftHandSide(), assignment.getRightHandSide(),
-						existingTruth);
-				if (existingTruth != updatedTruth) {
-					// The following is needed because substitution can
-					// produce a different looking term which, after
-					// simplification, is the same. To avoid this, we
-					// need to avoid "recursive substitutions" somehow.
-					if (!existingTruth.equals(updatedTruth)) {
-						state = state.subsume(this, existingTruth, updatedTruth, newTruth);
-					}
+		for (int i = 0; i != existingTruths.size(); ++i) {
+			Formula existingTruth = existingTruths.get(i);
+			//
+			Formula updatedTruth = (Formula) substitute(assignment.getLeftHandSide(), assignment.getRightHandSide(),
+					existingTruth);
+			//
+			if (existingTruth != updatedTruth) {
+				// The following is needed because substitution can
+				// produce a different looking term which, after
+				// simplification, is the same. To avoid this, we
+				// need to avoid "recursive substitutions" somehow.
+				if (!existingTruth.equals(updatedTruth)) {
+					head = head.subsume(this, existingTruth, updatedTruth, newTruth);
 				}
 			}
 		}
 		//
-		return state;
+		return head;
 	}
 
 	/**
@@ -431,7 +434,7 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 	 * @param newTerm
 	 * @return
 	 */
-	public SyntacticItem construct(Proof.State state, SyntacticItem term, Formula truth) {
+	public SyntacticItem construct(Proof.Delta.Set existingTruths, Proof.State head, SyntacticItem term, Formula newTruth, List<Formula> dependencies) {
 		SyntacticItem[] children = term.getOperands();
 		SyntacticItem[] nChildren = children;
 		if(children != null) {
@@ -439,9 +442,9 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 				SyntacticItem child = children[i];
 				SyntacticItem nChild;
 				if (child instanceof Expr) {
-					nChild = construct(state, (Expr) child, truth);
+					nChild = construct(existingTruths, head, (Expr) child, newTruth, dependencies);
 				} else if (child instanceof Tuple) {
-					nChild = construct(state, (Tuple) child, truth);
+					nChild = construct(existingTruths, head, (Tuple) child, newTruth, dependencies);
 				} else {
 					nChild = child;
 				}
@@ -459,31 +462,30 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 			term = (SyntacticItem) term.clone(nChildren);
 		}
 		if(term instanceof Expr) {
-			return localConstruct(state,(Expr) term, truth);
+			return localConstruct(existingTruths, head,(Expr) term, newTruth, dependencies);
 		} else {
 			return term;
 		}
 	}
 
-	public Expr localConstruct(Proof.State state, Expr term, Formula truth) {
-		Assignment assignment = lookupAssignment(state,term,truth);
+	public Expr localConstruct(Proof.Delta.Set existingTruths, Proof.State head, Expr term, Formula newTruth, List<Formula> dependencies) {
+		Assignment assignment = lookupAssignment(existingTruths, head, term, newTruth);
 		if (assignment != null) {
+			dependencies.add(assignment.dependency);
 			return assignment.getRightHandSide();
 		} else {
 			return term;
 		}
 	}
 
-
-	private Assignment lookupAssignment(Proof.State state, Expr term, Formula truth) {
-		Proof.State parent = state.getParent();
-		Proof.Delta.Set additions = state.getDelta().getAdditions();
+	private Assignment lookupAssignment(Proof.Delta.Set existingTruths, Proof.State head, Expr term, Formula newTruth) {
 		//
-		for (int i = additions.size()-1; i >= 0; --i) {
-			Formula f = additions.get(i);
-			if (f instanceof Formula.Equality && f != truth) {
-				Formula.Equality eq = (Formula.Equality) f;
-				if(eq.getSign()) {
+		for (int i = existingTruths.size() - 1; i >= 0; --i) {
+			Formula existingTruth = existingTruths.get(i);
+			//
+			if (existingTruth instanceof Formula.Equality) {
+				Formula.Equality eq = (Formula.Equality) existingTruth;
+				if (eq.getSign()) {
 					CongruenceClosure.Assignment assign = CongruenceClosure.rearrangeToAssignment(eq);
 					// FIXME: this is essentially pretty broken. Need to find a
 					// much better way to handle congruence closure.
@@ -493,11 +495,6 @@ public class CongruenceClosure extends AbstractProofRule implements Proof.Linear
 				}
 			}
 		}
-		if (parent == null) {
-			return null;
-		} else {
-			return lookupAssignment(parent,term,truth);
-		}
+		return null;
 	}
-
 }

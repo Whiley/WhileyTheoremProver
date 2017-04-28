@@ -33,12 +33,13 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Disjunct;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 
-public class ExhaustiveQuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
+public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule implements Proof.LinearRule {
 
 	public ExhaustiveQuantifierInstantiation(TypeSystem types) {
 		super(types);
@@ -50,13 +51,13 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
+	public State apply(Proof.Delta.Set existingTruths, Proof.State state, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Equation) {
 			Formula.Equation ground = (Formula.Equation) newTruth;
-			return instantiateQuantifiers(ground, state);
+			return instantiateQuantifiers(existingTruths, ground, state);
 		} else if (newTruth instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) newTruth;
-			return instantiateQuantifiers(quantifier, state);
+			return instantiateQuantifiers(existingTruths, quantifier, state);
 		}
 		// No change in the normal case
 		return state;
@@ -70,18 +71,16 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) throws ResolutionError {
+	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.Quantifier quantifier, State state) throws ResolutionError {
 		if (quantifier.getSign()) {
 			// At this point, we have a quantifier which has not been seen
 			// before (for example, it was hiding inside a macro invocation
 			// somewhere). Therefore, we need to search the history looking for
 			// suitable opportunities to instantiate it.
-			Proof.Delta history = state.getDelta(null);
-			Proof.Delta.Set additions = history.getAdditions();
-			for (int i = 0; i != additions.size(); ++i) {
-				Formula truth = additions.get(i);
-				if (truth instanceof Formula.ArithmeticEquation) {
-					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) truth;
+			for (int i = 0; i != existingTruths.size(); ++i) {
+				Formula existingTruth = existingTruths.get(i);
+				if (existingTruth instanceof Formula.ArithmeticEquation) {
+					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) existingTruth;
 					// Yes, this is a universal quantifier
 					state = applyQuantifierInstantiation(quantifier, ground, state);
 				} else {
@@ -102,17 +101,15 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Equation groundTerm, State state) throws ResolutionError {
+	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.Equation groundTerm, State state) throws ResolutionError {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
 		// determine any cases where this can be applied.
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula truth = additions.get(i);
-			if (truth instanceof Formula.Quantifier) {
-				Formula.Quantifier qf = (Formula.Quantifier) truth;
+		for (int i = 0; i != existingTruths.size(); ++i) {
+			Formula existingTruth = existingTruths.get(i);
+			if (existingTruth instanceof Formula.Quantifier) {
+				Formula.Quantifier qf = (Formula.Quantifier) existingTruth;
 				if (qf.getSign()) {
 					// Yes, this is a universal quantifier
 					state = applyQuantifierInstantiation(qf, groundTerm, state);

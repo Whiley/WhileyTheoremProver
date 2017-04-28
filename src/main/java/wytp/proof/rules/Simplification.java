@@ -23,16 +23,16 @@ import wytp.proof.Formula.Quantifier;
 import wytp.proof.Formula.Truth;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.proof.util.Arithmetic.Polynomial;
 import wytp.types.TypeSystem;
 
-public class Simplification implements Proof.LinearRule {
-	private final TypeSystem types;
+public class Simplification extends AbstractProofRule implements Proof.LinearRule {
 
 	public Simplification(TypeSystem types) {
-		this.types = types;
+		super(types);
 	}
 
 	@Override
@@ -42,12 +42,14 @@ public class Simplification implements Proof.LinearRule {
 
 
 	@Override
-	public State apply(State state, Formula truth) throws ResolutionError {
-		Formula updated = simplify(truth);
-		if(updated != truth) {
-			state = state.subsume(this, truth, updated);
+	public State apply(State head, Formula truth) throws ResolutionError {
+		Formula simplifiedTruth = simplify(truth);
+		if(!simplifiedTruth.equals(truth)) {
+			// FIXME: useful optimisation would be to support pointer equality
+			// for the above test.
+			head = head.subsume(this, truth, simplifiedTruth);
 		}
-		return state;
+		return head;
 	}
 
 	/**
@@ -184,7 +186,7 @@ public class Simplification implements Proof.LinearRule {
 		Expr rhs = ieq.getOperand(1);
 		Expr nLhs = simplifyExpression(lhs);
 		Expr nRhs = simplifyExpression(rhs);
-		Pair<Expr, Expr> bs = simplifyBounds(nLhs, nRhs);
+		Pair<Expr, Expr> bs = normaliseBounds(nLhs, nRhs);
 		nLhs = bs.getFirst();
 		nRhs = bs.getSecond();
 		//
@@ -228,7 +230,7 @@ public class Simplification implements Proof.LinearRule {
 		Expr rhs = eq.getOperand(1);
 		Expr nLhs = simplifyExpression(lhs);
 		Expr nRhs = simplifyExpression(rhs);
-		Pair<Expr, Expr> bs = simplifyBounds(nLhs, nRhs);
+		Pair<Expr, Expr> bs = normaliseBounds(nLhs, nRhs);
 		nLhs = bs.getFirst();
 		nRhs = bs.getSecond();
 		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
@@ -293,6 +295,7 @@ public class Simplification implements Proof.LinearRule {
 			return new Equality(eq.getSign(),nLhs,nRhs);
 		}
 	}
+
 	public Formula simplifyInvoke(Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] children  = args.getOperands();
@@ -693,8 +696,10 @@ public class Simplification implements Proof.LinearRule {
 	 * @param rhs
 	 * @return
 	 */
-	private static Pair<Expr, Expr> simplifyBounds(Expr lhs, Expr rhs) {
-		Polynomial bound = Arithmetic.asPolynomial(lhs).subtract(Arithmetic.asPolynomial(rhs));
+	private static Pair<Expr, Expr> normaliseBounds(Expr lhs, Expr rhs) {
+		Polynomial left = Arithmetic.asPolynomial(lhs);
+		Polynomial right = Arithmetic.asPolynomial(rhs);
+		Polynomial bound = left.subtract(right).factorise();
 		//
 		Polynomial pos = filter(bound, true);
 		Polynomial neg = filter(bound, false);
@@ -715,5 +720,4 @@ public class Simplification implements Proof.LinearRule {
 		}
 		return result;
 	}
-
 }

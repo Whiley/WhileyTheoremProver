@@ -162,17 +162,6 @@ public interface Proof {
 		State subsume(Proof.Rule rule, Formula truth, Formula replacement, Formula... dependencies);
 
 		/**
-		 * Subsume a given truth by one (or more) replacements.
-		 *
-		 * @param rule
-		 * @param truth
-		 * @param replacement
-		 * @param dependencies
-		 * @return
-		 */
-		State subsume(Proof.Rule rule, Formula[] truth, Formula[] replacements, Formula... dependencies);
-
-		/**
 		 * Infer a new fact from one or more existing facts.
 		 *
 		 * @param rule
@@ -333,31 +322,36 @@ public interface Proof {
 		 * updated state. If the rule does not apply or produces no additional
 		 * information, then the original state is returned untouched.
 		 *
-		 * @param state
+		 * @param current
 		 *            The current state of truth. That is, everything which is
 		 *            known to be true at this point.
-		 * @param truth
-		 *            The given truth to which this rule should be applied.
+		 * @param head
+		 *            The current tip of the proof branch. This maybe some
+		 *            distance in the future from the current state, and
+		 *            identifies truths which have yet to be processed.
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State apply(State state, Formula truth) throws ResolutionError;
+		State apply(State current, State head) throws ResolutionError;
 	}
 
 	interface NonLinearRule extends Rule {
 		/**
 		 * Apply a given rule to a given state, producing one (or more)
 		 * potentially updated states. If the rule does not apply or produces no
-		 * additional information, then the original state is returned untouched.
+		 * additional information, then the original state is returned
+		 * untouched.
 		 *
-		 * @param state
+		 * @param current
 		 *            The current state of truth. That is, everything which is
 		 *            known to be true at this point.
-		 * @param truth
-		 *            The given truth to which this rule should be applied.
+		 * @param head
+		 *            The current tip of the proof branch. This maybe some
+		 *            distance in the future from the current state, and
+		 *            identifies truths which have yet to be processed.
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State[] apply(State state, Formula truth) throws ResolutionError;
+		State[] apply(State current, State head) throws ResolutionError;
 	}
 }

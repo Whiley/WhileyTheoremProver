@@ -21,6 +21,7 @@ import java.util.List;
 import wyal.lang.NameResolver;
 import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.VariableDeclaration;
@@ -36,6 +37,23 @@ public abstract class AbstractProofRule implements Proof.Rule {
 	public AbstractProofRule(TypeSystem types) {
 		this.types = types;
 	}
+
+	public Proof.State apply(Proof.State current, Proof.State head) throws ResolutionError {
+		Proof.Delta.Set additions = current.getDelta().getAdditions();
+		if(additions.size() > 1) {
+			throw new IllegalArgumentException("should be impossible to get here");
+		} else if(additions.size() != 0) {
+			Proof.Delta delta = head.getDelta(current);
+			Formula truth = additions.get(0);
+			if(!delta.isRemoval(truth)) {
+				// Truth not yet subsumed by existing rule
+				return apply(head, truth);
+			}
+		}
+		return head;
+	}
+
+	public abstract Proof.State apply(Proof.State head, Formula truth) throws ResolutionError;
 
 	protected static <T extends SyntacticItem> List<T> findAllInstances(SyntacticItem e, Class<T> kind) {
 		List<T> result = Collections.EMPTY_LIST;
