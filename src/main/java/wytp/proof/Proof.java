@@ -23,6 +23,7 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wytp.proof.Formula.Disjunct;
+import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
 public interface Proof {
@@ -119,6 +120,16 @@ public interface Proof {
 		Rule getRule();
 
 		/**
+		 * Get the typing environment at this state in a given proof. The type
+		 * environment gives the current type for all declared variables. The
+		 * environment is not static as the type of a given variable can be
+		 * refined at any given state as more facts become known.
+		 *
+		 * @return
+		 */
+		TypeInferer.Environment getTypeEnvironment();
+
+		/**
 		 * Get the formulae on which this step depends
 		 *
 		 * @return
@@ -162,17 +173,6 @@ public interface Proof {
 		State subsume(Proof.Rule rule, Formula truth, Formula replacement, Formula... dependencies);
 
 		/**
-		 * Subsume a given truth by one (or more) replacements.
-		 *
-		 * @param rule
-		 * @param truth
-		 * @param replacement
-		 * @param dependencies
-		 * @return
-		 */
-		State subsume(Proof.Rule rule, Formula[] truth, Formula[] replacements, Formula... dependencies);
-
-		/**
 		 * Infer a new fact from one or more existing facts.
 		 *
 		 * @param rule
@@ -181,6 +181,24 @@ public interface Proof {
 		 * @return
 		 */
 		State infer(Proof.Rule rule, Formula truth, Formula... dependencies);
+
+		/**
+		 * Refine the type of a given variable in this state. That is, make the
+		 * type more precise at this point.
+		 *
+		 * @param rule
+		 *            The rule which is causing this particular refinement.
+		 * @param variable
+		 *            The variable whose type is being refined.
+		 * @param type
+		 *            The type which this variable is refined with.
+		 * @param dependencies
+		 *            The immediate dependencies needed to establish this
+		 *            refinement.
+		 *
+		 * @return
+		 */
+		State refine(Proof.Rule rule, WyalFile.VariableDeclaration variable, WyalFile.Type type, Formula... dependencies);
 	}
 
 	/**
@@ -333,31 +351,36 @@ public interface Proof {
 		 * updated state. If the rule does not apply or produces no additional
 		 * information, then the original state is returned untouched.
 		 *
-		 * @param state
+		 * @param current
 		 *            The current state of truth. That is, everything which is
 		 *            known to be true at this point.
-		 * @param truth
-		 *            The given truth to which this rule should be applied.
+		 * @param head
+		 *            The current tip of the proof branch. This maybe some
+		 *            distance in the future from the current state, and
+		 *            identifies truths which have yet to be processed.
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State apply(State state, Formula truth) throws ResolutionError;
+		State apply(State current, State head) throws ResolutionError;
 	}
 
 	interface NonLinearRule extends Rule {
 		/**
 		 * Apply a given rule to a given state, producing one (or more)
 		 * potentially updated states. If the rule does not apply or produces no
-		 * additional information, then the original state is returned untouched.
+		 * additional information, then the original state is returned
+		 * untouched.
 		 *
-		 * @param state
+		 * @param current
 		 *            The current state of truth. That is, everything which is
 		 *            known to be true at this point.
-		 * @param truth
-		 *            The given truth to which this rule should be applied.
+		 * @param head
+		 *            The current tip of the proof branch. This maybe some
+		 *            distance in the future from the current state, and
+		 *            identifies truths which have yet to be processed.
 		 * @return One or more states representing the remaining states to be
 		 *         discharged
 		 */
-		State[] apply(State state, Formula truth) throws ResolutionError;
+		State[] apply(State current, State head) throws ResolutionError;
 	}
 }

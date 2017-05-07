@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package wyal.util;
+package wytp.types.util;
 
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
@@ -25,33 +25,33 @@ import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
 /**
- * A simple type inferer for expressions found in WyalFiles.
+ * A simple type inference for expressions found in WyalFiles.
  *
  * @author David J. Pearce
  *
  */
-public class WyalTypeInferer implements TypeInferer {
+public class NullTypeInfererence implements TypeInferer {
 	private final TypeSystem types;
 
-	public WyalTypeInferer(TypeSystem types) {
+	public NullTypeInfererence(TypeSystem types) {
 		this.types = types;
 	}
 
 	@Override
 	public Type getInferredType(Environment environment, Expr expression) throws ResolutionError {
-		return inferExpression(expression);
+		return inferExpression(environment, expression);
 	}
 
-	protected Type inferExpression(Expr expr) throws ResolutionError {
+	protected Type inferExpression(Environment environment, Expr expr) throws ResolutionError {
 		switch (expr.getOpcode()) {
 		case EXPR_const:
-			return inferConstant((Expr.Constant) expr);
+			return inferConstant(environment, (Expr.Constant) expr);
 		case EXPR_cast:
-			return inferCast((Expr.Cast) expr);
+			return inferCast(environment, (Expr.Cast) expr);
 		case EXPR_invoke:
-			return inferInvoke((Expr.Invoke) expr);
+			return inferInvoke(environment, (Expr.Invoke) expr);
 		case EXPR_var:
-			return inferVariableAccess((Expr.VariableAccess) expr);
+			return inferVariableAccess(environment, (Expr.VariableAccess) expr);
 		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
@@ -63,63 +63,63 @@ public class WyalTypeInferer implements TypeInferer {
 		case EXPR_lteq:
 		case EXPR_gt:
 		case EXPR_gteq:
-			return inferLogicalOperator((Expr.Operator) expr);
+			return inferLogicalOperator(environment, (Expr.Operator) expr);
 		case EXPR_forall:
 		case EXPR_exists:
-			return inferQuantifier((Expr.Quantifier) expr);
+			return inferQuantifier(environment, (Expr.Quantifier) expr);
 		case EXPR_neg:
 		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
 		case EXPR_rem:
-			return inferArithmeticOperator((Expr.Operator) expr);
+			return inferArithmeticOperator(environment, (Expr.Operator) expr);
 		case EXPR_arrlen:
-			return inferArrayLength((Expr.Operator) expr);
+			return inferArrayLength(environment, (Expr.Operator) expr);
 		case EXPR_arrinit:
-			return inferArrayInitialiser((Expr.Operator) expr);
+			return inferArrayInitialiser(environment, (Expr.Operator) expr);
 		case EXPR_arrgen:
-			return inferArrayGenerator((Expr.Operator) expr);
+			return inferArrayGenerator(environment, (Expr.Operator) expr);
 		case EXPR_arridx:
-			return inferArrayIndex((Expr.Operator) expr);
+			return inferArrayIndex(environment, (Expr.Operator) expr);
 		case EXPR_arrupdt:
-			return inferArrayUpdate((Expr.Operator) expr);
+			return inferArrayUpdate(environment, (Expr.Operator) expr);
 		case EXPR_recinit:
-			return inferRecordInitialiser((Expr.RecordInitialiser) expr);
+			return inferRecordInitialiser(environment, (Expr.RecordInitialiser) expr);
 		case EXPR_recfield:
-			return inferRecordAccess((Expr.RecordAccess) expr);
+			return inferRecordAccess(environment, (Expr.RecordAccess) expr);
 		case EXPR_recupdt:
-			return inferRecordUpdate((Expr.RecordUpdate) expr);
+			return inferRecordUpdate(environment, (Expr.RecordUpdate) expr);
 		default:
 			throw new IllegalArgumentException("invalid expression encountered: " + expr);
 		}
 	}
 
-	protected Type inferCast(Expr.Cast expr) {
+	protected Type inferCast(Environment environment, Expr.Cast expr) {
 		return (Type) expr.getCastType();
 	}
 
-	protected Type inferLogicalOperator(Expr.Operator expr) throws ResolutionError {
+	protected Type inferLogicalOperator(Environment environment, Expr.Operator expr) throws ResolutionError {
 		return new Type.Bool();
 	}
 
-	protected Type inferArithmeticOperator(Expr.Operator expr) throws ResolutionError {
+	protected Type inferArithmeticOperator(Environment environment, Expr.Operator expr) throws ResolutionError {
 		return new Type.Int();
 	}
 
-	public Type inferVariableAccess(Expr.VariableAccess expr) {
-		return expr.getVariableDeclaration().getType();
+	protected Type inferVariableAccess(Environment environment, Expr.VariableAccess expr) {
+		return environment.getType(expr.getVariableDeclaration());
 	}
 
-	public Type inferConstant(Expr.Constant expr) {
+	protected Type inferConstant(Environment environment, Expr.Constant expr) {
 		return expr.getValue().getType();
 	}
 
-	public Type inferIs(Expr.Is expr) {
+	protected Type inferIs(Environment environment, Expr.Is expr) {
 		return new Type.Bool();
 	}
 
-	public Type inferInvoke(Expr.Invoke expr) {
+	protected Type inferInvoke(Environment environment, Expr.Invoke expr) {
 		Type.FunctionOrMacroOrInvariant type = expr.getSignatureType();
 		Tuple<Type> returns = type.getReturns();
 		if (returns.size() != 1) {
@@ -129,7 +129,7 @@ public class WyalTypeInferer implements TypeInferer {
 		}
 	}
 
-	public Type inferQuantifier(Expr.Quantifier expr) {
+	protected Type inferQuantifier(Environment environment, Expr.Quantifier expr) {
 		return new Type.Bool();
 	}
 
@@ -137,15 +137,15 @@ public class WyalTypeInferer implements TypeInferer {
 	// Arrays
 	// ======================================================================
 
-	protected Type inferArrayLength(Expr.Operator expr) {
+	protected Type inferArrayLength(Environment environment, Expr.Operator expr) {
 		return new Type.Int();
 	}
 
-	protected Type inferArrayInitialiser(Expr.Operator expr) throws ResolutionError {
+	protected Type inferArrayInitialiser(Environment environment, Expr.Operator expr) throws ResolutionError {
 		if (expr.size() > 0) {
 			Type[] ts = new Type[expr.size()];
 			for (int i = 0; i != ts.length; ++i) {
-				ts[i] = inferExpression(expr.getOperand(i));
+				ts[i] = inferExpression(environment, expr.getOperand(i));
 			}
 			// Perform a little simplification here by collapsing
 			// identical types together.
@@ -157,13 +157,13 @@ public class WyalTypeInferer implements TypeInferer {
 		}
 	}
 
-	protected Type inferArrayGenerator(Expr.Operator expr) throws ResolutionError {
-		Type element = inferExpression(expr.getOperand(0));
+	protected Type inferArrayGenerator(Environment environment, Expr.Operator expr) throws ResolutionError {
+		Type element = inferExpression(environment, expr.getOperand(0));
 		return new Type.Array(element);
 	}
 
-	protected Type inferArrayIndex(Expr.Operator expr) throws ResolutionError {
-		Type src = inferExpression(expr.getOperand(0));
+	protected Type inferArrayIndex(Environment environment, Expr.Operator expr) throws ResolutionError {
+		Type src = inferExpression(environment, expr.getOperand(0));
 		if(src != null) {
 			Type.Array effectiveArray = types.extractReadableArray(src);
 			if(effectiveArray != null) {
@@ -173,8 +173,8 @@ public class WyalTypeInferer implements TypeInferer {
 		return null;
 	}
 
-	protected Type inferArrayUpdate(Expr.Operator expr) throws ResolutionError {
-		Type src = inferExpression(expr.getOperand(0));
+	protected Type inferArrayUpdate(Environment environment, Expr.Operator expr) throws ResolutionError {
+		Type src = inferExpression(environment, expr.getOperand(0));
 		if(src != null) {
 			return types.extractReadableArray(src);
 		} else {
@@ -186,8 +186,8 @@ public class WyalTypeInferer implements TypeInferer {
 	// Records
 	// ======================================================================
 
-	public Type inferRecordAccess(Expr.RecordAccess expr) throws ResolutionError {
-		Type src = inferExpression(expr.getSource());
+	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {
+		Type src = inferExpression(environment, expr.getSource());
 		if (src != null) {
 			Type.Record effectiveRecord = types.extractReadableRecord(src);
 			if (effectiveRecord != null) {
@@ -206,16 +206,16 @@ public class WyalTypeInferer implements TypeInferer {
 		return null;
 	}
 
-	public Type inferRecordUpdate(Expr.RecordUpdate expr) throws ResolutionError {
-		return inferExpression(expr.getSource());
+	protected Type inferRecordUpdate(Environment environment, Expr.RecordUpdate expr) throws ResolutionError {
+		return inferExpression(environment, expr.getSource());
 	}
 
-	public Type inferRecordInitialiser(Expr.RecordInitialiser expr) throws ResolutionError {
+	protected Type inferRecordInitialiser(Environment environment, Expr.RecordInitialiser expr) throws ResolutionError {
 		Pair<Identifier, Expr>[] fields = expr.getFields();
 		FieldDeclaration[] decls = new FieldDeclaration[fields.length];
 		for (int i = 0; i != fields.length; ++i) {
 			Identifier fieldName = fields[i].getFirst();
-			Type fieldType = inferExpression(fields[i].getSecond());
+			Type fieldType = inferExpression(environment, fields[i].getSecond());
 			decls[i] = new FieldDeclaration(fieldType, fieldName);
 		}
 		// NOTE: a record initialiser never produces an open record

@@ -42,6 +42,7 @@ import wytp.proof.rules.FunctionCallAxiom;
 import wytp.proof.rules.InequalityIntroduction;
 import wytp.proof.rules.MacroExpansion;
 import wytp.proof.rules.OrElimination;
+import wytp.proof.rules.Simplification;
 import wytp.proof.rules.TypeTestClosure;
 import wytp.proof.util.DeltaProof;
 import wytp.proof.util.FastDelta;
@@ -95,12 +96,12 @@ public class AutomatedTheoremProver {
 		this.types = typeSystem;
 		//
 		this.rules = new Proof.Rule[] {
+				new Simplification(types),
 				new CongruenceClosure(types),
 				new InequalityIntroduction(types),
-				new AndElimination(),
+				new AndElimination(types),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
-				// new TypeTestExpansion(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
@@ -140,28 +141,27 @@ public class AutomatedTheoremProver {
 	 * Check whether a given formula is unsatisfiable or not. That is, whether
 	 * or not it can be reduces to false.
 	 *
-	 * @param formula
+	 * @param axiom
 	 * @return
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	private boolean checkValidity(SyntacticHeap parent, Formula formula) throws ResolutionError {
+	private boolean checkValidity(SyntacticHeap parent, Formula axiom) throws ResolutionError {
 		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
-		formula = Formulae.invert(formula);
+		axiom = Formulae.invert(axiom);
 		// Simplify the formula, since inversion does not do this.
-		formula = Formulae.simplifyFormula(formula, types);
 		// Allocate initial formula to the heap
-		formula = heap.allocate(SyntacticHeaps.clone(formula));
+		axiom = heap.allocate(SyntacticHeaps.clone(axiom));
 		// Create initial state
-		DeltaProof proof = new DeltaProof(null, heap, formula);
-		Proof.State state = proof.getState(0);
+		DeltaProof proof = new DeltaProof(null, heap, axiom);
+		Proof.State head = proof.getState(0);
 		//
-		boolean r = checkUnsat(state, new FastDelta.Set(formula), FALSE);
+		boolean r = checkUnsat(head, head, FALSE);
 		//
-		simplifyProof(state, FALSE);
+		simplifyProof(head, FALSE);
 		//
 		if (printProof) {
 			print(proof);
@@ -178,95 +178,90 @@ public class AutomatedTheoremProver {
 	 * to this set of truths and generate a set of new truths, to be used in any
 	 * subsequent calls to this method.
 	 *
-	 * @param state
+	 * @param current
 	 *            The current state being investigated to see whether or not it
 	 *            leads to a contradiction.
-	 * @param carries
-	 *            One or more new truths carried forward from the previous
-	 *            state. Such truths have not yet been processed and
+	 * @param head
+	 *            The current tip of the proof branch. This maybe some
+	 *            distance in the future from the current state, and
+	 *            identifies truths which have yet to be processed.
 	 * @param FALSE
 	 * @return
 	 */
-	private boolean checkUnsat(Proof.State state, FastDelta.Set carries, Formula.Truth FALSE) throws ResolutionError {
+	private boolean checkUnsat(Proof.State current, Proof.State head, Formula.Truth FALSE) throws ResolutionError {
 		// Sanity check whether we have reached the hard limit on the amount of
 		// computation permitted.
-		if (state.getProof().size() > maxProofSize) {
+		if (head.getProof().size() > maxProofSize) {
 			// throw new IllegalArgumentException("Maximum proof size reached");
 			return false;
-		}
-		// Hard limit not reached, therefore continue exploring!
-		FastDelta delta = new FastDelta(carries, FastDelta.EMPTY_SET);
-		// Infer information from current state and delta
-		for (int i = 0; i != carries.size() && !state.isKnown(FALSE); ++i) {
-			Formula truth = carries.get(i);
-			for (int j = 0; j != rules.length; ++j) {
-				// Check whether the given truth is actually active or not. If
-				// not,
-				// it has been subsumed at some point, and must be ignored.
-				if (delta.isRemoval(truth)) {
-					break;
-				} else {
-					// Truth remains active, therefore try to process it with
-					// the given rule.
-					Proof.Rule rule = rules[j];
-					Proof.State before = state;
-					// Apply the rule
-					if (rule instanceof Proof.LinearRule) {
-						// Linear rules are the easy case as they can only
-						// produce one follow on case.
-						Proof.LinearRule linearRule = (Proof.LinearRule) rule;
-						state = linearRule.apply(state, truth);
-					} else {
-						// Non-linear rules are more complex as they can result
-						// in multiple branches being taken.
-						Proof.NonLinearRule nonLinearRule = (Proof.NonLinearRule) rule;
-						Proof.State[] splits = nonLinearRule.apply(state, truth);
-						if (splits.length > 1) {
-							// Yes, we have multiple branches so handle that.
-							return applySplit(state, splits, delta, truth, FALSE);
-						} else {
-							// In this case, either the rule did not apply or
-							// there was only one child anyway.
-							state = splits[0];
-						}
-					}
-					if (state != before) {
-						// Given our current delta as processed thus far, we now
-						// need to include the delta for the step that was just
-						// taken (if any).
-						delta = delta.apply(state.getDelta(before));
-					}
-				}
-			}
-			// At this point, we have now processed this truth
-			// completely against all known rules. Therefore, it will
-			// not be considered again.
-			delta = delta.remove(truth);
-		}
-		if (state.isKnown(FALSE)) {
+		} else if (head.isKnown(FALSE)) {
 			// We established a contradiction at some point during this round,
 			// therefore we're done.
 			return true;
-		} else if (delta.getAdditions().size() > 0) {
-			// We still have unprocessed truths. Therefore, continue for another
-			// round.
-			return checkUnsat(state, delta.getAdditions(), FALSE);
-		} else {
+		}
+		// Apply all rules one after the other
+		for (int j = 0; j != rules.length; ++j) {
+			Proof.Rule rule = rules[j];
+			// Apply the rule
+			if (rule instanceof Proof.LinearRule) {
+				Proof.LinearRule linearRule = (Proof.LinearRule) rule;
+				// Linear rules are the easy case as they can only
+				// produce one follow on case.
+				head = linearRule.apply(current, head);
+			} else {
+				Proof.NonLinearRule nonLinearRule = (Proof.NonLinearRule) rule;
+				// Non-linear rules are more complex as they can result
+				// in multiple branches being taken.
+				Proof.State[] heads = nonLinearRule.apply(current, head);
+				if (heads.length > 1) {
+					// Yes, we have multiple branches so handle that.
+					return applySplit(current, heads, FALSE);
+				} else {
+					// In this case, either the rule did not apply or
+					// there was only one child anyway.
+					head = heads[0];
+				}
+			}
+		}
+		if(current == head) {
 			// We're out of options, therefore we're failing to find a
 			// contradiction and we give up on the whole thing.
+			return false;
+		} else {
+			return checkUnsat(next(current, head), head, FALSE);
+		}
+	}
+
+	/**
+	 * Determine whether a given state is an "ancestor" of a given "descendant"
+	 * or not. This is done by traversing from the ancestor on the assumption
+	 * that they are unlikely to be far apart at any given moment.
+	 *
+	 * @param ancestor
+	 * @param descendant
+	 * @return
+	 */
+	private boolean isAncestor(Proof.State ancestor, Proof.State descendant) {
+		if (ancestor == descendant) {
+			return true;
+		} else {
+			for (int i = 0; i != ancestor.numberOfChildren(); ++i) {
+				Proof.State child = ancestor.getChild(i);
+				if (isAncestor(child, descendant)) {
+					return true;
+				}
+			}
 			return false;
 		}
 	}
 
-	private boolean applySplit(Proof.State state, Proof.State[] splits, FastDelta delta, Formula truth,
-			Formula.Truth FALSE) throws ResolutionError {
-		State parent = state.getParent();
+	private boolean applySplit(Proof.State current, Proof.State[] heads, Formula.Truth FALSE) throws ResolutionError {
 		// Now, try to find a contradiction for each case
-		for (int j = 0; j != splits.length; ++j) {
-			Proof.State split = splits[j];
-			FastDelta splitDelta = delta.apply(split.getDelta());
+		for (int j = 0; j != heads.length; ++j) {
+			Proof.State head = heads[j];
+			Proof.State next = next(current,head);
 			//
-			if (!checkUnsat(split, splitDelta.getAdditions(), FALSE)) {
+			if (!checkUnsat(next, head, FALSE)) {
 				// Unable to find a proof down this branch, therefore done.
 				return false;
 			} else {
@@ -275,17 +270,49 @@ public class AutomatedTheoremProver {
 				// actually had a part to play or not. If not, then we can
 				// terminate this disjunct early (which can lead to significant
 				// reductions in the state space).
-				BitSet cone = computeDependencyCone(split, FALSE);
+				BitSet cone = computeDependencyCone(head, FALSE);
 				//
-				if (cone.get(truth.getIndex()) == false && parent != null) {
-					// First, bypass the split where one of the clauses was
-					// assumed
-					state.applyBypass(split);
+				if (stateNotRequired(current, cone)) {
+					// Bypass the split where one of the clauses was assumed
+					head.getParent().applyBypass(head);
 					break;
 				}
 			}
 		}
 		return true;
+	}
+
+	private boolean stateNotRequired(Proof.State current, BitSet cone) {
+		Proof.Delta.Set additions = current.getDelta().getAdditions();
+		for(int i=0;i!=additions.size();++i) {
+			if(cone.get(additions.get(i).getIndex())) {
+				// Yes, it is required
+				return false;
+			}
+		}
+		// No, it's not required
+		return true;
+	}
+
+	/**
+	 * Determine the next state along a given branch. This is a little tricky
+	 * when there are multiple children as, using the head only, we need to
+	 * determine which child we should follow.
+	 *
+	 * @param current
+	 *            The state which we want to advance to the next successor
+	 * @param head
+	 *            The tip of the branch we are following
+	 * @return
+	 */
+	private Proof.State next(Proof.State current, Proof.State head) {
+		for(int i=0;i!=current.numberOfChildren();++i) {
+			Proof.State child = current.getChild(i);
+			if(isAncestor(child,head)) {
+				return child;
+			}
+		}
+		return current;
 	}
 
 	/**
@@ -310,7 +337,7 @@ public class AutomatedTheoremProver {
 			return dependencies;
 		} else {
 			BitSet dependencies = new BitSet();
-			// Determine recurisve dependencies
+			// Determine recursive dependencies
 			for (int i = 0; i != state.numberOfChildren(); ++i) {
 				Proof.State child = state.getChild(i);
 				dependencies.or(computeDependencyCone(child, FALSE));

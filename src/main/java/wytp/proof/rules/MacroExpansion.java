@@ -85,8 +85,6 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 	public State apply(Proof.State state, Formula truth) throws ResolutionError {
 		Formula expanded = expandFormula(state, truth);
 		if(expanded != truth) {
-			expanded = (Formula) construct(state,expanded);
-			expanded = Formulae.simplifyFormula(expanded, types);
 			state = state.subsume(this, truth, expanded);
 		}
 		return state;

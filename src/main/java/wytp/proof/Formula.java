@@ -13,10 +13,7 @@
 // limitations under the License.
 package wytp.proof;
 
-import java.util.Arrays;
-
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
@@ -24,14 +21,6 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.lang.WyalFile.Expr.Constant;
-import wyal.lang.WyalFile.Expr.Invoke;
-import wyal.lang.WyalFile.Expr.Is;
-import wyal.lang.WyalFile.Expr.Operator;
-import wyal.lang.WyalFile.Expr.Polynomial;
-import wyal.lang.WyalFile.Expr.Quantifier;
-import wyal.lang.WyalFile.Type.FunctionOrMacroOrInvariant;
-import wyal.lang.WyalFile.Value.Bool;
 
 /**
  * A special kind of expression which maintains a normal form representation. As
@@ -161,31 +150,21 @@ public interface Formula extends Expr {
 
 	public interface ArithmeticEquation extends Equation {
 		@Override
-		public Polynomial getOperand(int i);
+		public Expr getOperand(int i);
 
 		@Override
-		public Polynomial[] getOperands();
+		public Expr[] getOperands();
 	}
 
 	public static class Inequality extends Expr.Operator implements ArithmeticEquation {
 
-		public Inequality(Polynomial lhs, Polynomial rhs) {
-			super(Opcode.EXPR_gteq, new Polynomial[]{lhs, rhs});
-		}
-
-		@Override
-		public Polynomial getOperand(int i) {
-			return (Polynomial) super.getOperand(i);
-		}
-
-		@Override
-		public Polynomial[] getOperands() {
-			return (Polynomial[]) super.getOperands();
+		public Inequality(Expr lhs, Expr rhs) {
+			super(Opcode.EXPR_gteq, lhs, rhs);
 		}
 
 		@Override
 		public Inequality clone(SyntacticItem[] children) {
-			return new Inequality((Polynomial) children[0],(Polynomial) children[1]);
+			return new Inequality((Expr) children[0],(Expr) children[1]);
 		}
 	}
 
@@ -194,7 +173,7 @@ public interface Formula extends Expr {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
 		}
 
-		public Equality(boolean sign, Polynomial[] arr) {
+		public Equality(boolean sign, Expr[] arr) {
 			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, arr);
 		}
 
@@ -209,23 +188,13 @@ public interface Formula extends Expr {
 	}
 
 	public static class ArithmeticEquality extends Equality implements ArithmeticEquation {
-		public ArithmeticEquality(boolean sign, Polynomial lhs, Polynomial rhs) {
-			super(sign, new Polynomial[]{lhs, rhs});
-		}
-
-		@Override
-		public Polynomial getOperand(int i) {
-			return (Polynomial) super.getOperand(i);
-		}
-
-		@Override
-		public Polynomial[] getOperands() {
-			return (Polynomial[]) super.getOperands();
+		public ArithmeticEquality(boolean sign, Expr lhs, Expr rhs) {
+			super(sign, lhs, rhs);
 		}
 
 		@Override
 		public ArithmeticEquality clone(SyntacticItem[] children) {
-			return new ArithmeticEquality(getSign(),(Polynomial) children[0],(Polynomial) children[1]);
+			return new ArithmeticEquality(getSign(),(Expr) children[0],(Expr) children[1]);
 		}
 	}
 

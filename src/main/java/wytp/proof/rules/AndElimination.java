@@ -16,6 +16,8 @@ package wytp.proof.rules;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractProofRule;
+import wytp.types.TypeSystem;
 
 /**
  * <p>
@@ -42,7 +44,11 @@ import wytp.proof.Proof.State;
  * @author David J. Pearce
  *
  */
-public class AndElimination implements Proof.LinearRule {
+public class AndElimination extends AbstractProofRule implements Proof.LinearRule {
+
+	public AndElimination(TypeSystem types) {
+		super(types);
+	}
 
 	@Override
 	public String getName() {
@@ -50,14 +56,17 @@ public class AndElimination implements Proof.LinearRule {
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) {
+	public State apply(Proof.State head, Formula truth) {
 		if (truth instanceof Formula.Conjunct) {
 			Formula.Conjunct conjunct = (Formula.Conjunct) truth;
-			state = state.subsume(this, new Formula[]{conjunct}, conjunct.getOperands());
-			return state;
+			for(int i=0;i!=conjunct.size();++i) {
+				head = head.subsume(this, conjunct, conjunct.getOperand(i));
+			}
+			return head;
+		} else {
+			// No change in the normal case
+			return head;
 		}
-		// No change in the normal case
-		return state;
 	}
 
 }

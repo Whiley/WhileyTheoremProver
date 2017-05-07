@@ -28,7 +28,6 @@ import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
 import wytp.proof.Formula.Disjunct;
@@ -132,11 +131,11 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			// FIXME: trying to get rid of this would somehow be useful
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
-			Polynomial va = toPolynomial(new Expr.VariableAccess(var));
+			Expr va = new Expr.VariableAccess(var);
 			Expr el = new Expr.Operator(Opcode.EXPR_arridx, root, va);
 			Formula inv = extractTypeInvariant(t.getElement(), el, visited);
-			Polynomial zero = toPolynomial(0);
-			Polynomial len = toPolynomial(new Expr.Operator(Opcode.EXPR_arrlen, root));
+			Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
+			Expr len = new Expr.Operator(Opcode.EXPR_arrlen, root);
 			if (inv != null) {
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
