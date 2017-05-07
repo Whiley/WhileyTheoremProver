@@ -60,6 +60,8 @@ public class ValidTest {
 		IGNORED.put("test_array_60", "??");
 		IGNORED.put("test_array_61", "??");
 		IGNORED.put("test_array_68", "??");
+		IGNORED.put("test_record_14", "??");
+		IGNORED.put("test_record_18", "#76");
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//

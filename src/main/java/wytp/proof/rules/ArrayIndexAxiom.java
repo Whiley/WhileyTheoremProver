@@ -128,8 +128,8 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 					// A[i] ~ e && i-1 >= |A|+1 ==> i < |A|
 					state = instantiateLengthAxiom(index, length, state, target, source);
 				}
-			} else if(target instanceof Formula.Equation) {
-				Formula.Equation ieq = (Formula.Equation) target;
+			} else if(target instanceof Formula.ArithmeticEquality) {
+				Formula.ArithmeticEquality ieq = (Formula.ArithmeticEquality) target;
 				// A[i] ~ e && |A| == c ==> i < |A|
 				if (match(ieq.getOperand(0), length, Match.NONNEGATIVE)
 						|| match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
@@ -164,6 +164,7 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 		if (kind == Match.EXACT) {
 			return attempt.equals(ground);
 		}
+		//
 		Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(attempt);
 		Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(ground);
 		Arithmetic.Polynomial difference = lhs.subtract(rhs);
