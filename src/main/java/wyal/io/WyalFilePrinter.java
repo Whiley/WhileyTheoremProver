@@ -265,14 +265,6 @@ public class WyalFilePrinter {
 	 */
 	public void writeExpressionWithBrackets(WyalFile.Expr expr) {
 		switch (expr.getOpcode()) {
-		case EXPR_add:
-			if (expr instanceof Formula.Polynomial) {
-				Formula.Polynomial p = (Formula.Polynomial) expr;
-				if (p.size() == 1) {
-					writeExpression(expr);
-					break;
-				}
-			}
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_implies:
@@ -284,6 +276,7 @@ public class WyalFilePrinter {
 		case EXPR_gt:
 		case EXPR_gteq:
 		case EXPR_is:
+		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
@@ -312,11 +305,6 @@ public class WyalFilePrinter {
 		case EXPR_arrlen:
 			writeUnaryOperator((Expr.Operator) expr);
 			break;
-		case EXPR_add:
-			if(expr instanceof Formula.Polynomial) {
-				writePolynomial((Formula.Polynomial)expr);
-				break;
-			}
 		case EXPR_and:
 		case EXPR_or:
 		case EXPR_implies:
@@ -327,6 +315,7 @@ public class WyalFilePrinter {
 		case EXPR_lteq:
 		case EXPR_gt:
 		case EXPR_gteq:
+		case EXPR_add:
 		case EXPR_sub:
 		case EXPR_mul:
 		case EXPR_div:
@@ -443,36 +432,6 @@ public class WyalFilePrinter {
 				out.print(" ");
 			}
 			writeExpressionWithBrackets(expr.getOperand(i));
-		}
-	}
-
-	public void writePolynomial(Formula.Polynomial expr) {
-		for(int i=0;i!=expr.size();++i) {
-			if(i != 0) {
-				out.print(" + ");
-			}
-			writePolynomialTerm(expr.getOperand(i));
-		}
-	}
-
-	public void writePolynomialTerm(Formula.Polynomial.Term term) {
-		BigInteger coefficient = term.getCoefficient().get();
-		Expr[] atoms = term.getAtoms();
-		boolean firstTime = true;
-		if (coefficient.equals(BigInteger.ONE) && atoms.length > 0) {
-			// ignore this
-		} else if (coefficient.equals(BigInteger.valueOf(-1)) && atoms.length > 0) {
-			out.print("-");
-		} else {
-			out.print(coefficient);
-			firstTime = false;
-		}
-		for (int i = 0; i != atoms.length; ++i) {
-			if (!firstTime) {
-				out.print("*");
-			}
-			firstTime = false;
-			writeExpression(atoms[i]);
 		}
 	}
 

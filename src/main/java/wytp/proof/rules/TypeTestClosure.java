@@ -24,8 +24,10 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
+import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
 /**
@@ -98,7 +100,7 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRule {
+public class TypeTestClosure extends AbstractClosureRule implements Proof.LinearRule {
 
 	public TypeTestClosure(TypeSystem types) {
 		super(types);
@@ -110,12 +112,12 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	@Override
-	public State apply(State state, Formula newTruth) throws ResolutionError {
+	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			state = apply(test, state);
+			head = apply(existingTruths, test, head);
 		}
-		return state;
+		return head;
 	}
 
 	/**
@@ -127,15 +129,15 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	 * @param dependencies
 	 * @return
 	 */
-	private State apply(Formula.Is typeTest, Proof.State state) throws ResolutionError {
+	private State apply(Proof.Delta.Set existingTruths, Formula.Is typeTest, Proof.State state) throws ResolutionError {
 		Expr lhs = typeTest.getExpr();
-		Type lhsT = lhs.getReturnType(types);
+		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 		Type rhsT = typeTest.getTypeTest();
 		if (lhsT != null) {
 			// FIXME: at the moment, TypeSystem.intersect is not working
 			// properly. It's possible that using new Type.Intersection could
 			// potentially lead to unbounded growth of the overall type.
-			Type intersection = new Type.Intersection(lhsT,rhsT);
+			Type intersection = new Type.Intersection(lhsT, rhsT);
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in
@@ -155,14 +157,14 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 				// use that variable. This may allow some of those truths to now
 				// type themselves correctly.
 				if (lhs instanceof Expr.VariableAccess) {
-					state = retypeVariable(typeTest,intersection,state);
+					state = retypeVariable(existingTruths, typeTest, intersection, state);
 				} else {
 					// FIXME: in the case of a field access, we can actually do
 					// better here. For example, "x.f is int" can be reduced to
 					// "x is {int f,...}".
-					List<Formula.Is> matches = findMatches(typeTest,state);
-					if(matches.size() > 1) {
-						state = closeOver(matches,state);
+					List<Formula.Is> matches = findMatches(existingTruths, typeTest, state);
+					if (matches.size() > 1) {
+						state = closeOver(matches, state);
 					}
 				}
 			}
@@ -170,24 +172,20 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	private Proof.State retypeVariable(Formula.Is typeTest, Type intersection, Proof.State state) {
-		Expr.VariableAccess oldVar = (Expr.VariableAccess) typeTest.getOperand(0);
-		VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
-		String tmp = oldDeclaration.getVariableName().get() + "'";
-		VariableDeclaration newDeclaration = new VariableDeclaration(intersection,
-				new WyalFile.Identifier(tmp));
-		Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
-		//
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
-		//
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula existing = additions.get(i);
-			Formula updated = (Formula) substitute(oldVar, newVar, existing);
-			if (existing != typeTest && updated != existing) {
-				state = state.subsume(this, existing, updated, typeTest);
-			}
+	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type refinement,
+			Proof.State state) throws ResolutionError {
+		Expr.VariableAccess variable = (Expr.VariableAccess) typeTest.getOperand(0);
+		VariableDeclaration declaration = variable.getVariableDeclaration();
+		TypeInferer.Environment environment = state.getTypeEnvironment();
+		// Check whether or not the type has actually changed in some sense
+		WyalFile.Type type = environment.getType(declaration);
+		if (types.isRawSubtype(type, refinement) && !types.isRawSubtype(refinement, type)) {
+			state = state.refine(this, declaration, refinement, typeTest);
 		}
+		//
+		// FIXME: any formula which uses the given variable should be
+		// reconsidered? For example, that fact may have been ignored thus far
+		// because the type returned in a given situation was null.
 		//
 		return state;
 	}
@@ -202,15 +200,13 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 	 * @param state
 	 * @return
 	 */
-	private List<Formula.Is> findMatches(Formula.Is lhs, Proof.State state) {
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
+	private List<Formula.Is> findMatches(Proof.Delta.Set existingTruths, Formula.Is lhs, Proof.State state) {
 		//
 		List<Formula.Is> matches = new ArrayList<>();
 		//
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula existing = additions.get(i);
-			if (existing instanceof Formula.Is) {
+		for (int i = 0; i != existingTruths.size(); ++i) {
+			Formula existing = existingTruths.get(i);
+			if (existing != lhs && existing instanceof Formula.Is) {
 				Formula.Is rhs = (Formula.Is) existing;
 				if (lhs.getExpr().equals(rhs.getExpr())) {
 					matches.add(rhs);
@@ -231,10 +227,11 @@ public class TypeTestClosure extends AbstractProofRule implements Proof.LinearRu
 		}
 		//
 		Type type = new Type.Intersection(bounds);
-		Formula test = Formulae.simplifyFormula(new Formula.Is(first.getExpr(), type), types);
+		Formula test = new Formula.Is(first.getExpr(), type);
 		//
-		Formula[] froms = matches.toArray(new Formula[matches.size()]);
-		state = state.subsume(this, froms, new Formula[] { test });
+		for (int i = 0; i != matches.size(); ++i) {
+			state = state.subsume(this, matches.get(i), test);
+		}
 		//
 		return state;
 	}

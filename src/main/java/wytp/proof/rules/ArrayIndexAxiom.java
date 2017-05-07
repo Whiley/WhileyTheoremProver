@@ -24,11 +24,12 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 import wyal.lang.WyalFile;
@@ -67,7 +68,7 @@ import wyal.lang.WyalFile;
  * </p>
  *
  */
-public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRule {
+public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.LinearRule {
 	public ArrayIndexAxiom(TypeSystem types) {
 		super(types);
 	}
@@ -78,36 +79,29 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula truth) throws ResolutionError {
-		Proof.Delta history = state.getDelta(null);
-		state = attemptInstantiationByArrayAccess(truth,history,state);
-		state = attemptInstantiationByEquation(truth,history,state);
-		return state;
+	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula truth) throws ResolutionError {
+		head = attemptInstantiationByArrayAccess(truth,existingTruths,head);
+		head = attemptInstantiationByEquation(truth,existingTruths,head);
+		return head;
 	}
 
-	public State attemptInstantiationByEquation(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int j = 0; j != additions.size(); ++j) {
-			Formula existing = additions.get(j);
-			if(existing != truth) {
-				List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
-				state = attemptInstantiation(existing,matches,truth,state);
-			}
+	public State attemptInstantiationByEquation(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
+		for (int j = 0; j != existingTruths.size(); ++j) {
+			Formula existing = existingTruths.get(j);
+			List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
+			state = attemptInstantiation(existing,matches,truth,state);
 		}
 		return state;
 	}
 
-	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta history, Proof.State state) throws ResolutionError {
+	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
 		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
 		// At this point, we have one or more array access expressions which
 		// potentially could be introduce some useful facts. Therefore, we need to look
 		// back through the history to determine any cases where this can be applied.
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int j = 0; j != additions.size(); ++j) {
-			Formula existing = additions.get(j);
-			if(existing != truth) {
-				state = attemptInstantiation(truth,matches,existing,state);
-			}
+		for (int j = 0; j != existingTruths.size(); ++j) {
+			Formula existingTruth = existingTruths.get(j);
+			state = attemptInstantiation(truth,matches,existingTruth,state);
 		}
 		return state;
 	}
@@ -116,11 +110,10 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			Expr.Operator match = matches.get(i);
-			Polynomial index = Formulae.toPolynomial(match.getOperand(1));
+			Expr index = match.getOperand(1);
 			// NOTE: we must call construct here since we are creating a new
 			// term from scratch.
-			Polynomial length = Formulae
-					.toPolynomial((Expr) construct(state,new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0))));
+			Expr length = new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0));
 			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
 				Formula.Inequality ieq = (Formula.Inequality) target;
@@ -135,8 +128,8 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 					// A[i] ~ e && i-1 >= |A|+1 ==> i < |A|
 					state = instantiateLengthAxiom(index, length, state, target, source);
 				}
-			} else if(target instanceof Formula.Equation) {
-				Formula.Equation ieq = (Formula.Equation) target;
+			} else if(target instanceof Formula.ArithmeticEquality) {
+				Formula.ArithmeticEquality ieq = (Formula.ArithmeticEquality) target;
 				// A[i] ~ e && |A| == c ==> i < |A|
 				if (match(ieq.getOperand(0), length, Match.NONNEGATIVE)
 						|| match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
@@ -149,14 +142,14 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 		return state;
 	}
 
-	private State instantiateIndexAxiom(Polynomial index, Proof.State state, Formula... dependencies) throws ResolutionError {
-		Polynomial zero = new Polynomial(BigInteger.ZERO);
-		Formula axiom = Formulae.simplifyFormula(Formulae.greaterOrEqual(index, zero), types);
+	private State instantiateIndexAxiom(Expr index, Proof.State state, Formula... dependencies) throws ResolutionError {
+		Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
+		Formula axiom = Formulae.greaterOrEqual(index, zero);
 		return state.infer(this, axiom, dependencies);
 	}
 
-	private State instantiateLengthAxiom(Polynomial index, Polynomial length, Proof.State state, Formula... dependencies) throws ResolutionError {
-		Formula axiom = Formulae.simplifyFormula(Formulae.lessThan(index, length), types);
+	private State instantiateLengthAxiom(Expr index, Expr length, Proof.State state, Formula... dependencies) throws ResolutionError {
+		Formula axiom = Formulae.lessThan(index, length);
 		return state.infer(this, axiom, dependencies);
 	}
 
@@ -168,14 +161,15 @@ public class ArrayIndexAxiom extends AbstractProofRule implements Proof.LinearRu
 	}
 
 	private boolean match(Expr attempt, Expr ground, Match kind) {
-		if (kind == Match.EXACT || !(attempt instanceof Expr.Polynomial) || !(ground instanceof Polynomial)) {
+		if (kind == Match.EXACT) {
 			return attempt.equals(ground);
 		}
-		Polynomial lhs = (Polynomial) attempt;
-		Polynomial rhs = (Polynomial) ground;
-		Polynomial difference = lhs.subtract(rhs);
+		//
+		Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(attempt);
+		Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(ground);
+		Arithmetic.Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
-			BigInteger diff = difference.toConstant().get();
+			BigInteger diff = difference.toConstant();
 			if (kind == Match.NONNEGATIVE) {
 				return diff.compareTo(BigInteger.ZERO) >= 0;
 			} else {

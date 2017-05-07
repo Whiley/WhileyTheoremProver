@@ -1,0 +1,7 @@
+assert:
+   forall(int|null i):
+       if:
+           !(i is null)
+           i > 0
+       then:
+           i >= 0

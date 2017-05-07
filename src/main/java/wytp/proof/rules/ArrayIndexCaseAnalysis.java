@@ -47,7 +47,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Expr.Operator match = matches.get(i);
 				Formula[] cases = generateCaseAnalysis(match, truth, state);
 				if(cases.length > 0) {
-					Formula disjunct = Formulae.simplifyDisjunct(new Formula.Disjunct(cases), types);
+					Formula disjunct = new Formula.Disjunct(cases);
 					state = state.subsume(this, truth, disjunct);
 				}
 			}
@@ -60,17 +60,17 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 		switch (split.getOpcode()) {
 		case EXPR_arridx: {
 			Expr src = split.getOperand(0);
-			Expr.Polynomial j = (Expr.Polynomial) split.getOperand(1);
+			Expr j = split.getOperand(1);
 			if (src.getOpcode() == Opcode.EXPR_arrupdt) {
 				// xs[i:=v][j]
 				Expr xs = (Expr) src.getOperand(0);
-				Expr.Polynomial i = (Expr.Polynomial) src.getOperand(1);
+				Expr i = (Expr) src.getOperand(1);
 				Expr v = (Expr) src.getOperand(2);
 				result = new Formula[2];
 				Formula case1 = (Formula) substitute(split, v, truth);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = (Expr) construct(state,new Expr.Operator(Opcode.EXPR_arridx, xs, j));
+				WyalFile.Expr arridx = (Expr) new Expr.Operator(Opcode.EXPR_arridx, xs, j);
 				Formula case2 = (Formula) substitute(split, arridx, truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
@@ -80,8 +80,9 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				result = new Formula[src.size()];
 				for (int i = 0; i != src.size(); ++i) {
 					// a >= 0 && j == 0
+					Expr ith = new Expr.Constant(new WyalFile.Value.Int(i));
 					Formula lhs = (Formula) substitute(split, src.getOperand(i), truth);
-					Formula rhs = new Formula.ArithmeticEquality(true, j, Formulae.toPolynomial(i));
+					Formula rhs = new Formula.ArithmeticEquality(true, j, ith);
 					result[i] = Formulae.and(lhs, rhs);
 				}
 				break;

@@ -1,0 +1,3 @@
+assert:
+    forall(int&!int x):
+        x >= 0

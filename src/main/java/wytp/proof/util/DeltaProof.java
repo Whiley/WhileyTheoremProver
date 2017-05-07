@@ -24,15 +24,20 @@ import wytp.proof.Proof;
 import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.util.AbstractProof.AbstractState;
 import wytp.proof.util.FastDelta.Set;
+import wytp.types.TypeInferer;
+import wytp.types.TypeInferer.Environment;
+import wytp.types.util.NullTypeEnvironment;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.VariableDeclaration;
 
 public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
-	public DeltaProof(Assert assertion, SyntacticHeap heap, Formula formula) {
+	public DeltaProof(Assert assertion, SyntacticHeap heap, Formula axiom) {
 		super(assertion,heap);
 		// Initialise the proof with the root state
-		states.add(new State(this,formula));
+		states.add(new State(this, axiom));
 	}
 
 	public static class State extends AbstractState<State> {
@@ -44,16 +49,20 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
 		private final Delta delta;
 
+		private final TypeInferer.Environment environment;
+
 		public State(DeltaProof proof, Formula axiom) {
 			super(proof, null, null);
 			this.truths = new BitSet();
 			this.delta = new FastDelta(new FastDelta.Set(axiom), FastDelta.EMPTY_SET);
-			this.truths.set(axiom.getIndex());
+			this.environment = new NullTypeEnvironment();
+			truths.set(axiom.getIndex());
 		}
 
 		private State(State state, Proof.Rule rule, FastDelta delta, Formula... dependencies) {
 			super((DeltaProof) state.getProof(), state, rule, dependencies);
 			this.truths = (BitSet) state.truths.clone();
+			this.environment = state.getTypeEnvironment();
 			this.delta = delta;
 			state.children.add(this);
 			// Update our state of the world
@@ -62,6 +71,14 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			for (int i = 0; i != additions.size(); ++i) {
 				truths.set(additions.get(i).getIndex());
 			}
+		}
+
+		private State(State state, TypeInferer.Environment environment,  Proof.Rule rule, Formula... dependencies) {
+			super((DeltaProof) state.getProof(), state, rule, dependencies);
+			this.truths = (BitSet) state.truths.clone();
+			this.environment = environment;
+			this.delta = FastDelta.EMPTY_DELTA;
+			state.children.add(this);
 		}
 
 		/**
@@ -104,9 +121,10 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		}
 
 		@Override
-		public State subsume(Proof.Rule rule, Formula from, Formula to, Formula... deps) {
-			return subsume(rule,new Formula[]{from},new Formula[]{to},deps);
+		public Environment getTypeEnvironment() {
+			return environment;
 		}
+
 		/**
 		 * Subume one formula with one or more formulae. This implication is
 		 * that latter "cover" the former. The former is no longer active,
@@ -116,28 +134,18 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 		 * @param to
 		 */
 		@Override
-		public State subsume(Proof.Rule rule, Formula[] froms, Formula[] tos, Formula... deps) {
-			FastDelta.Set removals = FastDelta.EMPTY_SET;
-			for (int i = 0; i != froms.length; ++i) {
-				Formula ith = froms[i];
-				removals = removals.add(ith);
-			}
+		public State subsume(Proof.Rule rule, Formula from, Formula to, Formula... deps) {
+			FastDelta.Set removals = FastDelta.EMPTY_SET.add(from);
 			FastDelta.Set additions = FastDelta.EMPTY_SET;
-			for (int i = 0; i != tos.length; ++i) {
-				Formula ith = tos[i];
-				if(ith != null) {
-					// Make sure target is allocated
-					ith = allocate(ith);
-					// Check whether target already known
-					final int toIndex = ith.getIndex();
-					if (!truths.get(toIndex)) {
-						additions = additions.add(ith);
-					}
-				}
+			// Check whether target already known
+			to = allocate(to);
+			final int toIndex = to.getIndex();
+			if (!truths.get(toIndex)) {
+				additions = additions.add(to);
 			}
 			FastDelta nDelta = new FastDelta(additions, removals);
 			// Register this state
-			return proof.register(new State(this, rule, nDelta, ArrayUtils.append(froms, deps)));
+			return proof.register(new State(this, rule, nDelta, ArrayUtils.append(from, deps)));
 		}
 
 		@Override
@@ -161,6 +169,19 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 				result[i] = this.subsume(null,disjunct,cases[i]);
 			}
 			return result;
+		}
+
+		@Override
+		public wytp.proof.Proof.State refine(Rule rule, VariableDeclaration variable, Type type,
+				Formula... dependencies) {
+			Type old = environment.getType(variable);
+			if(old.equals(type)) {
+				// nothing has changed.
+				return this;
+			} else {
+				TypeInferer.Environment env = environment.refineType(variable, type);
+				return proof.register(new State(this,env,rule,dependencies));
+			}
 		}
 
 		private Formula allocate(Formula truth) {

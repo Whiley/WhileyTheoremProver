@@ -25,7 +25,6 @@ import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Expr.Polynomial;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
@@ -34,11 +33,13 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Disjunct;
 import wytp.proof.Proof.State;
+import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
+import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 
-public class ExhaustiveQuantifierInstantiation extends AbstractProofRule implements Proof.LinearRule {
+public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule implements Proof.LinearRule {
 
 	public ExhaustiveQuantifierInstantiation(TypeSystem types) {
 		super(types);
@@ -50,14 +51,13 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	}
 
 	@Override
-	public State apply(Proof.State state, Formula newTruth) throws ResolutionError {
-
+	public State apply(Proof.Delta.Set existingTruths, Proof.State state, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Equation) {
 			Formula.Equation ground = (Formula.Equation) newTruth;
-			return instantiateQuantifiers(ground, state);
+			return instantiateQuantifiers(existingTruths, ground, state);
 		} else if (newTruth instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) newTruth;
-			return instantiateQuantifiers(quantifier, state);
+			return instantiateQuantifiers(existingTruths, quantifier, state);
 		}
 		// No change in the normal case
 		return state;
@@ -71,18 +71,16 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Quantifier quantifier, State state) throws ResolutionError {
+	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.Quantifier quantifier, State state) throws ResolutionError {
 		if (quantifier.getSign()) {
 			// At this point, we have a quantifier which has not been seen
 			// before (for example, it was hiding inside a macro invocation
 			// somewhere). Therefore, we need to search the history looking for
 			// suitable opportunities to instantiate it.
-			Proof.Delta history = state.getDelta(null);
-			Proof.Delta.Set additions = history.getAdditions();
-			for (int i = 0; i != additions.size(); ++i) {
-				Formula truth = additions.get(i);
-				if (truth instanceof Formula.ArithmeticEquation) {
-					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) truth;
+			for (int i = 0; i != existingTruths.size(); ++i) {
+				Formula existingTruth = existingTruths.get(i);
+				if (existingTruth instanceof Formula.ArithmeticEquation) {
+					Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) existingTruth;
 					// Yes, this is a universal quantifier
 					state = applyQuantifierInstantiation(quantifier, ground, state);
 				} else {
@@ -103,17 +101,15 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Formula.Equation groundTerm, State state) throws ResolutionError {
+	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.Equation groundTerm, State state) throws ResolutionError {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
 		// determine any cases where this can be applied.
-		Proof.Delta history = state.getDelta(null);
-		Proof.Delta.Set additions = history.getAdditions();
-		for (int i = 0; i != additions.size(); ++i) {
-			Formula truth = additions.get(i);
-			if (truth instanceof Formula.Quantifier) {
-				Formula.Quantifier qf = (Formula.Quantifier) truth;
+		for (int i = 0; i != existingTruths.size(); ++i) {
+			Formula existingTruth = existingTruths.get(i);
+			if (existingTruth instanceof Formula.Quantifier) {
+				Formula.Quantifier qf = (Formula.Quantifier) existingTruth;
 				if (qf.getSign()) {
 					// Yes, this is a universal quantifier
 					state = applyQuantifierInstantiation(qf, groundTerm, state);
@@ -126,7 +122,6 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 
 	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Equation groundTerm,
 			State state) throws ResolutionError {
-
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
 		// against the same ground term.
@@ -209,7 +204,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
-		Expr.VariableAccess access = new Expr.VariableAccess(variable);
+		Expr access = new Expr.VariableAccess(variable);
 		grounded = (Formula) substitute(access, binding, grounded);
 		// Expand any type invariant associated with this variable
 		Formula invariant = types.extractInvariant(variable.getType(), new Expr.VariableAccess(variable));
@@ -228,8 +223,6 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		}
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
-		grounded = Formulae.simplifyFormula(grounded, types);
-		grounded = (Formula) construct(state,grounded);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 
@@ -269,6 +262,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 		ArrayList<Expr> result = new ArrayList<>();
 		//
 		if (quantified instanceof Formula.Inequality && ground instanceof Formula.Inequality) {
+			//
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
 			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
@@ -346,13 +340,12 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	private List<Expr> bind(Proof.State state, VariableDeclaration variable, Expr quantified, Expr ground, Match kind) throws ResolutionError {
 		//
 		if (containsTrigger(quantified,variable)) {
-			Expr.VariableAccess access = new Expr.VariableAccess(variable);
+			Expr access = new Expr.VariableAccess(variable);
 			List<Expr> candidates = determineGroundTerms(ground, new ArrayList<>());
 			List<Expr> result = new ArrayList<>();
 			for (int i = 0; i != candidates.size(); ++i) {
 				Expr candidate = candidates.get(i);
 				Expr attempt = (Expr) substitute(access, candidate, quantified);
-				attempt = Formulae.simplify(attempt, types);
 				// Attempt the match
 				if (match(attempt,ground,kind)) {
 					// Awesome, we made a correct guess!!!
@@ -366,18 +359,12 @@ public class ExhaustiveQuantifierInstantiation extends AbstractProofRule impleme
 	}
 
 	private boolean match(Expr attempt, Expr ground, Match kind) {
-		if(!(ground instanceof Polynomial)) {
-			ground = Formulae.toPolynomial(ground);
-		}
-		if(!(attempt instanceof Polynomial)) {
-			attempt = Formulae.toPolynomial(attempt);
-		}
 		//
-		Polynomial lhs = (Polynomial) attempt;
-		Polynomial rhs = (Polynomial) ground;
-		Polynomial difference = lhs.subtract(rhs);
+		Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(attempt);
+		Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(ground);
+		Arithmetic.Polynomial difference = lhs.subtract(rhs);
 		if (difference.isConstant()) {
-			BigInteger diff = difference.toConstant().get();
+			BigInteger diff = difference.toConstant();
 			if(kind == Match.EXACT) {
 				return diff.compareTo(BigInteger.ZERO) == 0;
 			} else if (kind == Match.POSITIVE) {

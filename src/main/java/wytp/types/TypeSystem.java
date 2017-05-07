@@ -22,19 +22,29 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.WyalFileResolver;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
 import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
+import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.NullTypeInfererence;
 
 public class TypeSystem {
+	/**
+	 * The "null" environment provides a simple environment which simply falls
+	 * back to using the declared type for a given variable.
+	 */
+	public  final static TypeInferer.Environment NULL_ENVIRONMENT = new NullTypeEnvironment();
+	//
 	private final NameResolver resolver;
 	private final SubtypeOperator coerciveSubtypeOperator;
 	private final ReadableRecordExtractor readableRecordExtractor;
 	private final ReadableArrayExtractor readableArrayExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
+	private final TypeInferer typeInfererence;
 
 	public TypeSystem() {
 		this.resolver = new WyalFileResolver();
@@ -42,6 +52,7 @@ public class TypeSystem {
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
 		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
+		this.typeInfererence = new NullTypeInfererence(this);
 	}
 
 	/**
@@ -137,8 +148,25 @@ public class TypeSystem {
 	 *
 	 *
 	 */
-	public Formula extractInvariant(Type type, Expr root)  throws ResolutionError {
+	public Formula extractInvariant(Type type, Expr root) throws ResolutionError {
 		return typeInvariantExtractor.extract(type,root);
+	}
+
+	// ========================================================================
+	// Inference
+	// ========================================================================
+
+	/**
+	 * Get the type inferred for a given expression in a given environment.
+	 *
+	 * @param environment
+	 * @param expression
+	 * @return
+	 * @throws ResolutionError
+	 *             Occurs when a particular named type cannot be resolved.
+	 */
+	public Type inferType(TypeInferer.Environment environment, Expr expression) throws ResolutionError {
+		return typeInfererence.getInferredType(environment, expression);
 	}
 
 	// ========================================================================

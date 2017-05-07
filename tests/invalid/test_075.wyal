@@ -1,0 +1,3 @@
+define f(int&!int x) is:
+    x >= 0
+
