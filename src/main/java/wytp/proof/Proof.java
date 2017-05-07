@@ -23,6 +23,7 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wytp.proof.Formula.Disjunct;
+import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
 public interface Proof {
@@ -119,6 +120,16 @@ public interface Proof {
 		Rule getRule();
 
 		/**
+		 * Get the typing environment at this state in a given proof. The type
+		 * environment gives the current type for all declared variables. The
+		 * environment is not static as the type of a given variable can be
+		 * refined at any given state as more facts become known.
+		 *
+		 * @return
+		 */
+		TypeInferer.Environment getTypeEnvironment();
+
+		/**
 		 * Get the formulae on which this step depends
 		 *
 		 * @return
@@ -170,6 +181,24 @@ public interface Proof {
 		 * @return
 		 */
 		State infer(Proof.Rule rule, Formula truth, Formula... dependencies);
+
+		/**
+		 * Refine the type of a given variable in this state. That is, make the
+		 * type more precise at this point.
+		 *
+		 * @param rule
+		 *            The rule which is causing this particular refinement.
+		 * @param variable
+		 *            The variable whose type is being refined.
+		 * @param type
+		 *            The type which this variable is refined with.
+		 * @param dependencies
+		 *            The immediate dependencies needed to establish this
+		 *            refinement.
+		 *
+		 * @return
+		 */
+		State refine(Proof.Rule rule, WyalFile.VariableDeclaration variable, WyalFile.Type type, Formula... dependencies);
 	}
 
 	/**

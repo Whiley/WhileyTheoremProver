@@ -24,13 +24,13 @@ import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.WyalFileResolver;
-import wyal.util.WyalTypeInferer;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
 import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
 import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.NullTypeInfererence;
 
 public class TypeSystem {
 	/**
@@ -44,7 +44,7 @@ public class TypeSystem {
 	private final ReadableRecordExtractor readableRecordExtractor;
 	private final ReadableArrayExtractor readableArrayExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
-	private final TypeInferer typeInferer;
+	private final TypeInferer typeInfererence;
 
 	public TypeSystem() {
 		this.resolver = new WyalFileResolver();
@@ -52,7 +52,7 @@ public class TypeSystem {
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
 		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
-		this.typeInferer = new WyalTypeInferer(this);
+		this.typeInfererence = new NullTypeInfererence(this);
 	}
 
 	/**
@@ -165,8 +165,8 @@ public class TypeSystem {
 	 * @throws ResolutionError
 	 *             Occurs when a particular named type cannot be resolved.
 	 */
-	public Type inferType(Expr expression) throws ResolutionError {
-		return typeInferer.getInferredType(null, expression);
+	public Type inferType(TypeInferer.Environment environment, Expr expression) throws ResolutionError {
+		return typeInfererence.getInferredType(environment, expression);
 	}
 
 	// ========================================================================

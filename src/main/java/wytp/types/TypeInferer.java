@@ -38,7 +38,9 @@ public interface TypeInferer {
 	 * Get the type inferred for a given expression in a given environment.
 	 *
 	 * @param environment
+	 *            Environment to be used when resolving the type of a variable
 	 * @param expression
+	 *            The expression whose type is to be infered.
 	 * @return
 	 * @throws ResolutionError
 	 *             Occurs when a particular named type cannot be resolved.

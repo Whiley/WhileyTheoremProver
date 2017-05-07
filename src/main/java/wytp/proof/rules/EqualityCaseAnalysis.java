@@ -59,8 +59,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Formula.Equality eq = (Formula.Equality) truth;
 			Expr lhs = eq.getOperand(0);
 			Expr rhs = eq.getOperand(1);
-			Type lhsT = types.inferType(lhs);
-			Type rhsT = types.inferType(rhs);
+			Type lhsT = types.inferType(state.getTypeEnvironment(),lhs);
+			Type rhsT = types.inferType(state.getTypeEnvironment(),rhs);
 			if (lhsT != null && rhsT != null) {
 				Type intersection = new Type.Intersection(lhsT, rhsT);
 				//
@@ -134,7 +134,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	}
 
 	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
-		Type lhs_t = types.inferType(lhs);
+		Type lhs_t = types.inferType(state.getTypeEnvironment(),lhs);
 		Type.Record lhs_r = types.extractReadableRecord(lhs_t);
 		FieldDeclaration[] fields = lhs_r.getFields();
 		Formula[] clauses = new Formula[fields.length];
@@ -277,7 +277,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Expr va = new Expr.VariableAccess(var);
 		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
 		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
-		Formula body = notEquals(lhsAccess, rhsAccess, types);
+		Formula body = notEquals(state, lhsAccess, rhsAccess, types);
 		Expr lhsLen = new Expr.Operator(Opcode.EXPR_arrlen, lhs);
 		Expr rhsLen = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
 		// The following axiom simply states that the length of every array
@@ -288,9 +288,9 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		return state.subsume(this, eq, axiom);
 	}
 
-	private static Formula notEquals(Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {
-		Type lhs_t = types.inferType(lhs);
-		Type rhs_t = types.inferType(rhs);
+	private static Formula notEquals(State state, Expr lhs, Expr rhs, TypeSystem types) throws ResolutionError {
+		Type lhs_t = types.inferType(state.getTypeEnvironment(),lhs);
+		Type rhs_t = types.inferType(state.getTypeEnvironment(),rhs);
 		if (types.isRawSubtype(new Type.Int(), lhs_t) || types.isRawSubtype(new Type.Int(), rhs_t)) {
 			return new ArithmeticEquality(false, lhs, rhs);
 		} else {

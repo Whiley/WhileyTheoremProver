@@ -27,6 +27,7 @@ import wytp.proof.Proof.State;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
+import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
 /**
@@ -112,8 +113,6 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 
 	@Override
 	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula newTruth) throws ResolutionError {
-		// FIXME: this is not really an ideal way to do this because it repeats
-		// code from AbstractClosureRule. However, for now, it works.
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
 			head = apply(existingTruths, test, head);
@@ -132,7 +131,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 	 */
 	private State apply(Proof.Delta.Set existingTruths, Formula.Is typeTest, Proof.State state) throws ResolutionError {
 		Expr lhs = typeTest.getExpr();
-		Type lhsT = types.inferType(lhs);
+		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 		Type rhsT = typeTest.getTypeTest();
 		if (lhsT != null) {
 			// FIXME: at the moment, TypeSystem.intersect is not working
@@ -173,24 +172,20 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		return state;
 	}
 
-	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type intersection, Proof.State state) {
-		Expr.VariableAccess oldVar = (Expr.VariableAccess) typeTest.getOperand(0);
-		VariableDeclaration oldDeclaration = oldVar.getVariableDeclaration();
-		String tmp = oldDeclaration.getVariableName().get() + "'";
-		VariableDeclaration newDeclaration = new VariableDeclaration(intersection, new WyalFile.Identifier(tmp));
-		Expr.VariableAccess newVar = new Expr.VariableAccess(newDeclaration);
-		//
-		for (int i = 0; i != existingTruths.size(); ++i) {
-			Formula existing = existingTruths.get(i);
-			if(existing != typeTest) {
-				Formula updated = (Formula) substitute(oldVar, newVar, existing);
-				if (updated != existing) {
-					// See #75. This basically isn't working any more because of
-					// the way that the proof branch mechanism works now.
-					//state = state.subsume(this, existing, updated, typeTest);
-				}
-			}
+	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type refinement,
+			Proof.State state) throws ResolutionError {
+		Expr.VariableAccess variable = (Expr.VariableAccess) typeTest.getOperand(0);
+		VariableDeclaration declaration = variable.getVariableDeclaration();
+		TypeInferer.Environment environment = state.getTypeEnvironment();
+		// Check whether or not the type has actually changed in some sense
+		WyalFile.Type type = environment.getType(declaration);
+		if (types.isRawSubtype(type, refinement) && !types.isRawSubtype(refinement, type)) {
+			state = state.refine(this, declaration, refinement, typeTest);
 		}
+		//
+		// FIXME: any formula which uses the given variable should be
+		// reconsidered? For example, that fact may have been ignored thus far
+		// because the type returned in a given situation was null.
 		//
 		return state;
 	}
@@ -234,7 +229,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		Type type = new Type.Intersection(bounds);
 		Formula test = new Formula.Is(first.getExpr(), type);
 		//
-		for(int i=0;i!=matches.size();++i) {
+		for (int i = 0; i != matches.size(); ++i) {
 			state = state.subsume(this, matches.get(i), test);
 		}
 		//
