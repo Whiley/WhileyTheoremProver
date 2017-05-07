@@ -61,7 +61,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private int maxProofSize = 1000;
+	private int maxProofSize = 2000;
 
 	/**
 	 * Debugging option which prints the proof to the console. This should

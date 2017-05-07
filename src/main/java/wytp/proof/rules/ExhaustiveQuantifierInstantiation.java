@@ -52,8 +52,8 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 
 	@Override
 	public State apply(Proof.Delta.Set existingTruths, Proof.State state, Formula newTruth) throws ResolutionError {
-		if (newTruth instanceof Formula.Equation) {
-			Formula.Equation ground = (Formula.Equation) newTruth;
+		if (newTruth instanceof Formula.ArithmeticEquation) {
+			Formula.ArithmeticEquation ground = (Formula.ArithmeticEquation) newTruth;
 			return instantiateQuantifiers(existingTruths, ground, state);
 		} else if (newTruth instanceof Formula.Quantifier) {
 			Formula.Quantifier quantifier = (Formula.Quantifier) newTruth;
@@ -101,7 +101,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 	 * @param state
 	 * @return
 	 */
-	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.Equation groundTerm, State state) throws ResolutionError {
+	private State instantiateQuantifiers(Proof.Delta.Set existingTruths, Formula.ArithmeticEquation groundTerm, State state) throws ResolutionError {
 		// At this point, we have an equality or inequality which potentially
 		// could be used to instantiate one or more existing (universal)
 		// quantifiers. Therefore, we need to look back through the history to
