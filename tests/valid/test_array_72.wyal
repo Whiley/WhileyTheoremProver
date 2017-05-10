@@ -1,0 +1,16 @@
+define invariant(int[] items, int n) is:
+    forall (int i):
+        if:
+            i < n
+        then:
+            items[i] == 0
+            
+assert:
+    forall (int[] items, int n):
+        if:
+            invariant(items,n)
+            items[n] == 0
+        then:
+            invariant(items,n+1)
+
+

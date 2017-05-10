@@ -53,16 +53,7 @@ public class ValidTest {
 	public final static Map<String, String> IGNORED = new HashMap<>();
 
 	static {
-		IGNORED.put("test_array_06", "??");
-		IGNORED.put("test_array_15", "??");
-		IGNORED.put("test_array_26", "??");
-		IGNORED.put("test_array_50", "??");
-		IGNORED.put("test_array_60", "??");
-		IGNORED.put("test_array_61", "??");
-		IGNORED.put("test_array_64", "??");
-		IGNORED.put("test_array_68", "??");
-		IGNORED.put("test_record_14", "??");
-		IGNORED.put("test_record_18", "#76");
+		IGNORED.put("test_array_15", "hard ??");
 		//
 		IGNORED.put("test_arith_12", "#2");
 		//
@@ -77,22 +68,38 @@ public class ValidTest {
 		IGNORED.put("test_arith_28", "#40");
 		//
 		IGNORED.put("test_array_29", "#41");
+		IGNORED.put("test_array_61", "#41");
+		IGNORED.put("test_array_68", "#41");
 		//
 		IGNORED.put("test_array_31", "#42");
 		//
 		IGNORED.put("test_record_08", "#59");
 		//
-		IGNORED.put("test_type_77", "#31");
-		IGNORED.put("test_type_78", "#31");
-		//
 		IGNORED.put("test_type_90", "#72");
 		//
-		IGNORED.put("test_array_44", "#74");
+		IGNORED.put("test_record_18", "#76");
 		//
 		IGNORED.put("test_type_91", "#77");
 		IGNORED.put("test_type_92", "#77");
 		//
+		IGNORED.put("test_type_77", "#80");
+		IGNORED.put("test_type_78", "#80");
+		//
 		IGNORED.put("test_arith_41", "#86");
+		//
+		IGNORED.put("test_array_06", "#90");
+		IGNORED.put("test_array_26", "#90");
+		IGNORED.put("test_array_60", "#90");
+		//
+		IGNORED.put("test_array_64", "#91");
+		IGNORED.put("test_array_69", "#91");
+		IGNORED.put("test_array_70", "#91");
+		IGNORED.put("test_array_71", "#91");
+		//
+		IGNORED.put("test_record_14", "#92");
+		//
+		IGNORED.put("test_array_44", "#93");
+		IGNORED.put("test_array_72", "#93");
 	}
 
 	// ======================================================================
