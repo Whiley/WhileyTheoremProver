@@ -1,0 +1,8 @@
+assert:
+    forall(int x, int y, int z):
+        if:
+            y == (2 * x)
+            z == (y+2)
+        then:
+            z == (2 * (x+1))
+
