@@ -197,7 +197,7 @@ public class Formulae {
 				Expr TRUE = new Formula.Truth(new Value.Bool(true));
 				return new Formula.Equality(true, ivk, TRUE);
 			} else {
-				return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getArguments());
+				return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getSelector(), ivk.getArguments());
 			}
 		}
 		case EXPR_is: {
@@ -314,7 +314,7 @@ public class Formulae {
 		}
 		case EXPR_invoke: {
 			Invoke e = (Invoke) f;
-			return new Formula.Invoke(!e.getSign(),e.getSignatureType(),e.getName(),e.getArguments());
+			return new Formula.Invoke(!e.getSign(),e.getSignatureType(),e.getName(),e.getSelector(),e.getArguments());
 		}
 		case EXPR_is: {
 			Formula.Is c = (Formula.Is) f;

@@ -459,6 +459,11 @@ public class WyalFilePrinter {
 		out.print("(");
 		writeArguments(expr.getArguments().getOperands());
 		out.print(")");
+		Value.Int selector = expr.getSelector();
+		if(selector != null) {
+			out.print("#");
+			out.print(selector.get());
+		}
 	}
 
 	public void writeArrayGenerator(Expr.Operator expr) {

@@ -21,6 +21,7 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
@@ -102,14 +103,11 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 	}
 
 	private Formula expandFunctionPostcondition(Declaration.Named.Function decl, Expr.Invoke ivk) throws ResolutionError {
-		Formula precondition = null;
 		Tuple<VariableDeclaration> returns = decl.getReturns();
-		for (int i = 0; i != returns.size(); ++i) {
-			VariableDeclaration parameter = returns.getOperand(i);
-			Formula clause = types.extractInvariant(parameter.getType(), ivk);
-			precondition = or(precondition, clause);
-		}
-		return precondition;
+		Value.Int selector = ivk.getSelector();
+		int index = selector == null ? 0 : selector.get().intValue();
+		VariableDeclaration parameter = returns.getOperand(index);
+		return types.extractInvariant(parameter.getType(), ivk);
 	}
 
 	private Formula or(Formula lhs, Formula rhs) {

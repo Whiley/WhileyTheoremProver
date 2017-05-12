@@ -20,6 +20,7 @@ import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.Value;
 import wycc.util.ArrayUtils;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
@@ -122,10 +123,14 @@ public class NullTypeInfererence implements TypeInferer {
 	protected Type inferInvoke(Environment environment, Expr.Invoke expr) {
 		Type.FunctionOrMacroOrInvariant type = expr.getSignatureType();
 		Tuple<Type> returns = type.getReturns();
-		if (returns.size() != 1) {
+		Value.Int selector = expr.getSelector();
+
+		if (selector == null && returns.size() != 1) {
 			throw new IllegalArgumentException("need support for multiple returns");
-		} else {
+		} else if(selector == null) {
 			return returns.getOperand(0);
+		} else {
+			return returns.getOperand(selector.get().intValue());
 		}
 	}
 

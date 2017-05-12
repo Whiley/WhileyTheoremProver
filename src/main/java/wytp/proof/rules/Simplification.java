@@ -313,7 +313,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
-			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
+			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),ivk.getSelector(),nArgs);
 		}
 	}
 
@@ -503,7 +503,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
-			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
+			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),ivk.getSelector(),nArgs);
 		}
 	}
 

@@ -117,7 +117,6 @@ public class ReadableRecordExtractor extends AbstractTypeExtractor<Type.Record> 
 			}
 		}
 		if(fields.size() != lhsFields.length) {
-			System.out.println("GOT HERE");
 			// FIXME: need to handle the case of open records here.
 			return lhs;
 		} else {

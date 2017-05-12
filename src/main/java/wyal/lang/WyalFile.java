@@ -1196,12 +1196,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			// FIXME: making the arguments a tuple prevents traversals following
 			// the line of expressions.
 
-			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Expr... arguments) {
-				super(Opcode.EXPR_invoke, type, name, new Tuple<>(arguments));
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Integer selector, Expr... arguments) {
+				super(Opcode.EXPR_invoke, type, name, selector != null ? new Value.Int(selector) : null, new Tuple<>(arguments));
 			}
 
-			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Tuple<Expr> arguments) {
-				super(Opcode.EXPR_invoke, type, name, arguments);
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Value.Int selector, Tuple<Expr> arguments) {
+				super(Opcode.EXPR_invoke, type, name, selector, arguments);
 			}
 
 			public Type.FunctionOrMacroOrInvariant getSignatureType() {
@@ -1216,13 +1216,18 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return (Name) getOperand(1);
 			}
 
+			public Value.Int getSelector() {
+				return (Value.Int) getOperand(2);
+			}
+
 			public Tuple<Expr> getArguments() {
-				return (Tuple) getOperand(2);
+				return (Tuple) getOperand(3);
 			}
 
 			@Override
 			public Invoke clone(SyntacticItem[] operands) {
-				return new Invoke((Type.FunctionOrMacroOrInvariant) operands[0], (Name) operands[1], (Tuple) operands[2]);
+				return new Invoke((Type.FunctionOrMacroOrInvariant) operands[0], (Name) operands[1],
+						(Value.Int) operands[2], (Tuple) operands[3]);
 			}
 		}
 

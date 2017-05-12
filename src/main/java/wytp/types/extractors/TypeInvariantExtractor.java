@@ -105,7 +105,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
 				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
-				return new Formula.Invoke(true, ft, nom.getName(), root);
+				return new Formula.Invoke(true, ft, nom.getName(), null, root);
 			}
 		}
 		case TYPE_rec: {

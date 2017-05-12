@@ -191,7 +191,7 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 		for (int i = 0; i != size(); ++i) {
 			SyntacticItem my_ith = getOperand(i);
 			SyntacticItem other_ith = other.getOperand(i);
-			if (my_ith == null) {
+			if (my_ith == null || other_ith == null) {
 				if(other_ith == null) {
 					return 0;
 				} else {

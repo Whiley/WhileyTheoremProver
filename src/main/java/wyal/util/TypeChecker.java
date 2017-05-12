@@ -595,10 +595,14 @@ public class TypeChecker {
 		// Replace old object with fully resolved object
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
-		if (type.getReturns().size() != 1) {
+		Value.Int selector = expr.getSelector();
+		//
+		if (selector == null && type.getReturns().size() != 1) {
 			throw new SyntaxError("invalid number of returns", parent.getEntry(), expr);
-		} else {
+		} else if(selector == null){
 			return type.getReturns().getOperand(0);
+		} else {
+			return type.getReturns().getOperand(selector.get().intValue());
 		}
 	}
 

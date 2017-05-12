@@ -1167,9 +1167,15 @@ public class WyalFileParser {
 		WyalFile.Name nid = parseNameID(scope);
 		// Parse arguments
 		Expr[] args = parseInvocationArguments(scope);
+		// Parse selector (if present)
+		Integer selector = null;
+		if(tryAndMatch(terminated,Hash) != null) {
+			Token t = match(IntValue);
+			selector = new Integer(t.text);
+		}
 		// Construct relevant bytecode. The type signature is left as null at
 		// this stage, since we cannot determined at this point.
-		Expr ivk = new Expr.Invoke(null, nid, args);
+		Expr ivk = new Expr.Invoke(null, nid, selector, args);
 		ivk.attributes().add(sourceAttr(start, index - 1));
 		return ivk;
 	}
