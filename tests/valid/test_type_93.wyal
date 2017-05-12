@@ -1,0 +1,7 @@
+type Expr is (int|BinOp|Var this)
+type BinOp is ({Expr lhs, Expr rhs} this)
+type Var is ({int[] id} this)
+
+assert:
+    forall((!int)&(!{int[] id})&Expr e3):
+         e3.lhs is Expr
