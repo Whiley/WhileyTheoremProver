@@ -13,6 +13,7 @@
 // limitations under the License.
 package wyal.util;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,14 +25,34 @@ import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Name;
+import wybs.lang.Build;
+import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
+import wyfs.lang.Path;
+import wyfs.util.Trie;
 
 public class WyalFileResolver implements NameResolver {
+	private final Build.Project project;
+
+	public WyalFileResolver(Build.Project project) {
+		this.project = project;
+	}
 
 	@Override
-	public Name resolveFully(Name name) {
-		// FIXME: this is clearly broken.
-		return name;
+	public NameID resolve(Name name) throws NameNotFoundError {
+		if (name.size() == 1) {
+			// This name is not fully qualified. Therefore, attempt to resolve
+			// it.
+			WyalFile enclosing = (WyalFile) name.getParent();
+			if (lookup(name.getOperand(0), enclosing, Named.class)) {
+				return new NameID(enclosing.getEntry().id(), name.getOperand(0).get());
+			}
+			// FIXME: need to process imports here!
+			throw new NameResolver.NameNotFoundError(name);
+		} else {
+			// This must be already fully qualified.
+			return name.toNameID();
+		}
 	}
 
 	@Override
@@ -48,28 +69,61 @@ public class WyalFileResolver implements NameResolver {
 	@Override
 	public <T extends Named> List<T> resolveAll(Name name, Class<T> kind)
 			throws NameNotFoundError {
-		ArrayList<T> result = new ArrayList<>();
-		Identifier[] components = name.getComponents(); // FIXME: need to handle
-		// case where more than one component
-		Identifier last = components[components.length - 1];
+		try {
+			NameID nid = resolve(name);
+			WyalFile enclosing = project.get(nid.module(), WyalFile.ContentType).read();
+			ArrayList<T> result = new ArrayList<>();
+			// Look through the enclosing file first!
+			for (int i = 0; i != enclosing.size(); ++i) {
+				SyntacticItem item = enclosing.getSyntacticItem(i);
+				if (item instanceof Declaration.Named) {
+					Declaration.Named nd = (Declaration.Named) item;
+					if (nd.getName().get().equals(nid.name()) && kind.isInstance(nd)) {
+						result.add((T) nd);
+					}
+				}
+			}
+			//
+			if (result.isEmpty()) {
+				throw new NameResolver.NameNotFoundError(name);
+			} else {
+				//
+				return result;
+			}
+		} catch (IOException e) {
+			// Slight unclear what the best course of action is here.
+			throw new NameResolver.NameNotFoundError(name);
+		}
+	}
+
+	/**
+	 * Look up the given named item in the given heap. The precondition is that
+	 * this name has exactly one component.
+	 *
+	 * @param name
+	 * @param heap
+	 * @param kind
+	 * @return
+	 * @throws NameNotFoundError
+	 */
+	private <T extends Named> boolean lookup(Identifier name, SyntacticHeap heap, Class<T> kind) {
+		int count = 0;
 		// Look through the enclosing file first!
-		SyntacticHeap parent = name.getParent();
-		for (int i = 0; i != parent.size(); ++i) {
-			SyntacticItem item = parent.getSyntacticItem(i);
+		for (int i = 0; i != heap.size(); ++i) {
+			SyntacticItem item = heap.getSyntacticItem(i);
 			if (item instanceof Declaration.Named) {
 				Declaration.Named nd = (Declaration.Named) item;
-				if (nd.getName().equals(last) && kind.isInstance(nd)) {
-					result.add((T) nd);
+				if (nd.getName().equals(name)) {
+					count = count + 1;
 				}
 			}
 		}
 		//
-		if (result.isEmpty()) {
-			throw new NameResolver.NameNotFoundError(name);
+		if (count == 0) {
+			return false;
 		} else {
 			//
-			return result;
+			return true;
 		}
 	}
-
 }

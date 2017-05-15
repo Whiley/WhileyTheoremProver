@@ -18,19 +18,44 @@ import java.util.List;
 
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Name;
+import wybs.lang.NameID;
 import wybs.lang.SyntacticElement;
 
+/**
+ * Responsible for resolving a name which occurs at some position in a
+ * compilation unit. This takes into account the context and, if necessary, will
+ * traverse important statements to resolve the query. For example, consider a
+ * compilation unit entitled "file":
+ *
+ * <pre>
+ * import whiley.lang.*
+ *
+ * function f(T1 x, T2 y) -> (int r):
+ *    return g(x,y)
+ * </pre>
+ *
+ * Here the name "<code>g</code>" is not fully qualified. Depending on which
+ * file the matching declaration of <code>g</code> occurs will depend on what
+ * its fully qualified name is. For example, if <code>g</code> is declared in
+ * the current compilation unit then it's fully quaified name would be
+ * <code>test.g</code>. However, it could well be declared in a compilation unit
+ * matching the import <code>whiley.lang.*</code>.
+ *
+ * @author David J. Pearce
+ *
+ */
 public interface NameResolver {
 
 	/**
 	 * Fully resolve a given name which occurs at some position in a compilation
 	 * unit. This takes into account the context and, if necessary, will
-	 * traverse important statements to resolve the query.
+	 * traverse important statements to resolve the query. This is the primary
+	 * function of a name resolver, and all other functions build on this.
 	 *
 	 * @param name
 	 * @return
 	 */
-	public Name resolveFully(Name name);
+	public NameID resolve(Name name) throws ResolutionError;
 
 	/**
 	 * <p>

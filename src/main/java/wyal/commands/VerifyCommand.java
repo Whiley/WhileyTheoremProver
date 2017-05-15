@@ -254,7 +254,7 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	 */
 	protected void addWhiley2WyalBuildRule(StdProject project) {
 		// Rule for compiling Whiley to WyIL
-		TypeSystem typeSystem = new TypeSystem();
+		TypeSystem typeSystem = new TypeSystem(project);
 		AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
 		prover.setPrintProof(printProof);
 		prover.setProofLimit(proofLimit);
