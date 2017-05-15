@@ -27,10 +27,12 @@ import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wybs.lang.CompilationUnit;
+import wybs.lang.NameID;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.lang.Path.Entry;
+import wyfs.util.Trie;
 import wytp.proof.Proof;
 
 public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
@@ -321,6 +323,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				r += "." + getOperand(1).get();
 			}
 			return r;
+		}
+
+		public NameID toNameID() {
+			Trie pkg = Trie.ROOT;
+			for (int i = 0; i < size() - 1; ++i) {
+				pkg = pkg.append(getOperand(i).get());
+			}
+			String n = getOperand(size() - 1).get();
+			return new NameID(pkg, n);
 		}
 	}
 
