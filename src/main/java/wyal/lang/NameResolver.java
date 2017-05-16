@@ -79,7 +79,7 @@ public interface NameResolver {
 	 * @return
 	 */
 	public <T extends Declaration.Named> T resolveExactly(Name name, Class<T> kind)
-			throws NameNotFoundError, AmbiguousNameError;
+			throws ResolutionError;
 
 	/**
 	 * <p>
@@ -99,7 +99,7 @@ public interface NameResolver {
 	 * @return
 	 */
 	public <T extends Declaration.Named> List<T> resolveAll(Name name, Class<T> kind)
-			throws NameNotFoundError;
+			throws ResolutionError;
 
 	/**
 	 * A resolution error occurs when a given name cannot be successfully

@@ -448,8 +448,30 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
+			public Identifier getOperand(int i) {
+				return (Identifier) super.getOperand(i);
+			}
+
+			@Override
 			public Import clone(SyntacticItem[] operands) {
 				return new Import((Identifier[]) operands);
+			}
+
+			@Override
+			public String toString() {
+				String r = "import ";
+				for(int i=0;i!=size();++i) {
+					if(i != 0) {
+						r += ".";
+					}
+					Identifier component = getOperand(i);
+					if(component == null) {
+						r += "*";
+					} else {
+						r += component.get();
+					}
+				}
+				return r;
 			}
 		}
 
