@@ -192,7 +192,10 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			// invariant from here or not.
 			return null;
 		}
-		case TYPE_ref:
+		case TYPE_ref: {
+			Type.Reference t = (Type.Reference) type;
+			return extractTypeInvariant(t.getElement(), new Expr.Dereference(root), visited);
+		}
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
 		}

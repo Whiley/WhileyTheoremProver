@@ -172,16 +172,20 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		EXPR_mul(53),
 		EXPR_div(54),
 		EXPR_rem(55),
-		EXPR_recfield(56),
-		EXPR_recupdt(57),
-		EXPR_arridx(58),
-		EXPR_arrlen(59),
-		EXPR_arrupdt(60),
+		// REFERENCES
+		EXPR_deref(56),
+		// RECORDS
+		EXPR_recfield(57),
+		EXPR_recupdt(58),
+		// ARRAYS
+		EXPR_arridx(59),
+		EXPR_arrlen(60),
+		EXPR_arrupdt(61),
 		// Initialisers come later so they not given preference for
 		// substitution.
-		EXPR_arrgen(61),
-		EXPR_arrinit(62),
-		EXPR_recinit(63),
+		EXPR_arrgen(62),
+		EXPR_arrinit(63),
+		EXPR_recinit(64),
 		// BASE
 		CONST_null(66),
 		CONST_bool(67),
@@ -780,7 +784,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		public static class Reference extends Atom {
 			public Reference(Type element) {
-				super(Opcode.TYPE_arr, element);
+				super(Opcode.TYPE_ref, element);
 			}
 
 			public Type getElement() {
@@ -1876,6 +1880,38 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					throw new IllegalArgumentException("invalid number of operands");
 				}
 				return new Negation((Expr) operands[0]);
+			}
+
+
+			@Override
+			public String toString() {
+				return "-" + getOperand();
+			}
+		}
+
+		// =========================================================================
+		// Reference Expressions
+		// =========================================================================
+		public static class Dereference extends Operator {
+			public Dereference(Expr operand) {
+				super(Opcode.EXPR_deref, operand);
+			}
+
+			public Expr getOperand() {
+				return getOperand(0);
+			}
+
+			@Override
+			public Expr clone(SyntacticItem[] operands) {
+				if (operands.length != 1) {
+					throw new IllegalArgumentException("invalid number of operands");
+				}
+				return new Dereference((Expr) operands[0]);
+			}
+
+			@Override
+			public String toString() {
+				return "*" + getOperand();
 			}
 		}
 
