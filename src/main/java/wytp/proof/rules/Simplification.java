@@ -313,15 +313,15 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
-			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),nArgs);
+			return new Invoke(ivk.getSign(),ivk.getSignatureType(),ivk.getName(),ivk.getSelector(),nArgs);
 		}
 	}
 
 	private Formula simplifyIs(Formula.Is e) throws ResolutionError {
-		Expr lhs = e.getExpr();
+		Expr lhs = e.getTestExpr();
 		Expr nLhs = simplifyExpression(lhs);
 		if(lhs != nLhs) {
-			return new Formula.Is(nLhs, e.getTypeTest());
+			return new Formula.Is(nLhs, e.getTestType());
 		} else {
 			return e;
 		}
@@ -371,15 +371,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		case EXPR_neg:
 		case EXPR_add:
 		case EXPR_mul:
-		case EXPR_sub: {
+		case EXPR_sub:
 			return simplifyArithmetic((Expr.Operator) e);
-		}
 		case EXPR_recinit:
 			return simplifyRecordInitialiser((Expr.RecordInitialiser) e);
 		case EXPR_recfield:
 			return simplifyRecordAccess((Expr.RecordAccess) e);
 		case EXPR_recupdt:
 			return simplifyRecordUpdate((Expr.RecordUpdate) e);
+		case EXPR_deref:
+			return simplifyDereference((Expr.Dereference) e);
 		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
@@ -486,6 +487,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
+	private Expr simplifyDereference(Expr.Dereference e) throws ResolutionError {
+		Expr source = e.getOperand();
+		Expr nSource = simplifyExpression(source);
+		if (source == nSource) {
+			return e;
+		} else {
+			return new Expr.Dereference(nSource);
+		}
+	}
+
 	private Expr simplifyInvoke(Expr.Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] children  = args.getOperands();
@@ -503,7 +514,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
-			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),nArgs);
+			return new Expr.Invoke(ivk.getSignatureType(),ivk.getName(),ivk.getSelector(),nArgs);
 		}
 	}
 
@@ -534,7 +545,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		if (source == nSource && index == nIndex) {
 			return e;
 		} else {
-			return new Expr.Operator(Opcode.EXPR_arridx, nSource, nIndex);
+			return new Expr.ArrayAccess(nSource, nIndex);
 		}
 	}
 
@@ -559,7 +570,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		if (source == nSource && index == nIndex && value == nValue) {
 			return e;
 		} else {
-			return new Expr.Operator(Opcode.EXPR_arrupdt, nSource, nIndex, nValue);
+			return new Expr.ArrayUpdate(nSource, nIndex, nValue);
 		}
 	}
 
@@ -572,7 +583,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			} else if (src.getOpcode() == Opcode.EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
 			} else if (src.getOpcode() == Opcode.EXPR_arrupdt) {
-				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen, (Expr) src.getOperand(0)));
+				return simplifyArrayLength(new Expr.ArrayLength((Expr) src.getOperand(0)));
 			}
 		}
 		return r;

@@ -441,8 +441,12 @@ public class WyalFileParser {
 			body = new Stmt.Block(unit);
 		}
 		//
-		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.STMT_forall : Opcode.STMT_exists;
-		Stmt stmt = new Stmt.Quantifier(kind, parameters, body);
+		Stmt stmt;
+		if(lookahead.kind == Forall) {
+			stmt = new Stmt.UniversalQuantifier(parameters, body);
+		} else {
+			stmt = new Stmt.ExistentialQuantifier(parameters, body);
+		}
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
@@ -567,15 +571,22 @@ public class WyalFileParser {
 		Token lookahead = tryAndMatch(terminated, INFIX_OPERATORS);
 		if (lookahead != null) {
 			// Yes, there is so try and parse operator sequence.
-			Opcode opcode = OPERATOR_MAP.get(lookahead.kind);
 			ArrayList<Expr> operands = new ArrayList<>();
 			operands.add(first);
 			do {
 				operands.add(parseAccessExpression(scope, terminated));
 			} while (tryAndMatch(terminated, lookahead.kind) != null);
 			//
-			Expr expr = new Expr.Operator(opcode, toExprArray(operands));
+			Expr expr = constructInfixExpression(lookahead, toExprArray(operands));
 			expr.attributes().add(sourceAttr(start, index - 1));
+			// Check for ambiguous operator expression
+			if ((lookahead = tryAndMatch(terminated, INFIX_OPERATORS)) != null) {
+				// If we get here, then it means we parsed a sequence of 1 or
+				// more operators of the same kind. But, now, we find another
+				// operator of a different kind.
+				syntaxError("ambiguous expression encountered (braces required)", lookahead);
+			}
+			//
 			return expr;
 		} else {
 			return first;
@@ -586,7 +597,7 @@ public class WyalFileParser {
 	 * Parse an <i>access expression</i>, which has the form:
 	 *
 	 * <pre>
-	 * AccessExpr::= PrimaryExpr
+	 * AccessExpr::= PathExpr
 	 *            | AccessExpr '[' AdditiveExpr ']'
 	 *            | AccessExpr '.' Identifier
 	 *            | AccessExpr '.' Identifier '(' [ Expr (',' Expr)* ] ')'
@@ -632,7 +643,7 @@ public class WyalFileParser {
 	 */
 	private Expr parseAccessExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
-		Expr lhs = parseTermExpression(scope, terminated);
+		Expr lhs = parsePathExpression(scope, terminated);
 		Token token;
 
 		while ((token = tryAndMatch(terminated, LeftSquare,LeftCurly, Dot, MinusGreater)) != null) {
@@ -644,12 +655,12 @@ public class WyalFileParser {
 					// This is an array update expression
 					Expr mhs = parseUnitExpression(scope, true);
 					match(RightSquare);
-					lhs = new Expr.Operator(Opcode.EXPR_arrupdt, lhs, rhs, mhs);
+					lhs = new Expr.ArrayUpdate(lhs, rhs, mhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				} else {
 					// This is a plain old array access expression
 					match(RightSquare);
-					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
+					lhs = new Expr.ArrayAccess(lhs, rhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				}
 				break;
@@ -674,6 +685,92 @@ public class WyalFileParser {
 		}
 
 		return lhs;
+	}
+
+	/**
+	 * Parse a <i>path expression</i> which has the form:
+	 *
+	 * <pre>
+	 * PathExpr::= | PrimaryExpr
+	 *             | Identifier '.' PathExpr
+	 *             | PathExpr '(' [ Expr (',' Expr)* ] ')'
+	 * </pre>
+	 *
+	 * The key distinction from an access expression is that the root identifier
+	 * is <i>non-local</i>. That is, it is not declared within the enclosing
+	 * declaration.
+	 *
+	 * @param scope
+	 * @param terminated
+	 * @return
+	 */
+	private Expr parsePathExpression(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		int next = skipLineSpace(index);
+		Token lookahead = tokens.get(next);
+		if (lookahead.kind != Identifier || scope.isDeclaredVariable(lookahead.text)) {
+			// This is not a path expression because either the next token is
+			// not an identifier, or the identifier is a local variable.
+			return parseTermExpression(scope, terminated);
+		} else {
+			Name nid = parseNameID(scope);
+			// At this point, either we have a function invocation, or we have a
+			// constant access.
+			lookahead = tokens.get(skipLineSpace(index));
+			if (lookahead.kind == LeftBrace) {
+				// This is a function invocation.
+				return parseInvokeExpression(nid, scope, start, terminated);
+			} else {
+				// This is a constant access
+				syntaxError("constant expression not supported", lookahead);
+				return null;
+			}
+		}
+	}
+
+	/**
+	 * Parse an invocation expression, which has the form:
+	 *
+	 * <pre>
+	 * InvokeExpr::= PathExpr '(' [ Expr (',' Expr)* ] ')'
+	 * </pre>
+	 *
+	 * Observe that this when this function is called, we're assuming that the
+	 * identifier and opening brace has already been matched.
+	 *
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
+	 * @param terminated
+	 *            This indicates that the expression is known to be terminated
+	 *            (or not). An expression that's known to be terminated is one
+	 *            which is guaranteed to be followed by something. This is
+	 *            important because it means that we can ignore any newline
+	 *            characters encountered in parsing this expression, and that
+	 *            we'll never overrun the end of the expression (i.e. because
+	 *            there's guaranteed to be something which terminates this
+	 *            expression). A classic situation where terminated is true is
+	 *            when parsing an expression surrounded in braces. In such case,
+	 *            we know the right-brace will always terminate this expression.
+	 *
+	 * @return
+	 */
+	private Expr parseInvokeExpression(Name nid, EnclosingScope scope, int start, boolean terminated) {
+		// Create a dummy nameid which will be resolved later on
+		// Parse arguments
+		Expr[] args = parseInvocationArguments(scope);
+		// Parse selector (if present)
+		Integer selector = null;
+		if (tryAndMatch(terminated, Hash) != null) {
+			Token t = match(IntValue);
+			selector = new Integer(t.text);
+		}
+		// Construct relevant bytecode. The type signature is left as null at
+		// this stage, since we cannot determined at this point.
+		Expr ivk = new Expr.Invoke(null, nid, selector, args);
+		ivk.attributes().add(sourceAttr(start, index - 1));
+		return ivk;
 	}
 
 	/**
@@ -706,9 +803,7 @@ public class WyalFileParser {
 		case LeftBrace:
 			return parseBracketedExpression(scope, terminated);
 		case Identifier:
-			if (isFunctionCall()) {
-				return parseInvokeExpression(scope, start, terminated);
-			} else if (scope.isDeclaredVariable(token.text)) {
+			if (scope.isDeclaredVariable(token.text)) {
 				// Signals a local variable access
 				match(Identifier);
 				VariableDeclaration decl = scope.getVariableDeclaration(token.text);
@@ -716,10 +811,8 @@ public class WyalFileParser {
 				expr.attributes().add(sourceAttr(start, index - 1));
 				return expr;
 			} else {
-				// Otherwise, this must be a constant access of some kind.
-				// Observe that, at this point, we cannot determine whether or
-				// not this is a constant-access or a package-access which marks
-				// the beginning of a constant-access.
+				// Otherwise, we have an error since this should have already
+				// been parsed as a path expression.
 			}
 			break;
 		case Null:
@@ -738,6 +831,8 @@ public class WyalFileParser {
 			return parseArrayInitialiserExpression(scope, terminated);
 		case LeftCurly:
 			return parseRecordExpression(scope, terminated);
+		case Star:
+			return parseDereferenceExpression(scope, terminated);
 		case Shreak:
 			return parseLogicalNotExpression(scope, terminated);
 		case Forall:
@@ -970,16 +1065,16 @@ public class WyalFileParser {
 		//
 		operands.add(parseUnitExpression(scope, true));
 		//
-		boolean isArray = true;
+		boolean isArrayInitialiser = true;
 		while (eventuallyMatch(RightSquare) == null) {
-			if (!isArray) {
+			if (!isArrayInitialiser) {
 				// Force failure
 				match(RightSquare);
 			} else if (tryAndMatch(true, SemiColon) == null) {
 				match(Comma);
 			} else {
 				// This indicates an array generator
-				isArray = false;
+				isArrayInitialiser = false;
 			}
 			// NOTE: we require the following expression be a "non-tuple"
 			// expression. That is, it cannot be composed using ',' unless
@@ -989,9 +1084,12 @@ public class WyalFileParser {
 			// ','.
 			operands.add(parseUnitExpression(scope, true));
 		}
-
-		Opcode kind = isArray ? Opcode.EXPR_arrinit : Opcode.EXPR_arrgen;
-		Expr expr = new Expr.Operator(kind,toExprArray(operands));
+		Expr expr;
+		if (isArrayInitialiser) {
+			expr = new Expr.ArrayInitialiser(toExprArray(operands));
+		} else {
+			expr = new Expr.ArrayGenerator(operands.get(0), operands.get(1));
+		}
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1063,7 +1161,7 @@ public class WyalFileParser {
 	}
 
 	/**
-	 * Parse a length of expression, which is of the form:
+	 * Parse an array length expression, which is of the form:
 	 *
 	 * <pre>
 	 * TermExpr::= ...
@@ -1093,7 +1191,7 @@ public class WyalFileParser {
 		match(VerticalBar);
 		Expr e = parseUnitExpression(scope, true);
 		match(VerticalBar);
-		e = new Expr.Operator(Opcode.EXPR_arrlen, e);
+		e = new Expr.ArrayLength(e);
 		e.attributes().add(sourceAttr(start, index - 1));
 		return e;
 	}
@@ -1129,20 +1227,18 @@ public class WyalFileParser {
 		match(Minus);
 		Expr expr = parseTermExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(Opcode.EXPR_neg, expr);
+		expr = new Expr.Negation(expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
 
+
 	/**
-	 * Parse an invocation expression, which has the form:
+	 * Parse a deference expression, which is of the form:
 	 *
 	 * <pre>
-	 * InvokeExpr::= Identifier '(' [ Expr (',' Expr)* ] ')'
+	 * RecordExpr ::= '*' Expr
 	 * </pre>
-	 *
-	 * Observe that this when this function is called, we're assuming that the
-	 * identifier and opening brace has already been matched.
 	 *
 	 * @param scope
 	 *            The enclosing scope for this expression. This identifies any
@@ -1162,44 +1258,15 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private Expr parseInvokeExpression(EnclosingScope scope, int start, boolean terminated) {
-		// Create a dummy nameid which will be resolved later on
-		WyalFile.Name nid = parseNameID(scope);
-		// Parse arguments
-		Expr[] args = parseInvocationArguments(scope);
-		// Construct relevant bytecode. The type signature is left as null at
-		// this stage, since we cannot determined at this point.
-		Expr ivk = new Expr.Invoke(null, nid, args);
-		ivk.attributes().add(sourceAttr(start, index - 1));
-		return ivk;
+	private Expr parseDereferenceExpression(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		match(Star);
+		Expr e = parseUnitExpression(scope, true);
+		e = new Expr.Dereference(e);
+		e.attributes().add(sourceAttr(start, index - 1));
+		return e;
 	}
 
-	/**
-	 * <p>
-	 * This function is called during parsing an expression after matching an
-	 * identifier. The goal is to determine whether what follows the identifier
-	 * indicates an invocation expression, or whether the identifier is just a
-	 * variable access of some sort.
-	 * </p>
-	 * <p>
-	 * Unfortunately, this function is rather "low-level". Essentially, it just
-	 * moves forwards through the tokens on the current line counting the nestng
-	 * level of any generic arguments it encounters. At the end, it looks to see
-	 * whether or not a left brace is present as, in this position, we can only
-	 * have an invocation.
-	 * </p>
-	 *
-	 * @return
-	 */
-	private boolean isFunctionCall() {
-		// First, attempt to parse a generic argument list if one exists.
-
-		int myIndex = this.index + 1; // skip identifier first
-
-		myIndex = skipLineSpace(myIndex);
-
-		return myIndex < tokens.size() && tokens.get(myIndex).kind == LeftBrace;
-	}
 
 	/**
 	 * Parse a sequence of arguments separated by commas that ends in a
@@ -1279,11 +1346,10 @@ public class WyalFileParser {
 		match(Shreak);
 		Expr expr = parseAccessExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(Opcode.EXPR_not, expr);
+		expr = new Expr.LogicalNot(expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
-
 
 	private Expr parseQuantifiedExpression(Token lookahead,EnclosingScope scope, boolean terminated) {
 		int start = index - 1;
@@ -1298,8 +1364,12 @@ public class WyalFileParser {
 		match(Dot);
 		Expr body = parseUnitExpression(scope, false);
 		//
-		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.EXPR_forall : Opcode.EXPR_exists;
-		Expr expr = new Expr.Quantifier(kind, parameters, body);
+		Expr expr;
+		if(lookahead.kind == Forall) {
+			expr = new Expr.UniversalQuantifier(parameters, body);
+		} else {
+			expr = new Expr.ExistentialQuantifier(parameters, body);
+		}
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1432,6 +1502,8 @@ public class WyalFileParser {
 			return parseRecordType(scope);
 		case Shreak:
 			return parseNegationType(scope);
+		case Ampersand:
+			return parseReferenceType(scope);
 		case Identifier:
 			return parseNominalType(scope);
 		case Function:
@@ -1472,13 +1544,14 @@ public class WyalFileParser {
 	/**
 	 * Parse a negation type, which is of the form:
 	 *
+	 * <pre>
+	 * NegationType ::= '!' Type
+	 * </pre>
+	 *
 	 * @param scope
 	 *            The enclosing scope for this expression. This identifies any
 	 *            generic arguments which are in scope, and also allocated each
 	 *            variable in scope to its location index.
-	 * <pre>
-	 * NegationType ::= '!' Type
-	 * </pre>
 	 *
 	 * @return
 	 */
@@ -1487,6 +1560,28 @@ public class WyalFileParser {
 		match(Shreak);
 		Type element = parseBaseType(scope);
 		Type type = new Type.Negation(element);
+		type.attributes().add(sourceAttr(start, index - 1));
+		return type;
+	}
+
+	/**
+	 * Parse a reference type, which is of the form:
+	 *
+	 * <pre>
+	 * ReferenceType ::= '&' Type
+	 * </pre>
+	 *
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
+	 * @return
+	 */
+	private Type parseReferenceType(EnclosingScope scope) {
+		int start = index;
+		match(Ampersand);
+		Type element = parseBaseType(scope);
+		Type type = new Type.Reference(element);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
@@ -2087,6 +2182,45 @@ public class WyalFileParser {
 
 	// =======================================================================
 
+	private Expr.Operator constructInfixExpression(Token token, Expr... arguments) {
+		Token.Kind kind = token.kind;
+		switch (kind) {
+		case LogicalAnd:
+			return new Expr.LogicalAnd(arguments);
+		case LogicalOr:
+			return new Expr.LogicalOr(arguments);
+		case LogicalImplication:
+			return new Expr.LogicalImplication(arguments);
+		case LogicalIff:
+			return new Expr.LogicalIff(arguments);
+		case LessEquals:
+			return new Expr.LessThanOrEqual(arguments);
+		case LeftAngle:
+			return new Expr.LessThan(arguments);
+		case GreaterEquals:
+			return new Expr.GreaterThanOrEqual(arguments);
+		case RightAngle:
+			return new Expr.GreaterThan(arguments);
+		case EqualsEquals:
+			return new Expr.Equal(arguments);
+		case NotEquals:
+			return new Expr.NotEqual(arguments);
+		case Plus:
+			return new Expr.Addition(arguments);
+		case Minus:
+			return new Expr.Subtraction(arguments);
+		case Star:
+			return new Expr.Multiplication(arguments);
+		case RightSlash:
+			return new Expr.Division(arguments);
+		case Percent:
+			return new Expr.Remainder(arguments);
+		default:
+			syntaxError("unknown operator \"" + token.text + "\" encountered", token);
+			return null;
+		}
+	}
+
 	/**
 	 * The set of token kinds which correspond to binary or n-ary infix
 	 * operators.
@@ -2111,29 +2245,6 @@ public class WyalFileParser {
 			RightSlash,
 			Percent
 	};
-
-	/**
-	 * A fixed map from token kinds to their correspond bytecode opcodes.
-	 */
-	private static final HashMap<Token.Kind,Opcode> OPERATOR_MAP = new HashMap<>();
-
-	static {
-		OPERATOR_MAP.put(LogicalAnd, Opcode.EXPR_and);
-		OPERATOR_MAP.put(LogicalOr, Opcode.EXPR_or);
-		OPERATOR_MAP.put(LogicalImplication, Opcode.EXPR_implies);
-		OPERATOR_MAP.put(LogicalIff, Opcode.EXPR_iff);
-		OPERATOR_MAP.put(LessEquals, Opcode.EXPR_lteq);
-		OPERATOR_MAP.put(LeftAngle, Opcode.EXPR_lt);
-		OPERATOR_MAP.put(GreaterEquals, Opcode.EXPR_gteq);
-		OPERATOR_MAP.put(RightAngle, Opcode.EXPR_gt);
-		OPERATOR_MAP.put(EqualsEquals, Opcode.EXPR_eq);
-		OPERATOR_MAP.put(NotEquals, Opcode.EXPR_neq);
-		OPERATOR_MAP.put(Plus, Opcode.EXPR_add);
-		OPERATOR_MAP.put(Minus, Opcode.EXPR_sub);
-		OPERATOR_MAP.put(Star, Opcode.EXPR_mul);
-		OPERATOR_MAP.put(RightSlash, Opcode.EXPR_div);
-		OPERATOR_MAP.put(Percent, Opcode.EXPR_rem);
-	}
 
 	// =======================================================================
 

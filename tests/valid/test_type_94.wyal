@@ -1,0 +1,26 @@
+type i16 is (int x)
+where:
+    (-32768 <= x) && (x <= 32767)
+
+type string is (int[] this)
+// Types
+type primitive_t is (int x) where (4 <= x) && (x <= 11)
+type array_t is ({jvm_t element} this)
+type class_t is ({string[] classes, string pkg} this)
+type ref_t is (array_t|class_t this)
+type fun_t is ({jvm_t[] params, jvm_t ret} this)
+type jvm_t is (primitive_t|ref_t this)
+// Bytecodes
+type Unit is ({int op, int offset} this)
+type MethodIndex is ({string name, int offset, int op, class_t owner, fun_t type} this)
+//
+type Bytecode is (Unit|MethodIndex this)
+
+assert "index out of bounds (negative)":
+    forall(Bytecode b, (!MethodIndex)&Bytecode b$2):
+        if:
+            b$2 == b
+            b is !MethodIndex
+        then:
+            b$2.op >= 0
+

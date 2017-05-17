@@ -64,7 +64,9 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		// Generic traversal, returning first split point encountered.
 		for (int i = 0; i != e.size(); ++i) {
 			SyntacticItem child = e.getOperand(i);
-			result = union(result,findAllInstances(child,kind));
+			if(child != null) {
+				result = union(result,findAllInstances(child,kind));
+			}
 		}
 		//
 		return result;
@@ -145,7 +147,9 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		// Generic traversal, returning first split point encountered.
 		for (int i = 0; i != item.size(); ++i) {
 			SyntacticItem child = item.getOperand(i);
-			result = union(result,extractDefinedTerms(child,kind,stack));
+			if(child != null) {
+				result = union(result,extractDefinedTerms(child,kind,stack));
+			}
 		}
 		//
 		return result;

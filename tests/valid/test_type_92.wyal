@@ -1,0 +1,12 @@
+type Leaf is (int this)
+type Link is ({While_Valid_15.LinkedList next} this)
+type LinkedList is (While_Valid_15.Leaf|While_Valid_15.Link this)
+
+assert "type invariant not satisfied":
+    forall(LinkedList list, int distance):
+        if:
+            distance == 0
+            list is Link
+        then:
+            list.next is LinkedList
+

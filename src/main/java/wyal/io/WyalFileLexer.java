@@ -215,7 +215,7 @@ public class WyalFileLexer {
 
 	static final char[] opStarts = { ',', '(', ')', '[', ']', '{', '}', '+',
 			'-', '*', '/', '%', '^', '!', '?', '=', '<', '>', ':', ';', '&', '|',
-			'.', '~',
+			'.', '~','#',
 			// Unicode operators
 			UC_FORALL,
 			UC_EXISTS,
@@ -320,6 +320,8 @@ public class WyalFileLexer {
 			return new Token(Token.Kind.Percent, "%", pos++);
 		case '^':
 			return new Token(Token.Kind.Caret, "^", pos++);
+		case '#':
+			return new Token(Token.Kind.Hash, "#", pos++);
 		case '!':
 			if ((pos + 1) < input.length() && input.charAt(pos + 1) == '=') {
 				pos += 2;
@@ -778,6 +780,12 @@ public class WyalFileLexer {
 				@Override
 				public String toString() {
 					return ";";
+				}
+			},
+			Hash {
+				@Override
+				public String toString() {
+					return "#";
 				}
 			},
 			Ampersand {

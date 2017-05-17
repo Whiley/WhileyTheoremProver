@@ -24,6 +24,7 @@ import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.WyalFileResolver;
+import wybs.lang.Build;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
@@ -46,8 +47,8 @@ public class TypeSystem {
 	private final TypeInvariantExtractor typeInvariantExtractor;
 	private final TypeInferer typeInfererence;
 
-	public TypeSystem() {
-		this.resolver = new WyalFileResolver();
+	public TypeSystem(Build.Project project) {
+		this.resolver = new WyalFileResolver(project);
 		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);

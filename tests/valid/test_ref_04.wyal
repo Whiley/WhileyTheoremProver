@@ -1,0 +1,8 @@
+import wyal.*
+
+assert:
+    forall(&int x, &(int|null) y):
+        if:
+            x == y
+        then:
+            false

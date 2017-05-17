@@ -1,0 +1,5 @@
+import wyal.*
+
+assert:
+    forall(&int x):
+        !(x is &int)

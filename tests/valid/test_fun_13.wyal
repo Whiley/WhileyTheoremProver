@@ -1,0 +1,7 @@
+type nat is (int x) where x >= 0
+
+function f(int x) -> (nat y, int z)
+
+assert:
+    forall(int x):
+        f(x)#0 >= 0

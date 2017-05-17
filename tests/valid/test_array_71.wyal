@@ -1,0 +1,12 @@
+define contains(int[] env, int s) is:
+   exists(int k):
+        s <= k
+        env[k] == 0
+
+assert "loop invariant not restored":
+    forall(int[] env, int i):
+        if:
+            contains(env,i)
+            env[i] != 0
+        then:
+            contains(env,i+1)

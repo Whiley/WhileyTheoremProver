@@ -201,13 +201,15 @@ public interface Formula extends Expr {
 	public static class Invoke extends Expr.Invoke implements Formula {
 		private boolean sign;
 
-		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Expr... arguments) {
-			super(type, name, arguments);
+		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Integer selector,
+				Expr... arguments) {
+			super(type, name, selector == null ? null : selector, arguments);
 			this.sign = sign;
 		}
 
-		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Tuple<Expr> arguments) {
-			super(type, name, arguments);
+		public Invoke(boolean sign, Type.FunctionOrMacroOrInvariant type, Name name, Value.Int selector,
+				Tuple<Expr> arguments) {
+			super(type, name, selector, arguments);
 			this.sign = sign;
 		}
 
@@ -236,7 +238,7 @@ public interface Formula extends Expr {
 		@Override
 		public Formula.Invoke clone(SyntacticItem[] children) {
 			return new Formula.Invoke(sign,(Type.FunctionOrMacroOrInvariant) children[0], (Name) children[1],
-					(Tuple) children[2]);
+					(Value.Int) children[2], (Tuple) children[3]);
 		}
 	}
 

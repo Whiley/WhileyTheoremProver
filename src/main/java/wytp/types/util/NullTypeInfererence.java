@@ -20,6 +20,7 @@ import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Pair;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.Value;
 import wycc.util.ArrayUtils;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
@@ -90,6 +91,8 @@ public class NullTypeInfererence implements TypeInferer {
 			return inferRecordAccess(environment, (Expr.RecordAccess) expr);
 		case EXPR_recupdt:
 			return inferRecordUpdate(environment, (Expr.RecordUpdate) expr);
+		case EXPR_deref:
+			return inferDereference(environment, (Expr.Dereference) expr);
 		default:
 			throw new IllegalArgumentException("invalid expression encountered: " + expr);
 		}
@@ -122,10 +125,14 @@ public class NullTypeInfererence implements TypeInferer {
 	protected Type inferInvoke(Environment environment, Expr.Invoke expr) {
 		Type.FunctionOrMacroOrInvariant type = expr.getSignatureType();
 		Tuple<Type> returns = type.getReturns();
-		if (returns.size() != 1) {
+		Value.Int selector = expr.getSelector();
+
+		if (selector == null && returns.size() != 1) {
 			throw new IllegalArgumentException("need support for multiple returns");
-		} else {
+		} else if(selector == null) {
 			return returns.getOperand(0);
+		} else {
+			return returns.getOperand(selector.get().intValue());
 		}
 	}
 
@@ -182,9 +189,6 @@ public class NullTypeInfererence implements TypeInferer {
 		}
 	}
 
-	// ======================================================================
-	// Records
-	// ======================================================================
 
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {
 		Type src = inferExpression(environment, expr.getSource());
@@ -222,5 +226,14 @@ public class NullTypeInfererence implements TypeInferer {
 		// type. But definition, an initialiser always produces a closed
 		// (i.e. concrete) type.
 		return new Type.Record(false, decls);
+	}
+
+	// ======================================================================
+	// References
+	// ======================================================================
+
+	protected Type inferDereference(Environment environment, Expr.Dereference expr) throws ResolutionError {
+		Type elementT = inferExpression(environment, expr.getOperand());
+		return new Type.Reference(elementT);
 	}
 }

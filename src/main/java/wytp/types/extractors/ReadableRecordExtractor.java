@@ -16,6 +16,7 @@ package wytp.types.extractors;
 import java.util.ArrayList;
 
 import wyal.lang.NameResolver;
+import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Type;
@@ -55,6 +56,13 @@ public class ReadableRecordExtractor extends AbstractTypeExtractor<Type.Record> 
 		super(resolver, typeSystem);
 	}
 
+//	@Override
+//	public Type.Record extract(Type type, Object supplementary) throws ResolutionError {
+//		Type.Record r = super.extract(type, supplementary);
+//		System.out.println("EXTRACTING: " + type + " => " + r);
+//		return r;
+//	}
+
 	@Override
 	protected Record construct(Atom type) {
 		if(type instanceof Record) {
@@ -90,8 +98,30 @@ public class ReadableRecordExtractor extends AbstractTypeExtractor<Type.Record> 
 
 	@Override
 	protected Type.Record subtract(Type.Record lhs, Type.Record rhs) {
-		// FIXME: implement this
-		return null;
+		ArrayList<FieldDeclaration> fields = new ArrayList<>();
+		FieldDeclaration[] lhsFields = lhs.getFields();
+		FieldDeclaration[] rhsFields = rhs.getFields();
+		for (int i = 0; i != lhsFields.length; ++i) {
+			for (int j = 0; j != rhsFields.length; ++j) {
+				FieldDeclaration lhsField = lhsFields[i];
+				FieldDeclaration rhsField = rhsFields[j];
+				Identifier lhsFieldName = lhsField.getVariableName();
+				Identifier rhsFieldName = rhsField.getVariableName();
+				if (lhsFieldName.equals(rhsFieldName)) {
+					// FIXME: could potentially do better here
+					Type negatedRhsType = new Type.Negation(rhsField.getType());
+					Type type = intersectionHelper(lhsField.getType(), negatedRhsType);
+					fields.add(new FieldDeclaration(type, lhsFieldName));
+					break;
+				}
+			}
+		}
+		if(fields.size() != lhsFields.length) {
+			// FIXME: need to handle the case of open records here.
+			return lhs;
+		} else {
+			return new Type.Record(lhs.isOpen(), fields.toArray(new FieldDeclaration[fields.size()]));
+		}
 	}
 
 	@Override

@@ -1,0 +1,7 @@
+function f(int x) -> (int y, int z)
+
+assert:
+    if:
+        f(0)#1 > 0
+    then:
+        f(0)#1 >= 0

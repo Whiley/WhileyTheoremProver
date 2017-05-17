@@ -1,0 +1,17 @@
+type string is (int this)
+
+type Entry is ({int value, string variable} this)
+type Environment is (Entry[] this)
+
+define contains(Environment env, string variable, int s) is:
+    exists(int k):
+        (s <= k)
+        env[k].variable == variable
+
+assert "loop invariant not restored":
+    forall(string variable, Environment env, int i):
+        if:
+            contains(env, variable, i)
+            env[i].variable != variable
+        then:
+            contains(env, variable, i+1)

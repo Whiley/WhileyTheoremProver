@@ -1,0 +1,7 @@
+assert:
+    forall(&int x):
+        if:
+            (*x) == 0
+        then:
+            (*x) == 0
+

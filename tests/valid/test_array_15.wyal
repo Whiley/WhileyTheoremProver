@@ -1,20 +1,20 @@
 function test_sum(int[] xs, int y) -> (int r)
 
-assert:
-    forall (int[] xs, int x):
+define allPositiveValues(int[] xs) is:
+    forall (int i2, int v2):
         if:
-            test_sum(xs, x + 1) >= 0
-            exists (int i1, int v1):
-                (0 <= i1) && (i1 < |xs|)
-                xs[i1] == v1
-                v1 < 0
-            forall (int i2, int v2):
-                if:
-                    (0 <= i2) && (i2 < |xs|)
-                    xs[i2] == v2
-                then:
-                    v2 >= 0
+            (0 <= i2) && (i2 < |xs|)
+            xs[i2] == v2
         then:
-            (xs[x] + test_sum(xs, x + 1)) >= 0
+            v2 >= 0
+
+assert:
+    forall (int[] xs, int i):
+        if:
+            (i >= 0) && (i < |xs|)
+            test_sum(xs, i) >= 0
+            allPositiveValues(xs)            
+        then:
+            (xs[i] + test_sum(xs, i)) >= 0
 
 

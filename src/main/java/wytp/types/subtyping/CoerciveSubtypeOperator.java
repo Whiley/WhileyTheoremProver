@@ -241,7 +241,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			case TYPE_rec:
 				return isVoidRecord((Atom<Type.Record>) a, (Atom<Type.Record>) b, assumptions);
 			case TYPE_ref:
-				throw new RuntimeException("Implement me!");
+				return isVoidReference((Atom<Type.Reference>) a, (Atom<Type.Reference>) b, assumptions);
 			case TYPE_fun:
 				return isVoidFunction((Atom<Type.Function>) a, (Atom<Type.Function>) b, assumptions);
 			default:
@@ -415,6 +415,58 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// In this case, we are intersecting two negative record types. For
 			// example, !({int f}) and !({int g}). This never reduces to void.
 			return false;
+		}
+	}
+
+	/**
+	 * <p>
+	 * Determine whether the intersection of two reference types is void or not.
+	 * Reference types are "invariant", meaning that element types must match
+	 * exactly for an intersection to arise. For example, <code>&int</code>
+	 * intersecting with <code>&bool</code> gives void. In contrast,
+	 * intersecting <code>&int</code> with <code>&int</code> does not give void.
+	 * Hoever, <code>&int</code> intersecting with <code>&(int|bool)</code>
+	 * gives void.
+	 * </p>
+	 *
+	 * @param lhsSign
+	 *            The sign of the first type being intersected. If true, we have
+	 *            a positive atom. Otherwise, we have a negative atom.
+	 * @param lhs.
+	 *            The first type being intersected, referred to as the
+	 *            "left-hand side".
+	 * @param rhsSign
+	 *            The sign of the second type being intersected. If true, we
+	 *            have a positive atom. Otherwise, we have a negative atom.
+	 * @param rhs
+	 *            The second type being intersected, referred to as the
+	 *            "right-hand side".
+	 * @param assumptions
+	 *            The set of assumed subtype relationships
+	 * @return
+	 * @throws ResolutionError
+	 */
+	protected boolean isVoidReference(Atom<Type.Reference> lhs, Atom<Type.Reference> rhs, BitSet assumptions)
+			throws ResolutionError {
+		Term<?> lhsTrueTerm = new Term<>(true, lhs.type.getElement(), lhs.maximise);
+		Term<?> rhsTrueTerm = new Term<>(true, rhs.type.getElement(), rhs.maximise);
+		Term<?> lhsFalseTerm = new Term<>(false, lhs.type.getElement(), lhs.maximise);
+		Term<?> rhsFalseTerm = new Term<>(false, rhs.type.getElement(), rhs.maximise);
+		// Check whether lhs :> rhs (as (!lhs & rhs) == 0)
+		boolean elemLhsSubsetRhs = isVoidTerm(lhsFalseTerm, rhsTrueTerm, assumptions);
+		// Check whether rhs :> lhs (as (!rhs & lhs) == 0)
+		boolean elemRhsSubsetLhs = isVoidTerm(rhsFalseTerm, lhsTrueTerm, assumptions);
+		// Calculate whether lhs == rhs
+		boolean elemEqual = elemLhsSubsetRhs && elemRhsSubsetLhs;
+		//
+		if (lhs.sign && rhs.sign) {
+			// (&T1 & &T2) == 0 iff T1 != T2
+			return !elemEqual;
+		} else if (!lhs.sign || !rhs.sign) {
+			// (!(&T1) & &T2) == 0 iff T1 == T2
+			return elemEqual;
+		} else {
+			return true;
 		}
 	}
 
