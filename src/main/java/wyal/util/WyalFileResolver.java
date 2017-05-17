@@ -95,30 +95,49 @@ public class WyalFileResolver implements NameResolver {
 	public <T extends Named> List<T> resolveAll(Name name, Class<T> kind) throws ResolutionError {
 		try {
 			NameID nid = resolve(name);
-			Path.Entry<WyalFile> entry = project.get(nid.module(), WyalFile.ContentType);
-			if (entry != null) {
-				WyalFile enclosing = entry.read();
-				ArrayList<T> result = new ArrayList<>();
-				// Look through the enclosing file first!
-				for (int i = 0; i != enclosing.size(); ++i) {
-					SyntacticItem item = enclosing.getSyntacticItem(i);
-					if (item instanceof Declaration.Named) {
-						Declaration.Named nd = (Declaration.Named) item;
-						if (nd.getName().get().equals(nid.name()) && kind.isInstance(nd)) {
-							result.add((T) nd);
-						}
+			WyalFile enclosing = loadModule(nid,name);
+			ArrayList<T> result = new ArrayList<>();
+			// Look through the enclosing file first!
+			for (int i = 0; i != enclosing.size(); ++i) {
+				SyntacticItem item = enclosing.getSyntacticItem(i);
+				if (item instanceof Declaration.Named) {
+					Declaration.Named nd = (Declaration.Named) item;
+					if (nd.getName().get().equals(nid.name()) && kind.isInstance(nd)) {
+						result.add((T) nd);
 					}
 				}
-				//
-				if (!result.isEmpty()) {
-					//
-					return result;
-				}
 			}
+			//
+			if (!result.isEmpty()) {
+				//
+				return result;
+			}
+
 			throw new NameResolver.NameNotFoundError(name);
 		} catch (IOException e) {
 			// Slight unclear what the best course of action is here.
 			throw new NameResolver.NameNotFoundError(name);
+		}
+	}
+
+	private WyalFile loadModule(NameID nid, Name name) throws IOException, ResolutionError {
+		WyalFile enclosing = (WyalFile) name.getParent();
+		if (enclosing.getEntry().id().equals(nid.module())) {
+			// This is a local lookup.
+
+			// FIXME: unclear why necessary to distinguish local from non-local
+			// look ups. Specifically, the project.get(...) should return
+			// enclosing if the module path identifies the enclosing module.
+
+			return enclosing;
+		} else {
+			// This is a non-local lookup.
+			Path.Entry<WyalFile> entry = project.get(nid.module(), WyalFile.ContentType);
+			if (entry != null) {
+				return entry.read();
+			} else {
+				throw new NameResolver.NameNotFoundError(name);
+			}
 		}
 	}
 
