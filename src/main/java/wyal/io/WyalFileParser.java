@@ -1455,6 +1455,8 @@ public class WyalFileParser {
 			return parseRecordType(scope);
 		case Shreak:
 			return parseNegationType(scope);
+		case Ampersand:
+			return parseReferenceType(scope);
 		case Identifier:
 			return parseNominalType(scope);
 		case Function:
@@ -1495,13 +1497,14 @@ public class WyalFileParser {
 	/**
 	 * Parse a negation type, which is of the form:
 	 *
+	 * <pre>
+	 * NegationType ::= '!' Type
+	 * </pre>
+	 *
 	 * @param scope
 	 *            The enclosing scope for this expression. This identifies any
 	 *            generic arguments which are in scope, and also allocated each
 	 *            variable in scope to its location index.
-	 * <pre>
-	 * NegationType ::= '!' Type
-	 * </pre>
 	 *
 	 * @return
 	 */
@@ -1510,6 +1513,28 @@ public class WyalFileParser {
 		match(Shreak);
 		Type element = parseBaseType(scope);
 		Type type = new Type.Negation(element);
+		type.attributes().add(sourceAttr(start, index - 1));
+		return type;
+	}
+
+	/**
+	 * Parse a reference type, which is of the form:
+	 *
+	 * <pre>
+	 * ReferenceType ::= '&' Type
+	 * </pre>
+	 *
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
+	 * @return
+	 */
+	private Type parseReferenceType(EnclosingScope scope) {
+		int start = index;
+		match(Ampersand);
+		Type element = parseBaseType(scope);
+		Type type = new Type.Reference(element);
 		type.attributes().add(sourceAttr(start, index - 1));
 		return type;
 	}
