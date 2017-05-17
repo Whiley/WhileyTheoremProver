@@ -597,7 +597,7 @@ public class WyalFileParser {
 	 * Parse an <i>access expression</i>, which has the form:
 	 *
 	 * <pre>
-	 * AccessExpr::= PrimaryExpr
+	 * AccessExpr::= PathExpr
 	 *            | AccessExpr '[' AdditiveExpr ']'
 	 *            | AccessExpr '.' Identifier
 	 *            | AccessExpr '.' Identifier '(' [ Expr (',' Expr)* ] ')'
@@ -643,7 +643,7 @@ public class WyalFileParser {
 	 */
 	private Expr parseAccessExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
-		Expr lhs = parseTermExpression(scope, terminated);
+		Expr lhs = parsePathExpression(scope, terminated);
 		Token token;
 
 		while ((token = tryAndMatch(terminated, LeftSquare,LeftCurly, Dot, MinusGreater)) != null) {
@@ -688,6 +688,92 @@ public class WyalFileParser {
 	}
 
 	/**
+	 * Parse a <i>path expression</i> which has the form:
+	 *
+	 * <pre>
+	 * PathExpr::= | PrimaryExpr
+	 *             | Identifier '.' PathExpr
+	 *             | PathExpr '(' [ Expr (',' Expr)* ] ')'
+	 * </pre>
+	 *
+	 * The key distinction from an access expression is that the root identifier
+	 * is <i>non-local</i>. That is, it is not declared within the enclosing
+	 * declaration.
+	 *
+	 * @param scope
+	 * @param terminated
+	 * @return
+	 */
+	private Expr parsePathExpression(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		int next = skipLineSpace(index);
+		Token lookahead = tokens.get(next);
+		if (lookahead.kind != Identifier || scope.isDeclaredVariable(lookahead.text)) {
+			// This is not a path expression because either the next token is
+			// not an identifier, or the identifier is a local variable.
+			return parseTermExpression(scope, terminated);
+		} else {
+			Name nid = parseNameID(scope);
+			// At this point, either we have a function invocation, or we have a
+			// constant access.
+			lookahead = tokens.get(skipLineSpace(index));
+			if (lookahead.kind == LeftBrace) {
+				// This is a function invocation.
+				return parseInvokeExpression(nid, scope, start, terminated);
+			} else {
+				// This is a constant access
+				syntaxError("constant expression not supported", lookahead);
+				return null;
+			}
+		}
+	}
+
+	/**
+	 * Parse an invocation expression, which has the form:
+	 *
+	 * <pre>
+	 * InvokeExpr::= PathExpr '(' [ Expr (',' Expr)* ] ')'
+	 * </pre>
+	 *
+	 * Observe that this when this function is called, we're assuming that the
+	 * identifier and opening brace has already been matched.
+	 *
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
+	 * @param terminated
+	 *            This indicates that the expression is known to be terminated
+	 *            (or not). An expression that's known to be terminated is one
+	 *            which is guaranteed to be followed by something. This is
+	 *            important because it means that we can ignore any newline
+	 *            characters encountered in parsing this expression, and that
+	 *            we'll never overrun the end of the expression (i.e. because
+	 *            there's guaranteed to be something which terminates this
+	 *            expression). A classic situation where terminated is true is
+	 *            when parsing an expression surrounded in braces. In such case,
+	 *            we know the right-brace will always terminate this expression.
+	 *
+	 * @return
+	 */
+	private Expr parseInvokeExpression(Name nid, EnclosingScope scope, int start, boolean terminated) {
+		// Create a dummy nameid which will be resolved later on
+		// Parse arguments
+		Expr[] args = parseInvocationArguments(scope);
+		// Parse selector (if present)
+		Integer selector = null;
+		if (tryAndMatch(terminated, Hash) != null) {
+			Token t = match(IntValue);
+			selector = new Integer(t.text);
+		}
+		// Construct relevant bytecode. The type signature is left as null at
+		// this stage, since we cannot determined at this point.
+		Expr ivk = new Expr.Invoke(null, nid, selector, args);
+		ivk.attributes().add(sourceAttr(start, index - 1));
+		return ivk;
+	}
+
+	/**
 	 *
 	 * @param scope
 	 *            The enclosing scope for this expression. This identifies any
@@ -717,9 +803,7 @@ public class WyalFileParser {
 		case LeftBrace:
 			return parseBracketedExpression(scope, terminated);
 		case Identifier:
-			if (isFunctionCall()) {
-				return parseInvokeExpression(scope, start, terminated);
-			} else if (scope.isDeclaredVariable(token.text)) {
+			if (scope.isDeclaredVariable(token.text)) {
 				// Signals a local variable access
 				match(Identifier);
 				VariableDeclaration decl = scope.getVariableDeclaration(token.text);
@@ -727,10 +811,8 @@ public class WyalFileParser {
 				expr.attributes().add(sourceAttr(start, index - 1));
 				return expr;
 			} else {
-				// Otherwise, this must be a constant access of some kind.
-				// Observe that, at this point, we cannot determine whether or
-				// not this is a constant-access or a package-access which marks
-				// the beginning of a constant-access.
+				// Otherwise, we have an error since this should have already
+				// been parsed as a path expression.
 			}
 			break;
 		case Null:
@@ -1146,79 +1228,6 @@ public class WyalFileParser {
 		expr = new Expr.Negation(expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
-	}
-
-	/**
-	 * Parse an invocation expression, which has the form:
-	 *
-	 * <pre>
-	 * InvokeExpr::= Identifier '(' [ Expr (',' Expr)* ] ')'
-	 * </pre>
-	 *
-	 * Observe that this when this function is called, we're assuming that the
-	 * identifier and opening brace has already been matched.
-	 *
-	 * @param scope
-	 *            The enclosing scope for this expression. This identifies any
-	 *            generic arguments which are in scope, and also allocated each
-	 *            variable in scope to its location index.
-	 * @param terminated
-	 *            This indicates that the expression is known to be terminated
-	 *            (or not). An expression that's known to be terminated is one
-	 *            which is guaranteed to be followed by something. This is
-	 *            important because it means that we can ignore any newline
-	 *            characters encountered in parsing this expression, and that
-	 *            we'll never overrun the end of the expression (i.e. because
-	 *            there's guaranteed to be something which terminates this
-	 *            expression). A classic situation where terminated is true is
-	 *            when parsing an expression surrounded in braces. In such case,
-	 *            we know the right-brace will always terminate this expression.
-	 *
-	 * @return
-	 */
-	private Expr parseInvokeExpression(EnclosingScope scope, int start, boolean terminated) {
-		// Create a dummy nameid which will be resolved later on
-		WyalFile.Name nid = parseNameID(scope);
-		// Parse arguments
-		Expr[] args = parseInvocationArguments(scope);
-		// Parse selector (if present)
-		Integer selector = null;
-		if(tryAndMatch(terminated,Hash) != null) {
-			Token t = match(IntValue);
-			selector = new Integer(t.text);
-		}
-		// Construct relevant bytecode. The type signature is left as null at
-		// this stage, since we cannot determined at this point.
-		Expr ivk = new Expr.Invoke(null, nid, selector, args);
-		ivk.attributes().add(sourceAttr(start, index - 1));
-		return ivk;
-	}
-
-	/**
-	 * <p>
-	 * This function is called during parsing an expression after matching an
-	 * identifier. The goal is to determine whether what follows the identifier
-	 * indicates an invocation expression, or whether the identifier is just a
-	 * variable access of some sort.
-	 * </p>
-	 * <p>
-	 * Unfortunately, this function is rather "low-level". Essentially, it just
-	 * moves forwards through the tokens on the current line counting the nestng
-	 * level of any generic arguments it encounters. At the end, it looks to see
-	 * whether or not a left brace is present as, in this position, we can only
-	 * have an invocation.
-	 * </p>
-	 *
-	 * @return
-	 */
-	private boolean isFunctionCall() {
-		// First, attempt to parse a generic argument list if one exists.
-
-		int myIndex = this.index + 1; // skip identifier first
-
-		myIndex = skipLineSpace(myIndex);
-
-		return myIndex < tokens.size() && tokens.get(myIndex).kind == LeftBrace;
 	}
 
 	/**
