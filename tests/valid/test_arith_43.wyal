@@ -1,0 +1,5 @@
+import wyal.*
+
+assert:
+    forall(int x, int y, int z):
+        (x * y * z) == ((x * y) * z)

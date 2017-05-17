@@ -318,10 +318,10 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	private Formula simplifyIs(Formula.Is e) throws ResolutionError {
-		Expr lhs = e.getExpr();
+		Expr lhs = e.getTestExpr();
 		Expr nLhs = simplifyExpression(lhs);
 		if(lhs != nLhs) {
-			return new Formula.Is(nLhs, e.getTypeTest());
+			return new Formula.Is(nLhs, e.getTestType());
 		} else {
 			return e;
 		}
@@ -534,7 +534,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		if (source == nSource && index == nIndex) {
 			return e;
 		} else {
-			return new Expr.Operator(Opcode.EXPR_arridx, nSource, nIndex);
+			return new Expr.ArrayAccess(nSource, nIndex);
 		}
 	}
 
@@ -559,7 +559,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		if (source == nSource && index == nIndex && value == nValue) {
 			return e;
 		} else {
-			return new Expr.Operator(Opcode.EXPR_arrupdt, nSource, nIndex, nValue);
+			return new Expr.ArrayUpdate(nSource, nIndex, nValue);
 		}
 	}
 
@@ -572,7 +572,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			} else if (src.getOpcode() == Opcode.EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
 			} else if (src.getOpcode() == Opcode.EXPR_arrupdt) {
-				return simplifyArrayLength(new Expr.Operator(Opcode.EXPR_arrlen, (Expr) src.getOperand(0)));
+				return simplifyArrayLength(new Expr.ArrayLength((Expr) src.getOperand(0)));
 			}
 		}
 		return r;

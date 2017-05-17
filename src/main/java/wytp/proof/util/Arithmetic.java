@@ -270,7 +270,7 @@ public class Arithmetic {
 			if(muls.length == 1) {
 				return muls[0];
 			} else {
-				return new Expr.Operator(WyalFile.Opcode.EXPR_add,muls);
+				return new Expr.Addition(muls);
 			}
 		}
 
@@ -361,13 +361,13 @@ public class Arithmetic {
 					if(atoms.length == 1) {
 						return atoms[0];
 					} else {
-						return new Expr.Operator(WyalFile.Opcode.EXPR_mul, atoms);
+						return new Expr.Multiplication(atoms);
 					}
 				} else {
 					Expr[] es = new Expr[atoms.length + 1];
 					es[0] = new Expr.Constant(new Value.Int(coefficient));
 					System.arraycopy(atoms, 0, es, 1, atoms.length);
-					return new Expr.Operator(WyalFile.Opcode.EXPR_mul, es);
+					return new Expr.Multiplication(es);
 				}
 			}
 

@@ -441,8 +441,12 @@ public class WyalFileParser {
 			body = new Stmt.Block(unit);
 		}
 		//
-		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.STMT_forall : Opcode.STMT_exists;
-		Stmt stmt = new Stmt.Quantifier(kind, parameters, body);
+		Stmt stmt;
+		if(lookahead.kind == Forall) {
+			stmt = new Stmt.UniversalQuantifier(parameters, body);
+		} else {
+			stmt = new Stmt.ExistentialQuantifier(parameters, body);
+		}
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
@@ -567,15 +571,22 @@ public class WyalFileParser {
 		Token lookahead = tryAndMatch(terminated, INFIX_OPERATORS);
 		if (lookahead != null) {
 			// Yes, there is so try and parse operator sequence.
-			Opcode opcode = OPERATOR_MAP.get(lookahead.kind);
 			ArrayList<Expr> operands = new ArrayList<>();
 			operands.add(first);
 			do {
 				operands.add(parseAccessExpression(scope, terminated));
 			} while (tryAndMatch(terminated, lookahead.kind) != null);
 			//
-			Expr expr = new Expr.Operator(opcode, toExprArray(operands));
+			Expr expr = constructInfixExpression(lookahead, toExprArray(operands));
 			expr.attributes().add(sourceAttr(start, index - 1));
+			// Check for ambiguous operator expression
+			if ((lookahead = tryAndMatch(terminated, INFIX_OPERATORS)) != null) {
+				// If we get here, then it means we parsed a sequence of 1 or
+				// more operators of the same kind. But, now, we find another
+				// operator of a different kind.
+				syntaxError("ambiguous expression encountered (braces required)", lookahead);
+			}
+			//
 			return expr;
 		} else {
 			return first;
@@ -644,12 +655,12 @@ public class WyalFileParser {
 					// This is an array update expression
 					Expr mhs = parseUnitExpression(scope, true);
 					match(RightSquare);
-					lhs = new Expr.Operator(Opcode.EXPR_arrupdt, lhs, rhs, mhs);
+					lhs = new Expr.ArrayUpdate(lhs, rhs, mhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				} else {
 					// This is a plain old array access expression
 					match(RightSquare);
-					lhs = new Expr.Operator(Opcode.EXPR_arridx, lhs, rhs);
+					lhs = new Expr.ArrayAccess(lhs, rhs);
 					lhs.attributes().add(sourceAttr(start, index - 1));
 				}
 				break;
@@ -970,16 +981,16 @@ public class WyalFileParser {
 		//
 		operands.add(parseUnitExpression(scope, true));
 		//
-		boolean isArray = true;
+		boolean isArrayInitialiser = true;
 		while (eventuallyMatch(RightSquare) == null) {
-			if (!isArray) {
+			if (!isArrayInitialiser) {
 				// Force failure
 				match(RightSquare);
 			} else if (tryAndMatch(true, SemiColon) == null) {
 				match(Comma);
 			} else {
 				// This indicates an array generator
-				isArray = false;
+				isArrayInitialiser = false;
 			}
 			// NOTE: we require the following expression be a "non-tuple"
 			// expression. That is, it cannot be composed using ',' unless
@@ -989,9 +1000,12 @@ public class WyalFileParser {
 			// ','.
 			operands.add(parseUnitExpression(scope, true));
 		}
-
-		Opcode kind = isArray ? Opcode.EXPR_arrinit : Opcode.EXPR_arrgen;
-		Expr expr = new Expr.Operator(kind,toExprArray(operands));
+		Expr expr;
+		if (isArrayInitialiser) {
+			expr = new Expr.ArrayInitialiser(toExprArray(operands));
+		} else {
+			expr = new Expr.ArrayGenerator(operands.get(0), operands.get(1));
+		}
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1093,7 +1107,7 @@ public class WyalFileParser {
 		match(VerticalBar);
 		Expr e = parseUnitExpression(scope, true);
 		match(VerticalBar);
-		e = new Expr.Operator(Opcode.EXPR_arrlen, e);
+		e = new Expr.ArrayLength(e);
 		e.attributes().add(sourceAttr(start, index - 1));
 		return e;
 	}
@@ -1129,7 +1143,7 @@ public class WyalFileParser {
 		match(Minus);
 		Expr expr = parseTermExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(Opcode.EXPR_neg, expr);
+		expr = new Expr.Negation(expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -1285,11 +1299,10 @@ public class WyalFileParser {
 		match(Shreak);
 		Expr expr = parseAccessExpression(scope, terminated);
 		//
-		expr = new Expr.Operator(Opcode.EXPR_not, expr);
+		expr = new Expr.LogicalNot(expr);
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
-
 
 	private Expr parseQuantifiedExpression(Token lookahead,EnclosingScope scope, boolean terminated) {
 		int start = index - 1;
@@ -1304,8 +1317,12 @@ public class WyalFileParser {
 		match(Dot);
 		Expr body = parseUnitExpression(scope, false);
 		//
-		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.EXPR_forall : Opcode.EXPR_exists;
-		Expr expr = new Expr.Quantifier(kind, parameters, body);
+		Expr expr;
+		if(lookahead.kind == Forall) {
+			expr = new Expr.UniversalQuantifier(parameters, body);
+		} else {
+			expr = new Expr.ExistentialQuantifier(parameters, body);
+		}
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
@@ -2093,6 +2110,45 @@ public class WyalFileParser {
 
 	// =======================================================================
 
+	private Expr.Operator constructInfixExpression(Token token, Expr... arguments) {
+		Token.Kind kind = token.kind;
+		switch (kind) {
+		case LogicalAnd:
+			return new Expr.LogicalAnd(arguments);
+		case LogicalOr:
+			return new Expr.LogicalOr(arguments);
+		case LogicalImplication:
+			return new Expr.LogicalImplication(arguments);
+		case LogicalIff:
+			return new Expr.LogicalIff(arguments);
+		case LessEquals:
+			return new Expr.LessThanOrEqual(arguments);
+		case LeftAngle:
+			return new Expr.LessThan(arguments);
+		case GreaterEquals:
+			return new Expr.GreaterThanOrEqual(arguments);
+		case RightAngle:
+			return new Expr.GreaterThan(arguments);
+		case EqualsEquals:
+			return new Expr.Equal(arguments);
+		case NotEquals:
+			return new Expr.NotEqual(arguments);
+		case Plus:
+			return new Expr.Addition(arguments);
+		case Minus:
+			return new Expr.Subtraction(arguments);
+		case Star:
+			return new Expr.Multiplication(arguments);
+		case RightSlash:
+			return new Expr.Division(arguments);
+		case Percent:
+			return new Expr.Remainder(arguments);
+		default:
+			syntaxError("unknown operator \"" + token.text + "\" encountered", token);
+			return null;
+		}
+	}
+
 	/**
 	 * The set of token kinds which correspond to binary or n-ary infix
 	 * operators.
@@ -2117,29 +2173,6 @@ public class WyalFileParser {
 			RightSlash,
 			Percent
 	};
-
-	/**
-	 * A fixed map from token kinds to their correspond bytecode opcodes.
-	 */
-	private static final HashMap<Token.Kind,Opcode> OPERATOR_MAP = new HashMap<>();
-
-	static {
-		OPERATOR_MAP.put(LogicalAnd, Opcode.EXPR_and);
-		OPERATOR_MAP.put(LogicalOr, Opcode.EXPR_or);
-		OPERATOR_MAP.put(LogicalImplication, Opcode.EXPR_implies);
-		OPERATOR_MAP.put(LogicalIff, Opcode.EXPR_iff);
-		OPERATOR_MAP.put(LessEquals, Opcode.EXPR_lteq);
-		OPERATOR_MAP.put(LeftAngle, Opcode.EXPR_lt);
-		OPERATOR_MAP.put(GreaterEquals, Opcode.EXPR_gteq);
-		OPERATOR_MAP.put(RightAngle, Opcode.EXPR_gt);
-		OPERATOR_MAP.put(EqualsEquals, Opcode.EXPR_eq);
-		OPERATOR_MAP.put(NotEquals, Opcode.EXPR_neq);
-		OPERATOR_MAP.put(Plus, Opcode.EXPR_add);
-		OPERATOR_MAP.put(Minus, Opcode.EXPR_sub);
-		OPERATOR_MAP.put(Star, Opcode.EXPR_mul);
-		OPERATOR_MAP.put(RightSlash, Opcode.EXPR_div);
-		OPERATOR_MAP.put(Percent, Opcode.EXPR_rem);
-	}
 
 	// =======================================================================
 
