@@ -106,31 +106,87 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// =========================================================================
 	public static enum Opcode {
 		//
-		ITEM_pair(100), ITEM_tuple(101), ITEM_ident(103), ITEM_path(104), ITEM_name(105),
+		ITEM_pair(100),
+		ITEM_tuple(101),
+		ITEM_ident(103),
+		ITEM_path(104),
+		ITEM_name(105),
 		// DECLARATIONS
-		DECL_linecomment(106), DECL_blkcomment(107), DECL_import(108), DECL_assert(109), DECL_type(110), DECL_fun(
-				111), DECL_macro(112),
+		DECL_linecomment(106),
+		DECL_blkcomment(107),
+		DECL_import(108),
+		DECL_assert(109),
+		DECL_type(110),
+		DECL_fun(111),
+		DECL_macro(112),
 		// ERRORS
 		ERR_verify(113),
 		// TYPES
-		TYPE_void(0), TYPE_any(1), TYPE_null(2), TYPE_bool(3), TYPE_int(4), TYPE_nom(5), TYPE_ref(6), TYPE_arr(
-				7), TYPE_rec(8), TYPE_fun(9), TYPE_macro(10), TYPE_inv(11), TYPE_or(12), TYPE_and(13), TYPE_not(14),
+		TYPE_void(0),
+		TYPE_any(1),
+		TYPE_null(2),
+		TYPE_bool(3),
+		TYPE_int(4),
+		TYPE_nom(5),
+		TYPE_ref(6),
+		TYPE_arr(7),
+		TYPE_rec(8),
+		TYPE_fun(9),
+		TYPE_macro(10),
+		TYPE_inv(11),
+		TYPE_or(12),
+		TYPE_and(13),
+		TYPE_not(14),
 		// STMTS
-		STMT_block(15), STMT_vardecl(16), STMT_ifthen(17), STMT_caseof(18), STMT_exists(19), STMT_forall(20),
+		STMT_block(15),
+		STMT_vardecl(16),
+		STMT_ifthen(17),
+		STMT_caseof(18),
+		STMT_exists(19),
+		STMT_forall(20),
 		// EXPRESSIONS
-		EXPR_var(20), EXPR_const(21), EXPR_cast(22), EXPR_invoke(23),
+		EXPR_var(20),
+		EXPR_const(21),
+		EXPR_cast(22),
+		EXPR_invoke(23),
 		// LOGICAL
-		EXPR_not(30), EXPR_and(31), EXPR_or(32), EXPR_implies(33), EXPR_iff(34), EXPR_exists(35), EXPR_forall(36),
+		EXPR_not(30),
+		EXPR_and(31),
+		EXPR_or(32),
+		EXPR_implies(33),
+		EXPR_iff(34),
+		EXPR_exists(35),
+		EXPR_forall(36),
 		// COMPARATORS
-		EXPR_eq(40), EXPR_neq(41), EXPR_lt(42), EXPR_lteq(43), EXPR_gt(44), EXPR_gteq(45), EXPR_is(46),
+		EXPR_eq(40),
+		EXPR_neq(41),
+		EXPR_lt(42),
+		EXPR_lteq(43),
+		EXPR_gt(44),
+		EXPR_gteq(45),
+		EXPR_is(46),
 		// ARITHMETIC
-		EXPR_neg(50), EXPR_add(51), EXPR_sub(52), EXPR_mul(53), EXPR_div(54), EXPR_rem(55), EXPR_recfield(
-				56), EXPR_recupdt(57), EXPR_arridx(58), EXPR_arrlen(59), EXPR_arrupdt(60),
+		EXPR_neg(50),
+		EXPR_add(51),
+		EXPR_sub(52),
+		EXPR_mul(53),
+		EXPR_div(54),
+		EXPR_rem(55),
+		EXPR_recfield(56),
+		EXPR_recupdt(57),
+		EXPR_arridx(58),
+		EXPR_arrlen(59),
+		EXPR_arrupdt(60),
 		// Initialisers come later so they not given preference for
 		// substitution.
-		EXPR_arrgen(61), EXPR_arrinit(62), EXPR_recinit(63),
+		EXPR_arrgen(61),
+		EXPR_arrinit(62),
+		EXPR_recinit(63),
 		// BASE
-		CONST_null(66), CONST_bool(67), CONST_int(68), CONST_utf8(69);
+		CONST_null(66),
+		CONST_bool(67),
+		CONST_int(68),
+		CONST_utf8(69);
 
 		public int offset;
 
@@ -1013,7 +1069,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Quantifier extends AbstractSyntacticItem implements Stmt {
+		public static abstract class Quantifier extends AbstractSyntacticItem implements Stmt {
 			public Quantifier(Opcode opcode, VariableDeclaration[] parameters, Block body) {
 				super(opcode, new Tuple<>(parameters), body);
 			}
@@ -1031,8 +1087,57 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			@Override
+			public abstract Quantifier clone(SyntacticItem[] operands);
+		}
+
+		/**
+		 * Represents an unbounded universally quantified expression of the form
+		 * "<code>forall(T v1, ... T vn): block</code>" where
+		 * <code>T1 v1</code> ... <code>Tn vn</code> are the <i>quantified
+		 * variable declarations</i> and <code>block</code> is the body
+		 * consisting of a statement block
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
+		public static class UniversalQuantifier extends Quantifier {
+			public UniversalQuantifier(VariableDeclaration[] parameters, Block body) {
+				super(Opcode.STMT_forall, new Tuple<>(parameters), body);
+			}
+
+			public UniversalQuantifier(Tuple<VariableDeclaration> parameters, Block body) {
+				super(Opcode.STMT_forall, parameters, body);
+			}
+
+			@Override
 			public Quantifier clone(SyntacticItem[] operands) {
-				return new Quantifier(getOpcode(), (Tuple) operands[0], (Block) operands[1]);
+				return new UniversalQuantifier((Tuple<VariableDeclaration>) operands[0],
+						(Block) operands[1]);
+			}
+		}
+
+		/**
+		 * Represents an unbounded existentially quantified expression of the
+		 * form "<code>some(T v1, ... T vn): block</code>" where
+		 * <code>T1 v1</code> ... <code>Tn vn</code> are the <i>quantified
+		 * variable declarations</i> and <code>block</code> is the body
+		 * consisting of a statement block.
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
+		public static class ExistentialQuantifier extends Quantifier {
+			public ExistentialQuantifier(VariableDeclaration[] parameters, Block body) {
+				super(Opcode.STMT_exists, new Tuple<>(parameters), body);
+			}
+
+			public ExistentialQuantifier(Tuple<VariableDeclaration> parameters, Block body) {
+				super(Opcode.STMT_exists, parameters, body);
+			}
+
+			@Override
+			public Quantifier clone(SyntacticItem[] operands) {
+				return new ExistentialQuantifier((Tuple<VariableDeclaration>) operands[0], (Block) operands[1]);
 			}
 		}
 

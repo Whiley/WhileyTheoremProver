@@ -441,8 +441,12 @@ public class WyalFileParser {
 			body = new Stmt.Block(unit);
 		}
 		//
-		WyalFile.Opcode kind = lookahead.kind == Forall ? Opcode.STMT_forall : Opcode.STMT_exists;
-		Stmt stmt = new Stmt.Quantifier(kind, parameters, body);
+		Stmt stmt;
+		if(lookahead.kind == Forall) {
+			stmt = new Stmt.UniversalQuantifier(parameters, body);
+		} else {
+			stmt = new Stmt.ExistentialQuantifier(parameters, body);
+		}
 		stmt.attributes().add(sourceAttr(start, index - 1));
 		return stmt;
 	}
@@ -575,6 +579,14 @@ public class WyalFileParser {
 			//
 			Expr expr = constructInfixExpression(lookahead, toExprArray(operands));
 			expr.attributes().add(sourceAttr(start, index - 1));
+			// Check for ambiguous operator expression
+			if ((lookahead = tryAndMatch(terminated, INFIX_OPERATORS)) != null) {
+				// If we get here, then it means we parsed a sequence of 1 or
+				// more operators of the same kind. But, now, we find another
+				// operator of a different kind.
+				syntaxError("ambiguous expression encountered (braces required)", lookahead);
+			}
+			//
 			return expr;
 		} else {
 			return first;
