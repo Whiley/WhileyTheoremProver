@@ -113,7 +113,7 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 			Expr index = match.getOperand(1);
 			// NOTE: we must call construct here since we are creating a new
 			// term from scratch.
-			Expr length = new Expr.Operator(Opcode.EXPR_arrlen, match.getOperand(0));
+			Expr length = new Expr.ArrayLength(match.getOperand(0));
 			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
 				Formula.Inequality ieq = (Formula.Inequality) target;

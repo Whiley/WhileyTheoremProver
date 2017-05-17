@@ -130,9 +130,9 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 	 * @return
 	 */
 	private State apply(Proof.Delta.Set existingTruths, Formula.Is typeTest, Proof.State state) throws ResolutionError {
-		Expr lhs = typeTest.getExpr();
+		Expr lhs = typeTest.getTestExpr();
 		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
-		Type rhsT = typeTest.getTypeTest();
+		Type rhsT = typeTest.getTestType();
 		if (lhsT != null) {
 			// FIXME: at the moment, TypeSystem.intersect is not working
 			// properly. It's possible that using new Type.Intersection could
@@ -208,7 +208,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 			Formula existing = existingTruths.get(i);
 			if (existing != lhs && existing instanceof Formula.Is) {
 				Formula.Is rhs = (Formula.Is) existing;
-				if (lhs.getExpr().equals(rhs.getExpr())) {
+				if (lhs.getTestExpr().equals(rhs.getTestExpr())) {
 					matches.add(rhs);
 				}
 			}
@@ -223,11 +223,11 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			Formula.Is match = matches.get(i);
-			bounds[i] = match.getTypeTest();
+			bounds[i] = match.getTestType();
 		}
 		//
 		Type type = new Type.Intersection(bounds);
-		Formula test = new Formula.Is(first.getExpr(), type);
+		Formula test = new Formula.Is(first.getTestExpr(), type);
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			state = state.subsume(this, matches.get(i), test);

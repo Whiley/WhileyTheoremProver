@@ -379,7 +379,7 @@ public class WyalFilePrinter {
 		out.print("(");
 		writeType(expr.getCastType());
 		out.print(")");
-		writeExpression(expr.getExpr());
+		writeExpression(expr.getCastedExpr());
 	}
 
 	public void writeConstant(Expr.Constant expr) {
@@ -436,9 +436,9 @@ public class WyalFilePrinter {
 	}
 
 	public void writeIsOperator(Expr.Is expr) {
-		writeExpressionWithBrackets(expr.getExpr());
+		writeExpressionWithBrackets(expr.getTestExpr());
 		out.print(" is ");
-		writeType(expr.getTypeTest());
+		writeType(expr.getTestType());
 	}
 
 	public void writeInvoke(Expr.Invoke expr) {

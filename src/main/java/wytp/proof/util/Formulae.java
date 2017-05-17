@@ -202,12 +202,12 @@ public class Formulae {
 		}
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
-			Expr lhs = operator.getExpr();
+			Expr lhs = operator.getTestExpr();
 			Type lhs_t = types.inferType(new NullTypeEnvironment(),lhs);
 			if(lhs_t != null && types.isRawSubtype(new Type.Bool(), lhs_t)) {
 				lhs = toFormula(lhs,types);
 			}
-			return new Formula.Is(lhs,operator.getTypeTest());
+			return new Formula.Is(lhs,operator.getTestType());
 		}
 		default:
 			if (stmt instanceof WyalFile.Expr) {
@@ -239,7 +239,7 @@ public class Formulae {
 	public static Formula.Inequality lessThan(Expr lhs, Expr rhs) {
 		// lhs < rhs ===> rhs >= (lhs+1)
 		Expr one = new Expr.Constant(new Value.Int(1));
-		Expr lhsP1 = new Expr.Operator(Opcode.EXPR_add, lhs, one);
+		Expr lhsP1 = new Expr.Addition(lhs, one);
 		return new Formula.Inequality(rhs, lhsP1);
 	}
 
@@ -319,7 +319,7 @@ public class Formulae {
 		case EXPR_is: {
 			Formula.Is c = (Formula.Is) f;
 			// FIXME: could simplify the type here I think
-			return new Is(c.getExpr(), new Type.Negation(c.getTypeTest()));
+			return new Is(c.getTestExpr(), new Type.Negation(c.getTestType()));
 		}
 		default:
 			throw new IllegalArgumentException("invalid formula opcode: " + f.getOpcode());

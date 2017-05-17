@@ -141,7 +141,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		for (int i = 0; i != fields.length; ++i) {
 			Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
 			Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-			clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_neq, lf, rf), types);
+			clauses[i] = Formulae.toFormula(new Expr.NotEqual(lf, rf), types);
 		}
 		Formula disjunct = new Formula.Disjunct(clauses);
 		return state.subsume(this, eq, disjunct);
@@ -168,7 +168,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				Expr rf = rhsField.getSecond();
 				// NOTE: don't need to call construct here, since generating a
 				// formula.
-				clauses[i] = Formulae.toFormula(new Expr.Operator(WyalFile.Opcode.EXPR_eq, lf, rf), types);
+				clauses[i] = Formulae.toFormula(new Expr.Equal(lf, rf), types);
 			}
 			Formula disjunct = new Formula.Conjunct(clauses);
 			return state.subsume(this, eq, disjunct);
@@ -211,8 +211,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			for (int i = 0; i != lhsOperands.length; ++i) {
 				Expr lhsOperand = lhsOperands[i];
 				Expr rhsOperand = rhsOperands[i];
-				WyalFile.Opcode opcode = eq.getSign() ? Opcode.EXPR_eq : Opcode.EXPR_neq;
-				clauses[i] = Formulae.toFormula(new Expr.Operator(opcode, lhsOperand, rhsOperand), types);
+				clauses[i] = Formulae.toFormula(equal(eq.getSign(),lhsOperand, rhsOperand), types);
 			}
 			//
 			Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
@@ -229,11 +228,9 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Formula[] clauses = new Formula[rhsOperands.length + 1];
 		for (int i = 0; i != rhsOperands.length; ++i) {
 			Expr rhsOperand = rhsOperands[i];
-			WyalFile.Opcode opcode = eq.getSign() ? Opcode.EXPR_eq : Opcode.EXPR_neq;
-			clauses[i] = Formulae.toFormula(new Expr.Operator(opcode, lhsValue, rhsOperand), types);
+			clauses[i] = Formulae.toFormula(equal(eq.getSign(),lhsValue, rhsOperand), types);
 		}
-		WyalFile.Opcode opcode = eq.getSign() ? Opcode.EXPR_eq : Opcode.EXPR_neq;
-		clauses[rhsOperands.length] = Formulae.toFormula(new Expr.Operator(opcode, lhsSize, rhsSize), types);
+		clauses[rhsOperands.length] = Formulae.toFormula(equal(eq.getSign(),lhsSize,rhsSize), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(clauses) : new Formula.Disjunct(clauses);
 		return state.subsume(this, eq, f);
@@ -245,10 +242,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		Expr lhsSize = lhs.getOperand(1);
 		Expr rhsValue = rhs.getOperand(0);
 		Expr rhsSize = rhs.getOperand(1);
-
-		WyalFile.Opcode opcode = eq.getSign() ? Opcode.EXPR_eq : Opcode.EXPR_neq;
-		Formula c1 = Formulae.toFormula(new Expr.Operator(opcode, lhsSize, rhsSize), types);
-		Formula c2 = Formulae.toFormula(new Expr.Operator(opcode, lhsValue, rhsValue), types);
+		Formula c1 = Formulae.toFormula(equal(eq.getSign(), lhsSize, rhsSize), types);
+		Formula c2 = Formulae.toFormula(equal(eq.getSign(), lhsValue, rhsValue), types);
 		//
 		Formula f = eq.getSign() ? new Formula.Conjunct(c1, c2) : new Formula.Disjunct(c1, c2);
 		return state.subsume(this, eq, f);
@@ -257,16 +252,16 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	private State expandArrayInitialiserNonEquality(Formula.Equality eq, Expr.Operator lhs, Expr rhs,
 			Proof.State state) throws ResolutionError {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
-		Expr rhsSize = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
+		Expr rhsSize = new Expr.ArrayLength(rhs);
 		Expr[] lhsOperands = lhs.getOperands();
 		Formula[] clauses = new Formula[lhsOperands.length + 1];
 		for (int i = 0; i != lhsOperands.length; ++i) {
 			Expr index = new Expr.Constant(new Value.Int(i));
 			Expr lhsOperand = lhsOperands[i];
-			Expr rhsOperand = new Expr.Operator(Opcode.EXPR_arridx, rhs, index);
-			clauses[i] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsOperand, rhsOperand), types);
+			Expr rhsOperand = new Expr.ArrayAccess(rhs, index);
+			clauses[i] = Formulae.toFormula(new Expr.NotEqual(lhsOperand, rhsOperand), types);
 		}
-		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.Operator(Opcode.EXPR_neq, lhsSize, rhsSize), types);
+		clauses[lhsOperands.length] = Formulae.toFormula(new Expr.NotEqual(lhsSize, rhsSize), types);
 		Formula f = new Formula.Disjunct(clauses);
 		return state.subsume(this, eq, f);
 	}
@@ -275,11 +270,11 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 				new Identifier("i:" + skolem++));
 		Expr va = new Expr.VariableAccess(var);
-		Expr lhsAccess = new Expr.Operator(Opcode.EXPR_arridx, lhs, va);
-		Expr rhsAccess = new Expr.Operator(Opcode.EXPR_arridx, rhs, va);
+		Expr lhsAccess = new Expr.ArrayAccess(lhs, va);
+		Expr rhsAccess = new Expr.ArrayAccess(rhs, va);
 		Formula body = notEquals(state, lhsAccess, rhsAccess, types);
-		Expr lhsLen = new Expr.Operator(Opcode.EXPR_arrlen, lhs);
-		Expr rhsLen = new Expr.Operator(Opcode.EXPR_arrlen, rhs);
+		Expr lhsLen = new Expr.ArrayLength(lhs);
+		Expr rhsLen = new Expr.ArrayLength(rhs);
 		// The following axiom simply states that the length of every array
 		// type is greater than or equal to zero.
 		Formula axiom = new ArithmeticEquality(false, lhsLen, rhsLen);
@@ -295,6 +290,14 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			return new ArithmeticEquality(false, lhs, rhs);
 		} else {
 			return new Formula.Equality(false, lhs, rhs);
+		}
+	}
+
+	private static Expr equal(boolean sign, Expr lhs, Expr rhs) {
+		if (sign) {
+			return new Expr.Equal(lhs,rhs);
+		} else {
+			return new Expr.NotEqual(lhs,rhs);
 		}
 	}
 }

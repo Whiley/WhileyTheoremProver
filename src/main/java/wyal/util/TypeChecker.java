@@ -438,12 +438,12 @@ public class TypeChecker {
 	}
 
 	private Environment checkIsOperator(Environment env, boolean sign, Expr.Is expr) {
-		Expr lhs = expr.getExpr();
-		Type rhs = expr.getTypeTest();
+		Expr lhs = expr.getTestExpr();
+		Type rhs = expr.getTestType();
 		// Account the case when this test is inverted
 		rhs = sign ? rhs : negate(rhs);
 		//
-		Type lhsT = checkExpression(env, expr.getExpr());
+		Type lhsT = checkExpression(env, expr.getTestExpr());
 		// TODO: implement a proper intersection test here to ensure lhsT and
 		// rhs types make sense (i.e. have some intersection).
 		Pair<WyalFile.VariableDeclaration, Type> extraction = extractTypeTest(lhs, rhs);

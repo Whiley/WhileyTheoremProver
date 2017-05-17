@@ -132,10 +132,10 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			WyalFile.VariableDeclaration var = new WyalFile.VariableDeclaration(new Type.Int(),
 					new Identifier("i:" + skolem++));
 			Expr va = new Expr.VariableAccess(var);
-			Expr el = new Expr.Operator(Opcode.EXPR_arridx, root, va);
+			Expr el = new Expr.ArrayAccess(root, va);
 			Formula inv = extractTypeInvariant(t.getElement(), el, visited);
 			Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
-			Expr len = new Expr.Operator(Opcode.EXPR_arrlen, root);
+			Expr len = new Expr.ArrayLength(root);
 			if (inv != null) {
 				// forall i.(0 <= i && i <|root|) ==> inv
 				Formula gt = greaterOrEqual(va, zero);
