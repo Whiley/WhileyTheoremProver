@@ -217,6 +217,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// Fundamental Items
 	// ============================================================
 
+	/**
+	 * Represents a pair of items in a compilation unit.
+	 *
+	 * @author David J. Pearce
+	 *
+	 * @param <K>
+	 * @param <V>
+	 */
 	public static class Pair<K extends SyntacticItem, V extends SyntacticItem> extends AbstractSyntacticItem {
 		public Pair(K lhs, V rhs) {
 			super(Opcode.ITEM_pair, lhs, rhs);
@@ -236,6 +244,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
+	/**
+	 * Represents a sequence of zero or more items in a compilation unit.
+	 *
+	 * @author David J. Pearce
+	 *
+	 * @param <T>
+	 */
 	public static class Tuple<T extends SyntacticItem> extends AbstractSyntacticItem {
 		public Tuple(T... stmts) {
 			super(Opcode.ITEM_tuple, stmts);
@@ -274,6 +289,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
+	/**
+	 * Represents an <i>identifier</i> in a compilation unit. For example, this
+	 * could be used to represent a variable access. Or, it could be part of a
+	 * partially or fully qualified name.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
 	public static class Identifier extends AbstractSyntacticItem {
 		public Identifier(String name) {
 			super(Opcode.ITEM_ident, name, new SyntacticItem[0]);
@@ -294,6 +317,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
+	/**
+	 * Represents a <i>partial-</i> or <i>fully-qualified</i> name within a
+	 * compilation unit.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
 	public static class Name extends AbstractSyntacticItem {
 		public Name(Identifier... components) {
 			super(Opcode.ITEM_name, components);
@@ -332,6 +362,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
+	/**
+	 * Represents a raw value within a compilation unit. This is not a
+	 * source-level item, though could be a component of a source-level item
+	 * (e.g. a constant expression).
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
 	public abstract static class Value extends AbstractSyntacticItem {
 
 		public Value(Opcode opcode) {
