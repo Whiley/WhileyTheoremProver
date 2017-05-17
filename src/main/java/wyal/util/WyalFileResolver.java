@@ -170,6 +170,17 @@ public class WyalFileResolver implements NameResolver {
 					return nid;
 				}
 			}
+			// If we get here, then there is still an actual chance it could be
+			// referring to something declared in this compilation unit (i.e. a
+			// local lookup with a partially- or fully-qualified name)
+			NameID nid = name.toNameID();
+			Path.ID localPathID = enclosing.getEntry().id();
+			//
+			if(matchPartialModulePath(nid.module(),localPathID)) {
+				// Yes, ok, we've matched a local item!
+				return new NameID(localPathID,nid.name());
+			}
+			// Otherwise, we really couldn't figure out this name.
 		} catch (IOException e) {
 
 		}
