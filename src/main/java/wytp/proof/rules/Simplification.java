@@ -371,15 +371,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		case EXPR_neg:
 		case EXPR_add:
 		case EXPR_mul:
-		case EXPR_sub: {
+		case EXPR_sub:
 			return simplifyArithmetic((Expr.Operator) e);
-		}
 		case EXPR_recinit:
 			return simplifyRecordInitialiser((Expr.RecordInitialiser) e);
 		case EXPR_recfield:
 			return simplifyRecordAccess((Expr.RecordAccess) e);
 		case EXPR_recupdt:
 			return simplifyRecordUpdate((Expr.RecordUpdate) e);
+		case EXPR_deref:
+			return simplifyDereference((Expr.Dereference) e);
 		case EXPR_not:
 		case EXPR_and:
 		case EXPR_or:
@@ -483,6 +484,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			return e;
 		} else {
 			return new Expr.RecordUpdate(nSource, e.getField(), nValue);
+		}
+	}
+
+	private Expr simplifyDereference(Expr.Dereference e) throws ResolutionError {
+		Expr source = e.getOperand();
+		Expr nSource = simplifyExpression(source);
+		if (source == nSource) {
+			return e;
+		} else {
+			return new Expr.Dereference(nSource);
 		}
 	}
 

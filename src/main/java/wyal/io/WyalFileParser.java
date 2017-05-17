@@ -831,6 +831,8 @@ public class WyalFileParser {
 			return parseArrayInitialiserExpression(scope, terminated);
 		case LeftCurly:
 			return parseRecordExpression(scope, terminated);
+		case Star:
+			return parseDereferenceExpression(scope, terminated);
 		case Shreak:
 			return parseLogicalNotExpression(scope, terminated);
 		case Forall:
@@ -1159,7 +1161,7 @@ public class WyalFileParser {
 	}
 
 	/**
-	 * Parse a length of expression, which is of the form:
+	 * Parse an array length expression, which is of the form:
 	 *
 	 * <pre>
 	 * TermExpr::= ...
@@ -1229,6 +1231,42 @@ public class WyalFileParser {
 		expr.attributes().add(sourceAttr(start, index - 1));
 		return expr;
 	}
+
+
+	/**
+	 * Parse a deference expression, which is of the form:
+	 *
+	 * <pre>
+	 * RecordExpr ::= '*' Expr
+	 * </pre>
+	 *
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
+	 * @param terminated
+	 *            This indicates that the expression is known to be terminated
+	 *            (or not). An expression that's known to be terminated is one
+	 *            which is guaranteed to be followed by something. This is
+	 *            important because it means that we can ignore any newline
+	 *            characters encountered in parsing this expression, and that
+	 *            we'll never overrun the end of the expression (i.e. because
+	 *            there's guaranteed to be something which terminates this
+	 *            expression). A classic situation where terminated is true is
+	 *            when parsing an expression surrounded in braces. In such case,
+	 *            we know the right-brace will always terminate this expression.
+	 *
+	 * @return
+	 */
+	private Expr parseDereferenceExpression(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		match(Star);
+		Expr e = parseUnitExpression(scope, true);
+		e = new Expr.Dereference(e);
+		e.attributes().add(sourceAttr(start, index - 1));
+		return e;
+	}
+
 
 	/**
 	 * Parse a sequence of arguments separated by commas that ends in a

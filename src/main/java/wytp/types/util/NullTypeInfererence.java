@@ -91,6 +91,8 @@ public class NullTypeInfererence implements TypeInferer {
 			return inferRecordAccess(environment, (Expr.RecordAccess) expr);
 		case EXPR_recupdt:
 			return inferRecordUpdate(environment, (Expr.RecordUpdate) expr);
+		case EXPR_deref:
+			return inferDereference(environment, (Expr.Dereference) expr);
 		default:
 			throw new IllegalArgumentException("invalid expression encountered: " + expr);
 		}
@@ -187,9 +189,6 @@ public class NullTypeInfererence implements TypeInferer {
 		}
 	}
 
-	// ======================================================================
-	// Records
-	// ======================================================================
 
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {
 		Type src = inferExpression(environment, expr.getSource());
@@ -227,5 +226,14 @@ public class NullTypeInfererence implements TypeInferer {
 		// type. But definition, an initialiser always produces a closed
 		// (i.e. concrete) type.
 		return new Type.Record(false, decls);
+	}
+
+	// ======================================================================
+	// References
+	// ======================================================================
+
+	protected Type inferDereference(Environment environment, Expr.Dereference expr) throws ResolutionError {
+		Type elementT = inferExpression(environment, expr.getOperand());
+		return new Type.Reference(elementT);
 	}
 }
