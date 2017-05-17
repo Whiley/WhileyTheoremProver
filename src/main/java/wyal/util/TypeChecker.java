@@ -533,16 +533,18 @@ public class TypeChecker {
 			return checkRecordUpdate(env, (Expr.RecordUpdate) expr);
 		// Array expressions
 		case EXPR_arrlen:
-			return checkArrayLength(env, (Expr.Operator) expr);
+			return checkArrayLength(env, (Expr.ArrayLength) expr);
 		case EXPR_arrinit:
-			return checkArrayInitialiser(env, (Expr.Operator) expr);
+			return checkArrayInitialiser(env, (Expr.ArrayInitialiser) expr);
 		case EXPR_arrgen:
-			return checkArrayGenerator(env, (Expr.Operator) expr);
+			return checkArrayGenerator(env, (Expr.ArrayGenerator) expr);
 		case EXPR_arridx:
-			return checkArrayAccess(env, (Expr.Operator) expr);
+			return checkArrayAccess(env, (Expr.ArrayAccess) expr);
 		case EXPR_arrupdt:
-			return checkArrayUpdate(env, (Expr.Operator) expr);
+			return checkArrayUpdate(env, (Expr.ArrayUpdate) expr);
 		// Reference expressions ?
+		case EXPR_deref:
+			return checkDereference(env, (Expr.Dereference) expr);
 		default:
 			throw new RuntimeException("unknown statement or expression: " + expr);
 		}
@@ -705,13 +707,13 @@ public class TypeChecker {
 		}
 	}
 
-	private Type checkArrayLength(Environment env, Expr.Operator expr) {
-		Type src = checkExpression(env, expr.getOperand(0));
-		checkIsArrayType(src, expr.getOperand(0));
+	private Type checkArrayLength(Environment env, Expr.ArrayLength expr) {
+		Type src = checkExpression(env, expr.getSource());
+		checkIsArrayType(src, expr.getSource());
 		return new Type.Int();
 	}
 
-	private Type checkArrayInitialiser(Environment env, Expr.Operator expr) {
+	private Type checkArrayInitialiser(Environment env, Expr.ArrayInitialiser expr) {
 		Type[] ts = new Type[expr.size()];
 		for (int i = 0; i != ts.length; ++i) {
 			ts[i] = checkExpression(env, expr.getOperand(i));
@@ -721,43 +723,51 @@ public class TypeChecker {
 		return new Type.Array(element);
 	}
 
-	private Type checkArrayGenerator(Environment env, Expr.Operator expr) {
-		Expr source = expr.getOperand(0);
-		Expr index = expr.getOperand(1);
+	private Type checkArrayGenerator(Environment env, Expr.ArrayGenerator expr) {
+		Expr value = expr.getValue();
+		Expr length = expr.getLength();
 		//
-		Type sourceT = checkExpression(env, source);
-		Type indexT = checkExpression(env, index);
+		Type valueT = checkExpression(env, value);
+		Type lengthT = checkExpression(env, length);
 		//
-		checkIsSubtype(new Type.Int(), indexT, index);
-		return new Type.Array(sourceT);
+		checkIsSubtype(new Type.Int(), lengthT, length);
+		return new Type.Array(valueT);
 	}
 
-	private Type checkArrayAccess(Environment env, Expr.Operator expr) {
-		Expr source = expr.getOperand(0);
-		Expr index = expr.getOperand(1);
+	private Type checkArrayAccess(Environment env, Expr.ArrayAccess expr) {
+		Expr source = expr.getSource();
+		Expr subscript = expr.getSubscript();
 		//
 		Type sourceT = checkExpression(env, source);
-		Type indexT = checkExpression(env, index);
+		Type subscriptT = checkExpression(env, subscript);
 		//
 		Type.Array sourceArrayT = checkIsArrayType(sourceT, source);
-		checkIsSubtype(new Type.Int(), indexT, index);
+		checkIsSubtype(new Type.Int(), subscriptT, subscript);
 		//
 		return sourceArrayT.getElement();
 	}
 
-	private Type checkArrayUpdate(Environment env, Expr.Operator expr) {
-		Expr source = expr.getOperand(0);
-		Expr index = expr.getOperand(1);
-		Expr value = expr.getOperand(2);
+	private Type checkArrayUpdate(Environment env, Expr.ArrayUpdate expr) {
+		Expr source = expr.getSource();
+		Expr subscript = expr.getSubscript();
+		Expr value = expr.getValue();
 		//
 		Type sourceT = checkExpression(env, source);
-		Type indexT = checkExpression(env, index);
+		Type subscriptT = checkExpression(env, subscript);
 		Type valueT = checkExpression(env, value);
 		//
 		Type.Array sourceArrayT = checkIsArrayType(sourceT, source);
-		checkIsSubtype(new Type.Int(), indexT, index);
+		checkIsSubtype(new Type.Int(), subscriptT, subscript);
 		checkIsSubtype(sourceArrayT.getElement(), valueT, value);
 		return sourceArrayT;
+	}
+
+	private Type checkDereference(Environment env, Expr.Dereference expr) {
+		Type operandT = checkExpression(env, expr.getOperand());
+		//
+		Type.Reference refT = checkIsReferenceType(operandT, expr.getOperand());
+		//
+		return refT.getElement();
 	}
 
 	/**
@@ -794,6 +804,23 @@ public class TypeChecker {
 			return recT;
 		} catch (NameResolver.ResolutionError e) {
 			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+		}
+	}
+
+	/**
+	 * Check whether a given type is a reference type of some sort.
+	 *
+	 * @param type
+	 * @return
+	 * @throws ResolutionError
+	 */
+	private Type.Reference checkIsReferenceType(Type type, SyntacticElement element) {
+		// TODO: should consider whether it makes sense to think about readable
+		// reference types.
+		if(type instanceof Type.Reference){
+			return (Type.Reference) type;
+		} else {
+			throw new SyntaxError("expected array type", parent.getEntry(), element);
 		}
 	}
 
