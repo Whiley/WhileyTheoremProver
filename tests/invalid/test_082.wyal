@@ -1,0 +1,9 @@
+type Point is ({int x, int y} this)
+
+assert "assertion failed":
+    forall(&test.Point p):
+        if:
+            0 == *p.x
+        then:
+            0 == *p.x
+
