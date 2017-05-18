@@ -1,0 +1,9 @@
+type Point is ({int x, int y} this)
+
+assert "assertion failed":
+    forall(&Point p, &Point q):
+        if:
+            p == q
+        then:
+            *p == *q
+

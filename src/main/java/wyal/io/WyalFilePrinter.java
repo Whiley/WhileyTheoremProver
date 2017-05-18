@@ -281,6 +281,7 @@ public class WyalFilePrinter {
 		case EXPR_mul:
 		case EXPR_div:
 		case EXPR_rem:
+		case EXPR_deref:
 			// Brackets always required
 			out.print("(");
 			writeExpression(expr);
@@ -303,6 +304,7 @@ public class WyalFilePrinter {
 		case EXPR_not:
 		case EXPR_neg:
 		case EXPR_arrlen:
+		case EXPR_deref:
 			writeUnaryOperator((Expr.Operator) expr);
 			break;
 		case EXPR_and:
@@ -417,6 +419,10 @@ public class WyalFilePrinter {
 			out.print("|");
 			writeExpression(expr.getOperand(0));
 			out.print("|");
+			break;
+		case EXPR_deref:
+			out.print("*");
+			writeExpressionWithBrackets(expr.getOperand(0));
 			break;
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());

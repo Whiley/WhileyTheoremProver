@@ -189,7 +189,6 @@ public class NullTypeInfererence implements TypeInferer {
 		}
 	}
 
-
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {
 		Type src = inferExpression(environment, expr.getSource());
 		if (src != null) {
@@ -233,7 +232,13 @@ public class NullTypeInfererence implements TypeInferer {
 	// ======================================================================
 
 	protected Type inferDereference(Environment environment, Expr.Dereference expr) throws ResolutionError {
-		Type elementT = inferExpression(environment, expr.getOperand());
-		return new Type.Reference(elementT);
+		Type src = inferExpression(environment, expr.getOperand());
+		if(src != null) {
+			Type.Reference effectiveReference = types.extractReadableReference(src);
+			if(effectiveReference != null) {
+				return effectiveReference.getElement();
+			}
+		}
+		return null;
 	}
 }

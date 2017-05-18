@@ -815,12 +815,14 @@ public class TypeChecker {
 	 * @throws ResolutionError
 	 */
 	private Type.Reference checkIsReferenceType(Type type, SyntacticElement element) {
-		// TODO: should consider whether it makes sense to think about readable
-		// reference types.
-		if(type instanceof Type.Reference){
-			return (Type.Reference) type;
-		} else {
-			throw new SyntaxError("expected array type", parent.getEntry(), element);
+		try {
+			Type.Reference refT = types.extractReadableReference(type);
+			if (refT == null) {
+				throw new SyntaxError("expected reference type", parent.getEntry(), element);
+			}
+			return refT;
+		} catch (NameResolver.ResolutionError e) {
+			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
 		}
 	}
 
