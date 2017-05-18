@@ -28,6 +28,7 @@ import wybs.lang.Build;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;
+import wytp.types.extractors.ReadableReferenceExtractor;
 import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
 import wytp.types.util.NullTypeEnvironment;
@@ -42,8 +43,9 @@ public class TypeSystem {
 	//
 	private final NameResolver resolver;
 	private final SubtypeOperator coerciveSubtypeOperator;
-	private final ReadableRecordExtractor readableRecordExtractor;
-	private final ReadableArrayExtractor readableArrayExtractor;
+	private final TypeExtractor<Type.Record,Object> readableRecordExtractor;
+	private final TypeExtractor<Type.Array,Object> readableArrayExtractor;
+	private final TypeExtractor<Type.Reference,Object> readableReferenceExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
 	private final TypeInferer typeInfererence;
 
@@ -52,6 +54,7 @@ public class TypeSystem {
 		this.coerciveSubtypeOperator = new CoerciveSubtypeOperator(resolver);
 		this.readableRecordExtractor = new ReadableRecordExtractor(resolver,this);
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
+		this.readableReferenceExtractor = new ReadableReferenceExtractor(resolver,this);
 		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
 		this.typeInfererence = new NullTypeInfererence(this);
 	}
@@ -129,6 +132,20 @@ public class TypeSystem {
 	 */
 	public Type.Array extractReadableArray(Type type) throws ResolutionError {
 		return readableArrayExtractor.extract(type,null);
+	}
+
+	/**
+	 * Extract the readable reference type from a given type. This is relatively
+	 * straightforward. For example, <code>&int</code> is extracted as
+	 * <code>&int</code>. However, <code>(&int)|(&bool)</code> is not extracted
+	 * as as <code>&(int|bool)</code>.
+	 *
+	 * @param type
+	 * @return
+	 * @throws ResolutionError
+	 */
+	public Type.Reference extractReadableReference(Type type) throws ResolutionError {
+		return readableReferenceExtractor.extract(type,null);
 	}
 
 	/**
