@@ -281,6 +281,7 @@ public class WyalFilePrinter {
 		case EXPR_mul:
 		case EXPR_div:
 		case EXPR_rem:
+		case EXPR_deref:
 			// Brackets always required
 			out.print("(");
 			writeExpression(expr);

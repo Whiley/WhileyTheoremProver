@@ -1,0 +1,9 @@
+type state is ({int x, int y} this)
+type pState is (&state this)
+
+assert "assertion failed":
+    forall(pState p1, pState p2):
+        if:
+            *p2 == *p1{x:=0}
+        then:
+            *p2.x == 0
