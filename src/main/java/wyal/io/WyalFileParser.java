@@ -1261,7 +1261,7 @@ public class WyalFileParser {
 	private Expr parseDereferenceExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(Star);
-		Expr e = parseUnitExpression(scope, true);
+		Expr e = parseTermExpression(scope, true);
 		e = new Expr.Dereference(e);
 		e.attributes().add(sourceAttr(start, index - 1));
 		return e;

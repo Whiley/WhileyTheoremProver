@@ -820,7 +820,7 @@ public class TypeChecker {
 		if(type instanceof Type.Reference){
 			return (Type.Reference) type;
 		} else {
-			throw new SyntaxError("expected array type", parent.getEntry(), element);
+			throw new SyntaxError("expected reference type", parent.getEntry(), element);
 		}
 	}
 
