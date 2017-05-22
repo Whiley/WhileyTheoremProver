@@ -14,13 +14,16 @@
 package wytp.proof.rules;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -115,7 +118,15 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			head = apply(existingTruths, test, head);
+			// First, attempt to normalise this type test
+			Formula.Is normalisedTest = normalise(test);
+			if (normalisedTest != test) {
+				// Yes, we succeeded in normalising this test
+				head = head.subsume(this, test, normalisedTest);
+			} else {
+				// Test already normalised.
+				head = apply(existingTruths, test, head);
+			}
 		}
 		return head;
 	}
@@ -134,9 +145,9 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 		Type rhsT = typeTest.getTestType();
 		if (lhsT != null) {
-			// FIXME #84: This is not sufficient. It's possible that using new
-			// Type.Intersection could potentially lead to unbounded growth of the
-			// overall type.
+			// NOTE #84: We must simplify here. Otherwise, it's possible that
+			// using new Type.Intersection could potentially lead to unbounded
+			// growth of the overall type.
 			Type intersection = types.simplify(new Type.Intersection(lhsT, rhsT));
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
@@ -159,9 +170,6 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 				if (lhs instanceof Expr.VariableAccess) {
 					state = retypeVariable(existingTruths, typeTest, intersection, state);
 				} else {
-					// FIXME: in the case of a field access, we can actually do
-					// better here. For example, "x.f is int" can be reduced to
-					// "x is {int f,...}".
 					List<Formula.Is> matches = findMatches(existingTruths, typeTest, state);
 					if (matches.size() > 1) {
 						state = closeOver(matches, state);
@@ -170,6 +178,28 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 			}
 		}
 		return state;
+	}
+
+	private Formula.Is normalise(Formula.Is test) throws ResolutionError {
+		Expr lhs = test.getTestExpr();
+		if (lhs instanceof Expr.RecordAccess) {
+			Expr.RecordAccess ra = (Expr.RecordAccess) lhs;
+			Type type = test.getTestType();
+			//Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
+//			if(lhsT instanceof Type.Record) {
+//				Type.Record rec = (Type.Record) lhsT;
+//				// FIXME: could potentially perform an extraction here.
+//				FieldDeclaration[] fields = rec.getFields();
+//				FieldDeclaration[] nFields = Arrays.copyOf(fields,fields.length);
+//
+//			}
+			// This is the fall back
+			FieldDeclaration[] fields = new FieldDeclaration[1];
+			fields[0] = new FieldDeclaration(type, ra.getField());
+			return normalise(new Formula.Is(ra.getSource(), new Type.Record(true, fields)));
+		} else {
+			return test;
+		}
 	}
 
 	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type refinement,
@@ -219,16 +249,10 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 
 	private State closeOver(List<Formula.Is> matches, Proof.State state) throws ResolutionError {
 		Formula.Is first = matches.get(0);
-		Type[] bounds = new Type[matches.size()];
-		//
-		for (int i = 0; i != matches.size(); ++i) {
-			Formula.Is match = matches.get(i);
-			bounds[i] = match.getTestType();
-		}
-		//
-		// FIXME #84: This is not sufficient. It's possible that using new
-		// Type.Intersection could potentially lead to unbounded growth of the
-		// overall type.
+		Type[] bounds = project(matches);
+		// NOTE #84: We must simplify here. Otherwise, it's possible that
+		// using new Type.Intersection could potentially lead to unbounded
+		// growth of the overall type.
 		Type type = types.simplify(new Type.Intersection(bounds));
 		Formula test = new Formula.Is(first.getTestExpr(), type);
 		//
@@ -239,4 +263,20 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		return state;
 	}
 
+	/**
+	 * Extract the type from each matching type test.
+	 *
+	 * @param matches
+	 * @return
+	 */
+	private Type[] project(List<Formula.Is> matches) {
+		Type[] bounds = new Type[matches.size()];
+		//
+		for (int i = 0; i != matches.size(); ++i) {
+			Formula.Is match = matches.get(i);
+			bounds[i] = match.getTestType();
+		}
+		//
+		return bounds;
+	}
 }

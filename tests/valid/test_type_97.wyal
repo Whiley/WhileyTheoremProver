@@ -1,0 +1,11 @@
+type Leaf is (int this)
+type Link is ({LinkedList next} this)
+type LinkedList is (Leaf|Link this)
+
+assert "type invariant not satisfied":
+    forall(LinkedList list, int distance):
+        if:
+            distance == 0
+            list is Link
+        then:
+            list.next is LinkedList
