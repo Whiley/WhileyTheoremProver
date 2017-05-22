@@ -21,7 +21,7 @@ import wyal.lang.WyalFile.Declaration.Named;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
 import wytp.types.TypeInferer.Environment;
-import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.StdTypeEnvironment;
 import wytp.types.TypeSystem;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
@@ -1074,7 +1074,7 @@ public class TypeChecker {
 		if (left == right) {
 			return left;
 		} else {
-			Environment result = new NullTypeEnvironment();
+			Environment result = new StdTypeEnvironment();
 
 			for (WyalFile.VariableDeclaration var : left.getRefinedVariables()) {
 				Type declT = var.getType();

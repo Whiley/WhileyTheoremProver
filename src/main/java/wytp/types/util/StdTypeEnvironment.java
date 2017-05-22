@@ -19,14 +19,14 @@ import wytp.types.TypeInferer.Environment;
  * @author David J. Pearce
  *
  */
-public class NullTypeEnvironment implements TypeInferer.Environment {
+public class StdTypeEnvironment implements TypeInferer.Environment {
 	private final Map<WyalFile.VariableDeclaration,Type> refinements;
 
-	public NullTypeEnvironment() {
+	public StdTypeEnvironment() {
 		this.refinements = new HashMap<>();
 	}
 
-	public NullTypeEnvironment(Map<WyalFile.VariableDeclaration,Type> refinements) {
+	public StdTypeEnvironment(Map<WyalFile.VariableDeclaration,Type> refinements) {
 		this.refinements = new HashMap<>(refinements);
 	}
 
@@ -43,7 +43,7 @@ public class NullTypeEnvironment implements TypeInferer.Environment {
 	@Override
 	public Environment refineType(VariableDeclaration var, Type refinement) {
 		Type type = intersect(getType(var),refinement);
-		NullTypeEnvironment r = new NullTypeEnvironment(this.refinements);
+		StdTypeEnvironment r = new StdTypeEnvironment(this.refinements);
 		r.refinements.put(var,type);
 		return r;
 	}

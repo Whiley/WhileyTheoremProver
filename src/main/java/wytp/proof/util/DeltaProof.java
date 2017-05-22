@@ -26,7 +26,7 @@ import wytp.proof.util.AbstractProof.AbstractState;
 import wytp.proof.util.FastDelta.Set;
 import wytp.types.TypeInferer;
 import wytp.types.TypeInferer.Environment;
-import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.StdTypeEnvironment;
 import wyal.lang.WyalFile.Declaration.Assert;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
@@ -55,7 +55,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			super(proof, null, null);
 			this.truths = new BitSet();
 			this.delta = new FastDelta(new FastDelta.Set(axiom), FastDelta.EMPTY_SET);
-			this.environment = new NullTypeEnvironment();
+			this.environment = new StdTypeEnvironment();
 			truths.set(axiom.getIndex());
 		}
 
