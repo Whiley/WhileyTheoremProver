@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package wytp.proof.rules;
+package wytp.proof.rules.type;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,15 +118,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 	public State apply(Proof.Delta.Set existingTruths, Proof.State head, Formula newTruth) throws ResolutionError {
 		if (newTruth instanceof Formula.Is) {
 			Formula.Is test = (Formula.Is) newTruth;
-			// First, attempt to normalise this type test
-			Formula.Is normalisedTest = normalise(test);
-			if (normalisedTest != test) {
-				// Yes, we succeeded in normalising this test
-				head = head.subsume(this, test, normalisedTest);
-			} else {
-				// Test already normalised.
-				head = apply(existingTruths, test, head);
-			}
+			head = apply(existingTruths, test, head);
 		}
 		return head;
 	}
@@ -178,28 +170,6 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 			}
 		}
 		return state;
-	}
-
-	private Formula.Is normalise(Formula.Is test) throws ResolutionError {
-		Expr lhs = test.getTestExpr();
-		if (lhs instanceof Expr.RecordAccess) {
-			Expr.RecordAccess ra = (Expr.RecordAccess) lhs;
-			Type type = test.getTestType();
-			//Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
-//			if(lhsT instanceof Type.Record) {
-//				Type.Record rec = (Type.Record) lhsT;
-//				// FIXME: could potentially perform an extraction here.
-//				FieldDeclaration[] fields = rec.getFields();
-//				FieldDeclaration[] nFields = Arrays.copyOf(fields,fields.length);
-//
-//			}
-			// This is the fall back
-			FieldDeclaration[] fields = new FieldDeclaration[1];
-			fields[0] = new FieldDeclaration(type, ra.getField());
-			return normalise(new Formula.Is(ra.getSource(), new Type.Record(true, fields)));
-		} else {
-			return test;
-		}
 	}
 
 	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type refinement,

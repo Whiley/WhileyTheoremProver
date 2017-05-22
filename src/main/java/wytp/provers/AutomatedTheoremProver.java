@@ -43,7 +43,8 @@ import wytp.proof.rules.InequalityIntroduction;
 import wytp.proof.rules.MacroExpansion;
 import wytp.proof.rules.OrElimination;
 import wytp.proof.rules.Simplification;
-import wytp.proof.rules.TypeTestClosure;
+import wytp.proof.rules.type.TypeTestClosure;
+import wytp.proof.rules.type.TypeTestNormalisation;
 import wytp.proof.util.DeltaProof;
 import wytp.proof.util.FastDelta;
 import wytp.proof.util.Formulae;
@@ -102,6 +103,7 @@ public class AutomatedTheoremProver {
 				new AndElimination(types),
 				new ExistentialElimination(types),
 				new MacroExpansion(types),
+				new TypeTestNormalisation(types),
 				new TypeTestClosure(types),
 				new ArrayLengthAxiom(types),
 				new ArrayIndexAxiom(types),
