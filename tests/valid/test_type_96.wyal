@@ -1,0 +1,9 @@
+type binop is ({expr left, int op} b) where (b.op == 1)
+
+type expr is (int|binop this)
+
+assert:
+    forall(binop e1):
+        {left: e1, op: 1} is expr
+
+

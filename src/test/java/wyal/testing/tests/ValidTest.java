@@ -64,6 +64,9 @@ public class ValidTest {
 		IGNORED.put("test_arith_40", "#12");
 		//
 		IGNORED.put("test_array_59", "#29");
+		IGNORED.put("test_array_06", "#29");
+		IGNORED.put("test_array_26", "#29");
+		IGNORED.put("test_array_60", "#29");
 		//
 		IGNORED.put("test_arith_28", "#40");
 		//
@@ -87,10 +90,6 @@ public class ValidTest {
 		IGNORED.put("test_type_78", "#80");
 		//
 		IGNORED.put("test_arith_41", "#86");
-		//
-		IGNORED.put("test_array_06", "#90");
-		IGNORED.put("test_array_26", "#90");
-		IGNORED.put("test_array_60", "#90");
 		//
 		IGNORED.put("test_array_64", "#91");
 		IGNORED.put("test_array_69", "#91");

@@ -182,7 +182,6 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				}
 				break;
 			}
-
 			default:
 				truths.add(new Atom(item.sign, (Type.Atom) item.type, item.maximise));
 			}
@@ -618,6 +617,11 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			this.type = type;
 			this.sign = sign;
 			this.maximise = maximise;
+		}
+
+		@Override
+		public String toString() {
+			return type.toString() + ":" + sign + ":" + maximise;
 		}
 	}
 

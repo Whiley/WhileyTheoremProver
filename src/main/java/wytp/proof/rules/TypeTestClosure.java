@@ -134,10 +134,10 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 		Type rhsT = typeTest.getTestType();
 		if (lhsT != null) {
-			// FIXME: at the moment, TypeSystem.intersect is not working
-			// properly. It's possible that using new Type.Intersection could
-			// potentially lead to unbounded growth of the overall type.
-			Type intersection = new Type.Intersection(lhsT, rhsT);
+			// FIXME #84: This is not sufficient. It's possible that using new
+			// Type.Intersection could potentially lead to unbounded growth of the
+			// overall type.
+			Type intersection = types.simplify(new Type.Intersection(lhsT, rhsT));
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in
@@ -226,7 +226,10 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 			bounds[i] = match.getTestType();
 		}
 		//
-		Type type = new Type.Intersection(bounds);
+		// FIXME #84: This is not sufficient. It's possible that using new
+		// Type.Intersection could potentially lead to unbounded growth of the
+		// overall type.
+		Type type = types.simplify(new Type.Intersection(bounds));
 		Formula test = new Formula.Is(first.getTestExpr(), type);
 		//
 		for (int i = 0; i != matches.size(); ++i) {

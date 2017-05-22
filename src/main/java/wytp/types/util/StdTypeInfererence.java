@@ -31,10 +31,10 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class NullTypeInfererence implements TypeInferer {
+public class StdTypeInfererence implements TypeInferer {
 	private final TypeSystem types;
 
-	public NullTypeInfererence(TypeSystem types) {
+	public StdTypeInfererence(TypeSystem types) {
 		this.types = types;
 	}
 
