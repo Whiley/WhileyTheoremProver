@@ -298,6 +298,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	}
 
 	public static Expr min(Expr lhs, Expr rhs) {
+		// First, prefer variables as these are always more useful.
 		if(isVariable(lhs) && isVariable(rhs)) {
 			if(lessThan(lhs,rhs)) {
 				return lhs;
@@ -308,8 +309,12 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			return lhs;
 		} else if(isVariable(rhs)) {
 			return rhs;
+		}
+		// Second, take whatever has lowest index
+		if(lessThan(lhs,rhs)) {
+			return lhs;
 		} else {
-			return null;
+			return rhs;
 		}
 	}
 
