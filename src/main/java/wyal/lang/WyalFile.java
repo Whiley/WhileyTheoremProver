@@ -1310,6 +1310,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Is clone(SyntacticItem[] operands) {
 				return new Is((Expr) operands[0], (Type) operands[1]);
 			}
+
+			@Override
+			public String toString() {
+				return getTestExpr() + " is " + getTestType();
+			}
 		}
 
 		/**
@@ -1488,6 +1493,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public VariableAccess clone(SyntacticItem[] operands) {
 				return new VariableAccess((VariableDeclaration) operands[0]);
+			}
+
+			@Override
+			public String toString() {
+				return getVariableDeclaration().getVariableName().toString();
 			}
 		}
 
@@ -2084,6 +2094,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public RecordAccess clone(SyntacticItem[] operands) {
 				return new RecordAccess((Expr) operands[0], (Identifier) operands[1]);
+			}
+
+			@Override
+			public String toString() {
+				return getSource() + "." + getField();
 			}
 		}
 

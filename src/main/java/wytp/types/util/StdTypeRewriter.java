@@ -37,12 +37,12 @@ public class StdTypeRewriter extends AbstractTypeRewriter {
 			// Any union containing any equals any
 			return T_ANY;
 		}
+		// Expand any nested unions
+		nTypes = inlineNestedDisjuncts(nTypes);
 		// Remove any duplicate types
 		nTypes = ArrayUtils.removeDuplicates(nTypes);
 		// Remove all occurences of void
 		nTypes = ArrayUtils.removeAll(nTypes, T_VOID);
-		// Expand any nested unions
-		nTypes = inlineNestedDisjuncts(nTypes);
 		//
 		if(types.length == 0) {
 			return new Type.Void();
@@ -64,12 +64,12 @@ public class StdTypeRewriter extends AbstractTypeRewriter {
 			// Any intersection containing void equals void
 			return T_VOID;
 		}
+		// Expand any nested unions
+		nTypes = inlineNestedConjuncts(nTypes);
 		// Remove any duplicate types
 		nTypes = ArrayUtils.removeDuplicates(nTypes);
 		// Remove all occurences of void
 		nTypes = ArrayUtils.removeAll(nTypes, T_ANY);
-		// Expand any nested unions
-		nTypes = inlineNestedConjuncts(nTypes);
 		//
 		if(types.length == 0) {
 			return new Type.Any();

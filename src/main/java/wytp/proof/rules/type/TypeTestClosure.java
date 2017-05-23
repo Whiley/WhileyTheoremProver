@@ -11,16 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package wytp.proof.rules;
+package wytp.proof.rules.type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -134,9 +137,9 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 		Type rhsT = typeTest.getTestType();
 		if (lhsT != null) {
-			// FIXME #84: This is not sufficient. It's possible that using new
-			// Type.Intersection could potentially lead to unbounded growth of the
-			// overall type.
+			// NOTE #84: We must simplify here. Otherwise, it's possible that
+			// using new Type.Intersection could potentially lead to unbounded
+			// growth of the overall type.
 			Type intersection = types.simplify(new Type.Intersection(lhsT, rhsT));
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
@@ -159,9 +162,6 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 				if (lhs instanceof Expr.VariableAccess) {
 					state = retypeVariable(existingTruths, typeTest, intersection, state);
 				} else {
-					// FIXME: in the case of a field access, we can actually do
-					// better here. For example, "x.f is int" can be reduced to
-					// "x is {int f,...}".
 					List<Formula.Is> matches = findMatches(existingTruths, typeTest, state);
 					if (matches.size() > 1) {
 						state = closeOver(matches, state);
@@ -219,16 +219,10 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 
 	private State closeOver(List<Formula.Is> matches, Proof.State state) throws ResolutionError {
 		Formula.Is first = matches.get(0);
-		Type[] bounds = new Type[matches.size()];
-		//
-		for (int i = 0; i != matches.size(); ++i) {
-			Formula.Is match = matches.get(i);
-			bounds[i] = match.getTestType();
-		}
-		//
-		// FIXME #84: This is not sufficient. It's possible that using new
-		// Type.Intersection could potentially lead to unbounded growth of the
-		// overall type.
+		Type[] bounds = project(matches);
+		// NOTE #84: We must simplify here. Otherwise, it's possible that
+		// using new Type.Intersection could potentially lead to unbounded
+		// growth of the overall type.
 		Type type = types.simplify(new Type.Intersection(bounds));
 		Formula test = new Formula.Is(first.getTestExpr(), type);
 		//
@@ -239,4 +233,20 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 		return state;
 	}
 
+	/**
+	 * Extract the type from each matching type test.
+	 *
+	 * @param matches
+	 * @return
+	 */
+	private Type[] project(List<Formula.Is> matches) {
+		Type[] bounds = new Type[matches.size()];
+		//
+		for (int i = 0; i != matches.size(); ++i) {
+			Formula.Is match = matches.get(i);
+			bounds[i] = match.getTestType();
+		}
+		//
+		return bounds;
+	}
 }
