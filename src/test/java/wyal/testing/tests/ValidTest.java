@@ -54,56 +54,57 @@ public class ValidTest {
 
 	static {
 		IGNORED.put("test_array_15", "hard ??");
-		//
+		// Issue 2 "Verification of Remainder Operator"
 		IGNORED.put("test_arith_12", "#2");
-		//
+		// Issue 12 "Support for Non-linear Arthmetic"
 		IGNORED.put("test_arith_15", "#12");
 		IGNORED.put("test_arith_31", "#12");
 		IGNORED.put("test_arith_36", "#12");
 		IGNORED.put("test_arith_38", "#12");
 		IGNORED.put("test_arith_40", "#12");
-		//
+		// Issue 29 "Triggerless Quantifier Instantiation"
 		IGNORED.put("test_array_59", "#29");
 		IGNORED.put("test_array_06", "#29");
 		IGNORED.put("test_array_26", "#29");
 		IGNORED.put("test_array_60", "#29");
-		//
+		// Issue 40 "Reasoning about Integer Arithmetic"
 		IGNORED.put("test_arith_28", "#40");
-		//
+		// Issue 41 "Case Split within Quantifier"
 		IGNORED.put("test_array_29", "#41");
 		IGNORED.put("test_array_61", "#41");
 		IGNORED.put("test_array_68", "#41");
-		//
+		// Issue 42 "Not statement syntax"
 		IGNORED.put("test_array_31", "#42");
-		//
+		// Issue 59 "Axioms for Open Records?"
 		IGNORED.put("test_record_08", "#59");
-		//
+		// Issue 72 "Problem Type Checking Negation Types "
 		IGNORED.put("test_type_90", "#72");
-		//
+		// Issue 76 "Casting Record Types"
 		IGNORED.put("test_record_18", "#76");
-		//
-		IGNORED.put("test_type_91", "#77");
-		IGNORED.put("test_type_92", "#77");
-		IGNORED.put("test_type_94", "#77");
-		//
+		// Issue 80 "(Non-)Empty Type"
 		IGNORED.put("test_type_77", "#80");
 		IGNORED.put("test_type_78", "#80");
-		//
+		IGNORED.put("test_type_91", "#80");
+		// Issue 86 "Handle Coefficients for CongruenceClosure"
 		IGNORED.put("test_arith_41", "#86");
-		//
+		// Issue 91 "Variable Ordering Effect"
+		IGNORED.put("test_array_44", "#91");
 		IGNORED.put("test_array_64", "#91");
 		IGNORED.put("test_array_69", "#91");
 		IGNORED.put("test_array_70", "#91");
 		IGNORED.put("test_array_71", "#91");
-		//
+		IGNORED.put("test_array_72", "#91");
+		// Issue 92 "Recursive Array Update"
 		IGNORED.put("test_record_14", "#92");
-		//
-		IGNORED.put("test_array_44", "#93");
-		IGNORED.put("test_array_72", "#93");
-		//
+		// Issue 103 "Problems with Type Tests"
 		IGNORED.put("test_type_95", "#103");
-		//
+		// Issue 104 "Incompleteness in CoerciveSubtypeOperator"
 		IGNORED.put("test_type_73", "#104");
+		IGNORED.put("test_type_98", "#104");
+		// Issue 107 "Limitation with ReadableRecordExtractor"
+		IGNORED.put("test_type_99", "#107");
+		//
+		IGNORED.put("test_type_94", "??");
 	}
 
 	// ======================================================================

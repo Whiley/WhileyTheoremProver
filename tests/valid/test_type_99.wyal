@@ -1,0 +1,9 @@
+type ListAccess is ({Expr index, Expr src} this)
+type Expr is (Expr[]|ListAccess this)
+
+assert "type invariant not satisfied":
+    forall(!(Expr[])&Expr e):
+        if:
+            e.src is Expr
+        then:
+            e.src is Expr
