@@ -95,7 +95,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		//
 		ArrayList<Formula> dependencies = new ArrayList<>();
 		Formula constructed = (Formula) construct(existingTruths, head, newTruth, newTruth, dependencies);
-		if(constructed != newTruth) {
+		if(constructed != newTruth && !constructed.equals(newTruth)) {
 			Formula[] deps = dependencies.toArray(new Formula[dependencies.size()]);
 			// NOTE: we need to allocated the constructed item here so that we
 			// can use it within the substituteAgainstEquality() function below
@@ -163,7 +163,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
-			return state.subsume(this, newTruth, axiom);
+			return state.infer(this, newTruth, axiom);
 		}
 	}
 
