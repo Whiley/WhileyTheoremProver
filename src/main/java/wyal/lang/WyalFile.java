@@ -356,7 +356,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public String toString() {
 			String r = getOperand(0).get();
 			for (int i = 1; i != size(); ++i) {
-				r += "." + getOperand(1).get();
+				r += "." + getOperand(i).get();
 			}
 			return r;
 		}

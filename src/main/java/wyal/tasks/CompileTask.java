@@ -23,6 +23,7 @@ import java.util.Set;
 import wyal.lang.WyalFile;
 import wyal.util.TypeChecker;
 import wybs.lang.Build;
+import wybs.lang.CompilationUnit;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;
 import wycc.util.Logger;
@@ -121,11 +122,11 @@ public class CompileTask implements Build.Task {
 			Path.Entry<?> entry = p.first();
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
+				Path.Entry<? extends CompilationUnit> originalSource = determineSource(source,graph);
 				WyalFile wf = source.read();
-				new TypeChecker(typeSystem,wf).check();
+				new TypeChecker(typeSystem,wf,originalSource).check();
 				if(verify) {
-					Path.Entry<?> original = determineSource(source,graph);
-					prover.check(wf,original);
+					prover.check(wf,originalSource);
 				}
 				files.add(wf);
 				// Write WyIL skeleton. This is a stripped down version of the
@@ -174,15 +175,15 @@ public class CompileTask implements Build.Task {
 		return generatedFiles;
 	}
 
-	private static Path.Entry<?> determineSource(Path.Entry<?> child, Build.Graph graph) {
+	private static Path.Entry<? extends CompilationUnit> determineSource(Path.Entry<?> child, Build.Graph graph) {
 		// FIXME: this is a temporary hack
 		Path.Entry<?> parent = graph.parent(child);
-		while(parent != null) {
+		while (parent != null) {
 			child = parent;
 			parent = graph.parent(child);
 		}
-		return child;
-}
+		return (Path.Entry<? extends CompilationUnit>) child;
+	}
 
 	// ======================================================================
 	// Private Implementation
