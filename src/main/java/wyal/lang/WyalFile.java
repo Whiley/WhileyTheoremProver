@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 import wyal.heap.AbstractSyntacticHeap;
 import wyal.heap.AbstractSyntacticItem;
@@ -2165,6 +2166,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public ArrayInitialiser clone(SyntacticItem[] operands) {
 				return new ArrayInitialiser(ArrayUtils.toArray(Expr.class, operands));
+			}
+
+			@Override
+			public String toString() {
+				return Arrays.toString(getOperands());
 			}
 		}
 

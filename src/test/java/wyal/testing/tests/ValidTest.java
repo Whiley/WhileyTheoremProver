@@ -103,7 +103,7 @@ public class ValidTest {
 		IGNORED.put("test_type_98", "#104");
 		// Issue 107 "Limitation with ReadableRecordExtractor"
 		IGNORED.put("test_type_99", "#107");
-		//
+		// ??/
 		IGNORED.put("test_type_94", "??");
 	}
 

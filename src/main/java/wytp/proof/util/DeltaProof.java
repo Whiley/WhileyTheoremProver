@@ -184,7 +184,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			}
 		}
 
-		private Formula allocate(Formula truth) {
+		public Formula allocate(Formula truth) {
 			return proof.getHeap().allocate(truth);
 		}
 	}

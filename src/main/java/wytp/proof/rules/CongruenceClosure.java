@@ -97,9 +97,16 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		Formula constructed = (Formula) construct(existingTruths, head, newTruth, newTruth, dependencies);
 		if(constructed != newTruth) {
 			Formula[] deps = dependencies.toArray(new Formula[dependencies.size()]);
+			// NOTE: we need to allocated the constructed item here so that we
+			// can use it within the substituteAgainstEquality() function below
+			// if it's an equality.
+			constructed = head.allocate(constructed);
 			head = head.subsume(this, newTruth, constructed, deps);
-		} else if (newTruth instanceof Formula.Equality && ((Formula.Equality) newTruth).getSign()) {
-			head = substituteAgainstEquality(existingTruths, head, (Formula.Equality) newTruth);
+		}
+		// If the construct truth is still an equality then we need to apply
+		// that through all existing terms.
+		if (constructed instanceof Formula.Equality && ((Formula.Equality) constructed).getSign()) {
+			head = substituteAgainstEquality(existingTruths, head, (Formula.Equality) constructed);
 		}
 		//
 		return head;
