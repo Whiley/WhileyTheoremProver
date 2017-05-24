@@ -181,12 +181,7 @@ public class StdTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferArrayUpdate(Environment environment, Expr.Operator expr) throws ResolutionError {
-		Type src = inferExpression(environment, expr.getOperand(0));
-		if(src != null) {
-			return types.extractReadableArray(src);
-		} else {
-			return null;
-		}
+		return inferExpression(environment, expr.getOperand(0));
 	}
 
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {

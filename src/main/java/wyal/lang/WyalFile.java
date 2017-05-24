@@ -2220,6 +2220,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public ArrayLength clone(SyntacticItem[] operands) {
 				return new ArrayLength((Expr) operands[0]);
 			}
+
+			@Override
+			public String toString() {
+				return "|" + getSource() + "|";
+			}
 		}
 
 		// =========================================================================
