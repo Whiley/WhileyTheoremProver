@@ -82,6 +82,18 @@ public interface Formula extends Expr {
 		public Conjunct clone(SyntacticItem[] children) {
 			return new Conjunct((Formula[]) children);
 		}
+
+		@Override
+		public String toString() {
+			String r = "";
+			for (int i = 0; i != size(); ++i) {
+				if (i != 0) {
+					r += " && ";
+				}
+				r += getOperand(i);
+			}
+			return r;
+		}
 	}
 
 	public static class Disjunct extends Expr.Operator implements Formula {
@@ -103,6 +115,18 @@ public interface Formula extends Expr {
 		@Override
 		public Disjunct clone(SyntacticItem[] children) {
 			return new Disjunct((Formula[]) children);
+		}
+
+		@Override
+		public String toString() {
+			String r = "";
+			for (int i = 0; i != size(); ++i) {
+				if (i != 0) {
+					r += " || ";
+				}
+				r += getOperand(i);
+			}
+			return r;
 		}
 	}
 

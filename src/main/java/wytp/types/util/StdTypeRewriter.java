@@ -84,8 +84,8 @@ public class StdTypeRewriter extends AbstractTypeRewriter {
 
 	private Type[] inlineNestedDisjuncts(Type[] types) {
 		Type[] nTypes = types;
-		for(int i=0;i!=types.length;++i) {
-			Type type = types[i];
+		for(int i=0;i!=nTypes.length;++i) {
+			Type type = nTypes[i];
 			if(type instanceof Type.Union) {
 				// We found a nested disjunct!
 				Type.Union disjunct = (Type.Union) type;
