@@ -27,6 +27,7 @@ import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
@@ -105,8 +106,8 @@ import wytp.types.TypeSystem;
  */
 public class TypeTestClosure extends AbstractClosureRule implements Proof.LinearRule {
 
-	public TypeTestClosure(TypeSystem types) {
-		super(types);
+	public TypeTestClosure(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override

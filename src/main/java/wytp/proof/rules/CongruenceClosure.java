@@ -81,8 +81,8 @@ import wytp.types.TypeSystem;
  */
 public class CongruenceClosure extends AbstractClosureRule implements Proof.LinearRule {
 
-	public CongruenceClosure(TypeSystem types) {
-		super(types);
+	public CongruenceClosure(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -163,7 +163,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
-			return state.infer(this, newTruth, axiom);
+			return state.infer(this,simp.simplify(axiom),newTruth);
 		}
 	}
 

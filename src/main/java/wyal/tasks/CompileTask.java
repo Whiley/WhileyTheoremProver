@@ -108,7 +108,6 @@ public class CompileTask implements Build.Task {
 		logger.logTimedMessage("Parsed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
-
 		// ========================================================================
 		// Type Check source files
 		// ========================================================================
@@ -117,7 +116,7 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		ArrayList<WyalFile> files = new ArrayList<>();
+		ArrayList<Pair<Path.Entry,WyalFile>> files = new ArrayList<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> entry = p.first();
 			if (entry.contentType() == WyalFile.ContentType) {
@@ -125,10 +124,7 @@ public class CompileTask implements Build.Task {
 				Path.Entry<? extends CompilationUnit> originalSource = determineSource(source,graph);
 				WyalFile wf = source.read();
 				new TypeChecker(typeSystem,wf,originalSource).check();
-				if(verify) {
-					prover.check(wf,originalSource);
-				}
-				files.add(wf);
+				files.add(new Pair<>(originalSource,wf));
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary
 				// WyilFile. This is needed for resolution.
@@ -141,6 +137,29 @@ public class CompileTask implements Build.Task {
 				graph.registerDerivation(source, target);
 			}
 		}
+
+		logger.logTimedMessage("Typed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+				tmpMemory - runtime.freeMemory());
+
+		// ========================================================================
+		// Verify source files
+		// ========================================================================
+
+		runtime = Runtime.getRuntime();
+		tmpTime = System.currentTimeMillis();
+		tmpMemory = runtime.freeMemory();
+
+		if (verify) {
+			for (Pair<Path.Entry, WyalFile> p : files) {
+				Path.Entry<? extends CompilationUnit> originalSource = p.first();
+				WyalFile wf = p.second();
+				prover.check(wf, originalSource);
+			}
+		}
+
+		logger.logTimedMessage("Verified " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+				tmpMemory - runtime.freeMemory());
+
 
 		// ========================================================================
 		// Code Generation
@@ -164,6 +183,7 @@ public class CompileTask implements Build.Task {
 
 		logger.logTimedMessage("Generated code for " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
+
 		// ========================================================================
 		// Done
 		// ========================================================================

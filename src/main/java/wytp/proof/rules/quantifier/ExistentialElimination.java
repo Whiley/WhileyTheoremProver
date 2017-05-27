@@ -22,6 +22,7 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Conjunct;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
@@ -46,8 +47,8 @@ import wytp.types.TypeSystem;
  */
 public class ExistentialElimination extends AbstractProofRule implements Proof.LinearRule {
 
-	public ExistentialElimination(TypeSystem types) {
-		super(types);
+	public ExistentialElimination(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override

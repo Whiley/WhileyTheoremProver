@@ -28,12 +28,13 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.rules.CongruenceClosure;
+import wytp.proof.rules.Simplification;
 import wytp.proof.rules.CongruenceClosure.Assignment;
 import wytp.types.TypeSystem;
 
 public abstract class AbstractClosureRule extends AbstractProofRule {
-	public AbstractClosureRule(TypeSystem types) {
-		super(types);
+	public AbstractClosureRule(Simplification simp, TypeSystem types) {
+		super(simp,types);
 	}
 
 	@Override

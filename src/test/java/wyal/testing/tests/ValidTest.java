@@ -88,12 +88,7 @@ public class ValidTest {
 		// Issue 86 "Handle Coefficients for CongruenceClosure"
 		IGNORED.put("test_arith_41", "#86");
 		// Issue 91 "Variable Ordering Effect"
-		IGNORED.put("test_array_44", "#91");
 		IGNORED.put("test_array_64", "#91");
-		IGNORED.put("test_array_69", "#91");
-		IGNORED.put("test_array_70", "#91");
-		IGNORED.put("test_array_71", "#91");
-		IGNORED.put("test_array_72", "#91");
 		// Issue 92 "Recursive Array Update"
 		IGNORED.put("test_record_14", "#92");
 		// Issue 104 "Incompleteness in CoerciveSubtypeOperator"

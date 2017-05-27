@@ -38,10 +38,13 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 
 	}
 
+	public static long count = 0;
+
 	@Override
 	public Result isSubtype(Type parent, Type child) throws ResolutionError {
 		// FIXME: we can do better in some situations here. For example, if we
 		// have the same nominal types they can cancel each other.
+		count++;
 		Term<?> lhsMaxTerm = new Term<>(false, parent, true);
 		Term<?> rhsMaxTerm = new Term<>(true, child, true);
 		boolean max = isVoidTerm(lhsMaxTerm, rhsMaxTerm, null);

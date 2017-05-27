@@ -96,22 +96,24 @@ public class AutomatedTheoremProver {
 	public AutomatedTheoremProver(TypeSystem typeSystem) {
 		this.types = typeSystem;
 		//
+		Simplification simplify = new Simplification(types);
+		//
 		this.rules = new Proof.Rule[] {
-				new Simplification(types),
-				new CongruenceClosure(types),
-				new InequalityIntroduction(types),
-				new AndElimination(types),
-				new ExistentialElimination(types),
-				new MacroExpansion(types),
-				new TypeTestNormalisation(types),
-				new TypeTestClosure(types),
-				new ArrayLengthAxiom(types),
-				new ArrayIndexAxiom(types),
-				new ArrayIndexCaseAnalysis(types),
-				new FunctionCallAxiom(types),
-				new EqualityCaseAnalysis(types),
+				simplify,
+				new CongruenceClosure(simplify,types),
+				new InequalityIntroduction(simplify,types),
+				new AndElimination(simplify,types),
+				new ExistentialElimination(simplify,types),
+				new MacroExpansion(simplify,types),
+				new TypeTestNormalisation(simplify,types),
+				new TypeTestClosure(simplify,types),
+				new ArrayLengthAxiom(simplify,types),
+				new ArrayIndexAxiom(simplify,types),
+				new ArrayIndexCaseAnalysis(simplify,types),
+				new FunctionCallAxiom(simplify,types),
+				new EqualityCaseAnalysis(simplify,types),
 				new OrElimination(),
-				new ExhaustiveQuantifierInstantiation(types) };
+				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
 
 	public void check(WyalFile source, Path.Entry<?> originalSource) {

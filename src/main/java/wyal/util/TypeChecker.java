@@ -25,6 +25,7 @@ import wyfs.lang.Path;
 import wytp.types.TypeInferer.Environment;
 import wytp.types.util.StdTypeEnvironment;
 import wytp.types.TypeSystem;
+import wytp.types.subtyping.CoerciveSubtypeOperator;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
@@ -207,6 +208,7 @@ public class TypeChecker {
 		}
 	}
 
+	static int count = 0;
 	private void check(WyalFile.Declaration.Assert decl) {
 		checkStatement(TypeSystem.NULL_ENVIRONMENT, true, decl.getBody());
 	}
@@ -997,7 +999,6 @@ public class TypeChecker {
 		try {
 			Type type = d.getType();
 			if (types.isRawSubtype(new Type.Void(), type)) {
-				System.out.println("TYPE: " + type);
 				throw new SyntaxError("empty type", originatingEntry, type);
 			}
 		} catch (NameResolver.ResolutionError e) {

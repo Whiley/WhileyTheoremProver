@@ -22,6 +22,7 @@ import wyal.lang.WyalFile.Opcode;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
@@ -66,8 +67,8 @@ import wyal.lang.NameResolver.ResolutionError;
  */
 public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearRule {
 
-	public ArrayLengthAxiom(TypeSystem types) {
-		super(types);
+	public ArrayLengthAxiom(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -88,7 +89,7 @@ public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearR
 				Expr len = match;
 				Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
 				Formula axiom = Formulae.greaterOrEqual(len, zero);
-				state = state.infer(this, axiom, inequality);
+				state = state.infer(this, simp.simplify(axiom), inequality);
 			}
 			return state;
 		}

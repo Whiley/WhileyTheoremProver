@@ -28,14 +28,17 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.rules.CongruenceClosure;
+import wytp.proof.rules.Simplification;
 import wytp.proof.rules.CongruenceClosure.Assignment;
 import wytp.types.TypeSystem;
 
 public abstract class AbstractProofRule implements Proof.Rule {
-	protected TypeSystem types;
+	protected final Simplification simp;
+	protected final TypeSystem types;
 
-	public AbstractProofRule(TypeSystem types) {
+	public AbstractProofRule(Simplification simp, TypeSystem types) {
 		this.types = types;
+		this.simp = simp;
 	}
 
 	public Proof.State apply(Proof.State current, Proof.State head) throws ResolutionError {

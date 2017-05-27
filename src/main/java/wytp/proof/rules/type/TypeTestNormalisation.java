@@ -20,6 +20,7 @@ import wyal.lang.WyalFile.Type;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.types.TypeSystem;
 
@@ -52,8 +53,8 @@ import wytp.types.TypeSystem;
  */
 public class TypeTestNormalisation extends AbstractClosureRule implements Proof.LinearRule {
 
-	public TypeTestNormalisation(TypeSystem types) {
-		super(types);
+	public TypeTestNormalisation(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override

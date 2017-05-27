@@ -20,6 +20,7 @@ import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
@@ -40,8 +41,8 @@ import wytp.proof.util.Arithmetic.Polynomial;
  *
  */
 public class InequalityIntroduction extends AbstractClosureRule implements Proof.LinearRule {
-	public InequalityIntroduction(TypeSystem types) {
-		super(types);
+	public InequalityIntroduction(Simplification simp,TypeSystem types) {
+		super(simp,types);
 	}
 
 	@Override
@@ -72,10 +73,12 @@ public class InequalityIntroduction extends AbstractClosureRule implements Proof
 		//
 		Formula inferred = closeOver(ith, jth);
 		if (inferred != null) {
+			inferred = simp.simplify(inferred);
 			state = state.infer(this, inferred, ith, jth);
 		}
 		inferred = closeOver(jth, ith);
 		if (inferred != null) {
+			inferred = simp.simplify(inferred);
 			state = state.infer(this, inferred, ith, jth);
 		}
 		return state;

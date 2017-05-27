@@ -26,14 +26,15 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 
 public class FunctionCallAxiom extends AbstractProofRule implements Proof.LinearRule {
 
-	public FunctionCallAxiom(TypeSystem types) {
-		super(types);
+	public FunctionCallAxiom(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -78,7 +79,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 			Formula precondition = expandFunctionPrecondition(decl, ivk.getArguments());
 			//
 			if (precondition != null) {
-				state = state.infer(this, precondition, truth);
+				state = state.infer(this, simp.simplify(precondition), truth);
 			}
 			// Calculate the postcondition
 			Formula postcondition = expandFunctionPostcondition(decl, ivk);

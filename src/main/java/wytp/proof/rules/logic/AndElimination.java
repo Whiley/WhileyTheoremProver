@@ -16,6 +16,7 @@ package wytp.proof.rules.logic;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractProofRule;
 import wytp.types.TypeSystem;
 
@@ -46,8 +47,8 @@ import wytp.types.TypeSystem;
  */
 public class AndElimination extends AbstractProofRule implements Proof.LinearRule {
 
-	public AndElimination(TypeSystem types) {
-		super(types);
+	public AndElimination(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
