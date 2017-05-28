@@ -208,7 +208,6 @@ public class TypeChecker {
 		}
 	}
 
-	static int count = 0;
 	private void check(WyalFile.Declaration.Assert decl) {
 		checkStatement(TypeSystem.NULL_ENVIRONMENT, true, decl.getBody());
 	}

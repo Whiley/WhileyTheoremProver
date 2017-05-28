@@ -55,7 +55,7 @@ import wyfs.util.Trie;
  * @author David J. Pearce
  *
  */
-public class WyalFileResolver implements NameResolver {
+public final class WyalFileResolver implements NameResolver {
 	private final Build.Project project;
 
 	public WyalFileResolver(Build.Project project) {
@@ -64,6 +64,7 @@ public class WyalFileResolver implements NameResolver {
 
 	@Override
 	public NameID resolve(Name name) throws ResolutionError {
+		//
 		if (name.size() == 1) {
 			Identifier ident = name.getOperand(0);
 			// This name is not fully qualified. Therefore, attempt to resolve
@@ -112,7 +113,6 @@ public class WyalFileResolver implements NameResolver {
 				//
 				return result;
 			}
-
 			throw new NameResolver.NameNotFoundError(name);
 		} catch (IOException e) {
 			// Slight unclear what the best course of action is here.
