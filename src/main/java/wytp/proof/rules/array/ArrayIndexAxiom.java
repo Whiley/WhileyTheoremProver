@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package wytp.proof.rules;
+package wytp.proof.rules.array;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ import wyal.lang.WyalFile.Tuple;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
@@ -69,8 +70,10 @@ import wyal.lang.WyalFile;
  *
  */
 public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.LinearRule {
-	public ArrayIndexAxiom(TypeSystem types) {
-		super(types);
+
+
+	public ArrayIndexAxiom(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -145,6 +148,7 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 	private State instantiateIndexAxiom(Expr index, Proof.State state, Formula... dependencies) throws ResolutionError {
 		Expr zero = new Expr.Constant(new WyalFile.Value.Int(0));
 		Formula axiom = Formulae.greaterOrEqual(index, zero);
+		axiom = simp.simplify(axiom);
 		return state.infer(this, axiom, dependencies);
 	}
 

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package wytp.proof.rules;
+package wytp.proof.rules.quantifier;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -33,6 +33,7 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Disjunct;
 import wytp.proof.Proof.State;
+import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
 import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
@@ -41,8 +42,8 @@ import wytp.types.TypeSystem;
 
 public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule implements Proof.LinearRule {
 
-	public ExhaustiveQuantifierInstantiation(TypeSystem types) {
-		super(types);
+	public ExhaustiveQuantifierInstantiation(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -223,6 +224,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 		}
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
+		grounded = simp.simplify(grounded);
 		return state.infer(this, grounded, quantifier, groundTerm);
 	}
 

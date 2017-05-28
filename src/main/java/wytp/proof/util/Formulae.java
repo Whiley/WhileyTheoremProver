@@ -25,7 +25,7 @@ import wycc.util.ArrayUtils;
 import wytp.proof.Formula;
 import wytp.proof.Formula.*;
 import wytp.types.TypeSystem;
-import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.StdTypeEnvironment;
 
 /**
  * <p>
@@ -134,8 +134,8 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			Type lhs_t = types.inferType(new NullTypeEnvironment(),lhs);
-			Type rhs_t = types.inferType(new NullTypeEnvironment(),rhs);
+			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
+			Type rhs_t = types.inferType(new StdTypeEnvironment(),rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(true, lhs, rhs);
@@ -147,8 +147,8 @@ public class Formulae {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
-			Type lhs_t = types.inferType(new NullTypeEnvironment(),lhs);
-			Type rhs_t = types.inferType(new NullTypeEnvironment(),rhs);
+			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
+			Type rhs_t = types.inferType(new StdTypeEnvironment(),rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
 				// Force arithmetic equality
 				return new Formula.ArithmeticEquality(false, lhs, rhs);
@@ -203,7 +203,7 @@ public class Formulae {
 		case EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
 			Expr lhs = operator.getTestExpr();
-			Type lhs_t = types.inferType(new NullTypeEnvironment(),lhs);
+			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
 			if(lhs_t != null && types.isRawSubtype(new Type.Bool(), lhs_t)) {
 				lhs = toFormula(lhs,types);
 			}

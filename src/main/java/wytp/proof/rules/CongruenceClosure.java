@@ -81,8 +81,8 @@ import wytp.types.TypeSystem;
  */
 public class CongruenceClosure extends AbstractClosureRule implements Proof.LinearRule {
 
-	public CongruenceClosure(TypeSystem types) {
-		super(types);
+	public CongruenceClosure(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -95,11 +95,18 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		//
 		ArrayList<Formula> dependencies = new ArrayList<>();
 		Formula constructed = (Formula) construct(existingTruths, head, newTruth, newTruth, dependencies);
-		if(constructed != newTruth) {
+		if(constructed != newTruth && !constructed.equals(newTruth)) {
 			Formula[] deps = dependencies.toArray(new Formula[dependencies.size()]);
+			// NOTE: we need to allocated the constructed item here so that we
+			// can use it within the substituteAgainstEquality() function below
+			// if it's an equality.
+			constructed = head.allocate(constructed);
 			head = head.subsume(this, newTruth, constructed, deps);
-		} else if (newTruth instanceof Formula.Equality && ((Formula.Equality) newTruth).getSign()) {
-			head = substituteAgainstEquality(existingTruths, head, (Formula.Equality) newTruth);
+		}
+		// If the construct truth is still an equality then we need to apply
+		// that through all existing terms.
+		if (constructed instanceof Formula.Equality && ((Formula.Equality) constructed).getSign()) {
+			head = substituteAgainstEquality(existingTruths, head, (Formula.Equality) constructed);
 		}
 		//
 		return head;
@@ -156,7 +163,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// FIXME: I think it makes sense here to try and propagate the type
 			// information upwards. Otherwise, we can get stuck with a non-variable
 			// on the left-hand side.
-			return state.subsume(this, newTruth, axiom);
+			return state.infer(this,simp.simplify(axiom),newTruth);
 		}
 	}
 
@@ -298,6 +305,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	}
 
 	public static Expr min(Expr lhs, Expr rhs) {
+		// First, prefer variables as these are always more useful.
 		if(isVariable(lhs) && isVariable(rhs)) {
 			if(lessThan(lhs,rhs)) {
 				return lhs;
@@ -308,8 +316,12 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			return lhs;
 		} else if(isVariable(rhs)) {
 			return rhs;
+		}
+		// Second, take whatever has lowest index
+		if(lessThan(lhs,rhs)) {
+			return lhs;
 		} else {
-			return null;
+			return rhs;
 		}
 	}
 

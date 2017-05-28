@@ -30,8 +30,8 @@ import wytp.types.TypeSystem;
 public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.LinearRule {
 	private int skolem = 0;
 
-	public EqualityCaseAnalysis(TypeSystem types) {
-		super(types);
+	public EqualityCaseAnalysis(Simplification simplify,TypeSystem types) {
+		super(simplify,types);
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Formula disjunct = new Formula.Disjunct(l, r);
 			// NOTE: at the moment, we can't do a subsume here because we can
 			// end up losing critical information.
-			return state.infer(this, disjunct, eq);
+			return state.infer(this, simp.simplify(disjunct), eq);
 		}
 	}
 

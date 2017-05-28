@@ -13,6 +13,7 @@
 // limitations under the License.
 package wyal.util;
 
+import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.*;
@@ -20,9 +21,11 @@ import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration.Named;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
+import wyfs.lang.Path;
 import wytp.types.TypeInferer.Environment;
-import wytp.types.util.NullTypeEnvironment;
+import wytp.types.util.StdTypeEnvironment;
 import wytp.types.TypeSystem;
+import wytp.types.subtyping.CoerciveSubtypeOperator;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
@@ -32,8 +35,11 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.Attribute;
+import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
+import static wybs.lang.SyntaxError.InternalFailure;
 
 /**
  * <p>
@@ -163,6 +169,11 @@ public class TypeChecker {
 	 * The enclosing WyAL file being checked.
 	 */
 	private final WyalFile parent;
+	/**
+	 * The originating source of this file (which may be itself). The need for
+	 * this is somewhat questionable.
+	 */
+	private final Path.Entry<? extends CompilationUnit> originatingEntry;
 
 	/**
 	 * The type system encapsulates the core algorithms for type simplification
@@ -170,9 +181,10 @@ public class TypeChecker {
 	 */
 	private TypeSystem types;
 
-	public TypeChecker(TypeSystem typeSystem, WyalFile parent) {
+	public TypeChecker(TypeSystem typeSystem, WyalFile parent, Path.Entry<? extends CompilationUnit> originatingEntry) {
 		this.parent = parent;
 		this.types = typeSystem;
+		this.originatingEntry = originatingEntry;
 	}
 
 	public void check() {
@@ -192,7 +204,7 @@ public class TypeChecker {
 		} else if (decl instanceof WyalFile.Declaration.Import) {
 			// nothing to do here
 		} else {
-			throw new IllegalArgumentException("unknown declaration: " + decl);
+			throw new InternalFailure("unknown declaration: " + decl,originatingEntry,decl);
 		}
 	}
 
@@ -206,7 +218,7 @@ public class TypeChecker {
 		} else if (decl instanceof WyalFile.Declaration.Named.Type) {
 			check((WyalFile.Declaration.Named.Type) decl);
 		} else {
-			throw new IllegalArgumentException("unknown named declaration: " + decl);
+			throw new InternalFailure("unknown named declaration: " + decl,originatingEntry,decl);
 		}
 	}
 
@@ -388,7 +400,7 @@ public class TypeChecker {
 		case EXPR_or:
 			return checkLogicalDisjunction(env, sign, expr);
 		default:
-			throw new IllegalArgumentException("unknown logical connective: " + expr);
+			throw new InternalFailure("unknown logical connective: " + expr,originatingEntry,expr);
 		}
 	}
 
@@ -546,7 +558,7 @@ public class TypeChecker {
 		case EXPR_deref:
 			return checkDereference(env, (Expr.Dereference) expr);
 		default:
-			throw new RuntimeException("unknown statement or expression: " + expr);
+			throw new InternalFailure("unknown statement or expression: " + expr, originatingEntry, expr);
 		}
 	}
 
@@ -567,7 +579,7 @@ public class TypeChecker {
 		case CONST_int:
 			return new Type.Int();
 		default:
-			throw new RuntimeException("unknown constant encountered: " + expr);
+			throw new InternalFailure("unknown constant encountered: " + expr, originatingEntry, expr);
 		}
 	}
 
@@ -600,7 +612,7 @@ public class TypeChecker {
 		Value.Int selector = expr.getSelector();
 		//
 		if (selector == null && type.getReturns().size() != 1) {
-			throw new SyntaxError("invalid number of returns", parent.getEntry(), expr);
+			throw new SyntaxError("invalid number of returns", originatingEntry, expr);
 		} else if(selector == null){
 			return type.getReturns().getOperand(0);
 		} else {
@@ -622,7 +634,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new SyntaxError("invalid field access", parent.getEntry(), expr.getField());
+		throw new SyntaxError("invalid field access", originatingEntry, expr.getField());
 	}
 
 	private Type checkRecordUpdate(Environment env, Expr.RecordUpdate expr) {
@@ -642,7 +654,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new SyntaxError("invalid field update", parent.getEntry(), expr.getField());
+		throw new SyntaxError("invalid field update", originatingEntry, expr.getField());
 	}
 
 	private Type checkRecordInitialiser(Environment env, Expr.RecordInitialiser expr) {
@@ -781,11 +793,11 @@ public class TypeChecker {
 		try {
 			Type.Array arrT = types.extractReadableArray(type);
 			if (arrT == null) {
-				throw new SyntaxError("expected array type", parent.getEntry(), element);
+				throw new SyntaxError("expected array type", originatingEntry, element);
 			}
 			return arrT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -799,11 +811,11 @@ public class TypeChecker {
 		try {
 			Type.Record recT = types.extractReadableRecord(type);
 			if (recT == null) {
-				throw new SyntaxError("expected record type", parent.getEntry(), element);
+				throw new SyntaxError("expected record type", originatingEntry, element);
 			}
 			return recT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -818,11 +830,11 @@ public class TypeChecker {
 		try {
 			Type.Reference refT = types.extractReadableReference(type);
 			if (refT == null) {
-				throw new SyntaxError("expected reference type", parent.getEntry(), element);
+				throw new SyntaxError("expected reference type", originatingEntry, element);
 			}
 			return refT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -842,10 +854,10 @@ public class TypeChecker {
 			List<Named.FunctionOrMacro> candidates = types.resolveAll(name, Named.FunctionOrMacro.class);
 			// Based on given argument types, select the most precise signature
 			// from the candidates.
-			Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(candidates, args);
+			Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(context,candidates, args);
 			return selected;
 		} catch (ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), context);
+			throw new SyntaxError(e.getMessage(), originatingEntry, context);
 		}
 	}
 
@@ -859,7 +871,7 @@ public class TypeChecker {
 	 * @param args
 	 * @return
 	 */
-	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(List<Named.FunctionOrMacro> candidates,
+	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(SyntacticElement context, List<Named.FunctionOrMacro> candidates,
 			Type... args) {
 		Named.FunctionOrMacro best = null;
 		for (int i = 0; i != candidates.size(); ++i) {
@@ -883,7 +895,7 @@ public class TypeChecker {
 					// This is the awkward case. Neither the best so far, nor
 					// the candidate, are subtypes of each other. In this case,
 					// we report an error.
-					throw new IllegalArgumentException("unable to resolve function");
+					throw new SyntaxError("unable to resolve function",originatingEntry,context);
 				}
 			}
 		}
@@ -894,7 +906,7 @@ public class TypeChecker {
 		} else {
 			// No, there was no winner. In fact, there must have been no
 			// applicable candidates to get here.
-			throw new IllegalArgumentException("unable to resolve function");
+			throw new SyntaxError("unable to resolve function",originatingEntry,context);
 		}
 	}
 
@@ -928,17 +940,17 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
 	private void checkIsSubtype(Type lhs, Type rhs, SyntacticElement element) {
 		try {
 			if (!types.isRawSubtype(lhs, rhs)) {
-				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, parent.getEntry(), element);
+				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, originatingEntry, element);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -972,7 +984,7 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -986,10 +998,10 @@ public class TypeChecker {
 		try {
 			Type type = d.getType();
 			if (types.isRawSubtype(new Type.Void(), type)) {
-				throw new SyntaxError("empty type", parent.getEntry(), type);
+				throw new SyntaxError("empty type", originatingEntry, type);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), parent.getEntry(), e.getName(), e);
+			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -1074,7 +1086,7 @@ public class TypeChecker {
 		if (left == right) {
 			return left;
 		} else {
-			Environment result = new NullTypeEnvironment();
+			Environment result = new StdTypeEnvironment();
 
 			for (WyalFile.VariableDeclaration var : left.getRefinedVariables()) {
 				Type declT = var.getType();

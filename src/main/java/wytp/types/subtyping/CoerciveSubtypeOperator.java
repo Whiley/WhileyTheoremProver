@@ -16,6 +16,7 @@ package wytp.types.subtyping;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashSet;
 
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.ResolutionError;
@@ -26,6 +27,7 @@ import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
+import wycc.util.Pair;
 import wyal.lang.WyalFile.Declaration.Named;
 import wytp.types.SubtypeOperator;
 import wytp.types.SubtypeOperator.Result;
@@ -35,23 +37,23 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 
 	public CoerciveSubtypeOperator(NameResolver resolver) {
 		this.resolver = resolver;
-
 	}
 
 	@Override
 	public Result isSubtype(Type parent, Type child) throws ResolutionError {
 		// FIXME: we can do better in some situations here. For example, if we
 		// have the same nominal types they can cancel each other.
+		HashSetAssumptions assumptions = new HashSetAssumptions();
 		Term<?> lhsMaxTerm = new Term<>(false, parent, true);
 		Term<?> rhsMaxTerm = new Term<>(true, child, true);
-		boolean max = isVoidTerm(lhsMaxTerm, rhsMaxTerm, null);
+		boolean max = isVoidTerm(lhsMaxTerm, rhsMaxTerm, assumptions);
 		// FIXME: I don't think this logic is correct yet for some reason.
 		if(!max) {
 			return Result.False;
 		} else {
 			Term<?> lhsMinTerm = new Term<>(false, parent, false);
 			Term<?> rhsMinTerm = new Term<>(true, child, false);
-			boolean min = isVoidTerm(lhsMinTerm, rhsMinTerm, null);
+			boolean min = isVoidTerm(lhsMinTerm, rhsMinTerm, assumptions);
 			if(min) {
 				return Result.True;
 			} else {
@@ -60,23 +62,22 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		}
 	}
 
-	protected boolean isVoidTerm(Term<?> lhs, Term<?> rhs, BitSet assumptions) throws ResolutionError {
-		assumptions = createAssumptions(lhs, rhs, assumptions);
+	protected boolean isVoidTerm(Term<?> lhs, Term<?> rhs, Assumptions assumptions) throws ResolutionError {
 		//
-		if (isAssumedVoid(lhs, rhs, assumptions)) {
+		if (assumptions.isAssumedVoid(lhs, rhs)) {
 			// This represents the "coinductive" case. That is, we have
 			// encountered a pair of recursive types whose "voidness" depends
 			// circularly on itself. In such case, we assume they are indeed
 			// void.
 			return true;
 		} else {
-			setAssumedVoid(lhs, rhs, assumptions);
+			assumptions.setAssumedVoid(lhs, rhs);
 			ArrayList<Atom<?>> truths = new ArrayList<>();
 			Worklist worklist = new Worklist();
 			worklist.push(lhs);
 			worklist.push(rhs);
 			boolean r = isVoid(truths, worklist, assumptions);
-			clearAssumedVoid(lhs, rhs, assumptions);
+			assumptions.clearAssumedVoid(lhs, rhs);
 			return r;
 		}
 	}
@@ -100,8 +101,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoid(ArrayList<Atom<?>> truths, Worklist worklist, BitSet assumptions) throws ResolutionError {
-
+	protected boolean isVoid(ArrayList<Atom<?>> truths, Worklist worklist, Assumptions assumptions) throws ResolutionError {
 		// FIXME: there is a bug in the following case which needs to be
 		// addressed:
 		//
@@ -182,7 +182,6 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				}
 				break;
 			}
-
 			default:
 				truths.add(new Atom(item.sign, (Type.Atom) item.type, item.maximise));
 			}
@@ -212,7 +211,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoidAtom(Atom<?> a, Atom<?> b, BitSet assumptions) throws ResolutionError {
+	protected boolean isVoidAtom(Atom<?> a, Atom<?> b, Assumptions assumptions) throws ResolutionError {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
@@ -299,7 +298,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoidArray(Atom<Type.Array> lhs, Atom<Type.Array> rhs, BitSet assumptions)
+	protected boolean isVoidArray(Atom<Type.Array> lhs, Atom<Type.Array> rhs, Assumptions assumptions)
 			throws ResolutionError {
 		if (lhs.sign || rhs.sign) {
 			Term<?> lhsTerm = new Term<>(lhs.sign, lhs.type.getElement(), lhs.maximise);
@@ -343,7 +342,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoidRecord(Atom<Type.Record> lhs, Atom<Type.Record> rhs, BitSet assumptions)
+	protected boolean isVoidRecord(Atom<Type.Record> lhs, Atom<Type.Record> rhs, Assumptions assumptions)
 			throws ResolutionError {
 		FieldDeclaration[] lhsFields = lhs.type.getFields();
 		FieldDeclaration[] rhsFields = rhs.type.getFields();
@@ -446,7 +445,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	protected boolean isVoidReference(Atom<Type.Reference> lhs, Atom<Type.Reference> rhs, BitSet assumptions)
+	protected boolean isVoidReference(Atom<Type.Reference> lhs, Atom<Type.Reference> rhs, Assumptions assumptions)
 			throws ResolutionError {
 		Term<?> lhsTrueTerm = new Term<>(true, lhs.type.getElement(), lhs.maximise);
 		Term<?> rhsTrueTerm = new Term<>(true, rhs.type.getElement(), rhs.maximise);
@@ -500,7 +499,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	 *            The set of assumed subtype relationships private boolean
 	 * @throws ResolutionError
 	 */
-	public boolean isVoidFunction(Atom<Type.Function> lhs, Atom<Type.Function> rhs, BitSet assumptions)
+	public boolean isVoidFunction(Atom<Type.Function> lhs, Atom<Type.Function> rhs, Assumptions assumptions)
 			throws ResolutionError {
 		if (lhs.sign || rhs.sign) {
 			// The sign indicates whether were in the pos-pos case, or in the
@@ -526,7 +525,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	}
 
 	public boolean isVoidParameters(boolean lhsSign, boolean lhsMax, Tuple<Type> lhs, boolean rhsSign, boolean rhsMax,
-			Tuple<Type> rhs, BitSet assumptions) throws ResolutionError {
+			Tuple<Type> rhs, Assumptions assumptions) throws ResolutionError {
 		boolean sign = lhsSign == rhsSign;
 		//
 		if (lhs.size() != rhs.size()) {
@@ -571,7 +570,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 	// Helpers
 	// ========================================================================
 
-	protected static class Worklist extends ArrayList<Term<Type>> {
+	private final static class Worklist extends ArrayList<Term<Type>> {
 		/**
 		 *
 		 */
@@ -619,6 +618,25 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			this.sign = sign;
 			this.maximise = maximise;
 		}
+
+		@Override
+		public String toString() {
+			return type.toString() + ":" + sign + ":" + maximise;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o instanceof Term) {
+				Term t = (Term) o;
+				return sign == t.sign && maximise == t.maximise && type.equals(t.type);
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return type.hashCode();
+		}
 	}
 
 	protected static class Atom<T extends Type.Atom> extends Term<T> {
@@ -637,53 +655,87 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		}
 	}
 
-	protected boolean isAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
-		if (assumptions != null) {
-			return assumptions.get(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
-		} else {
-			return false;
+	private interface Assumptions {
+		public boolean isAssumedVoid(Term<?> lhs, Term<?> rhs);
+
+		public void setAssumedVoid(Term<?> lhs, Term<?> rhs);
+
+		public void clearAssumedVoid(Term<?> lhs, Term<?> rhs);
+	}
+
+	private static final class HashSetAssumptions implements Assumptions {
+		private final HashSet<Pair<Term,Term>> assumptions;
+
+		public HashSetAssumptions() {
+			this.assumptions = new HashSet<>();
+		}
+
+		@Override
+		public boolean isAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			return assumptions.contains(new Pair<>(lhs,rhs));
+		}
+
+		@Override
+		public void setAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			assumptions.add(new Pair<>(lhs,rhs));
+		}
+
+		@Override
+		public void clearAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			assumptions.remove(new Pair<>(lhs,rhs));
 		}
 	}
 
-	protected void setAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
-		if (assumptions != null) {
-			assumptions.set(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
-		}
-	}
+	private static final class BitSetAssumptions implements Assumptions {
+		private final BitSet assumptions;
 
-	protected void clearAssumedVoid(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
-		if (assumptions != null) {
-			assumptions.clear(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
+		public BitSetAssumptions(int size) {
+			this.assumptions = new BitSet(size);
 		}
-	}
 
-	protected int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
-		int lhsSize = lhs.getParent().size();
-		int rhsSize = rhs.getParent().size();
-		int lhsIndex = lhs.getIndex();
-		int rhsIndex = rhs.getIndex();
-		if (lhsSign) {
-			lhsIndex += lhsSize;
+		public BitSetAssumptions(BitSet assumptions) {
+			this.assumptions = assumptions;
 		}
-		if (rhsSign) {
-			rhsIndex += rhsSize;
-		}
-		return (lhsIndex * rhsSize * 2) + rhsIndex;
-	}
 
-	protected static BitSet createAssumptions(Term<?> lhs, Term<?> rhs, BitSet assumptions) {
-		SyntacticHeap lhsHeap = lhs.type.getParent();
-		SyntacticHeap rhsHeap = rhs.type.getParent();
-		if (assumptions != null) {
-			return assumptions;
-		} else if (lhsHeap != null && rhsHeap != null) {
-			// We multiply by 2 here because we want to encode both positive and
-			// negative signs.
-			int lhsSize = lhsHeap.size() * 2;
-			int rhsSize = rhsHeap.size() * 2;
-			return new BitSet(lhsSize * rhsSize);
-		} else {
-			return null;
+		public int size() {
+			return assumptions.size();
+		}
+
+		@Override
+		public boolean isAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			if (assumptions != null) {
+				return assumptions.get(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
+			} else {
+				return false;
+			}
+		}
+
+		@Override
+		public void setAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			if (assumptions != null) {
+				assumptions.set(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
+			}
+		}
+
+		@Override
+		public void clearAssumedVoid(Term<?> lhs, Term<?> rhs) {
+			if (assumptions != null) {
+				assumptions.clear(indexOf(lhs.sign, lhs.type, rhs.sign, rhs.type));
+			}
+		}
+
+		protected int indexOf(boolean lhsSign, Type lhs, boolean rhsSign, Type rhs) {
+			int lhsSize = lhs.getParent().size();
+			int rhsSize = rhs.getParent().size();
+			int lhsIndex = lhs.getIndex();
+			int rhsIndex = rhs.getIndex();
+			if (lhsSign) {
+				lhsIndex += lhsSize;
+			}
+			if (rhsSign) {
+				rhsIndex += rhsSize;
+			}
+			return (lhsIndex * rhsSize * 2) + rhsIndex;
 		}
 	}
 }

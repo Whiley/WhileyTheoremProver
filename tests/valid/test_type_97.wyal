@@ -9,4 +9,3 @@ assert "type invariant not satisfied":
             list is Link
         then:
             list.next is LinkedList
-

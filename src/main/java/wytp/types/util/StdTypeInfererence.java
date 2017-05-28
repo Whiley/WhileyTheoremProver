@@ -31,10 +31,10 @@ import wytp.types.TypeSystem;
  * @author David J. Pearce
  *
  */
-public class NullTypeInfererence implements TypeInferer {
+public class StdTypeInfererence implements TypeInferer {
 	private final TypeSystem types;
 
-	public NullTypeInfererence(TypeSystem types) {
+	public StdTypeInfererence(TypeSystem types) {
 		this.types = types;
 	}
 
@@ -181,12 +181,7 @@ public class NullTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferArrayUpdate(Environment environment, Expr.Operator expr) throws ResolutionError {
-		Type src = inferExpression(environment, expr.getOperand(0));
-		if(src != null) {
-			return types.extractReadableArray(src);
-		} else {
-			return null;
-		}
+		return inferExpression(environment, expr.getOperand(0));
 	}
 
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {

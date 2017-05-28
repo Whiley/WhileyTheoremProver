@@ -316,7 +316,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		} else if(rhs instanceof Type.Void) {
 			return rhs;
 		} else {
-			return new Type.Union(lhs,rhs);
+			return new Type.Intersection(lhs,rhs);
 		}
 	}
 

@@ -78,7 +78,7 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	 * Set the maximum size for a proof. This in effect limits the search space
 	 * to ensure termination.
 	 */
-	protected int proofLimit = 1000;
+	protected int proofLimit = 5000;
 
 	/**
 	 * Set the display width for the proof printer

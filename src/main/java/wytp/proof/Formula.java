@@ -82,6 +82,18 @@ public interface Formula extends Expr {
 		public Conjunct clone(SyntacticItem[] children) {
 			return new Conjunct((Formula[]) children);
 		}
+
+		@Override
+		public String toString() {
+			String r = "";
+			for (int i = 0; i != size(); ++i) {
+				if (i != 0) {
+					r += " && ";
+				}
+				r += getOperand(i);
+			}
+			return r;
+		}
 	}
 
 	public static class Disjunct extends Expr.Operator implements Formula {
@@ -103,6 +115,18 @@ public interface Formula extends Expr {
 		@Override
 		public Disjunct clone(SyntacticItem[] children) {
 			return new Disjunct((Formula[]) children);
+		}
+
+		@Override
+		public String toString() {
+			String r = "";
+			for (int i = 0; i != size(); ++i) {
+				if (i != 0) {
+					r += " || ";
+				}
+				r += getOperand(i);
+			}
+			return r;
 		}
 	}
 
@@ -156,10 +180,10 @@ public interface Formula extends Expr {
 		public Expr[] getOperands();
 	}
 
-	public static class Inequality extends Expr.Operator implements ArithmeticEquation {
+	public static class Inequality extends Expr.GreaterThanOrEqual implements ArithmeticEquation {
 
 		public Inequality(Expr lhs, Expr rhs) {
-			super(Opcode.EXPR_gteq, lhs, rhs);
+			super(lhs, rhs);
 		}
 
 		@Override
@@ -184,6 +208,19 @@ public interface Formula extends Expr {
 		@Override
 		public Equality clone(SyntacticItem[] children) {
 			return new Equality(getSign(),(Expr) children[0],(Expr) children[1]);
+		}
+
+		@Override
+		public String toString() {
+			String str = getSign() ? " == " : " != ";
+			String r = "";
+			for (int i = 0; i != size(); ++i) {
+				if (i != 0) {
+					r += str;
+				}
+				r += getOperand(i);
+			}
+			return r;
 		}
 	}
 

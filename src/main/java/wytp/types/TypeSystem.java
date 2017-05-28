@@ -31,15 +31,16 @@ import wytp.types.extractors.ReadableRecordExtractor;
 import wytp.types.extractors.ReadableReferenceExtractor;
 import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
-import wytp.types.util.NullTypeEnvironment;
-import wytp.types.util.NullTypeInfererence;
+import wytp.types.util.StdTypeEnvironment;
+import wytp.types.util.StdTypeInfererence;
+import wytp.types.util.StdTypeRewriter;
 
 public class TypeSystem {
 	/**
 	 * The "null" environment provides a simple environment which simply falls
 	 * back to using the declared type for a given variable.
 	 */
-	public  final static TypeInferer.Environment NULL_ENVIRONMENT = new NullTypeEnvironment();
+	public  final static TypeInferer.Environment NULL_ENVIRONMENT = new StdTypeEnvironment();
 	//
 	private final NameResolver resolver;
 	private final SubtypeOperator coerciveSubtypeOperator;
@@ -48,6 +49,7 @@ public class TypeSystem {
 	private final TypeExtractor<Type.Reference,Object> readableReferenceExtractor;
 	private final TypeInvariantExtractor typeInvariantExtractor;
 	private final TypeInferer typeInfererence;
+	private final TypeRewriter typeSimplifier;
 
 	public TypeSystem(Build.Project project) {
 		this.resolver = new WyalFileResolver(project);
@@ -56,7 +58,8 @@ public class TypeSystem {
 		this.readableArrayExtractor = new ReadableArrayExtractor(resolver,this);
 		this.readableReferenceExtractor = new ReadableReferenceExtractor(resolver,this);
 		this.typeInvariantExtractor = new TypeInvariantExtractor(resolver);
-		this.typeInfererence = new NullTypeInfererence(this);
+		this.typeInfererence = new StdTypeInfererence(this);
+		this.typeSimplifier = new StdTypeRewriter();
 	}
 
 	/**
@@ -201,4 +204,11 @@ public class TypeSystem {
 		return resolver.resolveAll(name,kind);
 	}
 
+	// ========================================================================
+	// Simplification
+	// ========================================================================
+
+	public Type simplify(Type type) {
+		return typeSimplifier.rewrite(type);
+	}
 }

@@ -30,20 +30,21 @@ import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.io.ProofPrinter;
-import wytp.proof.rules.AndElimination;
-import wytp.proof.rules.ArrayIndexAxiom;
-import wytp.proof.rules.ArrayIndexCaseAnalysis;
-import wytp.proof.rules.ArrayLengthAxiom;
 import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.rules.EqualityCaseAnalysis;
-import wytp.proof.rules.ExhaustiveQuantifierInstantiation;
-import wytp.proof.rules.ExistentialElimination;
-import wytp.proof.rules.FunctionCallAxiom;
-import wytp.proof.rules.InequalityIntroduction;
-import wytp.proof.rules.MacroExpansion;
-import wytp.proof.rules.OrElimination;
 import wytp.proof.rules.Simplification;
-import wytp.proof.rules.TypeTestClosure;
+import wytp.proof.rules.arithmetic.InequalityIntroduction;
+import wytp.proof.rules.array.ArrayIndexAxiom;
+import wytp.proof.rules.array.ArrayIndexCaseAnalysis;
+import wytp.proof.rules.array.ArrayLengthAxiom;
+import wytp.proof.rules.function.FunctionCallAxiom;
+import wytp.proof.rules.function.MacroExpansion;
+import wytp.proof.rules.logic.AndElimination;
+import wytp.proof.rules.logic.OrElimination;
+import wytp.proof.rules.quantifier.ExhaustiveQuantifierInstantiation;
+import wytp.proof.rules.quantifier.ExistentialElimination;
+import wytp.proof.rules.type.TypeTestClosure;
+import wytp.proof.rules.type.TypeTestNormalisation;
 import wytp.proof.util.DeltaProof;
 import wytp.proof.util.FastDelta;
 import wytp.proof.util.Formulae;
@@ -61,7 +62,7 @@ public class AutomatedTheoremProver {
 	/**
 	 * Determines the maximum size of a proof.
 	 */
-	private int maxProofSize = 2000;
+	private int maxProofSize = 5000;
 
 	/**
 	 * Debugging option which prints the proof to the console. This should
@@ -95,21 +96,24 @@ public class AutomatedTheoremProver {
 	public AutomatedTheoremProver(TypeSystem typeSystem) {
 		this.types = typeSystem;
 		//
+		Simplification simplify = new Simplification(types);
+		//
 		this.rules = new Proof.Rule[] {
-				new Simplification(types),
-				new CongruenceClosure(types),
-				new InequalityIntroduction(types),
-				new AndElimination(types),
-				new ExistentialElimination(types),
-				new MacroExpansion(types),
-				new TypeTestClosure(types),
-				new ArrayLengthAxiom(types),
-				new ArrayIndexAxiom(types),
-				new ArrayIndexCaseAnalysis(types),
-				new FunctionCallAxiom(types),
-				new EqualityCaseAnalysis(types),
+				simplify,
+				new CongruenceClosure(simplify,types),
+				new InequalityIntroduction(simplify,types),
+				new AndElimination(simplify,types),
+				new ExistentialElimination(simplify,types),
+				new MacroExpansion(simplify,types),
+				new TypeTestNormalisation(simplify,types),
+				new TypeTestClosure(simplify,types),
+				new ArrayLengthAxiom(simplify,types),
+				new ArrayIndexAxiom(simplify,types),
+				new ArrayIndexCaseAnalysis(simplify,types),
+				new FunctionCallAxiom(simplify,types),
+				new EqualityCaseAnalysis(simplify,types),
 				new OrElimination(),
-				new ExhaustiveQuantifierInstantiation(types) };
+				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
 
 	public void check(WyalFile source, Path.Entry<?> originalSource) {

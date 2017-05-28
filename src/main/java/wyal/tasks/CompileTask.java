@@ -23,6 +23,7 @@ import java.util.Set;
 import wyal.lang.WyalFile;
 import wyal.util.TypeChecker;
 import wybs.lang.Build;
+import wybs.lang.CompilationUnit;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;
 import wycc.util.Logger;
@@ -32,6 +33,7 @@ import wyfs.lang.Path.Entry;
 import wyfs.lang.Path.Root;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
+import wytp.types.subtyping.CoerciveSubtypeOperator;
 
 public class CompileTask implements Build.Task {
 
@@ -107,7 +109,6 @@ public class CompileTask implements Build.Task {
 		logger.logTimedMessage("Parsed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
-
 		// ========================================================================
 		// Type Check source files
 		// ========================================================================
@@ -116,18 +117,15 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		ArrayList<WyalFile> files = new ArrayList<>();
+		ArrayList<Pair<Path.Entry,WyalFile>> files = new ArrayList<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> entry = p.first();
 			if (entry.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
+				Path.Entry<? extends CompilationUnit> originalSource = determineSource(source,graph);
 				WyalFile wf = source.read();
-				new TypeChecker(typeSystem,wf).check();
-				if(verify) {
-					Path.Entry<?> original = determineSource(source,graph);
-					prover.check(wf,original);
-				}
-				files.add(wf);
+				new TypeChecker(typeSystem,wf,originalSource).check();
+				files.add(new Pair<>(originalSource,wf));
 				// Write WyIL skeleton. This is a stripped down version of the
 				// source file which is easily translated into a temporary
 				// WyilFile. This is needed for resolution.
@@ -140,6 +138,29 @@ public class CompileTask implements Build.Task {
 				graph.registerDerivation(source, target);
 			}
 		}
+
+		logger.logTimedMessage("Typed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+				tmpMemory - runtime.freeMemory());
+
+		// ========================================================================
+		// Verify source files
+		// ========================================================================
+
+		runtime = Runtime.getRuntime();
+		tmpTime = System.currentTimeMillis();
+		tmpMemory = runtime.freeMemory();
+
+		if (verify) {
+			for (Pair<Path.Entry, WyalFile> p : files) {
+				Path.Entry<? extends CompilationUnit> originalSource = p.first();
+				WyalFile wf = p.second();
+				prover.check(wf, originalSource);
+			}
+		}
+
+		logger.logTimedMessage("Verified " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+				tmpMemory - runtime.freeMemory());
+
 
 		// ========================================================================
 		// Code Generation
@@ -163,6 +184,7 @@ public class CompileTask implements Build.Task {
 
 		logger.logTimedMessage("Generated code for " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
+
 		// ========================================================================
 		// Done
 		// ========================================================================
@@ -174,15 +196,15 @@ public class CompileTask implements Build.Task {
 		return generatedFiles;
 	}
 
-	private static Path.Entry<?> determineSource(Path.Entry<?> child, Build.Graph graph) {
+	private static Path.Entry<? extends CompilationUnit> determineSource(Path.Entry<?> child, Build.Graph graph) {
 		// FIXME: this is a temporary hack
 		Path.Entry<?> parent = graph.parent(child);
-		while(parent != null) {
+		while (parent != null) {
 			child = parent;
 			parent = graph.parent(child);
 		}
-		return child;
-}
+		return (Path.Entry<? extends CompilationUnit>) child;
+	}
 
 	// ======================================================================
 	// Private Implementation

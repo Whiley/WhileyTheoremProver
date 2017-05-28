@@ -199,6 +199,14 @@ public interface Proof {
 		 * @return
 		 */
 		State refine(Proof.Rule rule, WyalFile.VariableDeclaration variable, WyalFile.Type type, Formula... dependencies);
+
+		/**
+		 * Ensure a given formula is properly allocated into this state.
+		 *
+		 * @param f
+		 * @return
+		 */
+		Formula allocate(Formula f);
 	}
 
 	/**

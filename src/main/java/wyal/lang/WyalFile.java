@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 import wyal.heap.AbstractSyntacticHeap;
 import wyal.heap.AbstractSyntacticItem;
@@ -246,6 +247,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public Pair<K, V> clone(SyntacticItem[] operands) {
 			return new Pair<>((K) operands[0], (V) operands[1]);
 		}
+
+		@Override
+		public String toString() {
+			return "(" + getFirst() + ", " + getSecond() + ")";
+		}
 	}
 
 	/**
@@ -351,7 +357,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		public String toString() {
 			String r = getOperand(0).get();
 			for (int i = 1; i != size(); ++i) {
-				r += "." + getOperand(1).get();
+				r += "." + getOperand(i).get();
 			}
 			return r;
 		}
@@ -386,6 +392,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 		public abstract Type getType();
 
+		@Override
+		public String toString() {
+			return getData().toString();
+		}
+
 		public static class Null extends Value {
 			public Null() {
 				super(Opcode.CONST_null);
@@ -399,6 +410,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Null clone(SyntacticItem[] operands) {
 				return new Null();
+			}
+
+			@Override
+			public String toString() {
+				return "null";
 			}
 		}
 
@@ -541,6 +557,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
 				return new Assert((Stmt.Block) operands[0], message);
+			}
+
+			@Override
+			public String toString() {
+				return "assert " + getBody();
 			}
 		}
 
@@ -1255,6 +1276,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Cast clone(SyntacticItem[] operands) {
 				return new Cast((Type) operands[0], (Expr) operands[1]);
 			}
+
+			@Override
+			public String toString() {
+				return "(" + getCastType() + ") " + getCastedExpr();
+			}
 		}
 
 		/**
@@ -1310,6 +1336,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Is clone(SyntacticItem[] operands) {
 				return new Is((Expr) operands[0], (Type) operands[1]);
 			}
+
+			@Override
+			public String toString() {
+				return getTestExpr() + " is " + getTestType();
+			}
 		}
 
 		/**
@@ -1356,6 +1387,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public Invoke clone(SyntacticItem[] operands) {
 				return new Invoke((Type.FunctionOrMacroOrInvariant) operands[0], (Name) operands[1],
 						(Value.Int) operands[2], (Tuple) operands[3]);
+			}
+
+			@Override
+			public String toString() {
+				String r = getName().toString();
+				r += getArguments();
+				r += "#" + getSelector();
+				return r;
 			}
 		}
 
@@ -1440,6 +1479,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				return new UniversalQuantifier((Tuple<VariableDeclaration>) operands[0],
 						(Expr) operands[1]);
 			}
+
+			@Override
+			public String toString() {
+				String r = "forall";
+				r += getParameters();
+				r += ".";
+				r += getBody();
+				return r;
+			}
 		}
 
 		/**
@@ -1463,6 +1511,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public Expr clone(SyntacticItem[] operands) {
 				return new ExistentialQuantifier((Tuple<VariableDeclaration>) operands[0], (Expr) operands[1]);
+			}
+
+			@Override
+			public String toString() {
+				String r = "exists";
+				r += getParameters();
+				r += ".";
+				r += getBody();
+				return r;
 			}
 		}
 
@@ -1489,6 +1546,33 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public VariableAccess clone(SyntacticItem[] operands) {
 				return new VariableAccess((VariableDeclaration) operands[0]);
 			}
+
+			@Override
+			public String toString() {
+				return getVariableDeclaration().getVariableName().toString();
+			}
+		}
+
+
+		public abstract static class InfixOperator extends Operator {
+			public InfixOperator(Opcode opcode, Expr... operands) {
+				super(opcode, operands);
+			}
+
+			@Override
+			public String toString() {
+				String str = getOperatorString();
+				String r = "";
+				for (int i = 0; i != size(); ++i) {
+					if (i != 0) {
+						r += str;
+					}
+					r += getOperand(i);
+				}
+				return r;
+			}
+
+			protected abstract String getOperatorString();
 		}
 
 		// =========================================================================
@@ -1502,7 +1586,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LogicalAnd extends Operator {
+		public static class LogicalAnd extends InfixOperator {
 			public LogicalAnd(Expr... operands) {
 				super(Opcode.EXPR_and, operands);
 			}
@@ -1514,6 +1598,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new LogicalAnd(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " && ";
+			}
 		}
 
 		/**
@@ -1524,7 +1613,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LogicalOr extends Operator {
+		public static class LogicalOr extends InfixOperator {
 			public LogicalOr(Expr... operands) {
 				super(Opcode.EXPR_or, operands);
 			}
@@ -1536,6 +1625,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new LogicalOr(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+
+			@Override
+			protected String getOperatorString() {
+				return " && ";
+			}
 		}
 
 		/**
@@ -1546,7 +1641,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LogicalImplication extends Operator {
+		public static class LogicalImplication extends InfixOperator {
 			public LogicalImplication(Expr... operands) {
 				super(Opcode.EXPR_implies, operands);
 			}
@@ -1558,6 +1653,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new LogicalImplication(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+
+			@Override
+			protected String getOperatorString() {
+				return " ==> ";
+			}
 		}
 
 		/**
@@ -1568,7 +1669,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LogicalIff extends Operator {
+		public static class LogicalIff extends InfixOperator {
 			public LogicalIff(Expr... operands) {
 				super(Opcode.EXPR_iff, operands);
 			}
@@ -1579,6 +1680,12 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					throw new IllegalArgumentException("invalid number of operands");
 				}
 				return new LogicalIff(ArrayUtils.toArray(Expr.class, operands));
+			}
+
+
+			@Override
+			protected String getOperatorString() {
+				return " <==> ";
 			}
 		}
 
@@ -1619,7 +1726,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Equal extends Operator {
+		public static class Equal extends InfixOperator {
 			public Equal(Expr... operands) {
 				super(Opcode.EXPR_eq, operands);
 			}
@@ -1631,6 +1738,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new Equal(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			public String getOperatorString() {
+				return " == ";
+			}
 		}
 
 		/**
@@ -1641,7 +1753,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class NotEqual extends Operator {
+		public static class NotEqual extends InfixOperator {
 			public NotEqual(Expr... operands) {
 				super(Opcode.EXPR_neq, operands);
 			}
@@ -1653,6 +1765,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new NotEqual(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " != ";
+			}
 		}
 
 		/**
@@ -1663,7 +1780,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LessThan extends Operator {
+		public static class LessThan extends InfixOperator {
 			public LessThan(Expr... operands) {
 				super(Opcode.EXPR_lt, operands);
 			}
@@ -1675,6 +1792,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new LessThan(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " < ";
+			}
 		}
 
 		/**
@@ -1685,7 +1807,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class LessThanOrEqual extends Operator {
+		public static class LessThanOrEqual extends InfixOperator {
 			public LessThanOrEqual(Expr... operands) {
 				super(Opcode.EXPR_lteq, operands);
 			}
@@ -1697,6 +1819,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new LessThanOrEqual(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " <= ";
+			}
 		}
 
 		/**
@@ -1707,7 +1834,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class GreaterThan extends Operator {
+		public static class GreaterThan extends InfixOperator {
 			public GreaterThan(Expr... operands) {
 				super(Opcode.EXPR_gt, operands);
 			}
@@ -1719,6 +1846,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new GreaterThan(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " > ";
+			}
 		}
 
 		/**
@@ -1729,7 +1861,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class GreaterThanOrEqual extends Operator {
+		public static class GreaterThanOrEqual extends InfixOperator {
 			public GreaterThanOrEqual(Expr... operands) {
 				super(Opcode.EXPR_gteq, operands);
 			}
@@ -1740,6 +1872,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					throw new IllegalArgumentException("invalid number of operands");
 				}
 				return new GreaterThanOrEqual(ArrayUtils.toArray(Expr.class, operands));
+			}
+
+			@Override
+			protected String getOperatorString() {
+				return " >= ";
 			}
 		}
 
@@ -1755,7 +1892,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Addition extends Operator {
+		public static class Addition extends InfixOperator {
 			public Addition(Expr... operands) {
 				super(Opcode.EXPR_add, operands);
 			}
@@ -1767,6 +1904,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new Addition(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " + ";
+			}
 		}
 
 		/**
@@ -1777,7 +1919,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Subtraction extends Operator {
+		public static class Subtraction extends InfixOperator {
 			public Subtraction(Expr... operands) {
 				super(Opcode.EXPR_sub, operands);
 			}
@@ -1789,6 +1931,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new Subtraction(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " - ";
+			}
 		}
 
 		/**
@@ -1799,7 +1946,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Multiplication extends Operator {
+		public static class Multiplication extends InfixOperator {
 			public Multiplication(Expr... operands) {
 				super(Opcode.EXPR_mul, operands);
 			}
@@ -1811,6 +1958,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new Multiplication(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " * ";
+			}
 		}
 
 		/**
@@ -1821,7 +1973,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Division extends Operator {
+		public static class Division extends InfixOperator {
 			public Division(Expr... operands) {
 				super(Opcode.EXPR_div, operands);
 			}
@@ -1833,6 +1985,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 				return new Division(ArrayUtils.toArray(Expr.class, operands));
 			}
+
+			@Override
+			protected String getOperatorString() {
+				return " / ";
+			}
 		}
 
 		/**
@@ -1843,7 +2000,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 * @author David J. Pearce
 		 *
 		 */
-		public static class Remainder extends Operator {
+		public static class Remainder extends InfixOperator {
 			public Remainder(Expr... operands) {
 				super(Opcode.EXPR_rem, operands);
 			}
@@ -1854,6 +2011,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					throw new IllegalArgumentException("invalid number of operands");
 				}
 				return new Remainder(ArrayUtils.toArray(Expr.class, operands));
+			}
+
+			@Override
+			protected String getOperatorString() {
+				return " % ";
 			}
 		}
 
@@ -1980,6 +2142,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public ArrayUpdate clone(SyntacticItem[] operands) {
 				return new ArrayUpdate((Expr) operands[0], (Expr) operands[1], (Expr) operands[2]);
 			}
+
+			@Override
+			public String toString() {
+				return getSource() + "[" + getSubscript() + ":=" + getValue() + "]";
+			}
 		}
 
 		/**
@@ -1999,6 +2166,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public ArrayInitialiser clone(SyntacticItem[] operands) {
 				return new ArrayInitialiser(ArrayUtils.toArray(Expr.class, operands));
+			}
+
+			@Override
+			public String toString() {
+				return Arrays.toString(getOperands());
 			}
 		}
 
@@ -2054,6 +2226,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			public ArrayLength clone(SyntacticItem[] operands) {
 				return new ArrayLength((Expr) operands[0]);
 			}
+
+			@Override
+			public String toString() {
+				return "|" + getSource() + "|";
+			}
 		}
 
 		// =========================================================================
@@ -2084,6 +2261,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public RecordAccess clone(SyntacticItem[] operands) {
 				return new RecordAccess((Expr) operands[0], (Identifier) operands[1]);
+			}
+
+			@Override
+			public String toString() {
+				return getSource() + "." + getField();
 			}
 		}
 
@@ -2143,6 +2325,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			@Override
 			public RecordUpdate clone(SyntacticItem[] operands) {
 				return new RecordUpdate((Expr) operands[0], (Identifier) operands[1], (Expr) operands[2]);
+			}
+
+			@Override
+			public String toString() {
+				return getSource() + "{" + getField() + ":=" + getValue() + "}";
 			}
 		}
 	}
