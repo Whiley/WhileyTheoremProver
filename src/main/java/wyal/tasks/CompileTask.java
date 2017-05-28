@@ -33,6 +33,7 @@ import wyfs.lang.Path.Entry;
 import wyfs.lang.Path.Root;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
+import wytp.types.subtyping.CoerciveSubtypeOperator;
 
 public class CompileTask implements Build.Task {
 
