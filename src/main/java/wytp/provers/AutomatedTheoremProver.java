@@ -34,6 +34,7 @@ import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.rules.EqualityCaseAnalysis;
 import wytp.proof.rules.Simplification;
 import wytp.proof.rules.arithmetic.InequalityIntroduction;
+import wytp.proof.rules.array.ArrayEqualityCaseAnalysis;
 import wytp.proof.rules.array.ArrayIndexAxiom;
 import wytp.proof.rules.array.ArrayIndexCaseAnalysis;
 import wytp.proof.rules.array.ArrayLengthAxiom;
@@ -114,6 +115,7 @@ public class AutomatedTheoremProver {
 				new FunctionCallAxiom(simplify,types),
 				new EqualityCaseAnalysis(simplify,types),
 				new RecordEqualityCaseAnalysis(simplify,types),
+				new ArrayEqualityCaseAnalysis(simplify,types),
 				new OrElimination(),
 				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
