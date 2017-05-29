@@ -1,0 +1,14 @@
+type nat is (int x)
+where:
+    x >= 0
+
+function abs(int x) -> (nat r)
+
+assert "postcondition not satisfied":
+    forall(nat item):
+        if:
+            (abs(item) == item) || (abs(item) == -item)
+            abs(item) >= 0
+        then:
+            item == abs(item)
+

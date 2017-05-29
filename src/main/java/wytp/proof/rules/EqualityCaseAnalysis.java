@@ -72,11 +72,6 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 				} else if (types.isRawSubtype(new Type.Bool(), lhsT) && types.isRawSubtype(new Type.Bool(), rhsT)) {
 					return expandBooleanEquality(eq, state);
 				}
-				Type.Record lhsRecord = types.extractReadableRecord(lhsT);
-				Type.Record rhsRecord = types.extractReadableRecord(rhsT);
-				if(lhsRecord != null && rhsRecord != null) {
-					return expandRecordEquality(eq, state);
-				}
 				Type.Array lhsArray = types.extractReadableArray(lhsT);
 				Type.Array rhsArray = types.extractReadableArray(rhsT);
 				if(lhsArray != null && rhsArray != null) {
@@ -116,62 +111,6 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			// NOTE: at the moment, we can't do a subsume here because we can
 			// end up losing critical information.
 			return state.infer(this, simp.simplify(disjunct), eq);
-		}
-	}
-
-	private State expandRecordEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
-		if (eq.getSign()) {
-			if (lhs instanceof Expr.RecordInitialiser && rhs instanceof Expr.RecordInitialiser) {
-				return expandRecordInitialiserEquality(eq, (Expr.RecordInitialiser) lhs, (Expr.RecordInitialiser) rhs,
-						state);
-			}
-		} else {
-			return expandRecordNonEquality(eq, lhs, rhs, state);
-		}
-		return state;
-	}
-
-	private State expandRecordNonEquality(Formula.Equality eq, Expr lhs, Expr rhs, Proof.State state) throws ResolutionError {
-		Type lhs_t = types.inferType(state.getTypeEnvironment(),lhs);
-		Type.Record lhs_r = types.extractReadableRecord(lhs_t);
-		FieldDeclaration[] fields = lhs_r.getFields();
-		Formula[] clauses = new Formula[fields.length];
-		for (int i = 0; i != fields.length; ++i) {
-			Expr lf = new Expr.RecordAccess(lhs, fields[i].getVariableName());
-			Expr rf = new Expr.RecordAccess(rhs, fields[i].getVariableName());
-			clauses[i] = Formulae.toFormula(new Expr.NotEqual(lf, rf), types);
-		}
-		Formula disjunct = new Formula.Disjunct(clauses);
-		return state.subsume(this, eq, disjunct);
-	}
-
-	private State expandRecordInitialiserEquality(Formula.Equality eq, Expr.RecordInitialiser lhs,
-			Expr.RecordInitialiser rhs, Proof.State state) throws ResolutionError {
-		if (lhs.size() != rhs.size()) {
-			// FIXME: for open records this could be possible
-			return state.infer(this, new Formula.Truth(false), eq);
-		} else {
-			Pair<Identifier, Expr>[] lhsFields = lhs.getFields();
-			Pair<Identifier, Expr>[] rhsFields = rhs.getFields();
-			Formula[] clauses = new Formula[lhsFields.length];
-			for (int i = 0; i != lhsFields.length; ++i) {
-				Pair<Identifier, Expr> lhsField = lhsFields[i];
-				Pair<Identifier, Expr> rhsField = rhsFields[i];
-				if (!lhsField.getFirst().equals(rhsField.getFirst())) {
-					// FIXME: could do more here --- esp to handle out-of-order
-					// field declarations.
-					return state.infer(this, new Formula.Truth(false), eq);
-				}
-				Expr lf = lhsField.getSecond();
-				Expr rf = rhsField.getSecond();
-				// NOTE: don't need to call construct here, since generating a
-				// formula.
-				clauses[i] = Formulae.toFormula(new Expr.Equal(lf, rf), types);
-			}
-			Formula disjunct = new Formula.Conjunct(clauses);
-			return state.subsume(this, eq, disjunct);
 		}
 	}
 

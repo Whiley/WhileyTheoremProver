@@ -1,0 +1,11 @@
+type Point is ({int x, int y} r)
+type OpenPoint is ({int x, int y, ... } r)
+
+assert:
+    forall(Point p, OpenPoint q):
+        if:
+            p == {x: 1, y: 2}
+            q.x == 1
+            q.y == 2
+        then:
+            p == q

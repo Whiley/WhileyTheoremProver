@@ -1,0 +1,6 @@
+type Expr is (int|(Expr[]) this)
+type Value is (int|(Value[]) this)
+
+assert "type invariant not satisfied":
+    forall(int&Expr e):
+        e is null|Value

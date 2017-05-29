@@ -98,6 +98,7 @@ public class ValidTest {
 		IGNORED.put("test_type_99", "#107");
 		// ??/
 		IGNORED.put("test_type_94", "??");
+		IGNORED.put("test_fun_14", "??");
 	}
 
 	// ======================================================================

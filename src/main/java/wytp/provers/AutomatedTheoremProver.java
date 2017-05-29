@@ -43,6 +43,7 @@ import wytp.proof.rules.logic.AndElimination;
 import wytp.proof.rules.logic.OrElimination;
 import wytp.proof.rules.quantifier.ExhaustiveQuantifierInstantiation;
 import wytp.proof.rules.quantifier.ExistentialElimination;
+import wytp.proof.rules.record.RecordEqualityCaseAnalysis;
 import wytp.proof.rules.type.TypeTestClosure;
 import wytp.proof.rules.type.TypeTestNormalisation;
 import wytp.proof.util.DeltaProof;
@@ -112,6 +113,7 @@ public class AutomatedTheoremProver {
 				new ArrayIndexCaseAnalysis(simplify,types),
 				new FunctionCallAxiom(simplify,types),
 				new EqualityCaseAnalysis(simplify,types),
+				new RecordEqualityCaseAnalysis(simplify,types),
 				new OrElimination(),
 				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
