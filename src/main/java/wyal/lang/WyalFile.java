@@ -20,6 +20,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 import wyal.heap.AbstractSyntacticHeap;
 import wyal.heap.AbstractSyntacticItem;
@@ -27,6 +29,7 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
+import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
 import wybs.lang.NameID;
 import wycc.util.ArrayUtils;
@@ -133,23 +136,25 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		TYPE_arr(7),
 		TYPE_rec(8),
 		TYPE_fun(9),
-		TYPE_macro(10),
-		TYPE_inv(11),
-		TYPE_or(12),
-		TYPE_and(13),
-		TYPE_not(14),
+		TYPE_meth(10),
+		TYPE_macro(11),
+		TYPE_inv(12),
+		TYPE_or(13),
+		TYPE_and(14),
+		TYPE_not(15),
+		TYPE_byte(16),
 		// STMTS
-		STMT_block(15),
-		STMT_vardecl(16),
-		STMT_ifthen(17),
-		STMT_caseof(18),
-		STMT_exists(19),
-		STMT_forall(20),
+		STMT_block(17),
+		STMT_vardecl(18),
+		STMT_ifthen(19),
+		STMT_caseof(20),
+		STMT_exists(21),
+		STMT_forall(22),
 		// EXPRESSIONS
-		EXPR_var(20),
-		EXPR_const(21),
-		EXPR_cast(22),
-		EXPR_invoke(23),
+		EXPR_var(23),
+		EXPR_const(24),
+		EXPR_cast(25),
+		EXPR_invoke(26),
 		// LOGICAL
 		EXPR_not(30),
 		EXPR_and(31),
@@ -261,9 +266,13 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	 *
 	 * @param <T>
 	 */
-	public static class Tuple<T extends SyntacticItem> extends AbstractSyntacticItem {
+	public static class Tuple<T extends SyntacticItem> extends AbstractSyntacticItem implements Iterable<T> {
 		public Tuple(T... stmts) {
 			super(Opcode.ITEM_tuple, stmts);
+		}
+
+		public Tuple(List<T> stmts) {
+			super(Opcode.ITEM_tuple, stmts.toArray(new SyntacticItem[stmts.size()]));
 		}
 
 		@Override
@@ -296,6 +305,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 			}
 			return "(" + r + ")";
+		}
+
+		@Override
+		public Iterator<T> iterator() {
+			return Arrays.asList(getOperands()).iterator();
 		}
 	}
 
@@ -588,7 +602,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					return (Tuple) getOperand(1);
 				}
 
-				public abstract WyalFile.Type.FunctionOrMacro getSignatureType();
+				public abstract WyalFile.Type.FunctionOrMethodOrProperty getSignatureType();
 			}
 
 			// ============================================================
@@ -637,8 +651,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				}
 
 				@Override
-				public WyalFile.Type.Macro getSignatureType() {
-					return new WyalFile.Type.Macro(projectTypes(getParameters()));
+				public WyalFile.Type.Property getSignatureType() {
+					return new WyalFile.Type.Property(projectTypes(getParameters()));
 				}
 
 				@Override
@@ -687,25 +701,44 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 	// ============================================================
 	public static interface Type extends SyntacticItem {
 
-		public static Any Any = new Any();
-		public static Void Void = new Void();
-		public static Bool Bool = new Bool();
-		public static Int Int = new Int();
-		public static Null Null = new Null();
+		public static final Any Any = new Any();
+		public static final Void Void = new Void();
+		public static final Bool Bool = new Bool();
+		public static final Int Int = new Int();
+		public static final Null Null = new Null();
 
 		public interface Primitive extends Type {
 
 		}
 
 		public static abstract class Atom extends AbstractSyntacticItem implements Type {
-			public Atom(Opcode opcode, SyntacticItem... items) {
-				super(opcode, items);
+			public Atom(Opcode opcode, Attribute... attributes) {
+				super(opcode, attributes);
+			}
+
+			public Atom(Opcode opcode, SyntacticItem item, Attribute... attributes) {
+				super(opcode, item, attributes);
+			}
+
+			public Atom(Opcode opcode, SyntacticItem first, SyntacticItem second, Attribute... attributes) {
+				super(opcode, first, second, attributes);
+			}
+
+			public Atom(Opcode opcode, SyntacticItem[] items, Attribute... attributes) {
+				super(opcode, items, attributes);
 			}
 		}
 
+		/**
+		 * The type <code>any</code> represents the type whose variables may hold
+		 * any possible value. <b>NOTE:</b> the any type is top in the type lattice.
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
 		public static class Any extends Atom implements Primitive {
-			public Any() {
-				super(Opcode.TYPE_any);
+			public Any(Attribute... attributes) {
+				super(Opcode.TYPE_any, attributes);
 			}
 
 			@Override
@@ -719,9 +752,20 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * A void type represents the type whose variables cannot exist! That is,
+		 * they cannot hold any possible value. Void is used to represent the return
+		 * type of a function which does not return anything. However, it is also
+		 * used to represent the element type of an empty list of set. <b>NOTE:</b>
+		 * the void type is a subtype of everything; that is, it is bottom in the
+		 * type lattice.
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
 		public static class Void extends Atom implements Primitive {
-			public Void() {
-				super(Opcode.TYPE_void);
+			public Void(Attribute...attributes) {
+				super(Opcode.TYPE_void, attributes);
 			}
 
 			@Override
@@ -735,9 +779,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * The null type is a special type which should be used to show the absence
+		 * of something. It is distinct from void, since variables can hold the
+		 * special <code>null</code> value (where as there is no special "void"
+		 * value). With all of the problems surrounding <code>null</code> and
+		 * <code>NullPointerException</code>s in languages like Java and C, it may
+		 * seem that this type should be avoided. However, it remains a very useful
+		 * abstraction to have around and, in Whiley, it is treated in a completely
+		 * safe manner (unlike e.g. Java).
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
 		public static class Null extends Atom implements Primitive {
-			public Null() {
-				super(Opcode.TYPE_null);
+			public Null(Attribute...attributes) {
+				super(Opcode.TYPE_null, attributes);
 			}
 
 			@Override
@@ -751,9 +808,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents the set of boolean values (i.e. true and false)
+		 * @author David J. Pearce
+		 *
+		 */
 		public static class Bool extends Atom implements Primitive {
-			public Bool() {
-				super(Opcode.TYPE_bool);
+			public Bool(Attribute...attributes) {
+				super(Opcode.TYPE_bool, attributes);
 			}
 
 			@Override
@@ -767,9 +829,44 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents a sequence of 8 bits. Note that, unlike many languages, there
+		 * is no representation associated with a byte. For example, to extract an
+		 * integer value from a byte, it must be explicitly decoded according to
+		 * some representation (e.g. two's compliment) using an auxillary function
+		 * (e.g. <code>Byte.toInt()</code>).
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
+		public static class Byte extends Atom implements Primitive {
+			public Byte(Attribute...attributes) {
+				super(Opcode.TYPE_byte, attributes);
+			}
+
+			@Override
+			public Null clone(SyntacticItem[] operands) {
+				return new Null();
+			}
+
+			@Override
+			public String toString() {
+				return "byte";
+			}
+		}
+
+		/**
+		 * Represents the set of (unbound) integer values. Since integer types in
+		 * Whiley are unbounded, there is no equivalent to Java's
+		 * <code>MIN_VALUE</code> and <code>MAX_VALUE</code> for <code>int</code>
+		 * types.
+		 *
+		 * @author David J. Pearce
+		 *
+		 */
 		public static class Int extends Atom implements Primitive {
-			public Int() {
-				super(Opcode.TYPE_int);
+			public Int(Attribute...attributes) {
+				super(Opcode.TYPE_int, attributes);
 			}
 
 			@Override
@@ -783,9 +880,18 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents a list type, which is of the form:
+		 *
+		 * <pre>
+		 * ArrayType ::= Type '[' ']'
+		 * </pre>
+		 *
+		 * @return
+		 */
 		public static class Array extends Atom {
-			public Array(Type element) {
-				super(Opcode.TYPE_arr, element);
+			public Array(Type element, Attribute...attributes) {
+				super(Opcode.TYPE_arr, element, attributes);
 			}
 
 			public Type getElement() {
@@ -803,29 +909,55 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Parse a reference type, which is of the form:
+		 *
+		 * <pre>
+		 * ReferenceType ::= '&' Type
+		 * </pre>
+		 *
+		 * @return
+		 */
 		public static class Reference extends Atom {
-			public Reference(Type element) {
-				super(Opcode.TYPE_ref, element);
+			public Reference(Type element, Identifier lifetime, Attribute...attributes) {
+				super(Opcode.TYPE_ref, element, lifetime, attributes);
 			}
 
 			public Type getElement() {
 				return (Type) getOperand(0);
 			}
+			public Identifier getLifetime() {
+				return (Identifier) getOperand(1);
+			}
 
 			@Override
 			public Reference clone(SyntacticItem[] operands) {
-				return new Reference((Type) operands[0]);
+				return new Reference((Type) operands[0], (Identifier) operands[1]);
 			}
 
 			@Override
 			public String toString() {
-				return "&(" + getElement() + ")";
+				Identifier lifetime = getLifetime();
+				if (lifetime != null) {
+					return "&(" + getElement() + ")";
+				} else {
+					return "&" + lifetime + ":(" + getElement() + ")";
+				}
 			}
 		}
 
+		/**
+		 * Represents record type, which is of the form:
+		 *
+		 * <pre>
+		 * RecordType ::= '{' Type Identifier (',' Type Identifier)* [ ',' "..." ] '}'
+		 * </pre>
+		 *
+		 * @return
+		 */
 		public static class Record extends Atom {
-			public Record(boolean isOpen, FieldDeclaration... fields) {
-				super(Opcode.TYPE_rec, ArrayUtils.append(SyntacticItem.class, new Value.Bool(isOpen), fields));
+			public Record(boolean isOpen, FieldDeclaration[] fields, Attribute...attributes) {
+				super(Opcode.TYPE_rec, ArrayUtils.append(SyntacticItem.class, new Value.Bool(isOpen), fields), attributes);
 			}
 
 			private Record(SyntacticItem[] operands) {
@@ -838,6 +970,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 
 			public FieldDeclaration[] getFields() {
+				// FIXME: this should be packed as a Tuple and return a Tuple
 				SyntacticItem[] operands = getOperands();
 				FieldDeclaration[] fields = new FieldDeclaration[size() - 1];
 				System.arraycopy(operands, 1, fields, 0, fields.length);
@@ -871,9 +1004,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents a nominal type, which is of the form:
+		 *
+		 * <pre>
+		 * NominalType ::= Identifier ('.' Identifier)*
+		 * </pre>
+		 *
+		 * A nominal type specifies the name of a type defined elsewhere. In some
+		 * cases, this type can be expanded (or "inlined"). However, visibility
+		 * modifiers can prevent this and, thus, give rise to true nominal types.
+		 *
+		 * @return
+		 */
 		public static class Nominal extends AbstractSyntacticItem implements Type {
-			public Nominal(Name name) {
-				super(Opcode.TYPE_nom, name);
+			public Nominal(Name name, Attribute...attributes) {
+				super(Opcode.TYPE_nom, name, attributes);
 			}
 
 			public Name getName() {
@@ -891,9 +1037,18 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Parse a negation type, which is of the form:
+		 *
+		 * <pre>
+		 * ReferenceType ::= '!' Type
+		 * </pre>
+		 *
+		 * @return
+		 */
 		public static class Negation extends AbstractSyntacticItem implements Type {
-			public Negation(Type element) {
-				super(Opcode.TYPE_not, element);
+			public Negation(Type element, Attribute... attributes) {
+				super(Opcode.TYPE_not, element, attributes);
 			}
 
 			public Type getElement() {
@@ -912,8 +1067,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public abstract static class UnionOrIntersection extends AbstractSyntacticItem implements Type {
-			public UnionOrIntersection(Opcode kind, Type... types) {
-				super(kind, types);
+			public UnionOrIntersection(Opcode kind, Type[] types, Attribute... attributes) {
+				super(kind, types, attributes);
 			}
 
 			@Override
@@ -927,9 +1082,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents a union type, which is of the form:
+		 *
+		 * <pre>
+		 * UnionType ::= IntersectionType ('|' IntersectionType)*
+		 * </pre>
+		 *
+		 * Union types are used to compose types together. For example, the type
+		 * <code>int|null</code> represents the type which is either an
+		 * <code>int</code> or <code>null</code>.
+		 *
+		 * @return
+		 */
 		public static class Union extends UnionOrIntersection {
-			public Union(Type... types) {
-				super(Opcode.TYPE_or, types);
+			public Union(Type[] types, Attribute... attributes) {
+				super(Opcode.TYPE_or, types, attributes);
 			}
 
 			@Override
@@ -950,9 +1118,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
+		/**
+		 * Represents an intersection type, which is of the form:
+		 *
+		 * <pre>
+		 * IntersectionType ::= BaseType ('&' BaseType)*
+		 * </pre>
+		 *
+		 * Intersection types are used to unify types together. For example, the
+		 * type <code>{int x, int y}&MyType</code> represents the type which is both
+		 * an instanceof of <code>{int x, int y}</code> and an instance of
+		 * <code>MyType</code>.
+		 *
+		 * @return
+		 */
 		public static class Intersection extends UnionOrIntersection {
-			public Intersection(Type... types) {
-				super(Opcode.TYPE_and, types);
+			public Intersection(Type[] types, Attribute... attributes) {
+				super(Opcode.TYPE_and, types, attributes);
 			}
 
 			@Override
@@ -974,10 +1156,14 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 
 		public static abstract class FunctionOrMacroOrInvariant extends Atom implements Type {
-			public FunctionOrMacroOrInvariant(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
-				super(opcode, parameters, returns);
+			public FunctionOrMacroOrInvariant(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns,
+					Attribute... attributes) {
+				super(opcode, parameters, returns, attributes);
 			}
-
+			public FunctionOrMacroOrInvariant(Opcode opcode, SyntacticItem[] items,
+					Attribute... attributes) {
+				super(opcode, items, attributes);
+			}
 			public Tuple<Type> getParameters() {
 				return (Tuple<Type>) getOperand(0);
 			}
@@ -992,15 +1178,23 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static abstract class FunctionOrMacro extends FunctionOrMacroOrInvariant {
-			public FunctionOrMacro(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns) {
-				super(opcode, parameters, returns);
+		public static abstract class FunctionOrMethodOrProperty extends FunctionOrMacroOrInvariant {
+			public FunctionOrMethodOrProperty(Opcode opcode, Tuple<Type> parameters, Tuple<Type> returns,
+					Attribute... attributes) {
+				super(opcode, parameters, returns, attributes);
+			}
+			public FunctionOrMethodOrProperty(Opcode opcode, SyntacticItem[] operands,
+					Attribute... attributes) {
+				super(opcode, operands, attributes);
 			}
 		}
 
-		public static class Function extends FunctionOrMacro implements Type {
-			public Function(Tuple<Type> parameters, Tuple<Type> returns) {
-				super(Opcode.TYPE_fun, parameters, returns);
+		public static class Function extends FunctionOrMethodOrProperty implements Type {
+			public Function(Type[] parameters, Type[] returns, Attribute... attributes) {
+				super(Opcode.TYPE_fun, new Tuple(parameters), new Tuple(returns), attributes);
+			}
+			public Function(Tuple<Type> parameters, Tuple<Type> returns, Attribute... attributes) {
+				super(Opcode.TYPE_fun, parameters, returns, attributes);
 			}
 
 			@Override
@@ -1014,18 +1208,46 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 			}
 		}
 
-		public static class Macro extends FunctionOrMacro implements Type {
-			public Macro(Tuple<Type> parameters) {
-				super(Opcode.TYPE_macro, parameters, new Tuple<>(new Type.Bool()));
-			}
+		public static class Method extends FunctionOrMethodOrProperty implements Type {
 
-			private Macro(Tuple<Type> parameters, Tuple<Type> returns) {
-				super(Opcode.TYPE_macro, parameters, returns);
+			public Method(Tuple<Type> parameters, Tuple<Type> returns, Tuple<Identifier> contextLifetimes,
+					Tuple<Identifier> lifetimeParameters, Attribute... attributes) {
+				super(Opcode.TYPE_meth,
+						new SyntacticItem[] { parameters, returns, contextLifetimes, lifetimeParameters }, attributes);
 			}
 
 			@Override
-			public Macro clone(SyntacticItem[] operands) {
-				return new Macro((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
+			public Method clone(SyntacticItem[] operands) {
+				return new Method((Tuple<Type>) operands[0], (Tuple<Type>) operands[1],
+						(Tuple<Identifier>) operands[2], (Tuple<Identifier>) operands[3]);
+			}
+
+			public Tuple<Identifier> getContextLifetimes() {
+				return (Tuple<Identifier>) getOperand(2);
+			}
+
+			public Tuple<Identifier> getLifetimeParameters() {
+				return (Tuple<Identifier>) getOperand(3);
+			}
+
+			@Override
+			public String toString() {
+				return "method" + super.toString();
+			}
+		}
+
+		public static class Property extends FunctionOrMethodOrProperty implements Type {
+			public Property(Tuple<Type> parameters, Attribute... attributes) {
+				super(Opcode.TYPE_macro, parameters, new Tuple<>(new Type.Bool()), attributes);
+			}
+
+			private Property(Tuple<Type> parameters, Tuple<Type> returns, Attribute... attributes) {
+				super(Opcode.TYPE_macro, parameters, returns,attributes);
+			}
+
+			@Override
+			public Property clone(SyntacticItem[] operands) {
+				return new Property((Tuple<Type>) operands[0], (Tuple<Type>) operands[1]);
 			}
 
 			@Override
@@ -1354,13 +1576,15 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		 */
 		public static class Invoke extends AbstractSyntacticItem implements Expr {
 
-			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Integer selector, Expr... arguments) {
-				super(Opcode.EXPR_invoke, type, name, selector != null ? new Value.Int(selector) : null,
-						new Tuple<>(arguments));
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Integer selector, Expr[] arguments,
+					Attribute... attributes) {
+				super(Opcode.EXPR_invoke, new SyntacticItem[] { type, name,
+						selector != null ? new Value.Int(selector) : null, new Tuple<>(arguments) }, attributes);
 			}
 
-			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Value.Int selector, Tuple<Expr> arguments) {
-				super(Opcode.EXPR_invoke, type, name, selector, arguments);
+			public Invoke(Type.FunctionOrMacroOrInvariant type, Name name, Value.Int selector, Tuple<Expr> arguments,
+					Attribute... attributes) {
+				super(Opcode.EXPR_invoke, new SyntacticItem[] { type, name, selector, arguments }, attributes);
 			}
 
 			public Type.FunctionOrMacroOrInvariant getSignatureType() {

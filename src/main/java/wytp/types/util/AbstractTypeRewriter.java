@@ -36,8 +36,8 @@ public class AbstractTypeRewriter implements TypeRewriter {
 			return rewriteRecord((Type.Record) type);
 		} else if(type instanceof Type.Function) {
 			return rewriteFunction((Type.Function) type);
-		} else if(type instanceof Type.Macro) {
-			return rewriteMacro((Type.Macro) type);
+		} else if(type instanceof Type.Property) {
+			return rewriteMacro((Type.Property) type);
 		} else if(type instanceof Type.Invariant) {
 			return rewriteInvariant((Type.Invariant) type);
 		} else if(type instanceof Type.Negation) {
@@ -70,8 +70,8 @@ public class AbstractTypeRewriter implements TypeRewriter {
 	protected Type rewriteReference(Type.Reference type) {
 		Type element = type.getElement();
 		Type nElement = rewrite(element);
-		if(element != nElement) {
-			return new Type.Reference(nElement);
+		if (element != nElement) {
+			return new Type.Reference(nElement, type.getLifetime());
 		} else {
 			return type;
 		}
@@ -109,13 +109,13 @@ public class AbstractTypeRewriter implements TypeRewriter {
 		}
 	}
 
-	protected Type rewriteMacro(Type.Macro type) {
+	protected Type rewriteMacro(Type.Property type) {
 		Tuple<Type> params = type.getParameters();
 		Tuple<Type> nParams = rewrite(params);
 		if(params == nParams) {
 			return type;
 		} else {
-			return new Type.Macro(nParams);
+			return new Type.Property(nParams);
 		}
 	}
 

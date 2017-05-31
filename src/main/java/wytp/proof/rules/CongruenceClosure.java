@@ -134,7 +134,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// Defer processing of this equality
 			return state;
 		} else {
-			Type intersection = new Type.Intersection(lhsT,rhsT);
+			Type intersection = new Type.Intersection(new Type[]{lhsT,rhsT});
 			//
 			boolean left = types.isRawSubtype(lhsT, rhsT);
 			boolean right = types.isRawSubtype(rhsT, lhsT);

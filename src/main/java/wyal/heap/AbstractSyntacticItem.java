@@ -50,18 +50,37 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 		this.operands = null;
 		this.data = null;
 	}
-
-	public AbstractSyntacticItem(Opcode opcode, List<SyntacticItem> operands) {
-		this(opcode, operands.toArray(new SyntacticItem[operands.size()]));
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem operand, Attribute...attributes) {
+		super(attributes);
+		this.opcode = opcode;
+		this.operands = new SyntacticItem[]{operand};
+		this.data = null;
+	}
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second, Attribute...attributes) {
+		super(attributes);
+		this.opcode = opcode;
+		this.operands = new SyntacticItem[]{first,second};
+		this.data = null;
+	}
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second, SyntacticItem third, Attribute...attributes) {
+		super(attributes);
+		this.opcode = opcode;
+		this.operands = new SyntacticItem[]{first,second,third};
+		this.data = null;
+	}
+	public AbstractSyntacticItem(Opcode opcode, List<SyntacticItem> operands, Attribute...attributes) {
+		this(opcode, operands.toArray(new SyntacticItem[operands.size()]), attributes);
 	}
 
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem... operands) {
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem[] operands, Attribute...attributes) {
+		super(attributes);
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = null;
 	}
 
-	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {
+	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands, Attribute...attributes) {
+		super(attributes);
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = data;

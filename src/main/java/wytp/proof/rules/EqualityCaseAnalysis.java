@@ -61,7 +61,7 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 			Type rhsT = types.inferType(state.getTypeEnvironment(), rhs);
 			if (lhsT != null && rhsT != null) {
-				Type intersection = new Type.Intersection(lhsT, rhsT);
+				Type intersection = new Type.Intersection(new Type[]{lhsT, rhsT});
 				//
 				if (types.isRawSubtype(new Type.Void(), intersection)) {
 					// In this case, no possible intersection exists between the
