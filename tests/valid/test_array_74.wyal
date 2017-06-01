@@ -1,0 +1,27 @@
+function indexOf(int[] items, int item, int start) -> (int index)
+
+define indexOf_ensures_1(int[] items, int item, int index) is:
+    forall(int i):
+        if:
+            (0 <= i) && (i < index)
+        then:
+            items[i] != item
+
+define indexOf_ensures_1(int[] items, int item, int start, int index) is:
+    forall(int index$1):
+        if:
+            index$1 == index
+        then:
+            forall(int i):
+                if:
+                    (start <= i) && (i < index)
+                then:
+                    items[i] != item
+
+assert "postcondition not satisfied":
+    forall(int item, int[] items):
+        if:
+            indexOf_ensures_1(items, item, 0, indexOf(items, item, 0))
+        then:
+            indexOf_ensures_1(items, item, 0, indexOf(items, item, 0))
+

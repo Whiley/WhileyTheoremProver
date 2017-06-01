@@ -1,0 +1,20 @@
+define greater(int[] xs, int x) is:
+    forall(int i):
+        if:
+           (i >= 0) && (i < |xs|)
+        then:
+           xs[i] != x
+
+define greater_2(int[] xs, int x) is:
+        forall(int m, int i):
+           if:
+              (i >= 0) && (i < |xs|)
+           then:
+              xs[i] != x
+
+assert:
+    forall(int[] items, int item):
+        if:
+            greater_2(items,item)
+        then:
+            greater(items,item)
