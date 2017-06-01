@@ -96,12 +96,13 @@ public class ValidTest {
 		IGNORED.put("test_type_98", "#104");
 		// Issue 107 "Limitation with ReadableRecordExtractor"
 		IGNORED.put("test_type_99", "#107");
+		// Issue 111 "Infinite Recursive Expansion"
+		IGNORED.put("test_fun_16", "#111");
 		// Issue 118 "Problem with Nested Quantifiers"
 		IGNORED.put("test_array_74", "#118");
 		IGNORED.put("test_array_75", "#118");
 		//
 		IGNORED.put("test_type_94", "??");
-		IGNORED.put("test_fun_14", "??");
 	}
 
 	// ======================================================================

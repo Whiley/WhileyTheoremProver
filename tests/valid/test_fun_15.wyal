@@ -1,0 +1,8 @@
+function f(int x) -> (int r)
+
+assert:
+    forall(int x):
+        if:
+            x == f(x)
+        then:
+            x == f(f(x))
