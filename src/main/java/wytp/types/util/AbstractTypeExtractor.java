@@ -290,7 +290,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		} else if(rhs instanceof Type.Void) {
 			return lhs;
 		} else {
-			return new Type.Union(lhs,rhs);
+			return new Type.Union(new Type[]{lhs,rhs});
 		}
 	}
 
@@ -316,7 +316,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		} else if(rhs instanceof Type.Void) {
 			return rhs;
 		} else {
-			return new Type.Intersection(lhs,rhs);
+			return new Type.Intersection(new Type[]{lhs,rhs});
 		}
 	}
 

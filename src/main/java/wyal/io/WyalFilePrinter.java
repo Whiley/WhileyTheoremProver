@@ -642,7 +642,7 @@ public class WyalFilePrinter {
 			break;
 		}
 		case TYPE_macro: {
-			Type.Macro t = (Type.Macro) type;
+			Type.Property t = (Type.Property) type;
 			out.print("macro");
 			writeTypeArray(t.getParameters());
 			break;

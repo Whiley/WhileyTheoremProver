@@ -141,7 +141,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 			// NOTE #84: We must simplify here. Otherwise, it's possible that
 			// using new Type.Intersection could potentially lead to unbounded
 			// growth of the overall type.
-			Type intersection = types.simplify(new Type.Intersection(lhsT, rhsT));
+			Type intersection = types.simplify(new Type.Intersection(new Type[]{lhsT, rhsT}));
 			//
 			if (types.isRawSubtype(new Type.Void(), intersection)) {
 				// No possible intersection exists between the types in

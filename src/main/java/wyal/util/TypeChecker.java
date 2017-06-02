@@ -496,7 +496,7 @@ public class TypeChecker {
 		} else if (expr instanceof Expr.RecordAccess) {
 			Expr.RecordAccess ra = (Expr.RecordAccess) expr;
 			FieldDeclaration field = new FieldDeclaration(type, ((Expr.RecordAccess) expr).getField());
-			Type.Record recT = new Type.Record(true, field);
+			Type.Record recT = new Type.Record(true, new FieldDeclaration[]{field});
 			return extractTypeTest(ra.getSource(), recT);
 		} else {
 			// no extraction is possible
@@ -605,7 +605,7 @@ public class TypeChecker {
 		}
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), expr, types);
-		Type.FunctionOrMacro type = sig.getSignatureType();
+		Type.FunctionOrMethodOrProperty type = sig.getSignatureType();
 		// Replace old object with fully resolved object
 		expr.setSignatureType(parent.allocate(type));
 		// Finally, return the declared returns
@@ -1118,7 +1118,7 @@ public class TypeChecker {
 		if (left == right || left.equals(right)) {
 			return left;
 		} else {
-			return new Type.Union(left, right);
+			return new Type.Union(new Type[] { left, right });
 		}
 	}
 
