@@ -45,6 +45,11 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 	}
 
 	@Override
+	public SyntacticHeap getParent() {
+		return parent;
+	}
+
+	@Override
 	public <T extends SyntacticItem> T allocate(T item) {
 		return allocate(item,new IdentityHashMap<>());
 	}
@@ -59,9 +64,6 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 			// Item already allocated to this heap, hence return its existing
 			// address.
 			return item;
-		} else if(parent != null) {
-			throw new IllegalArgumentException(
-					"Cannot allocate item since a descendent is already allocated to another heap");
 		} else {
 			// We need to recursively descend into children of this item
 			// allocating them all to this heap.
@@ -70,7 +72,7 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 			// which is actually updated, then this will refer to a new
 			// array. That will be the signal that we need to create a new
 			// item to return.
-			SyntacticItem[] nChildren = children;
+			SyntacticItem[] nChildren = new SyntacticItem[item.size()];
 			if (children != null) {
 				for (int i = 0; i != children.length; ++i) {
 					SyntacticItem child = children[i];
@@ -78,67 +80,27 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 					// substitute into null.
 					if (child != null) {
 						// Perform the substitution in the given child
-						SyntacticItem nChild = allocate(child, map);
-						// Check whether anything was actually changed by
-						// the substitution.
-						if (nChild != child && children == nChildren) {
-							// Yes, the child changed and we haven't already
-							// cloned the children array. Hence, we'd better
-							// clone it now to make sure that the original
-							// item is preserved.
-							nChildren = Arrays.copyOf(children, children.length);
-						}
-						nChildren[i] = nChild;
+						nChildren[i] = allocate(child, map);
 					}
 				}
 			}
-			T nItem = item;
-			if (children != nChildren) {
-				// No equivalent was found, but the child array was
-				// updated in some way. Therefore, we need to clone
-				// the item in order reflect this change.
-				nItem = (T) item.clone(nChildren);
-			}
+			T nItem = (T) item.clone(nChildren);
 			// Look for any structural equivalents that exist
 			// already in this heap. If we find one, then we can
 			// just return the directly.
 			T equivalent = (T) findStructuralEquivalent(nItem, item.getClass());
+			//
 			if (equivalent == null) {
 				// Allocate the item (or its clone) into this heap.
-				nItem = internalAllocate(nItem);
+				int index = syntacticItems.size();
+				syntacticItems.add(nItem);
+				nItem.allocate(this, index);
 			} else {
 				nItem = equivalent;
 			}
 			map.put(item,nItem);
 			return nItem;
 		}
-	}
-
-	private <T extends SyntacticItem> T internalAllocate(T item) {
-		SyntacticHeap parent = item.getParent();
-		if (parent == this || parent == this.parent) {
-			// Item already allocated to this heap, hence nothing to do.
-		} else if (parent != null) {
-			throw new IllegalArgumentException(
-					"Cannot allocate item since a descendent is already allocated to another heap");
-		} else {
-			// Item not allocated to this heap. Therefore, recursively allocate
-			// all children ...
-			for (int i = 0; i != item.size(); ++i) {
-				SyntacticItem child = item.getOperand(i);
-				if (child != null) {
-					internalAllocate(child);
-				}
-			}
-			// ... and allocate item itself
-			int index = syntacticItems.size();
-			syntacticItems.add(item);
-			item.allocate(this, index);
-		}
-		// We just return the original item here since, in the abstract case,
-		// we're not doing anything fancy. Subclasses may choose to do more,
-		// which is why we have this hook here.
-		return item;
 	}
 
 	/**

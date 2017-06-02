@@ -194,6 +194,7 @@ public class Formulae {
 		case EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) stmt;
 			if(ivk.getSignatureType() instanceof Type.Function) {
+				System.out.println("*** SIGNATURE: "+ ivk.getSignatureType());
 				Expr TRUE = new Formula.Truth(new Value.Bool(true));
 				return new Formula.Equality(true, ivk, TRUE);
 			} else {

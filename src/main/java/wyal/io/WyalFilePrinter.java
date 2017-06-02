@@ -60,7 +60,7 @@ public class WyalFilePrinter {
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
 		if (pkg != Trie.ROOT) {
-			out.println("package " + pkg.toString());
+			out.println("package " + pkg.toString().replace("/","."));
 			out.println();
 		}
 		// Second, write all declarations

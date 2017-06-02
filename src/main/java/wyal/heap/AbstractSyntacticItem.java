@@ -16,16 +16,11 @@ package wyal.heap;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.SyntacticHeap;
 import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile;
-import wycc.util.ArrayUtils;
-import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 
 public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
@@ -44,43 +39,32 @@ public abstract class AbstractSyntacticItem extends SyntacticElement.Impl
 		this.data = null;
 	}
 
-	public AbstractSyntacticItem(Opcode opcode, Attribute... attributes) {
-		super(attributes);
-		this.opcode = opcode;
-		this.operands = null;
-		this.data = null;
-	}
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem operand, Attribute...attributes) {
-		super(attributes);
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem operand) {
 		this.opcode = opcode;
 		this.operands = new SyntacticItem[]{operand};
 		this.data = null;
 	}
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second, Attribute...attributes) {
-		super(attributes);
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second) {
 		this.opcode = opcode;
 		this.operands = new SyntacticItem[]{first,second};
 		this.data = null;
 	}
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second, SyntacticItem third, Attribute...attributes) {
-		super(attributes);
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem first, SyntacticItem second, SyntacticItem third) {
 		this.opcode = opcode;
 		this.operands = new SyntacticItem[]{first,second,third};
 		this.data = null;
 	}
-	public AbstractSyntacticItem(Opcode opcode, List<SyntacticItem> operands, Attribute...attributes) {
-		this(opcode, operands.toArray(new SyntacticItem[operands.size()]), attributes);
+	public AbstractSyntacticItem(Opcode opcode, List<SyntacticItem> operands) {
+		this(opcode, operands.toArray(new SyntacticItem[operands.size()]));
 	}
 
-	public AbstractSyntacticItem(Opcode opcode, SyntacticItem[] operands, Attribute...attributes) {
-		super(attributes);
+	public AbstractSyntacticItem(Opcode opcode, SyntacticItem[] operands) {
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = null;
 	}
 
-	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands, Attribute...attributes) {
-		super(attributes);
+	protected AbstractSyntacticItem(Opcode opcode, Object data, SyntacticItem[] operands) {
 		this.opcode = opcode;
 		this.operands = operands;
 		this.data = data;
