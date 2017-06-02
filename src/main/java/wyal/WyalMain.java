@@ -50,7 +50,7 @@ public class WyalMain {
 		Path.Entry e = dir.get(id,WyalFile.ContentType);
 		// Now, lex and parse the source file
 		WyalFileLexer lexer = new WyalFileLexer(e);
-		WyalFileParser parser = new WyalFileParser(e,lexer.scan());
+		WyalFileParser parser = new WyalFileParser(new WyalFile(e),lexer.scan());
 		WyalFile file = parser.read();
 		// Finally, print it out
 		new WyalFilePrinter(System.out).write(file);

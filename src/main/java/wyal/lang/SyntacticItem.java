@@ -15,6 +15,7 @@
 package wyal.lang;
 
 import wyal.lang.WyalFile.Opcode;
+import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 
 public interface SyntacticItem extends SyntacticElement, Comparable<SyntacticItem> {

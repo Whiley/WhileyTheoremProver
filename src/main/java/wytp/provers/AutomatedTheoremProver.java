@@ -162,7 +162,7 @@ public class AutomatedTheoremProver {
 		axiom = Formulae.invert(axiom);
 		// Simplify the formula, since inversion does not do this.
 		// Allocate initial formula to the heap
-		axiom = heap.allocate(SyntacticHeaps.clone(axiom));
+		axiom = heap.allocate(axiom);
 		// Create initial state
 		DeltaProof proof = new DeltaProof(null, heap, axiom);
 		Proof.State head = proof.getState(0);

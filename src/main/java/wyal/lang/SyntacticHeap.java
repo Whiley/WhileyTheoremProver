@@ -63,4 +63,11 @@ public interface SyntacticHeap {
 	 * @return
 	 */
 	public <T extends SyntacticItem> T allocate(T item);
+
+	/**
+	 * Get the parent associated with this heap (if any).
+	 *
+	 * @return
+	 */
+	public SyntacticHeap getParent();
 }

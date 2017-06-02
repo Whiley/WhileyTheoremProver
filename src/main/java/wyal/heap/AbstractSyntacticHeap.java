@@ -17,6 +17,7 @@ package wyal.heap;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,34 +64,38 @@ public abstract class AbstractSyntacticHeap implements SyntacticHeap {
 
 	@Override
 	public <T extends SyntacticItem> T allocate(T item) {
-		return internalAllocate(item);
+		return internalAllocate(item, new HashMap<>());
 	}
 
-	private <T extends SyntacticItem> T internalAllocate(T item) {
+	private <T extends SyntacticItem> T internalAllocate(T item, Map<SyntacticItem,SyntacticItem> map) {
 		SyntacticHeap parent = item.getParent();
-		if (parent == this) {
+		T allocated = (T) map.get(item);
+		if(allocated != null) {
+			return allocated;
+		} else if (parent == this) {
 			// Item already allocated to this heap, hence nothing to do.
-		} else if (parent != null) {
-			throw new IllegalArgumentException(
-					"Cannot allocate item since a descendent is already allocated to another heap");
+			return item;
 		} else {
 			// Item not allocated to this heap. Therefore, recursively allocate
-			// all children ...
-			for (int i = 0; i != item.size(); ++i) {
+			// all children.
+			SyntacticItem[] operands = new SyntacticItem[item.size()];
+			for (int i = 0; i != operands.length; ++i) {
 				SyntacticItem child = item.getOperand(i);
 				if (child != null) {
-					internalAllocate(child);
+					child = internalAllocate(child,map);
 				}
+				operands[i] = child;
 			}
-			// ... and allocate item itself
+			// Clone item prior to allocation
+			T nItem = (T) item.clone(operands);
+			// Determine index for allocation
 			int index = syntacticItems.size();
-			syntacticItems.add(item);
-			item.allocate(this, index);
+			syntacticItems.add(nItem);
+			// ... and allocate item itself
+			nItem.allocate(this, index);
+			map.put(item, nItem);
+			return nItem;
 		}
-		// We just return the original item here since, in the abstract case,
-		// we're not doing anything fancy. Subclasses may choose to do more,
-		// which is why we have this hook here.
-		return item;
 	}
 
 	public void print(PrintWriter out) {
