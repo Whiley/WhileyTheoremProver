@@ -211,7 +211,6 @@ public final class WyalFileResolver implements NameResolver {
 				}
 				// Otherwise, we really couldn't figure out this name.
 			}
-			System.out.println("NAME: " + name);
 		} catch (IOException e) {
 
 		}
