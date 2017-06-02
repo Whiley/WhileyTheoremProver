@@ -1515,6 +1515,7 @@ public class WyalFileParser {
 	private Type parsePrimitiveType(EnclosingScope scope) {
 		int start = index;
 		Token token = tokens.get(index);
+		match(token.kind);
 		Attribute sourceAttribute = sourceAttr(start, index - 1);
 		Type t;
 
@@ -1535,7 +1536,6 @@ public class WyalFileParser {
 			syntaxError("unknown primitive type encountered", token);
 			return null; // deadcode
 		}
-		match(token.kind);
 		return t;
 	}
 
