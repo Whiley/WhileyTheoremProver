@@ -1451,23 +1451,22 @@ public class WyalFileParser {
 	public Type parseType(EnclosingScope scope) {
 		int start = index;
 		Type first = parseUnaryType(scope);
-		Token lookahead = tryAndMatch(false,Ampersand,VerticalBar);
-		if(lookahead == null) {
+		Token lookahead = tryAndMatch(false, Ampersand, VerticalBar);
+		if (lookahead == null) {
 			return first;
 		} else {
 			ArrayList<Type> operands = new ArrayList<>();
 			operands.add(first);
-			do  {
+			do {
 				operands.add(parseUnaryType(scope));
-			} while(tryAndMatch(false,lookahead.kind) != null);
+			} while (tryAndMatch(false, lookahead.kind) != null);
 			Type rt;
 			Type[] types = operands.toArray(new Type[operands.size()]);
-			if(lookahead.kind == Ampersand) {
-				rt = new Type.Intersection(types);
+			if (lookahead.kind == Ampersand) {
+				rt = new Type.Intersection(types, sourceAttr(start, index - 1));
 			} else {
-				rt = new Type.Union(types);
+				rt = new Type.Union(types, sourceAttr(start, index - 1));
 			}
-			rt.attributes().add(sourceAttr(start, index - 1));
 			return rt;
 		}
 	}
@@ -1478,8 +1477,7 @@ public class WyalFileParser {
 		Type type = parseBaseType(scope);
 		while(tryAndMatch(false,LeftSquare) != null) {
 			match(RightSquare);
-			type = new Type.Array(type);
-			type.attributes().add(sourceAttr(start, index - 1));
+			type = new Type.Array(type,sourceAttr(start, index - 1));
 		}
 		return type;
 	}
@@ -1517,27 +1515,27 @@ public class WyalFileParser {
 	private Type parsePrimitiveType(EnclosingScope scope) {
 		int start = index;
 		Token token = tokens.get(index);
+		match(token.kind);
+		Attribute sourceAttribute = sourceAttr(start, index - 1);
 		Type t;
 
 		switch (token.kind) {
 		case Any:
-			t = new Type.Any();
+			t = new Type.Any(sourceAttribute);
 			break;
 		case Null:
-			t = new Type.Null();
+			t = new Type.Null(sourceAttribute);
 			break;
 		case Bool:
-			t = new Type.Bool();
+			t = new Type.Bool(sourceAttribute);
 			break;
 		case Int:
-			t = new Type.Int();
+			t = new Type.Int(sourceAttribute);
 			break;
 		default:
 			syntaxError("unknown primitive type encountered", token);
 			return null; // deadcode
 		}
-		match(token.kind);
-		t.attributes().add(sourceAttr(start,index-1));
 		return t;
 	}
 
@@ -1559,9 +1557,7 @@ public class WyalFileParser {
 		int start = index;
 		match(Shreak);
 		Type element = parseBaseType(scope);
-		Type type = new Type.Negation(element);
-		type.attributes().add(sourceAttr(start, index - 1));
-		return type;
+		return new Type.Negation(element,sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1581,9 +1577,8 @@ public class WyalFileParser {
 		int start = index;
 		match(Ampersand);
 		Type element = parseBaseType(scope);
-		Type type = new Type.Reference(element);
-		type.attributes().add(sourceAttr(start, index - 1));
-		return type;
+		// FIXME: #102 parse reference lifetimes
+		return new Type.Reference(element,null,sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1655,9 +1650,7 @@ public class WyalFileParser {
 			}
 		}
 		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
-		Type type = new Type.Record(isOpenRecord,arr);
-		type.attributes().add(sourceAttr(start, index - 1));
-		return type;
+		return new Type.Record(isOpenRecord, arr, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1678,11 +1671,9 @@ public class WyalFileParser {
 	private Type parseNominalType(EnclosingScope scope) {
 		int start = index;
 		//
-		Name nameID = parseNameID(scope);
+		Name name = parseNameID(scope);
 		// this is a nominal type constructor
-		Type type = new Type.Nominal(nameID);
-		type.attributes().add(sourceAttr(start, index - 1));
-		return type;
+		return new Type.Nominal(name, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -1704,9 +1695,7 @@ public class WyalFileParser {
 		Tuple<Type> parameters = parseTypeParameters(scope);
 		match(MinusGreater);
 		Tuple<Type> returns = parseTypeParameters(scope);
-		Type.Function type = new Type.Function(parameters, returns);
-		type.attributes().add(sourceAttr(start, index - 1));
-		return type;
+		return new Type.Function(parameters, returns, sourceAttr(start, index - 1));
 	}
 
 	private Tuple<Type> parseTypeParameters(EnclosingScope scope) {

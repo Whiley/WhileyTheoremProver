@@ -75,7 +75,7 @@ public class StdTypeEnvironment implements TypeInferer.Environment {
 		if(left == right || left.equals(right)) {
 			return left;
 		} else {
-			return new Type.Intersection(left,right);
+			return new Type.Intersection(new Type[]{left,right});
 		}
 	}
 }

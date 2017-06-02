@@ -134,7 +134,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// Defer processing of this equality
 			return state;
 		} else {
-			Type intersection = new Type.Intersection(lhsT,rhsT);
+			Type intersection = new Type.Intersection(new Type[]{lhsT,rhsT});
 			//
 			boolean left = types.isRawSubtype(lhsT, rhsT);
 			boolean right = types.isRawSubtype(rhsT, lhsT);
@@ -408,13 +408,13 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	 * @param child
 	 * @return
 	 */
-	private static boolean isParentOf(Expr parent, Expr child) {
+	private static boolean isParentOf(SyntacticItem parent, Expr child) {
 		if (parent.equals(child)) {
 			return true;
 		} else {
 			for (int i = 0; i != parent.size(); ++i) {
 				SyntacticItem pChild = parent.getOperand(i);
-				if (pChild instanceof Expr && isParentOf((Expr) pChild, child)) {
+				if (pChild != null && isParentOf(pChild, child)) {
 					return true;
 				}
 			}

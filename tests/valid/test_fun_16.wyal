@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+type Link is ({int data, LinkedList next} this)
+type LinkedList is (null|Link this)
+
+define isLength(LinkedList list, nat len) is:
+    (list is null) ==> (len == 0)
+    (list is Link) ==> isLength(list.next, len - 1)
+
+function length(LinkedList list) -> (nat r)
+
+assert "postcondition not satisfied":
+    forall(LinkedList list):
+        if:
+            list is !null
+            isLength(list.next, length(list.next))
+        then:
+            isLength(list, 1 + length(list.next))
