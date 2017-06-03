@@ -1,0 +1,16 @@
+type nat is (int x)
+where:
+    x >= 0
+
+type Digraph is ((nat[])[] edges)
+where:
+    forall(int i, int j):
+        if:
+            (0 <= i) && (i < |edges|)
+            (0 <= j) && (j < |edges[i]|)
+        then:
+            edges[i][j] < |edges|
+
+assert "type invariant not satisfied":
+    forall(Digraph g):
+        g is Digraph
