@@ -1,0 +1,13 @@
+type Digraph is (int[][] edges)
+where:
+    forall(int i):
+        forall(int j):
+           if:
+             (0 <= i) && (i < |edges|)
+             (0 <= j) && (j < |edges[i]|)
+           then:
+             edges[i][j] < |edges|
+
+assert "type invariant not satisfied":
+    forall(Digraph g):
+        g is Digraph

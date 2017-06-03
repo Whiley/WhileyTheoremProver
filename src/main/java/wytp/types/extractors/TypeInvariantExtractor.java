@@ -16,6 +16,7 @@ package wytp.types.extractors;
 import static wytp.proof.util.Formulae.*;
 
 import java.util.BitSet;
+import java.util.HashSet;
 
 import wyal.lang.WyalFile;
 import wyal.lang.NameResolver;
@@ -62,7 +63,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 
 	@Override
 	public Formula extract(Type type, Expr root) throws ResolutionError {
-		return extractTypeInvariant(type, root, new BitSet());
+		return extractTypeInvariant(type, root, new HashSet());
 	}
 
 	/**
@@ -77,18 +78,18 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Formula extractTypeInvariant(Type type, Expr root, BitSet visited) throws ResolutionError {
+	private Formula extractTypeInvariant(Type type, Expr root, HashSet<Type> visited) throws ResolutionError {
 		Formula invariant = null;
 		if(type.getParent() == null) {
 			invariant = extractTypeInvariantInner(type,root,visited);
-		} else if(!visited.get(type.getIndex())) {
-			visited.set(type.getIndex());
+		} else if(!visited.contains(type)) {
+			visited.add(type);
 			invariant = extractTypeInvariantInner(type,root,visited);
-			visited.clear(type.getIndex());
+			visited.remove(type);
 		}
 		return invariant;
 	}
-	public Formula extractTypeInvariantInner(Type type, Expr root, BitSet visited) throws ResolutionError {
+	public Formula extractTypeInvariantInner(Type type, Expr root, HashSet<Type> visited) throws ResolutionError {
 		switch(type.getOpcode()) {
 		case TYPE_void:
 		case TYPE_any:

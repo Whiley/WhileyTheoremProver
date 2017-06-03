@@ -101,6 +101,9 @@ public class ValidTest {
 		// Issue 118 "Problem with Nested Quantifiers"
 		IGNORED.put("test_array_74", "#118");
 		IGNORED.put("test_array_75", "#118");
+		IGNORED.put("test_array_77", "#118");
+		// Issue 126 "Multi-Variable Quantifier Instantiation"
+		IGNORED.put("test_array_76", "#126");
 		//
 		IGNORED.put("test_type_94", "??");
 	}
