@@ -1,4 +1,4 @@
-type Expr is (int|(Expr[]) this)
+type Expr is (int|(Expr[]) self)
 
 function f(Expr x) -> (int $)
 

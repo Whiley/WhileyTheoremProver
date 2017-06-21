@@ -1,4 +1,4 @@
-type Point is ({int x, int y} this)
+type Point is ({int x, int y} self)
 
 assert "assertion failed":
     forall(&Point p, &Point q):

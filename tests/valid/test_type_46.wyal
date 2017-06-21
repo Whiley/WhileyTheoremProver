@@ -1,5 +1,5 @@
-type Record1 is ({int op, int[] payload} this)
-type Record2 is ({int header, int op, int[] rest} this)
+type Record1 is ({int op, int[] payload} self)
+type Record2 is ({int header, int op, int[] rest} self)
 
 assert:
     forall(Record1|Record2 msg):

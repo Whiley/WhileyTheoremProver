@@ -1,5 +1,5 @@
 type Point is ({bool x, bool y} p) where p.x == p.y
-type Expr is (int|Point this)
+type Expr is (int|Point self)
 
 assert:
     forall(Point p, Expr q):

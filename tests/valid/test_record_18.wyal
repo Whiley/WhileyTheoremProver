@@ -1,5 +1,5 @@
-type Rec1 is ({int x, int y} this)
-type Rec2 is ({int x} this)
+type Rec1 is ({int x, int y} self)
+type Rec2 is ({int x} self)
 
 function f(Rec2 rec) -> (int $)
 
