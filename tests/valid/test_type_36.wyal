@@ -1,4 +1,4 @@
-type BTree is (null|{int item, BTree left, BTree right} this)
+type BTree is (null|{int item, BTree left, BTree right} self)
 
 assert:
     forall(int item, (BTree&(!null)) tree):

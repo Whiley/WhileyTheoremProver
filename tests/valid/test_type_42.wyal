@@ -2,7 +2,7 @@ type bop is ({int x, int y} r)
 where:
     r.x > 0
 
-type expr is (int|bop this)
+type expr is (int|bop self)
 
 assert:
         1 is expr

@@ -538,6 +538,8 @@ public class WyalFileLexer {
 			put("protected", Token.Kind.Protected);
 			put("private", Token.Kind.Private);
 			put("package", Token.Kind.Package);
+			// lifetimes
+			put("this", Token.Kind.This);
 		}
 	};
 
@@ -615,6 +617,13 @@ public class WyalFileLexer {
 				@Override
 				public String toString() {
 					return "string";
+				}
+			},
+			// Lifetimes
+			This {
+				@Override
+				public String toString() {
+					return "this";
 				}
 			},
 			// Statements

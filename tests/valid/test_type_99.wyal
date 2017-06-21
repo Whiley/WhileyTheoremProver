@@ -1,5 +1,5 @@
-type ListAccess is ({Expr index, Expr src} this)
-type Expr is (Expr[]|ListAccess this)
+type ListAccess is ({Expr index, Expr src} self)
+type Expr is (Expr[]|ListAccess self)
 
 assert "type invariant not satisfied":
     forall(!(Expr[])&Expr e):

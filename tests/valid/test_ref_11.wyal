@@ -1,0 +1,6 @@
+assert:
+    forall(&self:int x):
+        if:
+            *x >= 0
+        then:
+            *x >= 0

@@ -121,7 +121,7 @@ public class WyalFileParser {
 		matchEndLine();
 
 		Declaration.Import imprt = new Declaration.Import(filterPath);
-		return allocate(imprt,sourceAttr(start, end - 1));
+		return allocate(imprt, sourceAttr(start, end - 1));
 	}
 
 	private Identifier[] parseFilterPath(EnclosingScope scope) {
@@ -157,7 +157,7 @@ public class WyalFileParser {
 		String message = null;
 		//
 		match(Assert);
-		if(tryAndMatch(false,Colon) == null) {
+		if (tryAndMatch(false, Colon) == null) {
 			Token token = match(StringValue);
 			message = parseString(token.text);
 			match(Colon);
@@ -165,8 +165,8 @@ public class WyalFileParser {
 
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body,message);
-		return allocate(declaration,sourceAttr(start, index - 1));
+		Declaration.Assert declaration = new Declaration.Assert(body, message);
+		return allocate(declaration, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -194,7 +194,7 @@ public class WyalFileParser {
 		Stmt.Block[] invariant = parseInvariantClauses(scope);
 		//
 		Declaration.Named.Type declaration = new Declaration.Named.Type(name, parameter, invariant);
-		return allocate(declaration,sourceAttr(start, index - 1));
+		return allocate(declaration, sourceAttr(start, index - 1));
 	}
 
 	private Stmt.Block[] parseInvariantClauses(EnclosingScope scope) {
@@ -226,7 +226,7 @@ public class WyalFileParser {
 		matchEndLine();
 		//
 		Declaration.Named.Function declaration = new Declaration.Named.Function(name, parameters, returns);
-		return allocate(declaration,sourceAttr(start, index - 1));
+		return allocate(declaration, sourceAttr(start, index - 1));
 	}
 
 	protected Declaration parseMacroDeclaration(WyalFile parent) {
@@ -242,7 +242,7 @@ public class WyalFileParser {
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
 		// Create empty declaration
 		Declaration.Named.Macro declaration = new Declaration.Named.Macro(name, parameters, body);
-		return allocate(declaration,sourceAttr(start, index - 1));
+		return allocate(declaration, sourceAttr(start, index - 1));
 	}
 
 	/**
@@ -432,7 +432,7 @@ public class WyalFileParser {
 		}
 		//
 		Stmt stmt;
-		if(lookahead.kind == Forall) {
+		if (lookahead.kind == Forall) {
 			stmt = new Stmt.UniversalQuantifier(parameters, body);
 		} else {
 			stmt = new Stmt.ExistentialQuantifier(parameters, body);
@@ -459,8 +459,8 @@ public class WyalFileParser {
 		int start = index;
 		Type type = parseType(scope);
 		Identifier name = parseIdentifier(scope);
-		VariableDeclaration stmt = new VariableDeclaration(type,name);
-		stmt = allocate(stmt, sourceAttr(start,index-1));
+		VariableDeclaration stmt = new VariableDeclaration(type, name);
+		stmt = allocate(stmt, sourceAttr(start, index - 1));
 		scope.declareInScope(stmt);
 		return stmt;
 	}
@@ -495,24 +495,25 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private Expr parseMultiExpression(EnclosingScope scope, boolean terminated) {
-//		int start = index;
-//		Expr lhs = parseUnitExpression(wf, generics, environment, terminated);
-//
-//		if (tryAndMatch(terminated, Comma) != null) {
-//			// Indicates this is a tuple expression.
-//			ArrayList<Expr> elements = new ArrayList<Expr>();
-//			elements.add(lhs);
-//			// Add all expressions separated by a comma
-//			do {
-//				elements.add(parseUnitExpression(wf, generics, environment,
-//						terminated));
-//			} while (tryAndMatch(terminated, Comma) != null);
-//			// Done
-//			return new Expr.Nary(Expr.Nary.Op.TUPLE, elements, sourceAttr(
-//					start, index - 1));
-//		}
-//
-//		return lhs;
+		// int start = index;
+		// Expr lhs = parseUnitExpression(wf, generics, environment,
+		// terminated);
+		//
+		// if (tryAndMatch(terminated, Comma) != null) {
+		// // Indicates this is a tuple expression.
+		// ArrayList<Expr> elements = new ArrayList<Expr>();
+		// elements.add(lhs);
+		// // Add all expressions separated by a comma
+		// do {
+		// elements.add(parseUnitExpression(wf, generics, environment,
+		// terminated));
+		// } while (tryAndMatch(terminated, Comma) != null);
+		// // Done
+		// return new Expr.Nary(Expr.Nary.Op.TUPLE, elements, sourceAttr(
+		// start, index - 1));
+		// }
+		//
+		// return lhs;
 		throw new IllegalArgumentException("IMPLEMENT ME!");
 	}
 
@@ -633,12 +634,12 @@ public class WyalFileParser {
 		Expr lhs = parsePathExpression(scope, terminated);
 		Token token;
 
-		while ((token = tryAndMatch(terminated, LeftSquare,LeftCurly, Dot, MinusGreater)) != null) {
+		while ((token = tryAndMatch(terminated, LeftSquare, LeftCurly, Dot, MinusGreater)) != null) {
 			switch (token.kind) {
 			case LeftSquare: {
 				// NOTE: expression guaranteed to be terminated by ']'.
 				Expr rhs = parseUnitExpression(scope, true);
-				if(tryAndMatchOnLine(ColonEquals) != null) {
+				if (tryAndMatchOnLine(ColonEquals) != null) {
 					// This is an array update expression
 					Expr mhs = parseUnitExpression(scope, true);
 					match(RightSquare);
@@ -821,11 +822,11 @@ public class WyalFileParser {
 			return parseLogicalNotExpression(scope, terminated);
 		case Forall:
 		case Exists:
-			return parseQuantifiedExpression(token,scope,terminated);
+			return parseQuantifiedExpression(token, scope, terminated);
 		}
 
 		syntaxError("unrecognised term", token);
-		return null; //deadcode
+		return null; // deadcode
 	}
 
 	private Expr parseConstantExpression(Token token, EnclosingScope scope) {
@@ -884,11 +885,11 @@ public class WyalFileParser {
 	 *
 	 * <p>
 	 * A cast can be followed by the start of any valid expression. This
-	 * includes: identifiers (e.g. "(T) x"), braces of various kinds (e.g.
-	 * "(T) [1,2]" or "(T) (1,2)"), unary operators (e.g. "(T) !x", "(T) |xs|",
-	 * etc). A bracketed expression, on the other hand, can be followed by a
-	 * binary operator (e.g. "(e) + 1"), a left- or right-brace (e.g.
-	 * "(1 + (x+1))" or "(*f)(1)") or a newline.
+	 * includes: identifiers (e.g. "(T) x"), braces of various kinds (e.g. "(T)
+	 * [1,2]" or "(T) (1,2)"), unary operators (e.g. "(T) !x", "(T) |xs|", etc).
+	 * A bracketed expression, on the other hand, can be followed by a binary
+	 * operator (e.g. "(e) + 1"), a left- or right-brace (e.g. "(1 + (x+1))" or
+	 * "(*f)(1)") or a newline.
 	 * </p>
 	 * <p>
 	 * Most of these are easy to disambiguate by the following rules:
@@ -1047,7 +1048,7 @@ public class WyalFileParser {
 		boolean firstTime = true;
 		boolean isArrayInitialiser = true;
 		while (eventuallyMatch(RightSquare) == null) {
-			if(firstTime) {
+			if (firstTime) {
 				firstTime = false;
 			} else if (!isArrayInitialiser) {
 				// Force failure
@@ -1067,7 +1068,7 @@ public class WyalFileParser {
 			operands.add(parseUnitExpression(scope, true));
 		}
 		Expr expr;
-		if(operands.isEmpty()) {
+		if (operands.isEmpty()) {
 			// FIXME: this is a hack to address an issue with the WhileyCompiler
 			// (WyC#692) which doesn't properly handle string constants.
 			expr = new Expr.ArrayGenerator(new WyalFile.Expr.Constant(new WyalFile.Value.Int(0)),
@@ -1136,8 +1137,8 @@ public class WyalFileParser {
 			// Also, expression is guaranteed to be terminated, either by '}' or
 			// ','.
 			Expr fieldValue = parseUnitExpression(scope, true);
-			WyalFile.Pair pair = new WyalFile.Pair(fieldName,fieldValue);
-			pair = allocate(pair, sourceAttr(fieldStart,index-1));
+			WyalFile.Pair pair = new WyalFile.Pair(fieldName, fieldValue);
+			pair = allocate(pair, sourceAttr(fieldStart, index - 1));
 			exprs.add(pair);
 		}
 
@@ -1206,7 +1207,7 @@ public class WyalFileParser {
 	 *
 	 * @return
 	 */
-	private Expr  parseNegationExpression(EnclosingScope scope, boolean terminated) {
+	private Expr parseNegationExpression(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		match(Minus);
 		Expr expr = parseTermExpression(scope, terminated);
@@ -1214,7 +1215,6 @@ public class WyalFileParser {
 		expr = new Expr.Negation(expr);
 		return allocate(expr, sourceAttr(start, index - 1));
 	}
-
 
 	/**
 	 * Parse a deference expression, which is of the form:
@@ -1248,7 +1248,6 @@ public class WyalFileParser {
 		expr = new Expr.Dereference(expr);
 		return allocate(expr, sourceAttr(start, index - 1));
 	}
-
 
 	/**
 	 * Parse a sequence of arguments separated by commas that ends in a
@@ -1291,7 +1290,7 @@ public class WyalFileParser {
 			firstTime = false;
 			// Note, we have to parse a unit expression here since comma's are
 			// already being used to separate the argument list.
-			arguments.add(parseUnitExpression(scope,true));
+			arguments.add(parseUnitExpression(scope, true));
 		}
 
 		return toExprArray(arguments);
@@ -1332,7 +1331,7 @@ public class WyalFileParser {
 		return allocate(expr, sourceAttr(start, index - 1));
 	}
 
-	private Expr parseQuantifiedExpression(Token lookahead,EnclosingScope scope, boolean terminated) {
+	private Expr parseQuantifiedExpression(Token lookahead, EnclosingScope scope, boolean terminated) {
 		int start = index - 1;
 		match(lookahead.kind);
 		// Clone the environment here, since the following type pattern may
@@ -1346,14 +1345,13 @@ public class WyalFileParser {
 		Expr body = parseUnitExpression(scope, false);
 		//
 		Expr expr;
-		if(lookahead.kind == Forall) {
+		if (lookahead.kind == Forall) {
 			expr = new Expr.UniversalQuantifier(parameters, body);
 		} else {
 			expr = new Expr.ExistentialQuantifier(parameters, body);
 		}
 		return allocate(expr, sourceAttr(start, index - 1));
 	}
-
 
 	/**
 	 * Attempt to parse something which maybe a type, or an expression. The
@@ -1373,7 +1371,7 @@ public class WyalFileParser {
 		int start = index; // backtrack point
 		try {
 			Type type = parseType(scope);
-			if (mustParseAsType(type,scope)) {
+			if (mustParseAsType(type, scope)) {
 				return type;
 			}
 		} catch (SyntaxError e) {
@@ -1421,9 +1419,10 @@ public class WyalFileParser {
 	 * TupleType ::= Type (',' Type)*
 	 * </pre>
 	 *
-	 * @param scope The enclosing scope for this expression. This identifies
-	 * any generic arguments which are in scope, and also allocated each
-	 * variable in scope to its location index.
+	 * @param scope
+	 *            The enclosing scope for this expression. This identifies any
+	 *            generic arguments which are in scope, and also allocated each
+	 *            variable in scope to its location index.
 	 *
 	 * @see wyc.lang.SyntacticType.Tuple
 	 * @return
@@ -1455,7 +1454,7 @@ public class WyalFileParser {
 		// Should match negation and reference types here!
 		int start = index;
 		Type type = parseBaseType(scope);
-		while(tryAndMatch(false,LeftSquare) != null) {
+		while (tryAndMatch(false, LeftSquare) != null) {
 			match(RightSquare);
 			type = new Type.Array(type);
 			type = allocate(type, sourceAttr(start, index - 1));
@@ -1556,21 +1555,49 @@ public class WyalFileParser {
 	private Type parseReferenceType(EnclosingScope scope) {
 		int start = index;
 		match(Ampersand);
+		// Attempt to parse option lifetime identifier
+		int backtrack = index;
+		WyalFile.Identifier lifetimeIdentifier = parseOptionalLifetimeIdentifier(scope, false);
+		if (lifetimeIdentifier != null && tryAndMatch(false, Colon) != null) {
+			// NOTE: At this point, we now assume that we have reference type
+			// with lifetime parameter. The only situation in which this causes
+			// problems is when return types are used for a method without
+			// enclosing braces.
+		} else {
+			// NOTE: At this point, we now assume that we don't have an explicit
+			// lifetime with this reference type. Therefore, we backtrack to
+			// undo the parsing of an identifier.
+			lifetimeIdentifier = null;
+			index = backtrack;
+		}
 		Type element = parseBaseType(scope);
-		// FIXME: #102 parse reference lifetimes
-		Type type = new Type.Reference(element,null);
+		Type type = new Type.Reference(element, lifetimeIdentifier);
 		return allocate(type, sourceAttr(start, index - 1));
+	}
+
+	private WyalFile.Identifier parseOptionalLifetimeIdentifier(EnclosingScope scope, boolean terminated) {
+		int start = index;
+		Token token = tryAndMatch(terminated, Identifier, This, Star);
+		if (token != null) {
+			WyalFile.Identifier id = new WyalFile.Identifier(token.text);
+			id.attributes().add(sourceAttr(start, index - 1));
+			return id;
+		} else {
+			return null;
+		}
 	}
 
 	/**
 	 * Parse a bracketed type, which is of the form:
+	 *
 	 * @param scope
 	 *            The enclosing scope for this expression. This identifies any
 	 *            generic arguments which are in scope, and also allocated each
 	 *            variable in scope to its location index.
-	 * <pre>
+	 *
+	 *            <pre>
 	 * BracketedType ::= '(' Type ')'
-	 * </pre>
+	 *            </pre>
 	 *
 	 * @return
 	 */
@@ -1594,11 +1621,12 @@ public class WyalFileParser {
 	 *            generic arguments which are in scope, and also allocated each
 	 *            variable in scope to its location index.
 	 *
-	 * Disambiguating these three forms is relatively straightforward as all
-	 * three must be terminated by a right curly brace. Therefore, after parsing
-	 * the first Type, we simply check what follows. One complication is the
-	 * potential for "mixed types" where the field name and type and intertwined
-	 * (e.g. function read()->[byte]).
+	 *            Disambiguating these three forms is relatively straightforward
+	 *            as all three must be terminated by a right curly brace.
+	 *            Therefore, after parsing the first Type, we simply check what
+	 *            follows. One complication is the potential for "mixed types"
+	 *            where the field name and type and intertwined (e.g. function
+	 *            read()->[byte]).
 	 *
 	 * @return
 	 */
@@ -1616,7 +1644,7 @@ public class WyalFileParser {
 			}
 			int fieldStart = index;
 			// Check whether this is the end of an open record, or not.
-			if(tryAndMatch(true, DotDotDot) == null) {
+			if (tryAndMatch(true, DotDotDot) == null) {
 				// No, this is not an open record
 				Type fieldType = parseType(scope);
 				Identifier fieldName = parseIdentifier(scope);
@@ -1685,8 +1713,8 @@ public class WyalFileParser {
 		match(LeftBrace);
 		ArrayList<Type> types = new ArrayList<>();
 		boolean firstTime = true;
-		while(eventuallyMatch(RightBrace) == null) {
-			if(!firstTime) {
+		while (eventuallyMatch(RightBrace) == null) {
+			if (!firstTime) {
 				match(Comma);
 			}
 			types.add(parseType(scope));
@@ -1893,7 +1921,8 @@ public class WyalFileParser {
 		skipWhiteSpace();
 		if (index >= tokens.size()) {
 			// FIXME: this is clearly not a sensible approach
-			SyntacticElement unknown = new SyntacticElement.Impl() {};
+			SyntacticElement unknown = new SyntacticElement.Impl() {
+			};
 			unknown.attributes().add(new Attribute.Source(index - 1, index - 1, -1));
 			throw new SyntaxError("unexpected end-of-file", file.getEntry(), unknown);
 		}
@@ -1967,8 +1996,7 @@ public class WyalFileParser {
 	 * @return
 	 */
 	private boolean isLineSpace(Token token) {
-		return token.kind == Token.Kind.Indent
-				|| token.kind == Token.Kind.LineComment
+		return token.kind == Token.Kind.Indent || token.kind == Token.Kind.LineComment
 				|| token.kind == Token.Kind.BlockComment;
 	}
 
@@ -2099,8 +2127,7 @@ public class WyalFileParser {
 			} else if (c == '0') {
 
 			} else {
-				syntaxError("invalid binary literal (invalid characters)",
-						input);
+				syntaxError("invalid binary literal (invalid characters)", input);
 			}
 		}
 		return (byte) val;
@@ -2119,14 +2146,15 @@ public class WyalFileParser {
 
 	private void syntaxError(String msg, Token t) {
 		// FIXME: this is clearly not a sensible approach
-		SyntacticElement unknown = new SyntacticElement.Impl() {};
+		SyntacticElement unknown = new SyntacticElement.Impl() {
+		};
 		unknown.attributes().add(new Attribute.Source(t.start, t.start + t.text.length() - 1, -1));
 		throw new SyntaxError(msg, file.getEntry(), unknown);
 	}
 
 	private Expr[] toExprArray(List<Expr> exprs) {
 		Expr[] es = new Expr[exprs.size()];
-		for(int i=0;i!=es.length;++i) {
+		for (int i = 0; i != es.length; ++i) {
 			es[i] = exprs.get(i);
 		}
 		return es;
@@ -2134,7 +2162,7 @@ public class WyalFileParser {
 
 	private Stmt[] toStmtArray(List<Stmt> exprs) {
 		Stmt[] ss = new Stmt[exprs.size()];
-		for(int i=0;i!=ss.length;++i) {
+		for (int i = 0; i != ss.length; ++i) {
 			ss[i] = exprs.get(i);
 		}
 		return ss;
@@ -2142,7 +2170,7 @@ public class WyalFileParser {
 
 	private WyalFile.Pair[] toPairArray(List<WyalFile.Pair> exprs) {
 		WyalFile.Pair[] ss = new WyalFile.Pair[exprs.size()];
-		for(int i=0;i!=ss.length;++i) {
+		for (int i = 0; i != ss.length; ++i) {
 			ss[i] = exprs.get(i);
 		}
 		return ss;
@@ -2151,7 +2179,7 @@ public class WyalFileParser {
 	private <T extends SyntacticItem> T allocate(T item, Attribute... attributes) {
 		item = file.allocate(item);
 		// FIXME: this should be removed eventually #121
-		for(Attribute attr : attributes) {
+		for (Attribute attr : attributes) {
 			item.attributes().add(attr);
 		}
 		return item;
@@ -2204,24 +2232,11 @@ public class WyalFileParser {
 	 */
 	private static Token.Kind[] INFIX_OPERATORS = {
 			// Logical Operators
-			LogicalAnd,
-			LogicalOr,
-			LogicalImplication,
-			LogicalIff,
+			LogicalAnd, LogicalOr, LogicalImplication, LogicalIff,
 			// Comparators
-			LessEquals,
-			LeftAngle,
-			GreaterEquals,
-			RightAngle,
-			EqualsEquals,
-			NotEquals,
+			LessEquals, LeftAngle, GreaterEquals, RightAngle, EqualsEquals, NotEquals,
 			// Arithmetic Operators
-			Plus,
-			Minus,
-			Star,
-			RightSlash,
-			Percent
-	};
+			Plus, Minus, Star, RightSlash, Percent };
 
 	// =======================================================================
 
@@ -2252,8 +2267,7 @@ public class WyalFileParser {
 					nTabs++;
 					break;
 				default:
-					throw new IllegalArgumentException(
-							"Space or tab character expected");
+					throw new IllegalArgumentException("Space or tab character expected");
 				}
 			}
 			countOfSpaces = nSpaces;
@@ -2270,8 +2284,7 @@ public class WyalFileParser {
 		 * @return
 		 */
 		public boolean lessThanEq(Indent other) {
-			return countOfSpaces <= other.countOfSpaces
-					&& countOfTabs <= other.countOfTabs;
+			return countOfSpaces <= other.countOfSpaces && countOfTabs <= other.countOfTabs;
 		}
 
 		/**
@@ -2285,8 +2298,7 @@ public class WyalFileParser {
 		 * @return
 		 */
 		public boolean equivalent(Indent other) {
-			return countOfSpaces == other.countOfSpaces
-					&& countOfTabs == other.countOfTabs;
+			return countOfSpaces == other.countOfSpaces && countOfTabs == other.countOfTabs;
 		}
 	}
 
@@ -2360,9 +2372,9 @@ public class WyalFileParser {
 		}
 
 		/**
-		 * Create a new clone scope. This is a subscope where new variables
-		 * can be declared and, furthermore, it corresponds to a new block in
-		 * the underlying forest.
+		 * Create a new clone scope. This is a subscope where new variables can
+		 * be declared and, furthermore, it corresponds to a new block in the
+		 * underlying forest.
 		 *
 		 * @return
 		 */

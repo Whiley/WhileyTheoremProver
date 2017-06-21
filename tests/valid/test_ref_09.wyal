@@ -1,5 +1,5 @@
-type state is ({int x, int y} this)
-type pState is (&state this)
+type state is ({int x, int y} self)
+type pState is (&state self)
 
 assert "assertion failed":
     forall(pState p1, pState p2):

@@ -1,4 +1,4 @@
-type OpenRecord is ({int x, ...} this)
+type OpenRecord is ({int x, ...} self)
 
 assert "type invariant not satisfied":
     forall(OpenRecord&!{int x} r):

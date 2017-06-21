@@ -2,8 +2,8 @@ type PieceKind is (int x)
 where:
     (0 <= x)
 
-type Piece is ({bool colour, PieceKind kind} this)
-type Board is ({bool flag, Piece[] rows} this)
+type Piece is ({bool colour, PieceKind kind} self)
+type Board is ({bool flag, Piece[] rows} self)
 
 assert "type invariant not satisfied":
     {flag: false, rows: [{colour: true, kind: 0}]} is Board

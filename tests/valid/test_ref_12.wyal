@@ -1,0 +1,6 @@
+assert:
+    forall(&a:int x, &b:int y):
+        if:
+            x == y
+        then:
+            (a in b) || (b in a)

@@ -2,7 +2,7 @@ type nat is (int x)
 where:
     x >= 0
 
-type neg is (!nat this)
+type neg is (!nat self)
 
 assert "type invariant not satisfied":
     forall(neg x, int&neg y):

@@ -91,6 +91,8 @@ public class ValidTest {
 		IGNORED.put("test_array_64", "#91");
 		// Issue 92 "Recursive Array Update"
 		IGNORED.put("test_record_14", "#92");
+		// Issue 102 "Support Reference Lifetimes"
+		IGNORED.put("test_ref_12", "#102");
 		// Issue 104 "Incompleteness in CoerciveSubtypeOperator"
 		IGNORED.put("test_type_73", "#104");
 		IGNORED.put("test_type_98", "#104");
