@@ -1,0 +1,8 @@
+function f(&a:int x, &a:int y) -> (int r)
+
+assert:
+    forall(&a:int x, &b:int y):
+        if:
+            f(x,y) >= 0
+        then:
+            f(x,y) >= 0

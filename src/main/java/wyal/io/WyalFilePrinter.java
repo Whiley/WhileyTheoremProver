@@ -585,6 +585,10 @@ public class WyalFilePrinter {
 		case TYPE_ref: {
 			out.print("&");
 			Type.Reference t = (Type.Reference) type;
+			if(t.getLifetime() != null) {
+				out.print(t.getLifetime());
+				out.print(":");
+			}
 			writeTypeWithBraces(t.getElement());
 			break;
 		}
