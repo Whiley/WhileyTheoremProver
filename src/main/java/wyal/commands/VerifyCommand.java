@@ -210,7 +210,7 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	// Helpers
 	// =======================================================================
 
-	private Result compile(StdProject project, List<Path.Entry<WyalFile>> entries) {
+	protected Result compile(StdProject project, List<Path.Entry<WyalFile>> entries) {
 		// Initialise Project
 		try {
 			addCompilationBuildRules(project);

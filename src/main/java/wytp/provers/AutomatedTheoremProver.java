@@ -141,7 +141,7 @@ public class AutomatedTheoremProver {
 		// where every node is an expression.
 		Formula root = Formulae.toFormula(decl.getBody(), types);
 		// Check whether or not this formula is valid.
-		return checkValidity(decl.getParent(), root);
+		return checkValidity(decl, root);
 		//
 	}
 
@@ -154,8 +154,8 @@ public class AutomatedTheoremProver {
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	private boolean checkValidity(SyntacticHeap parent, Formula axiom) throws ResolutionError {
-		SyntacticHeap heap = new StructurallyEquivalentHeap(parent);
+	private boolean checkValidity(WyalFile.Declaration.Assert decl, Formula axiom) throws ResolutionError {
+		SyntacticHeap heap = new StructurallyEquivalentHeap(decl.getParent());
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
@@ -174,6 +174,8 @@ public class AutomatedTheoremProver {
 		if (printProof) {
 			print(proof);
 		}
+		// Stash the proof so others can access it later.
+		decl.attributes().add(new WyalFile.Attribute.Proof(proof));
 		//
 		return r;
 	}

@@ -2581,6 +2581,22 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 		}
 	}
 
+	// ============================================================
+	// Attributes
+	// ============================================================
+	public interface Attribute {
+		public class Proof implements wybs.lang.Attribute {
+			private final wytp.proof.Proof proof;
+
+			public Proof(wytp.proof.Proof proof) {
+				this.proof = proof;
+			}
+
+			public wytp.proof.Proof getProof() {
+				return proof;
+			}
+		}
+	}
 	// ===========================================================
 	// Errors
 	// ===========================================================
