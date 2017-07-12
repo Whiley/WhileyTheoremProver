@@ -1,0 +1,14 @@
+define sum_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+assert "index out of bounds (negative)":
+    forall(int r, int i, int[] xs):
+        if:
+            sum_requires_0(xs)
+            i == 0
+            r == 0
+        then:
+            i >= 0
+
+

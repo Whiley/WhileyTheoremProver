@@ -1,0 +1,20 @@
+type Link is (null|(Link[]) self)
+
+
+define maxDepth_loopinvariant_13(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int r, int i, int i$1, Link links, (Link[])&Link links$1):
+        if:
+            links$1 == links
+            links is Link[]
+            r == 0
+            i == 0
+            maxDepth_loopinvariant_13(i$1)
+            i$1 < |links$1|
+        then:
+            i$1 >= 0
+
+

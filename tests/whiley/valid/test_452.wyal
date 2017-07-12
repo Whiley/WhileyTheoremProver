@@ -1,0 +1,11 @@
+type Contractive is (null|(Contractive[]) self)
+
+
+assert "type invariant not satisfied":
+    forall(Contractive x):
+        if:
+            true
+        then:
+            x is Contractive
+
+

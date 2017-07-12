@@ -1,0 +1,13 @@
+type rec1 is ({int x} self)
+
+
+type rec2 is ({rec1 current} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {current: {x: 0}} is rec2
+
+

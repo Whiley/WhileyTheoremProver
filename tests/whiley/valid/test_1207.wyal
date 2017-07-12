@@ -1,0 +1,19 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type structA is ({bool r} self)
+
+
+type structB is ({!nat r} self)
+
+
+assert "type invariant not satisfied":
+    forall(structA x):
+        if:
+            true
+        then:
+            x is structB
+
+

@@ -1,0 +1,10 @@
+assert "index out of bounds (negative)":
+    forall(int[] ls, int[] r, int i$1, int i):
+        if:
+            i == 0
+            r == [0;|ls|]
+            i$1 < |ls|
+        then:
+            i$1 >= 0
+
+

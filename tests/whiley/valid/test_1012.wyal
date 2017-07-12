@@ -1,0 +1,13 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {data: [{offset: 1, op: 2}], name: [67, 111, 100, 101]} is Attribute
+
+

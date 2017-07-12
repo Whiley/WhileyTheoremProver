@@ -1,0 +1,32 @@
+type i16 is (int x)
+where:
+    (-32768 <= x) && (x <= 32767)
+
+
+type storeCode is (int x)
+where:
+    (0 <= x) && (x <= 5)
+
+
+type STORE is ({int index, storeCode op} self)
+
+
+type branchCode is (int x)
+where:
+    (6 <= x) && (x <= 8)
+
+
+type BRANCH is ({i16 offset, branchCode op} self)
+
+
+type byteCode is (BRANCH|STORE self)
+
+
+assert "type invariant not satisfied":
+    forall(byteCode b):
+        if:
+            true
+        then:
+            b is byteCode
+
+

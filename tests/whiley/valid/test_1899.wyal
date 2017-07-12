@@ -1,0 +1,21 @@
+define sum_requires_0(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] >= 0)
+
+
+assert "index out of bounds (not less than length)":
+    forall(nat i, nat x, nat i$1, int[] xs):
+        if:
+            sum_requires_0(xs)
+            i == 0
+            x == 0
+            i$1 < |xs|
+        then:
+            i$1 < |xs|
+
+
+type nat is (int x)
+where:
+    x >= 0
+
+

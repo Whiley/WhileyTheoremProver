@@ -1,0 +1,10 @@
+assert "index out of bounds (negative)":
+    forall(bool[] board, int i):
+        if:
+            i > 0
+            (i + 1) < |board|
+            board[i - 1]
+        then:
+            (i + 1) >= 0
+
+

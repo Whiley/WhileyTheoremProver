@@ -1,0 +1,18 @@
+define nat(int x) is:
+    x >= 0
+
+
+type nat is (int x)
+where:
+    nat(x)
+
+
+function id(nat x) -> (nat y)
+
+assert "type invariant not satisfied":
+    if:
+        id(0) == 0
+    then:
+        1 is nat
+
+

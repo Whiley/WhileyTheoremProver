@@ -1,0 +1,12 @@
+define sum_requires_1(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] > 0)
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        sum_requires_1([1;0])
+
+

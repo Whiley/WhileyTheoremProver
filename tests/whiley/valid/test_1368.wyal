@@ -1,0 +1,13 @@
+type sr7nat is (int n)
+where:
+    n > 0
+
+
+assert "type invariant not satisfied":
+    forall({sr7nat f} x):
+        if:
+            x == {f: 1}
+        then:
+            (x.f + 1) is sr7nat
+
+

@@ -1,0 +1,15 @@
+type Point is ({int x, int y} self)
+
+
+define fromXY_ensures_0(int x, int y, Point r) is:
+    (r.x == x) && (r.y == y)
+
+
+assert "postcondition not satisfied":
+    forall(int x, int y):
+        if:
+            true
+        then:
+            fromXY_ensures_0(x, y, {x: x, y: y})
+
+

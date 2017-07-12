@@ -1,0 +1,10 @@
+assert "index out of bounds (negative)":
+    forall((int[])[] a2$1, (int[])[] a1, (int[])[] a2):
+        if:
+            a1 == [[1, 2, 3], [0]]
+            a2 == a1
+            a2$1 == a2[0:=[3, 4, 5]]
+        then:
+            0 >= 0
+
+

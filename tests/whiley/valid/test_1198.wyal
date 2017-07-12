@@ -1,0 +1,14 @@
+type Point is ({int x, int y} $)
+where:
+    ($.x > 0) && ($.y > 0)
+
+
+function f(Point x) -> (Point $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f({x: 1, y: 1}) is Point
+
+

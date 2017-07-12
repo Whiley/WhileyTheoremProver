@@ -1,0 +1,21 @@
+function sum(int[] items) -> (int r)
+
+define sum_requires_0(int[] items) is:
+    forall(int i):
+        ((0 <= i) && (i < |items|)) ==> (items[i] >= 0)
+
+
+define sum_ensures_0(int[] items, int r) is:
+    r >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        sum_ensures_0([0;0], sum([0;0]))
+        sum([0;0]) == 0
+        sum_ensures_0([0], sum([0]))
+        sum([0]) == 0
+    then:
+        sum_requires_0([1])
+
+

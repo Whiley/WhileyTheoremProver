@@ -1,0 +1,23 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+define sum_loopinvariant_13(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int r, int i, int i$1, VecPoint vp, (Point[])&VecPoint vp$1):
+        if:
+            vp$1 == vp
+            vp is Point[]
+            r == 0
+            i == 0
+            sum_loopinvariant_13(i$1)
+            i$1 < |vp$1|
+        then:
+            i$1 < |vp$1|
+
+

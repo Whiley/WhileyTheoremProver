@@ -1,0 +1,18 @@
+type C1 is (any self)
+
+
+type C2 is (any self)
+
+
+type C3 is (C1|C2 self)
+
+
+function f(C1 x) -> (C3 $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f(null) is C3
+
+

@@ -1,0 +1,12 @@
+define f_requires_0(int[] input) is:
+    |input| > 0
+
+
+assert "index out of bounds (negative)":
+    forall(int[] input):
+        if:
+            f_requires_0(input)
+        then:
+            0 >= 0
+
+

@@ -1,0 +1,15 @@
+type meth1 is (any self)
+
+
+type meth2 is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $5, &b:meth2 $18, any $11, meth1 m1, meth2 m2):
+        if:
+            m2 == $5
+            m1 == $11
+        then:
+            $18 is &*:meth2
+
+

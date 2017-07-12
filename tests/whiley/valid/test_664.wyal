@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define g_loopinvariant_17(nat[] xs, nat[] ys, int i) is:
+    (i >= 0) && (|xs| == |ys|)
+
+
+assert "type invariant not satisfied":
+    forall(nat[] xs, nat[] ys, int i, int i$3, nat[] ys$4):
+        if:
+            ys == [0;|xs|]
+            i == 0
+            g_loopinvariant_17(xs, ys$4, i$3)
+            i$3 >= |xs|
+        then:
+            ys$4 is nat[]
+
+

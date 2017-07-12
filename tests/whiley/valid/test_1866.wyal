@@ -1,0 +1,7 @@
+assert "negative length possible":
+    if:
+        true
+    then:
+        0 >= 0
+
+

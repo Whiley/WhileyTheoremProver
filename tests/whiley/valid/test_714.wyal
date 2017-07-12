@@ -1,0 +1,16 @@
+type LinkedList is (null|{int data, LinkedList next} self)
+
+
+type UnitList is ({int data, null next} self)
+
+
+type InterList is (LinkedList&UnitList self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {data: 1234, next: null} is InterList
+
+

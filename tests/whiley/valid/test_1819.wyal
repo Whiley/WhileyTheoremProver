@@ -1,0 +1,24 @@
+define lastIndexOf_ensures_1(int[] xs, int x, int r) is:
+    (r < 0) || (xs[r] == x)
+
+
+define lastIndexOf_loopinvariant_39(int[] xs, int x, int i, int last) is:
+    (i >= 0) && ((last >= -1) && (last < |xs|))
+
+
+define lastIndexOf_loopinvariant_49(int[] xs, int x, int i, int last) is:
+    (last < 0) || (xs[last] == x)
+
+
+assert "postcondition not satisfied":
+    forall(int last, int x, int i, int i$3, int[] xs, int last$4):
+        if:
+            i == 0
+            last == -1
+            lastIndexOf_loopinvariant_39(xs, x, i$3, last$4)
+            lastIndexOf_loopinvariant_49(xs, x, i$3, last$4)
+            i$3 >= |xs|
+        then:
+            lastIndexOf_ensures_1(xs, x, last$4)
+
+

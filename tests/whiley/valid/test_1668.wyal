@@ -1,0 +1,11 @@
+type list is (int[] self)
+
+
+assert "type invariant not satisfied":
+    forall(int[] l):
+        if:
+            l == [49, 50, 51]
+        then:
+            l is list
+
+

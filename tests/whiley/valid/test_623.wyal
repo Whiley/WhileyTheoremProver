@@ -1,0 +1,13 @@
+type fr5nat is (int x)
+where:
+    x >= 0
+
+
+assert "negative length possible":
+    forall(fr5nat[] xs):
+        if:
+            true
+        then:
+            |xs| >= 0
+
+

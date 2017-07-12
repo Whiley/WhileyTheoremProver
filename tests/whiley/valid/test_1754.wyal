@@ -1,0 +1,28 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define f_loopinvariant_29(int[] xs, int r, int i) is:
+    (i >= 1) && (i <= |xs|)
+
+
+define f_loopinvariant_38(int[] xs, int r, int i) is:
+    exists(int j):
+        ((0 <= j) && (j < i)) && (r == xs[j])
+
+
+assert "loop invariant not restored":
+    forall(int r, int r$2, int i, int r$1, int i$1, int[] xs, int i$2):
+        if:
+            f_requires_0(xs)
+            r == xs[0]
+            i == 1
+            f_loopinvariant_29(xs, r$1, i$1)
+            f_loopinvariant_38(xs, r$1, i$1)
+            i$1 < |xs|
+            r$2 == xs[i$1]
+            i$2 == (i$1 + 1)
+        then:
+            f_loopinvariant_38(xs, r$2, i$2)
+
+

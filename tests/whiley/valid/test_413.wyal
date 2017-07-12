@@ -1,0 +1,22 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type neg is (!nat self)
+
+
+function f(neg x) -> (int y)
+
+define f_ensures_0(neg x, int y) is:
+    y < 0
+
+
+assert "type invariant not satisfied":
+    if:
+        f_ensures_0(-1, f(-1))
+        f(-1) == -1
+    then:
+        -2 is neg
+
+

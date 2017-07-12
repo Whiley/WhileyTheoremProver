@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define get_requires_0(nat[] ls, int i) is:
+    (i >= 0) && (i <= |ls|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int i, nat[] ls):
+        if:
+            get_requires_0(ls, i)
+            i != |ls|
+        then:
+            i < |ls|
+
+

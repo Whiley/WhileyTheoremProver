@@ -1,0 +1,13 @@
+function sum(int[] xs) -> (int $)
+
+define sum_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        sum([1]) == 1
+    then:
+        sum_requires_0([1, 2])
+
+

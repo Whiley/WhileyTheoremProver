@@ -1,0 +1,16 @@
+type func is (any self)
+
+
+function g(int y) -> (func $)
+
+assert "type invariant not satisfied":
+    forall(int $11, func f, int $17, int $5):
+        if:
+            f == g(3)
+            $5 == 4
+            $11 == 5
+            $17 == 6
+        then:
+            g(19) is func
+
+

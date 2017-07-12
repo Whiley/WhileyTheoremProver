@@ -1,0 +1,15 @@
+define toInt_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] ls, int r, int i, int i$1):
+        if:
+            r == 0
+            i == 0
+            toInt_loopinvariant_8(i$1)
+            i$1 < |ls|
+        then:
+            i$1 < |ls|
+
+

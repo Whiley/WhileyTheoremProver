@@ -1,0 +1,12 @@
+type myint is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(any $2, &*:myint $8, any m, &*:myint a, &*:myint $5):
+        if:
+            m == $2
+            a == $5
+        then:
+            $8 is &*:myint
+
+

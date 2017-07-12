@@ -1,0 +1,19 @@
+type PieceKind is (int x)
+where:
+    (0 <= x) && (x <= 5)
+
+
+type Piece is ({bool colour, PieceKind kind} self)
+
+
+type Board is ({bool flag, Piece[] rows} self)
+
+
+assert "type invariant not satisfied":
+    forall(Board r1):
+        if:
+            r1 == {flag: false, rows: [{colour: true, kind: 0}]}
+        then:
+            r1 is Board
+
+

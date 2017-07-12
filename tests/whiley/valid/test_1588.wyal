@@ -1,0 +1,21 @@
+type BOp is (int op)
+where:
+    (op == 0) || ((op == 1) || ((op == 2) || (op == 3)))
+
+
+type BinOp is ({Expr lhs, BOp op, Expr rhs} self)
+
+
+type ListAccess is ({Expr index, Expr src} self)
+
+
+type Expr is (int|(Expr[])|BinOp|ListAccess self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is Expr
+
+

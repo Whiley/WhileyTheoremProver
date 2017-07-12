@@ -1,0 +1,12 @@
+type Expr is (int|(Expr[]) self)
+
+
+function f(Expr x) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f([1, 2, 3]) == 3
+    then:
+        1 is Expr
+
+

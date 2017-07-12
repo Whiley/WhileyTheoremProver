@@ -1,0 +1,11 @@
+type bytes is ({int b1, int b2} self)
+
+
+assert "type invariant not satisfied":
+    forall(int a):
+        if:
+            true
+        then:
+            {b1: a, b2: a + 1} is bytes
+
+

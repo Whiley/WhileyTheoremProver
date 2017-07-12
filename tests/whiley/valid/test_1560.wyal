@@ -1,0 +1,10 @@
+type expr is (int|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is expr
+
+

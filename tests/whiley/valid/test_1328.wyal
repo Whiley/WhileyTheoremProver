@@ -1,0 +1,13 @@
+function f(int x) -> (int $)
+
+define g_requires_0(int x, int y) is:
+    y == f(x)
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        g_requires_0(1, f(1))
+
+

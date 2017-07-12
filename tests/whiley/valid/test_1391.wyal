@@ -1,0 +1,12 @@
+type sr4list is (int[] xs)
+where:
+    |xs| > 0
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1] is sr4list
+
+

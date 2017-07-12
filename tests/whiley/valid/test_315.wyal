@@ -1,0 +1,48 @@
+type Matrix is ((int[])[] rows)
+where:
+    forall(int i, int j):
+        (((0 <= i) && (i < |rows|)) && ((0 <= j) && (j < |rows|))) ==> (|rows[i]| == |rows[j]|)
+
+
+define run_requires_0(Matrix A, Matrix B) is:
+    (|A| > 0) && ((|B| > 0) && (|B| == |A[0]|))
+
+
+define run_loopinvariant_37(Matrix A, Matrix B, (int[])[] C, int i) is:
+    (i >= 0) && (|C| == |A|)
+
+
+define run_loopinvariant_50(Matrix A, Matrix B, (int[])[] C, int i) is:
+    forall(int k):
+        ((0 <= k) && (k < i)) ==> (|C[k]| == |B[0]|)
+
+
+define run_loopinvariant_76(Matrix B, int[] row, int j) is:
+    (j >= 0) && (|row| == |B[0]|)
+
+
+define run_loopinvariant_91(int k) is:
+    k >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(Matrix B, int r, int i$1, int j, int k$1, (int[])[] C$1, int[] row, int j$1, int k, int i, int[] row$1, (int[])[] C, Matrix A):
+        if:
+            run_requires_0(A, B)
+            C == [[0;0];|A|]
+            i == 0
+            run_loopinvariant_37(A, B, C$1, i$1)
+            run_loopinvariant_50(A, B, C$1, i$1)
+            i$1 < |A|
+            row == [0;|B[0]|]
+            j == 0
+            run_loopinvariant_76(B, row$1, j$1)
+            j$1 < |B[0]|
+            r == 0
+            k == 0
+            run_loopinvariant_91(k$1)
+            k$1 < |B|
+        then:
+            i$1 < |A|
+
+

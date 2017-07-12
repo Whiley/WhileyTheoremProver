@@ -1,0 +1,14 @@
+type list is (int[] self)
+
+
+function index(list l, int index) -> (any $)
+
+assert "type invariant not satisfied":
+    forall(int[] l):
+        if:
+            l == [1, 2, 3]
+            index(l, 0) == 1
+        then:
+            l is list
+
+

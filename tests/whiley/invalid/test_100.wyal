@@ -1,0 +1,24 @@
+define nat_a(int x) is:
+    x >= 0
+
+
+define nat_b(int x) is:
+    x > 0
+
+
+define id_requires_0(int x) is:
+    nat_a(x)
+
+
+define id_ensures_0(int x, int y) is:
+    nat_b(x)
+
+
+assert "postcondition not satisfied":
+    forall(int x):
+        if:
+            id_requires_0(x)
+        then:
+            id_ensures_0(x, x)
+
+

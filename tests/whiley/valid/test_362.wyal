@@ -1,0 +1,30 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define init_ensures_0(nat length, int value, int[] result) is:
+    |result| == length
+
+
+define init_loopinvariant_35(nat length, int value, int i, int[] data) is:
+    (0 <= i) && ((i <= |data|) && (|data| == length))
+
+
+define init_loopinvariant_44(nat length, int value, int i, int[] data) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (data[j] == value)
+
+
+assert "postcondition not satisfied":
+    forall(int value, int i, int[] data$3, nat length, int i$3, int[] data):
+        if:
+            i == 0
+            data == [0;length]
+            init_loopinvariant_35(length, value, i$3, data$3)
+            init_loopinvariant_44(length, value, i$3, data$3)
+            i$3 >= length
+        then:
+            init_ensures_0(length, value, data$3)
+
+

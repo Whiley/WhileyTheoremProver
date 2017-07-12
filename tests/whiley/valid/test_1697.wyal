@@ -1,0 +1,16 @@
+function add(int[] v1, int[] v2) -> (int[] vr)
+
+define add_ensures_0(int[] v1, int[] v2, int[] vr) is:
+    |vr| == |v1|
+
+
+assert "negative length possible":
+    if:
+        add_ensures_0([1, 2, 3], [4, 5, 6], add([1, 2, 3], [4, 5, 6]))
+        add([1, 2, 3], [4, 5, 6]) == [5, 7, 9]
+        add_ensures_0([1], [4], add([1], [4]))
+        add([1], [4]) == [5]
+    then:
+        0 >= 0
+
+

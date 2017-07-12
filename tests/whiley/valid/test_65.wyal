@@ -1,0 +1,25 @@
+define f_requires_0(int x, int y) is:
+    (x >= 0) && (y >= 0)
+
+
+define f_ensures_0(int x, int y, int r) is:
+    r > 0
+
+
+assert "postcondition not satisfied":
+    forall(int x, bool a$2, int y, bool a, bool a$1):
+        if:
+            f_requires_0(x, y)
+            a == true
+            either:
+                x < y
+                a$1 == false
+                a$2 == a$1
+            or:
+                x >= y
+                a$2 == a
+            !a$2
+        then:
+            f_ensures_0(x, y, x + y)
+
+

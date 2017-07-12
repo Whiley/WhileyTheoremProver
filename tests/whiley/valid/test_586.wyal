@@ -1,0 +1,11 @@
+type Func is ({any read} self)
+
+
+assert "type invariant not satisfied":
+    forall(any $0):
+        if:
+            true
+        then:
+            {read: $0} is Func
+
+

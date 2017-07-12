@@ -1,0 +1,20 @@
+define cons_loopinvariant_14(int[] input, int[] result, int i) is:
+    i >= 0
+
+
+define cons_loopinvariant_21(int[] input, int[] result, int i) is:
+    |result| == (|input| + 1)
+
+
+assert "index out of bounds (negative)":
+    forall(int[] result, int[] input, int i, int i$1, int[] result$1):
+        if:
+            result == [0;|input| + 1]
+            i == 0
+            cons_loopinvariant_14(input, result$1, i$1)
+            cons_loopinvariant_21(input, result$1, i$1)
+            i$1 < |input|
+        then:
+            i$1 >= 0
+
+

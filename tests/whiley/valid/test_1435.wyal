@@ -1,0 +1,15 @@
+type test is ({int x}|{int y} self)
+
+
+type src is (int|test self)
+
+
+function test() -> ()
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: 1} is src
+
+

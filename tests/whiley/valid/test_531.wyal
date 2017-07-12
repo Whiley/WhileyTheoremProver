@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type neg is (int x)
+where:
+    x < 0
+
+
+assert "possible panic":
+    forall(int x, int&!nat x$1):
+        if:
+            x$1 == x
+            x is !nat
+            x$1 is !neg
+        then:
+            false
+
+

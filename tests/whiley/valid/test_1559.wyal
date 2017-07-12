@@ -1,0 +1,13 @@
+type intbool is (bool|int self)
+
+
+function f(intbool e) -> (bool $)
+
+assert "type invariant not satisfied":
+    if:
+        f(1) == true
+        f(false) == false
+    then:
+        true is intbool
+
+

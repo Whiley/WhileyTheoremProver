@@ -1,0 +1,11 @@
+define g_requires_0(int p) is:
+    p >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        g_requires_0(5)
+
+

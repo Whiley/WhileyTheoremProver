@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define init_loopinvariant_35(nat length, int value, int i, int[] data) is:
+    (0 <= i) && ((i <= |data|) && (|data| == length))
+
+
+assert "loop invariant does not hold on entry":
+    forall(int value, int i, nat length, int[] data):
+        if:
+            i == 0
+            data == [0;length]
+        then:
+            init_loopinvariant_35(length, value, i, data)
+
+

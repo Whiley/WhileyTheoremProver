@@ -1,0 +1,11 @@
+type pst is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $11, int[] data):
+        if:
+            data == [1, 3, 5, 7, 3, 93, 1, 4, 6]
+        then:
+            $11 is pst
+
+

@@ -1,0 +1,19 @@
+type intlist is (int|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    forall((int|(int[]))[] x$3, (int|(int[]))[] x$1, (int|(int[]))[] x, (int|(int[]))[] x$2):
+        if:
+            either:
+                0 == 0
+                x == [1, 2, 3]
+                x$2 == x
+            or:
+                0 != 0
+                x$1 == [[1], [2, 3], [5]]
+                x$2 == x$1
+            x$3 == x$2[0:=1]
+        then:
+            x$3 is intlist[]
+
+

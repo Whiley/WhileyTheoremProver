@@ -1,0 +1,18 @@
+type pos is (int self)
+
+
+type neg is (int self)
+
+
+type expr is ((int[])|neg|pos self)
+
+
+assert "type invariant not satisfied":
+    forall(expr&pos e$1, expr e):
+        if:
+            e$1 == e
+            (e is pos) && (e$1 > 0)
+        then:
+            (e$1 + 1) is expr&pos
+
+

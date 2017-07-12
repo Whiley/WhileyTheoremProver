@@ -1,0 +1,20 @@
+define lastIndexOf_loopinvariant_32(int[] xs, int x, int i, int last) is:
+    (i >= 0) && ((last >= -1) && (last < |xs|))
+
+
+define lastIndexOf_loopinvariant_42(int[] xs, int x, int i, int last) is:
+    (last == -1) || (xs[last] == x)
+
+
+assert "index out of bounds (negative)":
+    forall(int last, int last$1, int x, int i, int i$1, int[] xs):
+        if:
+            i == 0
+            last == -1
+            lastIndexOf_loopinvariant_32(xs, x, i$1, last$1)
+            lastIndexOf_loopinvariant_42(xs, x, i$1, last$1)
+            i$1 < |xs|
+        then:
+            i$1 >= 0
+
+

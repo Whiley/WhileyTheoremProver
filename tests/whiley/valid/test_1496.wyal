@@ -1,0 +1,19 @@
+type pos is (int p)
+where:
+    p > 0
+
+
+type rec1 is ({any f1, pos f2} self)
+
+
+type rec2 is ({int f1, int f2} self)
+
+
+assert "type invariant not satisfied":
+    forall(rec1 r1):
+        if:
+            r1 == {f1: [104, 101, 108, 108, 111], f2: 2}
+        then:
+            {f1: 1, f2: 0} is rec2
+
+

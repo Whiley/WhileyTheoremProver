@@ -1,0 +1,12 @@
+define indexOf_loopinvariant_18(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i):
+        if:
+            i == 0
+        then:
+            indexOf_loopinvariant_18(i)
+
+

@@ -1,0 +1,12 @@
+type point is ({int x, int y} self)
+
+
+assert "assertion failed":
+    forall(point p):
+        if:
+            p == {x: 1, y: 1}
+            p.y == 1
+        then:
+            p.x == 1
+
+

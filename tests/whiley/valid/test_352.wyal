@@ -1,0 +1,16 @@
+function f(int[] ls) -> (int[] r)
+
+define f_ensures_0(int[] ls, int[] r) is:
+    r == [0;0]
+
+
+assert "negative length possible":
+    forall(int[] items):
+        if:
+            items == [5, 4, 6, 3, 7, 2, 8, 1]
+            f_ensures_0(items, f(items))
+            f(items) == [0;0]
+        then:
+            0 >= 0
+
+

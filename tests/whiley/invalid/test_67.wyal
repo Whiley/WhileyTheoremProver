@@ -1,0 +1,18 @@
+type c4nat is (int x)
+where:
+    x < 10
+
+
+function h() -> (int r)
+
+define h_ensures_0(int r) is:
+    r <= 5
+
+
+assert "type invariant not satisfied":
+    if:
+        h_ensures_0(h())
+    then:
+        (h() * 2) is c4nat
+
+

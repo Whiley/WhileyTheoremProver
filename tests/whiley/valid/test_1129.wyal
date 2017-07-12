@@ -1,0 +1,12 @@
+function f(int[] xs) -> (int[] $)
+
+assert "assertion failed":
+    forall(int[] ys, int[] zs):
+        if:
+            ys == [1, 2, 3]
+            zs == ys
+            f(zs) == [1, 2, 3]
+        then:
+            ys == [1, 2, 3]
+
+

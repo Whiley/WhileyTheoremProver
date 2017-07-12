@@ -1,0 +1,21 @@
+type Actor is ({int data} self)
+
+
+function createActors(int n) -> (&*:Actor[] r)
+
+define test_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int r, int i, &*:Actor[] actors, int i$1):
+        if:
+            actors == createActors(10)
+            r == 0
+            i == 0
+            test_loopinvariant_9(i$1)
+            i$1 < |actors|
+        then:
+            i$1 < |actors|
+
+

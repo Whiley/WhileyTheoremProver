@@ -1,0 +1,18 @@
+function f(int x) -> (int r)
+
+define f_requires_0(int x) is:
+    x >= 0
+
+
+define f_ensures_0(int x, int r) is:
+    (r == 0) || (r == 1)
+
+
+assert "precondition not satisfied":
+    if:
+        f_ensures_0(2, f(2))
+        f(2) == 0
+    then:
+        f_requires_0(1)
+
+

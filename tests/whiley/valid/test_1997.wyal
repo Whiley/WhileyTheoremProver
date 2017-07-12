@@ -1,0 +1,17 @@
+function extract(int[] ls) -> (int[] result)
+
+define extract_ensures_0(int[] ls, int[] result) is:
+    |result| > 0
+
+
+assert "negative length possible":
+    forall(int[] rs):
+        if:
+            extract_ensures_0([1, 2, 3, 4, 5, 6, 7], extract([1, 2, 3, 4, 5, 6, 7]))
+            rs == extract([1, 2, 3, 4, 5, 6, 7])
+            extract_ensures_0([1, 2, 3, 4, 5, 6, 7], extract([1, 2, 3, 4, 5, 6, 7]))
+            rs == [1, 1, 1, 1, 1, 1, 1, 0]
+        then:
+            0 >= 0
+
+

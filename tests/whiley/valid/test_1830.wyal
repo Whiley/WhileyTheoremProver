@@ -1,0 +1,11 @@
+define isSorted_requires_0(int[] items) is:
+    |items| >= 2
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        isSorted_requires_0([1, 2, 3, 4])
+
+

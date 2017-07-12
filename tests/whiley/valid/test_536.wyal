@@ -1,0 +1,15 @@
+type pos is (int x)
+where:
+    x > 0
+
+
+function f(null|pos x) -> (null $)
+
+assert "type invariant not satisfied":
+    if:
+        f(1) == null
+        f(2) == null
+    then:
+        null is null|pos
+
+

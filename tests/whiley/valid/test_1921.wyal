@@ -1,0 +1,17 @@
+define count_requires_0(int n) is:
+    n >= 0
+
+
+define count_loopinvariant_20(int n, int i) is:
+    (i >= 0) && (i <= n)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int n):
+        if:
+            count_requires_0(n)
+            i == 0
+        then:
+            count_loopinvariant_20(n, i)
+
+

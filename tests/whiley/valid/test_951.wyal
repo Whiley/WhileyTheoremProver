@@ -1,0 +1,16 @@
+type Point is ({int x, int y} self)
+
+
+type Proc is (&*:{int state} self)
+
+
+function f(Proc x, int y) -> (Point $)
+
+assert "type invariant not satisfied":
+    forall(&*:{int state} $2, Proc proc):
+        if:
+            proc == $2
+        then:
+            f(proc, 2) is Point
+
+

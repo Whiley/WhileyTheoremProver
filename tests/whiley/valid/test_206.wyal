@@ -1,0 +1,25 @@
+type ASCII_char is (int n)
+where:
+    (0 <= n) && (n <= 255)
+
+
+type C_string is (ASCII_char[] chars)
+where:
+    (|chars| > 0) && (chars[|chars| - 1] == 0)
+
+
+define strlen_loopinvariant_14(C_string str, int i) is:
+    (i >= 0) && (i < |str|)
+
+
+assert "loop invariant not restored":
+    forall(int i, int i$1, C_string str, int i$2):
+        if:
+            i == 0
+            strlen_loopinvariant_14(str, i$1)
+            str[i$1] != 0
+            i$2 == (i$1 + 1)
+        then:
+            strlen_loopinvariant_14(str, i$2)
+
+

@@ -1,0 +1,12 @@
+define g_ensures_0(int x, int r) is:
+    (r > 0) && (r <= 256)
+
+
+assert "postcondition not satisfied":
+    forall(int x):
+        if:
+            x > 0
+        then:
+            g_ensures_0(x, x)
+
+

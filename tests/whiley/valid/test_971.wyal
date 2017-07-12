@@ -1,0 +1,13 @@
+type Sum is (&*:{int[] items, int result} self)
+
+
+function create(int[] items) -> (Sum $)
+
+assert "type invariant not satisfied":
+    forall(int[] items):
+        if:
+            true
+        then:
+            create(items) is Sum
+
+

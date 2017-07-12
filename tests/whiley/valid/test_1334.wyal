@@ -1,0 +1,15 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function f(nat pos, int[] input) -> (null|bool $)
+
+assert "type invariant not satisfied":
+    if:
+        f(0, [79, 120]) == true
+        f(0, [49, 120]) == false
+    then:
+        1 is nat
+
+

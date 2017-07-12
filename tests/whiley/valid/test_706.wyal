@@ -1,0 +1,7 @@
+assert "division by zero":
+    if:
+        true
+    then:
+        3 != 0
+
+

@@ -1,0 +1,15 @@
+type unitCode is (int x)
+where:
+    (x == 0) || (x == 169)
+
+
+type UNIT is ({unitCode op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {op: 0} is UNIT
+
+

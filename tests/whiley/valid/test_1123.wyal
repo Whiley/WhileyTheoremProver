@@ -1,0 +1,27 @@
+define max(int[] xs, int max, int n) is:
+    forall(int i):
+        ((0 <= i) && (i < n)) ==> (max >= xs[i])
+    exists(int i$1):
+        ((0 <= i$1) && (i$1 < n)) && (max == xs[i$1])
+
+
+function max(int[] items) -> (int r)
+
+define max_requires_0(int[] items) is:
+    |items| > 0
+
+
+define max_ensures_0(int[] items, int r) is:
+    max(items, r, |items|)
+
+
+assert "precondition not satisfied":
+    forall(int[] items):
+        if:
+            items == [4, 3, 1, 5, 4]
+            max_ensures_0([1, 2, 3], max([1, 2, 3]))
+            max([1, 2, 3]) == 3
+        then:
+            max_requires_0([4, 3, 1, 5, 4])
+
+

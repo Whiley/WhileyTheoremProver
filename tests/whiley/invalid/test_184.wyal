@@ -1,0 +1,27 @@
+define count_requires_0(int n) is:
+    n >= 0
+
+
+define count_loopinvariant_16(int n, int i) is:
+    (i >= 0) && (i <= n)
+
+
+assert "loop invariant not restored":
+    forall(int n, int i$3, int i$4, int i$1, int i, int i$2):
+        if:
+            count_requires_0(n)
+            i == 0
+            count_loopinvariant_16(n, i$1)
+            i$1 < n
+            either:
+                i$1 == 3
+                i$2 == (i$1 + 2)
+                i$4 == i$2
+            or:
+                i$1 != 3
+                i$3 == (i$1 + 1)
+                i$4 == i$3
+        then:
+            count_loopinvariant_16(n, i$4)
+
+

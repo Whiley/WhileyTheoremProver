@@ -1,0 +1,22 @@
+type Piece is (int x)
+where:
+    (x == 0) || ((x == 1) || (x == 2))
+
+
+type Board is (Piece[] pieces)
+where:
+    |pieces| == 9
+
+
+function EmptyBoard() -> (Board $)
+
+function update(Board b) -> (Board $)
+
+assert "type invariant not satisfied":
+    forall(Board b):
+        if:
+            b == EmptyBoard()
+        then:
+            update(b) is Board
+
+

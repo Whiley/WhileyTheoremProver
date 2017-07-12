@@ -1,0 +1,17 @@
+define toInt_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int[] ls, int r, int r$2, int i, int r$1, int i$1, int i$2):
+        if:
+            r == 0
+            i == 0
+            toInt_loopinvariant_8(i$1)
+            i$1 < |ls|
+            r$2 == (r$1 + ls[i$1])
+            i$2 == (i$1 + 1)
+        then:
+            toInt_loopinvariant_8(i$2)
+
+

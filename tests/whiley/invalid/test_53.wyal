@@ -1,0 +1,19 @@
+type i8 is (int x)
+where:
+    (x >= -128) && (x <= 127)
+
+
+function g(int x) -> (int r)
+
+define g_ensures_0(int x, int r) is:
+    (r > 0) && (r <= 256)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            g_ensures_0(x, g(x))
+        then:
+            [g(x)] is i8[]
+
+

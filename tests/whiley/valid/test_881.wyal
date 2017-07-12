@@ -1,0 +1,18 @@
+function f() -> (int[] rs)
+
+define f_ensures_0(int[] rs) is:
+    |rs| > 1
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] a1, int[] a2):
+        if:
+            f_ensures_0(f())
+            a1 == f()
+            f_ensures_0(f())
+            a2 == f()
+            f_ensures_0(f())
+        then:
+            0 < |a2|
+
+

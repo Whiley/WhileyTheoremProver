@@ -1,0 +1,15 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function sum(nat[] ls) -> (nat $)
+
+assert "type invariant not satisfied":
+    if:
+        sum([0;0]) == 0
+        sum([1, 2, 3]) == 6
+    then:
+        [12387, 98123, 12398, 12309, 0] is nat[]
+
+

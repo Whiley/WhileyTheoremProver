@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    (1 <= x) && (x <= 8)
+
+
+function h() -> (int x)
+
+define h_ensures_0(int x) is:
+    x <= 3
+
+
+assert "type invariant not satisfied":
+    if:
+        h_ensures_0(h())
+    then:
+        h() is nat
+
+

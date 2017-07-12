@@ -1,0 +1,14 @@
+type tenup is (int self)
+
+
+type msg1 is ({int[] data, tenup op} self)
+
+
+assert "negative length possible":
+    forall(msg1 x):
+        if:
+            x == {data: [0;0], op: 11}
+        then:
+            0 >= 0
+
+

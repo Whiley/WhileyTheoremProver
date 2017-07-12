@@ -1,0 +1,19 @@
+type IntList is ({int mode, int op}|{int op, bool[] rest} self)
+
+
+assert "type invariant not satisfied":
+    forall(IntList x, IntList x$2, IntList x$3, IntList x$1):
+        if:
+            x == {op: 1, rest: [false]}
+            either:
+                0 == 10
+                x$1 == {op: 0, rest: [false]}
+                x$2 == x$1
+            or:
+                0 != 10
+                x$2 == x
+            x$3 == x$2{op:=123}
+        then:
+            x$3 is IntList
+
+

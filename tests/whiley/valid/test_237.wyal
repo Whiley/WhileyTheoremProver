@@ -1,0 +1,14 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function f(int[] xs) -> (nat[] $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f([0;0]) is nat[]
+
+

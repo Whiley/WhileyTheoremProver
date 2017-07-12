@@ -1,0 +1,15 @@
+type list is (int[] self)
+
+
+function len(list l) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int[] s, int[] l):
+        if:
+            l == [1, 2]
+            len(l) == 2
+            s == [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+        then:
+            s is list
+
+

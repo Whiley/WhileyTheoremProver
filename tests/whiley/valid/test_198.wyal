@@ -1,0 +1,16 @@
+type a_nat is (int self)
+
+
+type b_nat is (int self)
+
+
+function f(a_nat x) -> (b_nat $)
+
+assert "type invariant not satisfied":
+    forall(a_nat x):
+        if:
+            x != 0
+        then:
+            f(x - 1) is b_nat
+
+

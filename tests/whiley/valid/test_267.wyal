@@ -1,0 +1,22 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define get_requires_0(nat[] ls, int i) is:
+    (i >= 0) && (i <= |ls|)
+
+
+define get_ensures_0(nat[] ls, int i, int r) is:
+    r >= 0
+
+
+assert "postcondition not satisfied":
+    forall(int i, nat[] ls):
+        if:
+            get_requires_0(ls, i)
+            i != |ls|
+        then:
+            get_ensures_0(ls, i, ls[i])
+
+

@@ -1,0 +1,13 @@
+type MyProc2 is (&*:{any data} self)
+
+
+function create(any data) -> (MyProc2 $)
+
+assert "type invariant not satisfied":
+    forall(MyProc2 p2):
+        if:
+            p2 == create(false)
+        then:
+            p2 is MyProc2
+
+

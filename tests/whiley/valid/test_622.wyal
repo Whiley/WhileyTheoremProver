@@ -1,0 +1,13 @@
+type fr4nat is (int self)
+
+
+function g(fr4nat x) -> (fr4nat $)
+
+assert "type invariant not satisfied":
+    forall(int y):
+        if:
+            y == 1
+        then:
+            g(y) is fr4nat
+
+

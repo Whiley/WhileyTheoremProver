@@ -1,0 +1,14 @@
+type rec1 is ({int x} self)
+
+
+type rec2 is ({rec1 current} self)
+
+
+assert "type invariant not satisfied":
+    forall(rec2 r, rec2 r$1):
+        if:
+            r$1 == r{current:=r.current{x:=1}}
+        then:
+            r$1 is rec2
+
+

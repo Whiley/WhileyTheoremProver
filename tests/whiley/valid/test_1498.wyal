@@ -1,0 +1,26 @@
+type pos is (int p)
+where:
+    p > 0
+
+
+type rec1 is ({any f1, pos f2} self)
+
+
+type rec2 is ({int f1, int f2} self)
+
+
+type rec12 is (rec1|rec2 self)
+
+
+function f(rec12 x) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(rec2 r2, rec1 r1):
+        if:
+            r1 == {f1: [104, 101, 108, 108, 111], f2: 2}
+            r2 == {f1: 1, f2: 0}
+            f(r1) == 1
+        then:
+            r2 is rec12
+
+

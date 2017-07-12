@@ -1,0 +1,10 @@
+type Record is ({int flag} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {flag: 1} is Record
+
+

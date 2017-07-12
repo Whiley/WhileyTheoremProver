@@ -1,0 +1,12 @@
+type cr3nat is (int x)
+where:
+    x < 10
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is cr3nat
+
+

@@ -1,0 +1,13 @@
+type SyntaxError is ({int[] msg} self)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x <= 0
+        then:
+            syntaxError([112, 114, 111, 98, 108, 101, 109]) is {int[] input}|SyntaxError
+
+
+function syntaxError(int[] errorMessage) -> (SyntaxError $)
+

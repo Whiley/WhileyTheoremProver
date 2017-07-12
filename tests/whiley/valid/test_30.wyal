@@ -1,0 +1,21 @@
+type in_arr is ((null|int)[] self)
+
+
+type ib_arr is ((bool|int)[] self)
+
+
+type arr is (ib_arr|in_arr self)
+
+
+define write_requires_0(arr x, int i, int n) is:
+    (i >= 0) && (i < |x|)
+
+
+assert "index out of bounds (negative)":
+    forall(arr x, int i, int n):
+        if:
+            write_requires_0(x, i, n)
+        then:
+            i >= 0
+
+

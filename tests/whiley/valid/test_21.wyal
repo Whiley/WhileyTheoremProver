@@ -1,0 +1,19 @@
+type liststr is (int[] self)
+
+
+function index(liststr l, int index) -> (any $)
+
+assert "type invariant not satisfied":
+    forall(int[] s, int[] l):
+        if:
+            l == [1, 2, 3]
+            index(l, 0) == 1
+            index(l, 1) == 2
+            index(l, 2) == 3
+            s == [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+            index(s, 0) == 72
+            index(s, 1) == 101
+        then:
+            s is liststr
+
+

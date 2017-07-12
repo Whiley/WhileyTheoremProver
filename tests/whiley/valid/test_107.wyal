@@ -1,0 +1,14 @@
+function f(bool[] x) -> (bool[] $)
+
+define f_requires_0(bool[] x) is:
+    (|x| > 0) && x[0]
+
+
+assert "precondition not satisfied":
+    if:
+        f([true]) == [true]
+        f([true, false]) == [true, false]
+    then:
+        f_requires_0([true, false, true])
+
+

@@ -1,0 +1,16 @@
+type pos is (bool self)
+
+
+type neg is (int self)
+
+
+type expr is ((int[])|neg|pos self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        -1 is expr
+
+

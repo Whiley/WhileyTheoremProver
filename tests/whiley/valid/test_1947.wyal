@@ -1,0 +1,13 @@
+define permute_loopinvariant_36(int[] xs, int i, int[] ws) is:
+    (i >= 0) && (|xs| == |ws|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] ws, int[] xs):
+        if:
+            i == 0
+            ws == [0;|xs|]
+        then:
+            permute_loopinvariant_36(xs, i, ws)
+
+

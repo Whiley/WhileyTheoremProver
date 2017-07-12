@@ -1,0 +1,11 @@
+type MyProc2 is ({any data} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{any data} $4):
+        if:
+            true
+        then:
+            $4 is &*:MyProc2
+
+

@@ -1,0 +1,20 @@
+type pos is (int n)
+where:
+    n > 0
+
+
+type neg is (int n)
+where:
+    n < 0
+
+
+type intlist is ((int[])|neg|pos self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, 2, 3] is intlist
+
+

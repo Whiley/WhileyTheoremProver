@@ -1,0 +1,13 @@
+define lastIndexOf_loopinvariant_39(int[] xs, int x, int i, int last) is:
+    (i >= 0) && ((last >= -1) && (last < |xs|))
+
+
+assert "loop invariant does not hold on entry":
+    forall(int last, int x, int i, int[] xs):
+        if:
+            i == 0
+            last == -1
+        then:
+            lastIndexOf_loopinvariant_39(xs, x, i, last)
+
+

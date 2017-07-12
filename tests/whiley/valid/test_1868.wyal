@@ -1,0 +1,19 @@
+define add_requires_0(int[] items, int n) is:
+    n > 0
+
+
+define add_loopinvariant_34(int[] items, int i, int[] oitems) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (oitems[j] < items[j])
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] oitems, int[] items, int n):
+        if:
+            add_requires_0(items, n)
+            i == 0
+            oitems == items
+        then:
+            add_loopinvariant_34(items, i, oitems)
+
+

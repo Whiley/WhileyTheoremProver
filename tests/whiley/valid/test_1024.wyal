@@ -1,0 +1,14 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+assert "type invariant not satisfied":
+    forall(VecPoint vp):
+        if:
+            vp == {x: 1, y: 2}
+        then:
+            vp is VecPoint
+
+

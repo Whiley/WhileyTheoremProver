@@ -1,0 +1,14 @@
+type binary is ({expr left, int op, expr right} self)
+
+
+type expr is (int|binary self)
+
+
+assert "assertion failed":
+    forall(binary e):
+        if:
+            e == {left: 1, op: 1, right: 2}
+        then:
+            e.op == 1
+
+

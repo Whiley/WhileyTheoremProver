@@ -1,0 +1,16 @@
+define f_requires_0(int x) is:
+    x != 0
+
+
+define f_ensures_0(int x, int r) is:
+    r != 1
+
+
+assert "postcondition not satisfied":
+    forall(int x):
+        if:
+            f_requires_0(x)
+        then:
+            f_ensures_0(x, x + 1)
+
+

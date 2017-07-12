@@ -1,0 +1,20 @@
+type i8 is (int x)
+where:
+    (x >= 0) && (x <= 255)
+
+
+type bytes is ({i8 b1, i8 b2} self)
+
+
+define f_requires_0(int a) is:
+    (a > 0) && (a < 10)
+
+
+assert "type invariant not satisfied":
+    forall(int a):
+        if:
+            f_requires_0(a)
+        then:
+            {b1: a, b2: a + 1} is bytes
+
+

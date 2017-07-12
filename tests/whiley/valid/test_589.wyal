@@ -1,0 +1,11 @@
+type Proc is (&*:{int data} self)
+
+
+assert "type invariant not satisfied":
+    forall(Proc p):
+        if:
+            true
+        then:
+            p is Proc
+
+

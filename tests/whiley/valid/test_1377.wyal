@@ -1,0 +1,14 @@
+type sr8nat is (int self)
+
+
+type sr8tup is ({sr8nat f, int g} self)
+
+
+assert "type invariant not satisfied":
+    forall(sr8tup[] x):
+        if:
+            x == [{f: 1, g: 3}, {f: 4, g: 8}]
+        then:
+            2 is sr8nat
+
+

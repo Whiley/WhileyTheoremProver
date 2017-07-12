@@ -1,0 +1,13 @@
+type SizeGetter is (any self)
+
+
+function f(null|SizeGetter x) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(any $0$1):
+        if:
+            f($0$1) == 1
+        then:
+            null is null|SizeGetter
+
+

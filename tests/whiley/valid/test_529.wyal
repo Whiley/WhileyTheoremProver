@@ -1,0 +1,16 @@
+define abs_ensures_0(null|int x, int r) is:
+    forall(int x$1):
+        if:
+            x$1 == x
+        then:
+            (x is !int) || ((r == x$1) || (r == -x$1))
+
+
+assert "postcondition not satisfied":
+    forall(null|int x):
+        if:
+            x is !int
+        then:
+            abs_ensures_0(x, 0)
+
+

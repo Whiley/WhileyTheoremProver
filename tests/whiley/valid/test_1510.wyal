@@ -1,0 +1,11 @@
+type expr is (bool|(int[]) self)
+
+
+assert "negative length possible":
+    forall(expr e):
+        if:
+            e is !(int[])
+        then:
+            0 >= 0
+
+

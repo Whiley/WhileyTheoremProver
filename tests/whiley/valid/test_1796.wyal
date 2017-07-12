@@ -1,0 +1,21 @@
+define sum_requires_0(int[] items) is:
+    forall(int i):
+        ((0 <= i) && (i < |items|)) ==> (items[i] >= 0)
+
+
+define sum_loopinvariant_25(int i, int x) is:
+    (i >= 0) && (x >= 0)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int x, int i, int i$1, int x$1, int[] items):
+        if:
+            sum_requires_0(items)
+            i == 0
+            x == 0
+            sum_loopinvariant_25(i$1, x$1)
+            i$1 < |items|
+        then:
+            i$1 < |items|
+
+

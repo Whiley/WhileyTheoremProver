@@ -1,0 +1,11 @@
+define add_requires_0(int[] v1, int[] v2) is:
+    |v1| == |v2|
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        add_requires_0([1, 2, 3], [4, 5, 6])
+
+

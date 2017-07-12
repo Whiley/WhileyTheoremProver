@@ -1,0 +1,16 @@
+type msgType1 is ({int op, int[] payload} self)
+
+
+type msgType2 is ({int header, int op, int[] rest} self)
+
+
+type msgType is (msgType1|msgType2 self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {op: 1, payload: [1, 2, 3]} is msgType
+
+

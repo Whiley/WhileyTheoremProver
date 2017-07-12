@@ -1,0 +1,9 @@
+assert "assertion failed":
+    forall({int f1, int f2} x, {int f1, int f2} y):
+        if:
+            x == {f1: 2, f2: 3}
+            y == {f1: 1, f2: 3}
+        then:
+            x != y
+
+

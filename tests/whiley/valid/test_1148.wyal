@@ -1,0 +1,15 @@
+type Buffer is ({int[] data, int wp} self)
+
+
+define update_requires_0(Buffer b, int i, int v) is:
+    (i >= 0) && (i < |b.data|)
+
+
+assert "index out of bounds (negative)":
+    forall(int i, int v, Buffer b):
+        if:
+            update_requires_0(b, i, v)
+        then:
+            i >= 0
+
+

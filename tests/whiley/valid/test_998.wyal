@@ -1,0 +1,7 @@
+assert "assertion failed":
+    if:
+        true
+    then:
+        true == true
+
+

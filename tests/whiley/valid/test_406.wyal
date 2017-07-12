@@ -1,0 +1,18 @@
+type posintlist is (int[] list)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |list|)) ==> (list[i] >= 0)
+
+
+define sum_requires_0(posintlist ls, int i) is:
+    (i >= 0) && (i <= |ls|)
+
+
+assert "precondition not satisfied":
+    forall(posintlist ls):
+        if:
+            true
+        then:
+            sum_requires_0(ls, 0)
+
+

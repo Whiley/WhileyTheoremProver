@@ -1,0 +1,12 @@
+define f_ensures_0(int x, int y) is:
+    y > x
+
+
+assert "postcondition not satisfied":
+    forall(int x, int x$1):
+        if:
+            x$1 == (x + 1)
+        then:
+            f_ensures_0(x, x$1)
+
+

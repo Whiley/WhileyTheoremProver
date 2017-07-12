@@ -1,0 +1,16 @@
+type SizeGetter is (any self)
+
+
+type SizeSetter is (any self)
+
+
+function f(SizeGetter|SizeSetter x) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(any $5, any $0$1):
+        if:
+            f($0$1) == 1
+        then:
+            $5 is SizeGetter|SizeSetter
+
+

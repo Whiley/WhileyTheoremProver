@@ -1,0 +1,11 @@
+type Record is ({int flag} self)
+
+
+assert "type invariant not satisfied":
+    forall(Record r):
+        if:
+            r == {flag: 1}
+        then:
+            r is Record
+
+

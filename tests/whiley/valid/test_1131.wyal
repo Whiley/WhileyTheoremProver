@@ -1,0 +1,17 @@
+type etype is ({int mode, ...} self)
+
+
+type Ptype is (&*:etype self)
+
+
+function get(Ptype _this) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int result, &*:etype $3$1, &*:etype $15):
+        if:
+            result == get($3$1)
+            result == 1
+        then:
+            $15 is Ptype
+
+

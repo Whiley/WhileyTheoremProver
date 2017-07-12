@@ -1,0 +1,10 @@
+type C1 is (any self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        null is C1
+
+

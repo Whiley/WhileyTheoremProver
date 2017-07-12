@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define max_requires_0(int[] items) is:
+    |items| > 0
+
+
+assert "type invariant not satisfied":
+    forall(int[] items):
+        if:
+            max_requires_0(items)
+        then:
+            1 is nat
+
+

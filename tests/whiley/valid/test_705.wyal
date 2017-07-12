@@ -1,0 +1,14 @@
+function f(int x, int y) -> (int $)
+
+define f_requires_0(int x, int y) is:
+    y != 0
+
+
+assert "precondition not satisfied":
+    if:
+        f(10, 2) == 5
+        f(9, 3) == 3
+    then:
+        f_requires_0(10, 3)
+
+

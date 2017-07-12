@@ -1,0 +1,18 @@
+define play_loopinvariant_14(bool[] board, bool[] nboard, int i) is:
+    (i >= 0) && (|board| == |nboard|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(bool[] board, int i, bool[] nboard, bool[] nboard$1, int i$1):
+        if:
+            nboard == board
+            i == 0
+            play_loopinvariant_14(board, nboard$1, i$1)
+            i$1 < |board|
+            !isAlive(i$1, board)
+        then:
+            i$1 < |nboard$1|
+
+
+function isAlive(int i, bool[] board) -> (bool $)
+

@@ -1,0 +1,22 @@
+type pos is (int x)
+where:
+    x > 0
+
+
+type neg is (int x)
+where:
+    x < 0
+
+
+type expr is (neg|pos self)
+
+
+assert "type invariant not satisfied":
+    forall(expr&pos e$1, expr e):
+        if:
+            e$1 == e
+            e is pos
+        then:
+            e$1 is neg
+
+

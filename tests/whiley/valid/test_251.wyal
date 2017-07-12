@@ -1,0 +1,21 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define abs_requires_0(int[] items) is:
+    |items| > 0
+
+
+assert "type invariant not satisfied":
+    forall(int[] items):
+        if:
+            abs_requires_0(items)
+        then:
+            0 is nat
+
+
+define abs_requires_0(int[] items, nat index) is:
+    (index <= |items|) && forall(int i).(((0 <= i) && (i < index)) ==> (items[i] >= 0))
+
+

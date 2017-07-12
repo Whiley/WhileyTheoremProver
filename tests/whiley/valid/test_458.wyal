@@ -1,0 +1,17 @@
+type C1 is (any self)
+
+
+type C2 is (any self)
+
+
+type C3 is (C1|C2 self)
+
+
+assert "type invariant not satisfied":
+    forall(C3 x):
+        if:
+            true
+        then:
+            x is C2
+
+

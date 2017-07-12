@@ -1,0 +1,23 @@
+type Point is ({int x, int y, ...} self)
+
+
+type Point3D is ({int x, int y, int z} self)
+
+
+type Points is (Point|Point3D self)
+
+
+function test(Points t) -> (bool $)
+
+function test() -> ()
+
+assert "type invariant not satisfied":
+    forall(Point3D p3d, bool result):
+        if:
+            p3d == {x: 1, y: 2, z: 3}
+            result == test(p3d)
+            result == true
+        then:
+            {x: 1, y: 2} is Point
+
+

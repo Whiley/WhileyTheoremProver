@@ -1,0 +1,18 @@
+type pos is (bool self)
+
+
+type neg is (int self)
+
+
+type expr is ((int[])|neg|pos self)
+
+
+function f(expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f(-1) == 1
+    then:
+        false is expr
+
+

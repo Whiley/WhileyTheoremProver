@@ -1,0 +1,12 @@
+define f_requires_0(int x) is:
+    x >= 0
+
+
+assert "division by zero":
+    forall(int x):
+        if:
+            f_requires_0(x)
+        then:
+            x != 0
+
+

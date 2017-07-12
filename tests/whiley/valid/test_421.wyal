@@ -1,0 +1,12 @@
+type point is ({int x, int y} p)
+where:
+    (p.x > 0) && (p.y > 0)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: 1, y: 1} is point
+
+

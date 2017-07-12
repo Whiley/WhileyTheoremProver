@@ -1,0 +1,14 @@
+type expr is (bool|(int[]) self)
+
+
+function f(expr e) -> (int[] $)
+
+assert "negative length possible":
+    forall(int[] e):
+        if:
+            e == [1, 2, 3, 4]
+            f(e) == [0, 1, 2, 3, 4]
+        then:
+            0 >= 0
+
+

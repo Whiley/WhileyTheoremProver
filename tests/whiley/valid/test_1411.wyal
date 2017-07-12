@@ -1,0 +1,12 @@
+type RGB is (int x)
+where:
+    (x == 1) || ((x == 2) || (x == 3))
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is RGB
+
+

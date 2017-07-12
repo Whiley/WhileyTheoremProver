@@ -1,0 +1,12 @@
+define indexOf_loopinvariant_22(int[] items, int i) is:
+    (i >= 0) && (i <= |items|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] items):
+        if:
+            i == 0
+        then:
+            indexOf_loopinvariant_22(items, i)
+
+

@@ -1,0 +1,14 @@
+define zeroOut_loopinvariant_28(int[] items, int i, int[] oitems) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (items[j] == 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] oitems, int[] items):
+        if:
+            i == 0
+            oitems == items
+        then:
+            zeroOut_loopinvariant_28(items, i, oitems)
+
+

@@ -1,0 +1,12 @@
+type Rec is ({bool[] items} self)
+
+
+assert "assertion failed":
+    forall(bool x, Rec r):
+        if:
+            r == {items: [true, true, false]}
+            x == r.items[1]
+        then:
+            x == true
+
+

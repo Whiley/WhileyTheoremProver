@@ -1,0 +1,13 @@
+define test_loopinvariant_14(int[] items, int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] items):
+        if:
+            items == [5, 4, 6, 3, 7, 2, 8, 1]
+            i == 0
+        then:
+            test_loopinvariant_14(items, i)
+
+

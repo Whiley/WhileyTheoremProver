@@ -1,0 +1,11 @@
+type fun1 is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $0):
+        if:
+            true
+        then:
+            $0 is fun1
+
+

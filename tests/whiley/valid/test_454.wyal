@@ -1,0 +1,12 @@
+type Contractive is (null|(Contractive[]) self)
+
+
+function f(Contractive x) -> (Contractive $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f(null) is Contractive
+
+

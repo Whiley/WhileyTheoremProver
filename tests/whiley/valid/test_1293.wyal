@@ -1,0 +1,10 @@
+type Link is (null|{int[] items, Link next} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        null is Link
+
+

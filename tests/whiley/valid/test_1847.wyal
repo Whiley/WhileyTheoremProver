@@ -1,0 +1,13 @@
+define zeroOut_loopinvariant_19(int[] items, int i, int[] oitems) is:
+    (i >= 0) && ((i <= |items|) && (|items| == |oitems|))
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] oitems, int[] items):
+        if:
+            i == 0
+            oitems == items
+        then:
+            zeroOut_loopinvariant_19(items, i, oitems)
+
+

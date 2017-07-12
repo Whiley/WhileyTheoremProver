@@ -1,0 +1,24 @@
+function f() -> (int[] rs)
+
+define f_ensures_0(int[] rs) is:
+    |rs| > 1
+
+
+assert "assertion failed":
+    forall(int[] a2$1, int[] a1, int[] a2):
+        if:
+            f_ensures_0(f())
+            a1 == f()
+            f_ensures_0(f())
+            a2 == f()
+            f_ensures_0(f())
+            a2$1 == a2[0:=0]
+            f_ensures_0(f())
+            a1[0] == 1
+            f_ensures_0(f())
+            a1[1] == 2
+            f_ensures_0(f())
+        then:
+            a2$1[0] == 0
+
+

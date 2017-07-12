@@ -1,0 +1,10 @@
+type tac1tup is ({int f1, int f2} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {f1: 2, f2: 3} is tac1tup
+
+

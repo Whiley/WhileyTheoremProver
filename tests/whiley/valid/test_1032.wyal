@@ -1,0 +1,13 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: 1, y: 2} is VecPoint
+
+

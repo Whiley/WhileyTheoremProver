@@ -1,0 +1,25 @@
+define nat(int x) is:
+    x >= 0
+
+
+define natArray(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> nat(xs[i])
+
+
+define id_requires_0(int[] xs) is:
+    natArray(xs)
+
+
+define id_ensures_0(int[] xs, int[] ys) is:
+    natArray(ys)
+
+
+assert "postcondition not satisfied":
+    forall(int[] xs):
+        if:
+            id_requires_0(xs)
+        then:
+            id_ensures_0(xs, xs)
+
+

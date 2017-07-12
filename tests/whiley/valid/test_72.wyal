@@ -1,0 +1,9 @@
+assert "index out of bounds (not less than length)":
+    forall(bool[] ls):
+        if:
+            ls == [true, false, true]
+            ls == [true, false, true]
+        then:
+            0 < |ls|
+
+

@@ -1,0 +1,9 @@
+function m(int x, int y) -> (bool $)
+
+assert "assertion failed":
+    if:
+        true
+    then:
+        m(10, 20)
+
+

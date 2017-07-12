@@ -1,0 +1,19 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define f_loopinvariant_38(int[] xs, int r, int i) is:
+    exists(int j):
+        ((0 <= j) && (j < i)) && (r == xs[j])
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i, int[] xs):
+        if:
+            f_requires_0(xs)
+            r == xs[0]
+            i == 1
+        then:
+            f_loopinvariant_38(xs, r, i)
+
+

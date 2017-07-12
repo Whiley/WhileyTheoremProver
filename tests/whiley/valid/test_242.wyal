@@ -1,0 +1,16 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define f_requires_0((nat[])[] xs) is:
+    |xs| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([[1, 2, 3], [4, 5, 6]])
+
+

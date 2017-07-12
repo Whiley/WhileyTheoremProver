@@ -1,0 +1,26 @@
+type num is (int x)
+where:
+    (1 <= x) && (x <= 4)
+
+
+type bignum is (int x)
+where:
+    (1 <= x) && (x <= 7)
+
+
+function contains(int[] items, int item) -> (bool r)
+
+define contains_ensures_0(int[] items, int item, bool r) is:
+    !r || exists(int i).(((0 <= i) && (i < |items|)) && (items[i] == item))
+
+
+assert "type invariant not satisfied":
+    forall(bignum[] zs, int z):
+        if:
+            contains_ensures_0(zs, z, contains(zs, z))
+            contains_ensures_0([1, 2, 3, 4], z, contains([1, 2, 3, 4], z))
+            contains(zs, z) && contains([1, 2, 3, 4], z)
+        then:
+            z is num
+
+

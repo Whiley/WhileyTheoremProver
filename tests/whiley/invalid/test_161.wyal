@@ -1,0 +1,21 @@
+type urf1nat is (int n)
+where:
+    n > 0
+
+
+type turf1nat is (int x)
+where:
+    x > 10
+
+
+type wurf1nat is (turf1nat|urf1nat self)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            true
+        then:
+            x is wurf1nat
+
+

@@ -1,0 +1,22 @@
+define reverse_loopinvariant_41(int[] xs, int i, int[] zs) is:
+    (i >= 0) && ((i <= |xs|) && (|xs| == |zs|))
+
+
+define reverse_loopinvariant_57(int[] xs, int i, int[] zs) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (xs[j] == zs[|xs| - (j + 1)])
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] xs$1, int i, int i$1, int j, int[] xs, int[] zs):
+        if:
+            i == 0
+            zs == xs
+            reverse_loopinvariant_41(xs$1, i$1, zs)
+            reverse_loopinvariant_57(xs$1, i$1, zs)
+            i$1 < |xs$1|
+            j == (|xs$1| - (i$1 + 1))
+        then:
+            j < |zs|
+
+

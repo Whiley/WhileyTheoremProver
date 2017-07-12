@@ -1,0 +1,10 @@
+type msg1 is ({int[] data, int op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {data: [1, 2, 3], op: 1} is msg1
+
+

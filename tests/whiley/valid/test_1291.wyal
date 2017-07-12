@@ -1,0 +1,23 @@
+type Expr is (int|BinOp|Var self)
+
+
+type BinOp is ({Expr lhs, Expr rhs} self)
+
+
+type Var is ({int[] id} self)
+
+
+type SyntaxError is ({int[] err} self)
+
+
+type SExpr is (Expr|SyntaxError self)
+
+
+assert "type invariant not satisfied":
+    forall(int i):
+        if:
+            i > 20
+        then:
+            {err: [101, 114, 114, 111, 114]} is SExpr
+
+

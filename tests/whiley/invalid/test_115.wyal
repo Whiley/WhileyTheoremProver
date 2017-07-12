@@ -1,0 +1,19 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+type LinkedList is (int|{int data, LinkedList next} self)
+
+
+function sum(LinkedList list) -> (nat $)
+
+assert "type invariant not satisfied":
+    forall(LinkedList list, !int&LinkedList list$1):
+        if:
+            list$1 == list
+            list is !int
+        then:
+            (list$1.data + sum(list$1.next)) is nat
+
+

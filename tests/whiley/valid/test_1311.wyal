@@ -1,0 +1,12 @@
+define f_requires_0(int x, int y) is:
+    y != 0
+
+
+assert "division by zero":
+    forall(int x, int y):
+        if:
+            f_requires_0(x, y)
+        then:
+            y != 0
+
+

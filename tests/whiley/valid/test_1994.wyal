@@ -1,0 +1,15 @@
+define extract_loopinvariant_25(int[] ls, int i, int[] r) is:
+    (i >= 0) && (|r| == (|ls| + 1))
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] ls, int[] r, int i, int i$1, int[] r$1):
+        if:
+            i == 0
+            r == [0;|ls| + 1]
+            extract_loopinvariant_25(ls, i$1, r$1)
+            i$1 < |ls|
+        then:
+            i$1 < |r$1|
+
+

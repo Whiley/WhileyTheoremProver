@@ -1,0 +1,17 @@
+type Link is (null|(Link[]) self)
+
+
+define maxDepth_loopinvariant_13(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i, Link links):
+        if:
+            links is Link[]
+            r == 0
+            i == 0
+        then:
+            maxDepth_loopinvariant_13(i)
+
+

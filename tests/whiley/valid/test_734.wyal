@@ -1,0 +1,11 @@
+type listibr is ((bool[])|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    forall(bool[] s):
+        if:
+            s == [true, false, true]
+        then:
+            s is listibr
+
+

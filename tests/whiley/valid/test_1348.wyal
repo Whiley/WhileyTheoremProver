@@ -1,0 +1,22 @@
+define repl_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int old, int[] str$2, int i, int i$1, int[] str$1, int[] str$3, int i$2, int n):
+        if:
+            i == 0
+            repl_loopinvariant_8(i$1)
+            i$1 < |str$1|
+            either:
+                str$1[i$1] == old
+                str$2 == str$1[i$1:=n]
+                str$3 == str$2
+            or:
+                str$1[i$1] != old
+                str$3 == str$1
+            i$2 == (i$1 + 1)
+        then:
+            repl_loopinvariant_8(i$2)
+
+

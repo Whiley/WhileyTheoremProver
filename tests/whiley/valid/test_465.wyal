@@ -1,0 +1,14 @@
+type point is ({int x, int y} self)
+
+
+type listint is (int[] self)
+
+
+assert "type invariant not satisfied":
+    forall(listint li):
+        if:
+            li == [1, 2, 3]
+        then:
+            {x: 1, y: 2} is point
+
+

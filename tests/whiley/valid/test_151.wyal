@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int diff$2, int b, int diff, int a, int diff$1):
+        if:
+            either:
+                a > b
+                diff == (a - b)
+                diff$2 == diff
+            or:
+                a <= b
+                diff$1 == (b - a)
+                diff$2 == diff$1
+        then:
+            diff$2 is nat
+
+

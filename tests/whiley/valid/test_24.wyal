@@ -1,0 +1,15 @@
+type fun1 is (any self)
+
+
+type fun2 is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $0, fun1 x, any $8, int $4):
+        if:
+            x == $0
+            $4 == 42
+        then:
+            $8 is fun2
+
+

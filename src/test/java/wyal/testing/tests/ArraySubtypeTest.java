@@ -818,8 +818,8 @@ public class ArraySubtypeTest {
 			// This is a bit of an ugly hack for now
 			List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
 			tokens.addAll(new WyalFileLexer(to).scan());
-			WyalFileParser parser = new WyalFileParser(null, tokens);
 			WyalFile wf = new WyalFile(null);
+			WyalFileParser parser = new WyalFileParser(wf, tokens);
 			WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
 			WyalFile.Type ft = parser.parseType(scope);
 			WyalFile.Type tt = parser.parseType(scope);
@@ -835,8 +835,8 @@ public class ArraySubtypeTest {
 			// This is a bit of an ugly hack for now
 			List<WyalFileLexer.Token> tokens = new WyalFileLexer(from).scan();
 			tokens.addAll(new WyalFileLexer(to).scan());
-			WyalFileParser parser = new WyalFileParser(null, tokens);
 			WyalFile wf = new WyalFile(null);
+			WyalFileParser parser = new WyalFileParser(wf, tokens);
 			WyalFileParser.EnclosingScope scope = new WyalFileParser.EnclosingScope(wf);
 			WyalFile.Type ft = parser.parseType(scope);
 			WyalFile.Type tt = parser.parseType(scope);

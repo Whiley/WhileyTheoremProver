@@ -1,0 +1,19 @@
+type posintlist is (int[] list)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |list|)) ==> (list[i] >= 0)
+
+
+define sum_requires_0(posintlist ls, int i) is:
+    (i >= 0) && (i <= |ls|)
+
+
+assert "index out of bounds (negative)":
+    forall(posintlist ls, int i):
+        if:
+            sum_requires_0(ls, i)
+            i != |ls|
+        then:
+            i >= 0
+
+

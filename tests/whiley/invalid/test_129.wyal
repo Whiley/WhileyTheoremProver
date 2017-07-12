@@ -1,0 +1,14 @@
+type scf5nat is (int n)
+where:
+    n > 0
+
+
+assert "type invariant not satisfied":
+    forall({int f} x, {int f} x$1):
+        if:
+            x == {f: 1}
+            x$1 == x{f:=-1}
+        then:
+            x$1 is {scf5nat f}
+
+

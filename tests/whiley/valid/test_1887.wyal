@@ -1,0 +1,14 @@
+function buildNatList(int n) -> (int[] m)
+
+define buildNatList_requires_0(int n) is:
+    n >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        buildNatList(0) == [0;0]
+        buildNatList(1) == [0]
+    then:
+        buildNatList_requires_0(2)
+
+

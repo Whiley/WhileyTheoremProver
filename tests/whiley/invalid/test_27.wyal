@@ -1,0 +1,11 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([0;0])
+
+

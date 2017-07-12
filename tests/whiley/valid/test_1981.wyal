@@ -1,0 +1,16 @@
+define next_requires_0(int[] arr) is:
+    |arr| > 0
+
+
+define next_ensures_0(int[] arr, int r) is:
+    (r >= 0) && (r < |arr|)
+
+
+assert "postcondition not satisfied":
+    forall(int[] arr):
+        if:
+            next_requires_0(arr)
+        then:
+            next_ensures_0(arr, 0)
+
+

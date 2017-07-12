@@ -1,0 +1,11 @@
+type IntAny is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(int i):
+        if:
+            true
+        then:
+            i is IntAny
+
+

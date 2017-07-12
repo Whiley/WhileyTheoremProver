@@ -1,0 +1,24 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define loop_requires_0(int[] array, int n) is:
+    |array| > 0
+
+
+assert "type invariant not satisfied":
+    forall(int[] array, int n):
+        if:
+            loop_requires_0(array, n)
+            next_ensures_0(array, next(array))
+        then:
+            next(array) is nat
+
+
+function next(int[] arr) -> (int r)
+
+define next_ensures_0(int[] arr, int r) is:
+    (r >= 0) && (r < |arr|)
+
+

@@ -1,0 +1,20 @@
+type ur4nat is (int x)
+where:
+    x > 0
+
+
+type tur4nat is (int x)
+where:
+    x > 10
+
+
+type wur4nat is (tur4nat|ur4nat self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is wur4nat
+
+

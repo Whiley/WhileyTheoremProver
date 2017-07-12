@@ -1,0 +1,19 @@
+define extract_ensures_0(int[] ls, int[] result) is:
+    |result| > 0
+
+
+define extract_loopinvariant_25(int[] ls, int i, int[] r) is:
+    (i >= 0) && (|r| == (|ls| + 1))
+
+
+assert "postcondition not satisfied":
+    forall(int[] ls, int[] r$3, int[] r, int i, int i$3):
+        if:
+            i == 0
+            r == [0;|ls| + 1]
+            extract_loopinvariant_25(ls, i$3, r$3)
+            i$3 >= |ls|
+        then:
+            extract_ensures_0(ls, r$3)
+
+

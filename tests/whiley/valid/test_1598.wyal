@@ -1,0 +1,22 @@
+type IntList is (int|(int[]) self)
+
+
+function f(int y) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int result, IntList x, int result$1, int result$2, int&IntList x$1):
+        if:
+            x$1 == x
+            x == 123
+            either:
+                x is int
+                result == f(x$1)
+                result == 123
+                result$1 == result
+            or:
+                x is !int
+                result$1 == result$2
+        then:
+            [1, 2, 3] is (int&IntList)|(!int&IntList)
+
+

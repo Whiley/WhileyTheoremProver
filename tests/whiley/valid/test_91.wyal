@@ -1,0 +1,13 @@
+define play_loopinvariant_14(bool[] board, bool[] nboard, int i) is:
+    (i >= 0) && (|board| == |nboard|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(bool[] board, int i, bool[] nboard):
+        if:
+            nboard == board
+            i == 0
+        then:
+            play_loopinvariant_14(board, nboard, i)
+
+

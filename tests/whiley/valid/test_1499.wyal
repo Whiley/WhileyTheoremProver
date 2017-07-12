@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int[] input):
+        if:
+            true
+        then:
+            (|input| + 1) >= 0
+
+

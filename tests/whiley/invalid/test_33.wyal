@@ -1,0 +1,15 @@
+assert "assertion failed":
+    forall(int[] arr, int[] arr$1, int[] arr$2):
+        if:
+            either:
+                10 > 0
+                arr == [1, 2]
+                arr$2 == arr
+            or:
+                10 <= 0
+                arr$1 == [1, 2, 3]
+                arr$2 == arr$1
+        then:
+            |arr$2| == 4
+
+

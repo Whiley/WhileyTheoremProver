@@ -1,0 +1,13 @@
+type state is ({int[] input, int pos} s)
+where:
+    (s.pos >= 0) && (s.pos <= |s.input|)
+
+
+assert "type invariant not satisfied":
+    forall(state st):
+        if:
+            (st.pos < |st.input|) && (st.input[st.pos] == 32)
+        then:
+            {input: st.input, pos: st.pos + 1} is state
+
+

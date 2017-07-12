@@ -1,0 +1,33 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define absent(int[] items, int item, int end) is:
+    forall(int i):
+        ((0 <= i) && (i < end)) ==> (items[i] != item)
+
+
+define absent(int[] items, int item) is:
+    absent(items, item, |items|)
+
+
+define indexOf_ensures_0(int[] items, int item, int r) is:
+    (r < 0) || (items[r] == item)
+
+
+define indexOf_loopinvariant_26(int[] items, int item, nat i) is:
+    absent(items, item, i)
+
+
+assert "postcondition not satisfied":
+    forall(nat i, nat i$1, int item, int[] items):
+        if:
+            i == 0
+            indexOf_loopinvariant_26(items, item, i$1)
+            i$1 < |items|
+            items[i$1] == item
+        then:
+            indexOf_ensures_0(items, item, i$1)
+
+

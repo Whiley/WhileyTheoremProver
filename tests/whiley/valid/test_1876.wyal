@@ -1,0 +1,15 @@
+function add(int[] items, int n) -> (int[] $)
+
+define add_requires_0(int[] items, int n) is:
+    n > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] ls):
+        if:
+            ls == [1, 2, 3, 4]
+            add(ls, 1) == [2, 3, 4, 5]
+        then:
+            add_requires_0(ls, 11)
+
+

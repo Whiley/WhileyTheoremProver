@@ -1,0 +1,15 @@
+type pos is (int x)
+where:
+    x > 0
+
+
+assert "possible panic":
+    forall(null|pos x, null|(int&pos)|(!int&pos) x$2, int&pos x$1):
+        if:
+            (x$2 == x) && (x$1 == x)
+            (x is !int) || (x$1 < 0)
+            x$2 is !null
+        then:
+            false
+
+

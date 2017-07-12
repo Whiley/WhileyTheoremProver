@@ -1,0 +1,12 @@
+type sr7nat is (int n)
+where:
+    n > 0
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {f: 1} is {sr7nat f}
+
+

@@ -1,0 +1,22 @@
+type i8 is (int x)
+where:
+    (x >= 0) && (x <= 255)
+
+
+type bytes is ({i8 b1, i8 b2} self)
+
+
+function f(int a) -> (bytes $)
+
+define f_requires_0(int a) is:
+    (a > 0) && (a < 10)
+
+
+assert "precondition not satisfied":
+    if:
+        f(1) == {b1: 1, b2: 2}
+        f(2) == {b1: 2, b2: 3}
+    then:
+        f_requires_0(9)
+
+

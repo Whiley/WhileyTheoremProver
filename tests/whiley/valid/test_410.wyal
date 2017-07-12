@@ -1,0 +1,21 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type neg is (!nat self)
+
+
+define f_ensures_0(neg x, int y) is:
+    y < 0
+
+
+assert "postcondition not satisfied":
+    forall(int&neg x$1, neg x):
+        if:
+            x$1 == x
+            x is int
+        then:
+            f_ensures_0(x, x$1)
+
+

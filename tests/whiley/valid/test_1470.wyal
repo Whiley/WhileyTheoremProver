@@ -1,0 +1,10 @@
+type Point3D is ({int x, int y, int z} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: 1, y: 2, z: 3} is Point3D
+
+

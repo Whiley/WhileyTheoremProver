@@ -1,0 +1,11 @@
+type a_nat is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == 0
+        then:
+            x is a_nat
+
+

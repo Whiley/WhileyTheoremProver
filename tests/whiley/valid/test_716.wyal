@@ -1,0 +1,12 @@
+type func is (any self)
+
+
+function g() -> (func $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        g() is func
+
+

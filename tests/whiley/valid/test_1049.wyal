@@ -1,0 +1,17 @@
+type Actor is ({int data} self)
+
+
+function createActor(int n) -> (&*:Actor $)
+
+define createActors_requires_0(int n) is:
+    n >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int n):
+        if:
+            createActors_requires_0(n)
+        then:
+            [createActor(0);n] is &*:Actor[]
+
+

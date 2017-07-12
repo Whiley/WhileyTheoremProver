@@ -1,0 +1,15 @@
+define nat_a(int x) is:
+    x >= 0
+
+
+define id_requires_0(int x) is:
+    nat_a(x)
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        id_requires_0(0)
+
+

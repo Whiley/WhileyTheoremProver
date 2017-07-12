@@ -1,0 +1,11 @@
+type Object is ({any fn, ...} self)
+
+
+assert "type invariant not satisfied":
+    forall(any $0, Object o):
+        if:
+            o == {fn: $0}
+        then:
+            o is Object
+
+

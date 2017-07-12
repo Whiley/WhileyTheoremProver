@@ -1,0 +1,12 @@
+define f_loopinvariant_7(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i):
+        if:
+            i == 0
+        then:
+            f_loopinvariant_7(i)
+
+

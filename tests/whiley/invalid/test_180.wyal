@@ -1,0 +1,26 @@
+define f_ensures_0(int v, int r) is:
+    r >= 0
+
+
+define f_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "postcondition not satisfied":
+    forall(int i$5, int v, int i$4, int i$1, int i, int i$2):
+        if:
+            i == 0
+            either:
+                f_loopinvariant_9(i$1)
+                i$1 < 100
+                i$2 == (i$1 - 1)
+                i$2 == v
+                i$5 == i$2
+            or:
+                f_loopinvariant_9(i$4)
+                i$4 >= 100
+                i$5 == i$4
+        then:
+            f_ensures_0(v, i$5)
+
+

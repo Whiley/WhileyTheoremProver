@@ -1,0 +1,13 @@
+type fr5nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int[] ys):
+        if:
+            ys == [1, 2, 3]
+        then:
+            ys is fr5nat[]
+
+

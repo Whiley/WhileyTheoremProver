@@ -1,0 +1,19 @@
+define sum_requires_0(int[] items) is:
+    forall(int i):
+        ((0 <= i) && (i < |items|)) ==> (items[i] >= 0)
+
+
+define sum_loopinvariant_25(int i, int x) is:
+    (i >= 0) && (x >= 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int x, int i, int[] items):
+        if:
+            sum_requires_0(items)
+            i == 0
+            x == 0
+        then:
+            sum_loopinvariant_25(i, x)
+
+

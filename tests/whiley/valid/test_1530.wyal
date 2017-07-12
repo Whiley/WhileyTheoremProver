@@ -1,0 +1,20 @@
+type pos is (bool self)
+
+
+type neg is (int self)
+
+
+type expr is ((int[])|neg|pos self)
+
+
+function f(expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f(-1) == 1
+        f(false) == 2
+        f(true) == 0
+    then:
+        [1, 2, 3] is expr
+
+

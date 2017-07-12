@@ -1,0 +1,18 @@
+type sr6nat is (int n)
+where:
+    n > 0
+
+
+type sr6tup is ({sr6nat f, int g} r)
+where:
+    r.g > r.f
+
+
+assert "type invariant not satisfied":
+    forall(sr6tup x):
+        if:
+            x == {f: 1, g: 5}
+        then:
+            2 is sr6nat
+
+

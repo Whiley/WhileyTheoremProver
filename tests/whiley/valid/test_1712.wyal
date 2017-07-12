@@ -1,0 +1,31 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define inc_loopinvariant_28(nat[] src, int i, int[] osrc) is:
+    (i >= 0) && (i <= |src|)
+
+
+define inc_loopinvariant_33(nat[] src, int i, int[] osrc) is:
+    |src| == |osrc|
+
+
+define inc_loopinvariant_42(nat[] src, int i, int[] osrc) is:
+    forall(int x):
+        ((0 <= x) && (x < i)) ==> (src[x] > 0)
+
+
+assert "type invariant not satisfied":
+    forall(nat[] src, int i, int i$3, int[] osrc, nat[] src$3):
+        if:
+            i == 0
+            osrc == src
+            inc_loopinvariant_28(src$3, i$3, osrc)
+            inc_loopinvariant_33(src$3, i$3, osrc)
+            inc_loopinvariant_42(src$3, i$3, osrc)
+            i$3 >= |src$3|
+        then:
+            src$3 is nat[]
+
+

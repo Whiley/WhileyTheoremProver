@@ -1,0 +1,14 @@
+type binop is ({expr left, int op, expr right} self)
+
+
+type expr is (int|binop self)
+
+
+assert "assertion failed":
+    forall(expr e):
+        if:
+            e == 123
+        then:
+            e == 123
+
+

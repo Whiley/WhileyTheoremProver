@@ -1,0 +1,10 @@
+assert "index out of bounds (negative)":
+    forall(bool[] ls):
+        if:
+            ls == [true, false, true]
+            ls == [true, false, true]
+            ls[0] == true
+        then:
+            1 >= 0
+
+

@@ -1,0 +1,11 @@
+type nat is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(int[] ys):
+        if:
+            ys == [-12309812, 1, 2, 2987, 2349872, 234987234987, 234987234987234]
+        then:
+            ys is nat[]
+
+

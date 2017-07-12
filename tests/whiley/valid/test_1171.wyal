@@ -1,0 +1,14 @@
+type tac2ta is ({int f1, int f2} self)
+
+
+type tac2tb is ({int f1, int f2} self)
+
+
+assert "type invariant not satisfied":
+    forall(tac2ta x):
+        if:
+            true
+        then:
+            {f1: x.f1 - 1, f2: x.f2} is tac2tb
+
+

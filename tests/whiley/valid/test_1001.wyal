@@ -1,0 +1,11 @@
+type OpenRecord is ({int field, ...} self)
+
+
+assert "type invariant not satisfied":
+    forall(OpenRecord r):
+        if:
+            r == {field: 1}
+        then:
+            r is OpenRecord
+
+

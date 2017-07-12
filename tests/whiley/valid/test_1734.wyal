@@ -1,0 +1,17 @@
+define test_loopinvariant_10(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall((int[])[] components$2, (int[])[] components, int i, int i$1, (int[])[] components$1, int i$2):
+        if:
+            components == [[0;0];5]
+            i == 0
+            test_loopinvariant_10(i$1)
+            i$1 < |components$1|
+            components$2 == components$1[i$1:=[0]]
+            i$2 == (i$1 + 1)
+        then:
+            test_loopinvariant_10(i$2)
+
+

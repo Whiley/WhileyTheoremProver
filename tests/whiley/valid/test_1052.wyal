@@ -1,0 +1,26 @@
+type Actor is ({int data} self)
+
+
+function createActor(int n) -> (&*:Actor $)
+
+define createActors_requires_0(int n) is:
+    n >= 0
+
+
+define createActors_loopinvariant_19(int n, &*:Actor[] row, int j) is:
+    (j >= 0) && (|row| == n)
+
+
+assert "type invariant not satisfied":
+    forall(&*:Actor[] row, &*:Actor m, int j, &*:Actor[] row$1, int j$1, int n):
+        if:
+            createActors_requires_0(n)
+            row == [createActor(0);n]
+            j == 1
+            createActors_loopinvariant_19(n, row$1, j$1)
+            j$1 < n
+            m == createActor(j$1)
+        then:
+            m is &*:Actor
+
+

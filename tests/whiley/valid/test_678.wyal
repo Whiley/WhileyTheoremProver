@@ -1,0 +1,31 @@
+type nat is (int self)
+
+
+define g_loopinvariant_11(nat[] xs, nat[] ys, int i) is:
+    i >= 0
+
+
+define g_loopinvariant_16(nat[] xs, nat[] ys, int i) is:
+    |xs| == |ys|
+
+
+assert "loop invariant not restored":
+    forall(nat[] xs, nat[] ys$1, nat[] ys, int i, nat[] ys$2, int i$1, nat[] ys$3, int i$2):
+        if:
+            ys == [0;|xs|]
+            i == 0
+            g_loopinvariant_11(xs, ys$1, i$1)
+            g_loopinvariant_16(xs, ys$1, i$1)
+            i$1 < |xs|
+            either:
+                xs[i$1] > 1
+                ys$2 == ys$1[i$1:=xs[i$1]]
+                ys$3 == ys$2
+            or:
+                xs[i$1] <= 1
+                ys$3 == ys$1
+            i$2 == (i$1 + 1)
+        then:
+            g_loopinvariant_16(xs, ys$3, i$2)
+
+

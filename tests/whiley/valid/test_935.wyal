@@ -1,0 +1,11 @@
+type FileReader is (&*:{int position} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{int position} $3):
+        if:
+            true
+        then:
+            $3 is FileReader
+
+

@@ -1,0 +1,14 @@
+type sr9nat is (int self)
+
+
+type sr9arr is ({sr9nat f, int g}[] self)
+
+
+assert "type invariant not satisfied":
+    forall(sr9arr x):
+        if:
+            x == [{f: 1, g: 2}, {f: 1, g: 8}]
+        then:
+            2 is sr9nat
+
+

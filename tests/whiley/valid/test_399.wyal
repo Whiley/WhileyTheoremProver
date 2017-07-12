@@ -1,0 +1,16 @@
+function f(int[] x) -> (int[] $)
+
+function g(int[] x) -> (int[] $)
+
+define g_requires_0(int[] x) is:
+    (|x| > 0) && (x[0] == 0)
+
+
+assert "precondition not satisfied":
+    if:
+        f([0, 1, 2]) == [0, 1, 2]
+        g([0]) == [0]
+    then:
+        g_requires_0([0, 1, 2])
+
+

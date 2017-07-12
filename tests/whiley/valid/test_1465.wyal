@@ -1,0 +1,11 @@
+type expr is (bool|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    forall(expr e):
+        if:
+            e == true
+        then:
+            e is expr
+
+

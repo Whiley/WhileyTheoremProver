@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type nlist is (int|(nat[]) self)
+
+
+function f(int i, nlist[] xs) -> (nlist $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f(2, [2, 3, 4]) is nlist
+
+

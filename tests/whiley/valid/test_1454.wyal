@@ -1,0 +1,12 @@
+type intr is (bool|int self)
+
+
+assert "index out of bounds (negative)":
+    forall(((int&intr)[])[] e$1, (intr[])[] e):
+        if:
+            e$1 == e
+            (e is (int[])[]) && (|e$1| > 0)
+        then:
+            0 >= 0
+
+

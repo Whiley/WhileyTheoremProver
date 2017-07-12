@@ -1,0 +1,16 @@
+define has_loopinvariant_7(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int[] str, int i, int i$1, int i$2, int c1):
+        if:
+            i == 0
+            has_loopinvariant_7(i$1)
+            i$1 < |str|
+            c1 != str[i$1]
+            i$2 == (i$1 + 1)
+        then:
+            has_loopinvariant_7(i$2)
+
+

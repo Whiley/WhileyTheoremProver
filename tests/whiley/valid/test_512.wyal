@@ -1,0 +1,23 @@
+type nbool is (null|bool self)
+
+
+define f_loopinvariant_11(int[] xs, nbool[] r, int i) is:
+    i >= 0
+
+
+define f_loopinvariant_16(int[] xs, nbool[] r, int i) is:
+    |xs| == |r|
+
+
+assert "type invariant not satisfied":
+    forall(nbool[] r, nbool[] r$5, int i, int i$3, int[] xs):
+        if:
+            r == [false;|xs|]
+            i == 0
+            f_loopinvariant_11(xs, r$5, i$3)
+            f_loopinvariant_16(xs, r$5, i$3)
+            i$3 >= |xs|
+        then:
+            r$5 is nbool[]
+
+

@@ -1,0 +1,17 @@
+define extract_requires_0(int[] ls, int[] r) is:
+    |ls| == |r|
+
+
+define extract_loopinvariant_13(int[] r) is:
+    |r| > 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] ls, int[] r, int i):
+        if:
+            extract_requires_0(ls, r)
+            i == 0
+        then:
+            extract_loopinvariant_13(r)
+
+

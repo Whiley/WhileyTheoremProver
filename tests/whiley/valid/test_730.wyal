@@ -1,0 +1,13 @@
+type Point is ({any getX, any toString, int x, int y} self)
+
+
+function Point(int x, int y) -> (Point $)
+
+assert "type invariant not satisfied":
+    forall(any $3, int x, int y, any $4):
+        if:
+            true
+        then:
+            {getX: $3, toString: $4, x: x, y: y} is Point
+
+

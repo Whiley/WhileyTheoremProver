@@ -1,0 +1,17 @@
+type Reducer is (any self)
+
+
+define test_loopinvariant_4(int i) is:
+    i >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int i, int i$1, any[] $10$1, any[] $7):
+        if:
+            i == 0
+            test_loopinvariant_4(i$1)
+            i$1 < |[$7]|
+        then:
+            [$10$1][i$1] is Reducer
+
+

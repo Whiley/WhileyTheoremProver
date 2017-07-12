@@ -1,0 +1,23 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+define sum_loopinvariant_20(int i) is:
+    i >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int r, !Point&VecPoint vp$2, int i, int i$1, VecPoint vp):
+        if:
+            vp$2 == vp
+            vp is !Point
+            r == 0
+            i == 0
+            sum_loopinvariant_20(i$1)
+            i$1 < |vp$2|
+        then:
+            vp$2[i$1] is VecPoint
+
+

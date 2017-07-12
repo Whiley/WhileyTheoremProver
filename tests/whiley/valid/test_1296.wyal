@@ -1,0 +1,13 @@
+type Link is (null|{int[] items, Link next} self)
+
+
+assert "type invariant not satisfied":
+    forall(int i, int i$3, Link start$3, Link start, int n):
+        if:
+            start == null
+            i == 0
+            i$3 >= n
+        then:
+            start$3 is Link
+
+

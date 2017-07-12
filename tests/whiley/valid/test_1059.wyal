@@ -1,0 +1,19 @@
+type Actor is ({int data} self)
+
+
+function createActors(int n) -> (&*:Actor[] r)
+
+define test_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i, &*:Actor[] actors):
+        if:
+            actors == createActors(10)
+            r == 0
+            i == 0
+        then:
+            test_loopinvariant_9(i)
+
+

@@ -1,0 +1,12 @@
+define update_requires_0((int[])[] ls) is:
+    (|ls| > 0) && (|ls[0]| > 0)
+
+
+assert "index out of bounds (not less than length)":
+    forall((int[])[] ls):
+        if:
+            update_requires_0(ls)
+        then:
+            0 < |ls[0]|
+
+

@@ -1,0 +1,16 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type nlist is (int|(nat[]) self)
+
+
+assert "index out of bounds (negative)":
+    forall(int i, nlist[] xs):
+        if:
+            (i >= 0) && (i < |xs|)
+        then:
+            i >= 0
+
+

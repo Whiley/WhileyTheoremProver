@@ -1,0 +1,16 @@
+type Record is ({int flag} self)
+
+
+function getFlag(Record d) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(Record r, Record r$1):
+        if:
+            r == {flag: 1}
+            getFlag(r) == 1
+            r$1 == {flag: 0}
+            getFlag(r$1) == -1
+        then:
+            {flag: -1} is Record
+
+

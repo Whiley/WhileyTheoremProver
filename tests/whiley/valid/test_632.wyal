@@ -1,0 +1,21 @@
+type fr5nat is (int x)
+where:
+    x >= 0
+
+
+define g_loopinvariant_17(fr5nat[] xs, fr5nat[] ys, int i) is:
+    (i >= 0) && (|xs| == |ys|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(fr5nat[] xs, fr5nat[] ys, int i, fr5nat[] ys$1, int i$1):
+        if:
+            ys == [0;|xs|]
+            i == 0
+            g_loopinvariant_17(xs, ys$1, i$1)
+            i$1 < |xs|
+            xs[i$1] > 1
+        then:
+            i$1 < |ys$1|
+
+

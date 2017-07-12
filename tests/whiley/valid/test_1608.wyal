@@ -1,0 +1,32 @@
+type char is (int x)
+where:
+    (0 <= x) && (x <= 255)
+
+
+type State is ({char[] input, int pos} s)
+where:
+    s.pos >= 0
+
+
+type Expr is (int|{int[] id} self)
+
+
+type SyntaxError is ({int[] err} self)
+
+
+type SExpr is (Expr|SyntaxError self)
+
+
+function isDigit(char c) -> (bool $)
+
+assert "type invariant not satisfied":
+    forall(State st):
+        if:
+            st.pos < |st.input|
+            isDigit(st.input[st.pos])
+        then:
+            parseNumber(st)#0 is SExpr
+
+
+function parseNumber(State st) -> (Expr f1, State f2)
+

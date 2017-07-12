@@ -1,0 +1,23 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define max_requires_0(int[] items) is:
+    |items| > 0
+
+
+define max_loopinvariant_20(int[] items, nat i, int m) is:
+    i <= |items|
+
+
+assert "loop invariant does not hold on entry":
+    forall(nat i, int m, int[] items):
+        if:
+            max_requires_0(items)
+            i == 1
+            m == items[0]
+        then:
+            max_loopinvariant_20(items, i, m)
+
+

@@ -1,0 +1,19 @@
+define add_requires_0(int[] v1, int[] v2) is:
+    |v1| == |v2|
+
+
+define add_loopinvariant_23(int[] v1, int[] v2, int i) is:
+    (i >= 0) && (|v1| == |v2|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] v1$1, int i, int[] v2, int i$1, int[] v1):
+        if:
+            add_requires_0(v1, v2)
+            i == 0
+            add_loopinvariant_23(v1$1, v2, i$1)
+            i$1 < |v1$1|
+        then:
+            i$1 < |v1$1|
+
+

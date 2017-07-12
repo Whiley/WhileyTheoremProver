@@ -1,0 +1,26 @@
+define reverse_ensures_1(int[] xs, int[] ys) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (ys[i] == xs[|xs| - (i + 1)])
+
+
+define reverse_loopinvariant_41(int[] xs, int i, int[] zs) is:
+    (i >= 0) && ((i <= |xs|) && (|xs| == |zs|))
+
+
+define reverse_loopinvariant_57(int[] xs, int i, int[] zs) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (xs[j] == zs[|xs| - (j + 1)])
+
+
+assert "postcondition not satisfied":
+    forall(int[] xs$3, int i, int i$3, int[] xs, int[] zs):
+        if:
+            i == 0
+            zs == xs
+            reverse_loopinvariant_41(xs$3, i$3, zs)
+            reverse_loopinvariant_57(xs$3, i$3, zs)
+            i$3 >= |xs$3|
+        then:
+            reverse_ensures_1(xs, xs$3)
+
+

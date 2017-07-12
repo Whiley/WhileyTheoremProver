@@ -1,0 +1,21 @@
+type nat is (int self)
+
+
+type pos is (int self)
+
+
+type expr is ({expr lhs, expr rhs}|nat self)
+
+
+type posExpr is ({posExpr lhs, posExpr rhs}|pos self)
+
+
+function f(posExpr e1) -> (expr $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f({lhs: {lhs: 1, rhs: 2}, rhs: 1}) is expr
+
+

@@ -1,0 +1,11 @@
+type structA is ({bool r} self)
+
+
+assert "type invariant not satisfied":
+    forall(structA x):
+        if:
+            x == {r: false}
+        then:
+            x is structA
+
+

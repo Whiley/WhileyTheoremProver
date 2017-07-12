@@ -1,0 +1,15 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function f(int[] xs) -> (nat[] $)
+
+assert "negative length possible":
+    forall(nat[] rs):
+        if:
+            rs == f([0;0])
+        then:
+            0 >= 0
+
+

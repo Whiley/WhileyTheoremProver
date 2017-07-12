@@ -1,0 +1,20 @@
+type in_rec is ({null|int f} self)
+
+
+type ib_rec is ({bool|int f} self)
+
+
+type rec is (ib_rec|in_rec self)
+
+
+function read(rec x) -> (null|bool|int r)
+
+assert "type invariant not satisfied":
+    forall(rec a):
+        if:
+            a == {f: null}
+            read(a) == null
+        then:
+            a is rec
+
+

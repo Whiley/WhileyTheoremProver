@@ -1,0 +1,11 @@
+type fr2nat is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(int y):
+        if:
+            y == 1
+        then:
+            y is fr2nat
+
+

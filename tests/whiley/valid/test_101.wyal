@@ -1,0 +1,8 @@
+assert "assertion failed":
+    forall({int code, bool flag} x):
+        if:
+            x == {code: 0, flag: true}
+        then:
+            x == {code: 0, flag: true}
+
+

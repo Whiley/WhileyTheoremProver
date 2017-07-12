@@ -1,0 +1,20 @@
+function f(int x, int y) -> (int r)
+
+define f_requires_0(int x, int y) is:
+    (x >= 0) && (y >= 0)
+
+
+define f_ensures_0(int x, int y, int r) is:
+    r > 0
+
+
+assert "precondition not satisfied":
+    if:
+        f_ensures_0(1, 1, f(1, 1))
+        f(1, 1) == 123
+        f_ensures_0(2, 1, f(2, 1))
+        f(2, 1) == 123
+    then:
+        f_requires_0(1, 2)
+
+

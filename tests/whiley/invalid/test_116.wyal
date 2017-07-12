@@ -1,0 +1,22 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+type LinkedList is (int|{int data, LinkedList next} self)
+
+
+type posLink is ({nat data, posList next} self)
+
+
+type posList is (int|posLink self)
+
+
+assert "type invariant not satisfied":
+    forall(LinkedList list):
+        if:
+            true
+        then:
+            list is posList
+
+

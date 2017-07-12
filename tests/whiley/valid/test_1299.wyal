@@ -1,0 +1,11 @@
+type Link is (null|{int[] items, Link next} self)
+
+
+assert "type invariant not satisfied":
+    forall(Link l1):
+        if:
+            l1 == null
+        then:
+            {items: [0;0], next: l1} is Link
+
+

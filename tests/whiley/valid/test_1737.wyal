@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define create_loopinvariant_24(nat count, int[] r, int i) is:
+    (i <= count) && ((i >= 0) && (count == |r|))
+
+
+assert "index out of bounds (negative)":
+    forall(int[] r, int i, int i$1, nat count, int[] r$1):
+        if:
+            r == [0;count]
+            i == 0
+            create_loopinvariant_24(count, r$1, i$1)
+            i$1 < count
+        then:
+            i$1 >= 0
+
+

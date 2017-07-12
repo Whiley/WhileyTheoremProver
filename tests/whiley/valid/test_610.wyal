@@ -1,0 +1,24 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function abs(int x) -> (nat r)
+
+define abs_ensures_0(int x, nat r) is:
+    (r == x) || (r == -x)
+
+
+define abs_ensures_1(int x, nat r) is:
+    r >= 0
+
+
+assert "type invariant not satisfied":
+    forall(nat item):
+        if:
+            abs_ensures_0(item, abs(item))
+            abs_ensures_1(item, abs(item))
+        then:
+            abs(item) is nat
+
+

@@ -1,0 +1,22 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define absent(int[] items, int item, int end) is:
+    forall(int i):
+        ((0 <= i) && (i < end)) ==> (items[i] != item)
+
+
+define indexOf_loopinvariant_28(int[] items, int item, nat i) is:
+    absent(items, item, i)
+
+
+assert "loop invariant does not hold on entry":
+    forall(nat i, int item, int[] items):
+        if:
+            i == 0
+        then:
+            indexOf_loopinvariant_28(items, item, i)
+
+

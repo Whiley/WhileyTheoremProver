@@ -1,0 +1,14 @@
+type tac1tup is ({int f1, int f2} _this)
+where:
+    _this.f1 < _this.f2
+
+
+function f() -> (tac1tup $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f() is tac1tup
+
+

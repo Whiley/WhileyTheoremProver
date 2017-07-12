@@ -1,0 +1,25 @@
+type utr12nat is (int x)
+where:
+    x >= 0
+
+
+type intList is ((int[])|utr12nat self)
+
+
+type tupper is ({intList il, int op} _this)
+where:
+    (_this.op >= 0) && (_this.op <= 5)
+
+
+define f_ensures_0(tupper y, int result) is:
+    result >= 0
+
+
+assert "postcondition not satisfied":
+    forall(tupper y):
+        if:
+            true
+        then:
+            f_ensures_0(y, y.op)
+
+

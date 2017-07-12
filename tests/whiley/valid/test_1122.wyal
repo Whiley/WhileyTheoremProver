@@ -1,0 +1,12 @@
+define max_requires_0(int[] items) is:
+    |items| > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] items):
+        if:
+            items == [4, 3, 1, 5, 4]
+        then:
+            max_requires_0([1, 2, 3])
+
+

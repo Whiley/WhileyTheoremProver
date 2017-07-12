@@ -1,0 +1,17 @@
+define nat(int x) is:
+    x >= 0
+
+
+type nat is (int x)
+where:
+    nat(x)
+
+
+assert "type invariant not satisfied":
+    forall(nat x):
+        if:
+            true
+        then:
+            x is nat
+
+

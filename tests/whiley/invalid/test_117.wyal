@@ -1,0 +1,8 @@
+assert "division by zero":
+    forall(int y):
+        if:
+            true
+        then:
+            y != 0
+
+

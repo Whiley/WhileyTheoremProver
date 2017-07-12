@@ -1,0 +1,15 @@
+type storeCode is (int x)
+where:
+    (0 <= x) && (x <= 5)
+
+
+type STORE is ({int index, storeCode op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {index: 1, op: 0} is STORE
+
+

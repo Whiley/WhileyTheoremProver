@@ -1,0 +1,16 @@
+type state is ({int[] input, int pos} _this)
+where:
+    (_this.pos >= 0) && (_this.pos <= |_this.input|)
+
+
+function isLetter(int c) -> (bool $)
+
+assert "index out of bounds (negative)":
+    forall(state st):
+        if:
+            st.pos < |st.input|
+            isLetter(st.input[st.pos])
+        then:
+            st.pos >= 0
+
+

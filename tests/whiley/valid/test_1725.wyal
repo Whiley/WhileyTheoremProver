@@ -1,0 +1,21 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define match_loopinvariant_14(nat offset, nat pos) is:
+    (pos >= 0) && (offset >= 0)
+
+
+assert "type invariant not satisfied":
+    forall(nat offset$1, nat offset$2, nat pos$1, nat end, nat pos, int len, int[] data):
+        if:
+            pos == end
+            len == 0
+            match_loopinvariant_14(offset$1, pos$1)
+            (offset$1 < pos$1) && ((pos$1 < |data|) && (data[offset$1] == data[pos$1]))
+            offset$2 == (offset$1 + 1)
+        then:
+            (pos$1 + 1) is nat
+
+

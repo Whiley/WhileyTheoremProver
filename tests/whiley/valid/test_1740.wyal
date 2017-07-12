@@ -1,0 +1,24 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define create_ensures_0(nat count, int value, int[] result) is:
+    |result| == count
+
+
+define create_loopinvariant_24(nat count, int[] r, int i) is:
+    (i <= count) && ((i >= 0) && (count == |r|))
+
+
+assert "postcondition not satisfied":
+    forall(int[] r$3, int[] r, int value, int i, nat count, int i$3):
+        if:
+            r == [0;count]
+            i == 0
+            create_loopinvariant_24(count, r$3, i$3)
+            i$3 >= count
+        then:
+            create_ensures_0(count, value, r$3)
+
+

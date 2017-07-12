@@ -1,0 +1,13 @@
+define extract_ensures_0(int[] ls, int r) is:
+    r >= |ls|
+
+
+assert "postcondition not satisfied":
+    forall(int[] ls, int i, int i$3):
+        if:
+            i == 0
+            i$3 >= |ls|
+        then:
+            extract_ensures_0(ls, i$3)
+
+

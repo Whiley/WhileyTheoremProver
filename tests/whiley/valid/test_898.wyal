@@ -1,0 +1,8 @@
+assert "index out of bounds (negative)":
+    forall(bool[] ls):
+        if:
+            ls == [false;2]
+        then:
+            0 >= 0
+
+

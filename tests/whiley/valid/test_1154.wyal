@@ -1,0 +1,11 @@
+type Buffer is ({int[] data, int wp} self)
+
+
+assert "type invariant not satisfied":
+    forall(Buffer b):
+        if:
+            b == {data: [0, 0, 0, 0], wp: 0}
+        then:
+            b is Buffer
+
+

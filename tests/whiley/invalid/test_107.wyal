@@ -1,0 +1,12 @@
+define f_requires_0(int[] ls) is:
+    forall(int i):
+        ((0 <= i) && (i < 5)) ==> ((i < 0) || ((i >= |ls|) || (ls[i] >= 0)))
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([-1, 0, 1, 2, 3])
+
+

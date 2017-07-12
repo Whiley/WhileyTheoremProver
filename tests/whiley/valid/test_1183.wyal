@@ -1,0 +1,13 @@
+type bytes is ({int b1, int b2} self)
+
+
+function f(int b) -> (bytes $)
+
+assert "type invariant not satisfied":
+    forall(int b):
+        if:
+            b == 1
+        then:
+            f(b) is bytes
+
+

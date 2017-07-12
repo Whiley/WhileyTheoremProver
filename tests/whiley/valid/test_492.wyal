@@ -1,0 +1,11 @@
+define sum_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        sum_requires_0([1])
+
+

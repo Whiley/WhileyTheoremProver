@@ -1,0 +1,21 @@
+define contains(int[] xs, int x) is:
+    exists(int i):
+        ((0 <= i) && (i < |xs|)) && (xs[i] == x)
+
+
+define id_requires_0(int[] xs, int x, int y) is:
+    contains(xs, y)
+
+
+define id_ensures_0(int[] xs, int x, int y, int[] ys) is:
+    contains(ys, x)
+
+
+assert "postcondition not satisfied":
+    forall(int[] xs, int x, int y):
+        if:
+            id_requires_0(xs, x, y)
+        then:
+            id_ensures_0(xs, x, y, xs)
+
+

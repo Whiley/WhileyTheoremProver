@@ -1,0 +1,27 @@
+define extract_loopinvariant_11(int[] ls, int i, int[] rs) is:
+    i >= 0
+
+
+define extract_loopinvariant_16(int[] ls, int i, int[] rs) is:
+    |rs| == |ls|
+
+
+define extract_loopinvariant_26(int[] ls, int i, int[] rs) is:
+    forall(int j):
+        ((0 <= j) && (j < |rs|)) ==> (rs[j] >= 0)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] ls, int[] rs$1, int i, int[] rs, int i$1):
+        if:
+            i == 0
+            rs == [0;|ls|]
+            extract_loopinvariant_11(ls, i$1, rs$1)
+            extract_loopinvariant_16(ls, i$1, rs$1)
+            extract_loopinvariant_26(ls, i$1, rs$1)
+            i$1 < |ls|
+            ls[i$1] >= 0
+        then:
+            i$1 < |ls|
+
+

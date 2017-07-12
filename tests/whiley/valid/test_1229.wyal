@@ -1,0 +1,14 @@
+type binop is ({Expr left, int op, Expr right} self)
+
+
+type Expr is (int|binop self)
+
+
+assert "type invariant not satisfied":
+    forall(Expr bop1):
+        if:
+            bop1 == {left: 1, op: 1, right: 2}
+        then:
+            bop1 is Expr
+
+

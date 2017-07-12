@@ -1,0 +1,14 @@
+type tac1tup is ({int f1, int f2} self)
+
+
+function f() -> (tac1tup $)
+
+assert "assertion failed":
+    forall(tac1tup x, tac1tup x$1):
+        if:
+            x == f()
+            x$1 == x{f1:=x.f2 - 2}
+        then:
+            x$1.f1 != x$1.f2
+
+

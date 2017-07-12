@@ -1,0 +1,18 @@
+type Func is ({any read} self)
+
+
+function test(Func f, int arg) -> (int $)
+
+function test() -> ()
+
+assert "type invariant not satisfied":
+    forall(any $10$1, any $20, int x, any $0$1, int x$1):
+        if:
+            x == test({read: $0$1}, 123)
+            x == 123
+            x$1 == test({read: $10$1}, 12545)
+            x$1 == 12545
+        then:
+            {read: $20} is Func
+
+

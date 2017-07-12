@@ -1,0 +1,22 @@
+type tenup is (int x)
+where:
+    x > 10
+
+
+type msg1 is ({int[] data, tenup op} self)
+
+
+type msg2 is ({int index} self)
+
+
+type msgType is (msg1|msg2 self)
+
+
+assert "type invariant not satisfied":
+    forall(msgType m):
+        if:
+            true
+        then:
+            m is msgType
+
+

@@ -1,0 +1,13 @@
+type c2nat is (int x)
+where:
+    x < 10
+
+
+assert "type invariant not satisfied":
+    forall(c2nat x):
+        if:
+            true
+        then:
+            (x + 1) is c2nat
+
+

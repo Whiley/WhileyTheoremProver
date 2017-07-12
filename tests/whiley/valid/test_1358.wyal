@@ -1,0 +1,14 @@
+type sr5nat is (int n)
+where:
+    n > 0
+
+
+assert "assertion failed":
+    forall({sr5nat f} x, {sr5nat f} x$1):
+        if:
+            x == {f: 1}
+            x$1 == x{f:=2}
+        then:
+            x$1 == {f: 2}
+
+

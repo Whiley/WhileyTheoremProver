@@ -1,0 +1,14 @@
+type anat is (int self)
+
+
+type bnat is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(bnat x):
+        if:
+            true
+        then:
+            x is anat
+
+

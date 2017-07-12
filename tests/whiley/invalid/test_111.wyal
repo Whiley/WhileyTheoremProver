@@ -1,0 +1,17 @@
+define f_requires_0(int[] ls) is:
+    exists(int i):
+        ((0 <= i) && (i < 4)) && ((i >= 0) && ((i < |ls|) && (ls[i] < 0)))
+
+
+define g_requires_0(int[] ls) is:
+    |ls| > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] ls):
+        if:
+            g_requires_0(ls)
+        then:
+            f_requires_0(ls)
+
+

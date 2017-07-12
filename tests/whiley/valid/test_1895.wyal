@@ -1,0 +1,25 @@
+define indexOf_ensures_0(int[] items, int item, int r) is:
+    (r == |items|) || (items[r] == item)
+
+
+define indexOf_loopinvariant_22(int[] items, int i) is:
+    (i >= 0) && (i <= |items|)
+
+
+assert "postcondition not satisfied":
+    forall(int i, int i$4, int i$1, int i$3, int item, int[] items):
+        if:
+            i == 0
+            either:
+                indexOf_loopinvariant_22(items, i$1)
+                i$1 < |items|
+                items[i$1] == item
+                i$4 == i$1
+            or:
+                indexOf_loopinvariant_22(items, i$3)
+                i$3 >= |items|
+                i$4 == i$3
+        then:
+            indexOf_ensures_0(items, item, i$4)
+
+

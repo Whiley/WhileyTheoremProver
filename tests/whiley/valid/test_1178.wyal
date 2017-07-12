@@ -1,0 +1,12 @@
+type i8 is (int x)
+where:
+    (x >= 0) && (x <= 255)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is i8
+
+

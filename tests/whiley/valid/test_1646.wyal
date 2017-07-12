@@ -1,0 +1,19 @@
+type TYPE is (null|int self)
+
+
+define f_loopinvariant_7(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(TYPE[] xs, TYPE p, int i, int i$1, int i$2):
+        if:
+            i == 0
+            f_loopinvariant_7(i$1)
+            i$1 < |xs|
+            xs[i$1] != p
+            i$2 == (i$1 + 1)
+        then:
+            f_loopinvariant_7(i$2)
+
+

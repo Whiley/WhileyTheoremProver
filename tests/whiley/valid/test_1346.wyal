@@ -1,0 +1,15 @@
+define repl_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int old, int i, int i$1, int[] str$1):
+        if:
+            i == 0
+            repl_loopinvariant_8(i$1)
+            i$1 < |str$1|
+            str$1[i$1] == old
+        then:
+            i$1 >= 0
+
+

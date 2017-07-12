@@ -1,0 +1,16 @@
+type list is (int[] self)
+
+
+define update_requires_0(list l, int index, int value) is:
+    (0 <= index) && (index < |l|)
+
+
+assert "type invariant not satisfied":
+    forall(int value, int index, list l, list l$1):
+        if:
+            update_requires_0(l, index, value)
+            l$1 == l[index:=value]
+        then:
+            l$1 is list
+
+

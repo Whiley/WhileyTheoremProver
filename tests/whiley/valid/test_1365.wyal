@@ -1,0 +1,13 @@
+type sr6nat is (int self)
+
+
+type sr6tup is ({sr6nat f, int g} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {f: 1, g: 5} is sr6tup
+
+

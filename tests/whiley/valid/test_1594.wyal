@@ -1,0 +1,10 @@
+type IntList is ({int|(int[]) op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {op: 2} is IntList
+
+

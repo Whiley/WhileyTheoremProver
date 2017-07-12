@@ -1,0 +1,13 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {name: [72, 101, 108, 108, 111]} is Attribute
+
+

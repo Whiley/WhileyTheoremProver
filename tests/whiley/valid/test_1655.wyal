@@ -1,0 +1,15 @@
+type IntBool is (bool|int self)
+
+
+function f(IntBool y) -> (IntBool $)
+
+assert "type invariant not satisfied":
+    forall(IntBool x$1, IntBool x):
+        if:
+            x == 123
+            f(x) == 123
+            x$1 == true
+        then:
+            x$1 is IntBool
+
+

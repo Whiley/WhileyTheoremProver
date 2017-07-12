@@ -1,0 +1,18 @@
+type liststr is (int[] self)
+
+
+function index(liststr l, int index) -> (any $)
+
+define index_requires_0(liststr l, int index) is:
+    (index >= 0) && (index < |l|)
+
+
+assert "precondition not satisfied":
+    forall(int[] l):
+        if:
+            l == [1, 2, 3]
+            index(l, 0) == 1
+        then:
+            index_requires_0(l, 1)
+
+

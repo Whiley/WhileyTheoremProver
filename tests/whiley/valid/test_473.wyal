@@ -1,0 +1,13 @@
+type odd is (int x)
+where:
+    (x == 1) || ((x == 3) || (x == 5))
+
+
+assert "assertion failed":
+    forall(odd y):
+        if:
+            y == 1
+        then:
+            y == 1
+
+

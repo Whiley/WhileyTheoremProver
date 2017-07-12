@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int[] items):
+        if:
+            items == [5, 4, 6, 3, 7, 2, 8, 1]
+        then:
+            0 >= 0
+
+

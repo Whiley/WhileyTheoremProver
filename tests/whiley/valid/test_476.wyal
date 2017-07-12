@@ -1,0 +1,12 @@
+type codeOp is (int x)
+where:
+    (1 <= x) && (x <= 4)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is codeOp
+
+

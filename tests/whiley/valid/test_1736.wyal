@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define create_loopinvariant_24(nat count, int[] r, int i) is:
+    (i <= count) && ((i >= 0) && (count == |r|))
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] r, int i, nat count):
+        if:
+            r == [0;count]
+            i == 0
+        then:
+            create_loopinvariant_24(count, r, i)
+
+

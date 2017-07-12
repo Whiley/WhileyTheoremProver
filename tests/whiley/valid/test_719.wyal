@@ -1,0 +1,11 @@
+type mymethod is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $5, &*:int x, &*:int $1):
+        if:
+            x == $1
+        then:
+            $5 is mymethod
+
+

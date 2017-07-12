@@ -1,0 +1,21 @@
+type odd is (int x)
+where:
+    (x == 1) || ((x == 3) || (x == 5))
+
+
+type even is (int x)
+where:
+    (x == 2) || ((x == 4) || (x == 6))
+
+
+type oddeven is (even|odd self)
+
+
+assert "type invariant not satisfied":
+    forall(oddeven x):
+        if:
+            x is odd
+        then:
+            2 is even
+
+

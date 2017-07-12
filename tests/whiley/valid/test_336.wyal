@@ -1,0 +1,17 @@
+type Matrix is ((int[])[] rows)
+where:
+    forall(int i, int j):
+        (((0 <= i) && (i < |rows|)) && ((0 <= j) && (j < |rows|))) ==> (|rows[i]| == |rows[j]|)
+
+
+function run(Matrix A, Matrix B) -> (Matrix $)
+
+assert "type invariant not satisfied":
+    forall(Matrix m1, Matrix m2):
+        if:
+            m1 == [[1, 2], [3, 4]]
+            m2 == [[5, 6], [7, 8]]
+        then:
+            run(m1, m2) is Matrix
+
+

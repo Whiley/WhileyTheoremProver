@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define match_loopinvariant_14(nat offset, nat pos) is:
+    (pos >= 0) && (offset >= 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(nat end, nat pos, int len, nat offset):
+        if:
+            pos == end
+            len == 0
+        then:
+            match_loopinvariant_14(offset, pos)
+
+

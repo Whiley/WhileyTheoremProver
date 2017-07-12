@@ -1,0 +1,11 @@
+type Point is ({int x, int y} self)
+
+
+assert "type invariant not satisfied":
+    forall(Point x):
+        if:
+            true
+        then:
+            x is Point
+
+

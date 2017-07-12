@@ -1,0 +1,11 @@
+type SyntaxError is ({int[] msg} self)
+
+
+assert "type invariant not satisfied":
+    forall(int[] errorMessage):
+        if:
+            true
+        then:
+            {msg: errorMessage} is SyntaxError
+
+

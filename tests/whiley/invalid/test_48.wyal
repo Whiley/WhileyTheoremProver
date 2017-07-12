@@ -1,0 +1,8 @@
+assert "index out of bounds (not less than length)":
+    forall(int[] xs):
+        if:
+            true
+        then:
+            0 < |xs|
+
+

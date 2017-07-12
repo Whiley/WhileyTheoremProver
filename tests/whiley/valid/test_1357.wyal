@@ -1,0 +1,13 @@
+type sr5nat is (int n)
+where:
+    n > 0
+
+
+assert "type invariant not satisfied":
+    forall({sr5nat f} x):
+        if:
+            x == {f: 1}
+        then:
+            2 is sr5nat
+
+

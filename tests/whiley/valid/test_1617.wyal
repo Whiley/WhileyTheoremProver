@@ -1,0 +1,26 @@
+type char is (int x)
+where:
+    (0 <= x) && (x <= 255)
+
+
+type State is ({char[] input, int pos} s)
+where:
+    s.pos >= 0
+
+
+function isDigit(char c) -> (bool $)
+
+define parseNumber_loopinvariant_8(State st) is:
+    st.pos >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(State st$1, int n):
+        if:
+            n == 0
+            parseNumber_loopinvariant_8(st$1)
+            (st$1.pos < |st$1.input|) && isDigit(st$1.input[st$1.pos])
+        then:
+            st$1.pos < |st$1.input|
+
+

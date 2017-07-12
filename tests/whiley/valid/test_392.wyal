@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type Cash is (nat[] coins)
+where:
+    |coins| == |[1, 5, 10, 20, 50, 100, 500, 1000]|
+
+
+function Cash(nat[] coins) -> (Cash $)
+
+assert "type invariant not satisfied":
+    if:
+        Cash([5, 1]) == [0, 1, 0, 0, 0, 1, 0, 0]
+        Cash([6, 2, 4]) == [0, 0, 1, 0, 1, 0, 1, 0]
+    then:
+        [5, 5, 3] is nat[]
+
+

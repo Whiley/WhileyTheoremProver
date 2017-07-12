@@ -1,0 +1,14 @@
+type intr is (bool|int self)
+
+
+function f(intr[] e) -> (int[] $)
+
+assert "type invariant not satisfied":
+    if:
+        f([1, 2, 3, 4, 5, 6, 7]) == [1, 2, 3, 4, 5, 6, 7]
+        f([0;0]) == [0;0]
+        f([1, 2, true]) == [1, 2, 3]
+    then:
+        [false, 2, true] is intr[]
+
+

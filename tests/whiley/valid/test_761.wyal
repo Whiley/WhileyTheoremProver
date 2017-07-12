@@ -1,0 +1,21 @@
+define f_requires_0(int[] x, int i) is:
+    |x| > 0
+
+
+assert "assertion failed":
+    forall(int i, int y, int i$1, int z, int[] x, int i$2):
+        if:
+            f_requires_0(x, i)
+            either:
+                (i < 0) || (i >= |x|)
+                i$1 == 0
+                i$2 == i$1
+            or:
+                (i >= 0) && (i < |x|)
+                i$2 == i
+            y == x[i$2]
+            z == x[i$2]
+        then:
+            y == z
+
+

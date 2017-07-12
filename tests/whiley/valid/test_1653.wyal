@@ -1,0 +1,11 @@
+type IntBool is (bool|int self)
+
+
+assert "type invariant not satisfied":
+    forall(IntBool x):
+        if:
+            x == 123
+        then:
+            x is IntBool
+
+

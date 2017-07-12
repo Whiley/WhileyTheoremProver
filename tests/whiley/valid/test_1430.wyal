@@ -1,0 +1,13 @@
+type Rtypes is ({bool x, bool y}|{int x, int z} self)
+
+
+function f(Rtypes e) -> (bool $)
+
+assert "type invariant not satisfied":
+    if:
+        f({x: true, y: false}) == false
+        f({x: true, y: true}) == false
+    then:
+        {x: 1, z: 1} is Rtypes
+
+
