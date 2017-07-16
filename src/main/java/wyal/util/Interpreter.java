@@ -362,9 +362,9 @@ public class Interpreter {
 			} else {
 				return false;
 			}
-		} else if(lhs instanceof HashMap) {
-			if(rhs instanceof HashMap) {
-				return equalsRecord((HashMap)lhs,(HashMap)rhs);
+		} else if(lhs instanceof Record) {
+			if(rhs instanceof Record) {
+				return equalsRecord((Record)lhs,(Record)rhs);
 			} else {
 				return false;
 			}
@@ -388,8 +388,17 @@ public class Interpreter {
 		}
 	}
 
-	protected boolean equalsRecord(HashMap<String,Object> lhs, HashMap<String,Object> rhs) {
-		throw new UnsupportedOperationException("got here");
+	protected boolean equalsRecord(Record lhs, Record rhs) {
+		if (Arrays.equals(lhs.fields, rhs.fields)) {
+			Identifier[] fields = lhs.fields;
+			for (int i = 0; i != fields.length; ++i) {
+				if(!equals(lhs.values[i],rhs.values[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 
 	protected boolean evaluateLessThan(Expr.LessThan expr, Environment environment) throws UndefinedException {
@@ -541,7 +550,7 @@ public class Interpreter {
 
 		@Override
 		public int compare(Pair<Identifier,Expr> o1, Pair<Identifier,Expr> o2) {
-			return o1.getFirst().compareTo(o2.getSecond());
+			return o1.getFirst().compareTo(o2.getFirst());
 		}
 
 	};
