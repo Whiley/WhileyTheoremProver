@@ -1,0 +1,13 @@
+define f_ensures_0(int x, int r) is:
+    (r >= 0) && (r <= 2)
+
+
+assert "postcondition not satisfied":
+    forall(int x):
+        if:
+            x != 1
+            x != 2
+        then:
+            f_ensures_0(x, 2)
+
+

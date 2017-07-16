@@ -1,0 +1,15 @@
+type list is (int[] self)
+
+
+define update_requires_0(list l, int index, int value) is:
+    (0 <= index) && (index < |l|)
+
+
+assert "index out of bounds (negative)":
+    forall(int value, int index, list l):
+        if:
+            update_requires_0(l, index, value)
+        then:
+            index >= 0
+
+

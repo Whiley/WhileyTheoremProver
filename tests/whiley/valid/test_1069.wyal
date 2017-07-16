@@ -1,0 +1,12 @@
+type MyProc2 is ({any data} self)
+
+
+function create(any data) -> (&*:MyProc2 $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        create(false) is &*:MyProc2
+
+

@@ -1,0 +1,24 @@
+function toUnsignedInt(int b) -> (int $)
+
+define meth_loopinvariant_11(int[] bytes, int[] data, int i) is:
+    i >= 0
+
+
+define meth_loopinvariant_16(int[] bytes, int[] data, int i) is:
+    |data| == |bytes|
+
+
+assert "loop invariant not restored":
+    forall(int[] bytes, int i, int[] data$1, int i$1, int[] data$2, int[] data, int i$2):
+        if:
+            data == [0;|bytes|]
+            i == 0
+            meth_loopinvariant_11(bytes, data$1, i$1)
+            meth_loopinvariant_16(bytes, data$1, i$1)
+            i$1 < |bytes|
+            data$2 == data$1[i$1:=toUnsignedInt(bytes[i$1])]
+            i$2 == (i$1 + 1)
+        then:
+            meth_loopinvariant_16(bytes, data$2, i$2)
+
+

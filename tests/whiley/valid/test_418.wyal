@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define f_ensures_0({int f} v, int r) is:
+    r >= 0
+
+
+assert "postcondition not satisfied":
+    forall({int f} v):
+        if:
+            v is !{nat f}
+        then:
+            f_ensures_0(v, 0)
+
+

@@ -1,0 +1,13 @@
+define numPieces_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int count):
+        if:
+            count == 0
+            i == 0
+        then:
+            numPieces_loopinvariant_9(i)
+
+

@@ -1,0 +1,12 @@
+define f_requires_0((int[])[] ls) is:
+    (|ls| > 0) && (|ls[0]| > 0)
+
+
+assert "precondition not satisfied":
+    forall((int[])[] ls):
+        if:
+            ls == [[1, 2, 3, 4]]
+        then:
+            f_requires_0(ls)
+
+

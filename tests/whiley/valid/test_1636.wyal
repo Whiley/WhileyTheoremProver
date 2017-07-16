@@ -1,0 +1,16 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type nlist is (int|(nat[]) self)
+
+
+assert "type invariant not satisfied":
+    forall(int i, nlist[] xs):
+        if:
+            (i >= 0) && (i < |xs|)
+        then:
+            xs[i] is nlist
+
+

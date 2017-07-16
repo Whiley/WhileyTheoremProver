@@ -1,0 +1,12 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, 2, 3] is nat[]
+
+

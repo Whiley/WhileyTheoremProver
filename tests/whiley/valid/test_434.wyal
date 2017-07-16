@@ -1,0 +1,15 @@
+type state is ({int[] input, int pos} s)
+where:
+    (s.pos >= 0) && (s.pos <= |s.input|)
+
+
+function parseWhiteSpace(state st) -> (state $)
+
+assert "type invariant not satisfied":
+    forall(state st, state st$1):
+        if:
+            st$1 == parseWhiteSpace(st)
+        then:
+            st$1 is state
+
+

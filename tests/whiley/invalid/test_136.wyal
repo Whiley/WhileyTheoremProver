@@ -1,0 +1,19 @@
+type scf8nat is (int n)
+where:
+    n > 0
+
+
+type scf8tup is ({scf8nat f, int g} r)
+where:
+    r.g > r.f
+
+
+assert "type invariant not satisfied":
+    forall({int f, int g}[] x$1, {int f, int g}[] x):
+        if:
+            x == [{f: 1, g: 2}, {f: 4, g: 8}]
+            x$1 == x[0:=x[0]{f:=2}]
+        then:
+            x$1 is scf8tup[]
+
+

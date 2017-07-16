@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int[] e):
+        if:
+            e == [0;0]
+        then:
+            0 >= 0
+
+

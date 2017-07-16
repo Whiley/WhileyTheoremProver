@@ -1,0 +1,27 @@
+function f(int x) -> (int y)
+
+define f_ensures_0(int x, int y) is:
+    x < y
+
+
+define g_requires_0(int x, int y) is:
+    x > y
+
+
+assert "precondition not satisfied":
+    forall(int b, int a$2, int a, int a$1):
+        if:
+            a == 2
+            b == 1
+            either:
+                a < b
+                f_ensures_0(b, f(b))
+                a$1 == f(b)
+                a$2 == a$1
+            or:
+                a >= b
+                a$2 == a
+        then:
+            g_requires_0(a$2, b)
+
+

@@ -1,0 +1,13 @@
+define extract_loopinvariant_11(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] ls, int[] r, int i):
+        if:
+            i == 0
+            r == [0;|ls|]
+        then:
+            extract_loopinvariant_11(i)
+
+

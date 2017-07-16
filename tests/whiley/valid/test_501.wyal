@@ -1,0 +1,16 @@
+type nbool is (null|bool self)
+
+
+define f_loopinvariant_16(int[] xs, nbool[] r, int i) is:
+    |xs| == |r|
+
+
+assert "loop invariant does not hold on entry":
+    forall(nbool[] r, int i, int[] xs):
+        if:
+            r == [false;|xs|]
+            i == 0
+        then:
+            f_loopinvariant_16(xs, r, i)
+
+

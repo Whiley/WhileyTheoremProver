@@ -1,0 +1,25 @@
+define sum_requires_0(int[] items) is:
+    forall(int i):
+        ((0 <= i) && (i < |items|)) ==> (items[i] >= 0)
+
+
+define sum_ensures_0(int[] items, int r) is:
+    r >= 0
+
+
+define sum_loopinvariant_25(int i, int x) is:
+    (i >= 0) && (x >= 0)
+
+
+assert "postcondition not satisfied":
+    forall(int x, int i, int i$3, int x$3, int[] items):
+        if:
+            sum_requires_0(items)
+            i == 0
+            x == 0
+            sum_loopinvariant_25(i$3, x$3)
+            i$3 >= |items|
+        then:
+            sum_ensures_0(items, x$3)
+
+

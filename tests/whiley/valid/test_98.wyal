@@ -1,0 +1,9 @@
+assert "index out of bounds (not less than length)":
+    forall(bool[] board, int i):
+        if:
+            i > 0
+            (i + 1) < |board|
+        then:
+            (i - 1) < |board|
+
+

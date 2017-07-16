@@ -1,0 +1,10 @@
+type SupertypeRecord is ({int a, ...} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {a: 42, b: 1337} is SupertypeRecord
+
+

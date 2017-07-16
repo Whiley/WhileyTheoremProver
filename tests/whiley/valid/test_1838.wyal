@@ -1,0 +1,19 @@
+define contains_ensures_0(int[] xs, int x, bool r) is:
+    !r || exists(int i).(((0 <= i) && (i < |xs|)) && (xs[i] == x))
+
+
+define contains_loopinvariant_20(int i) is:
+    i >= 0
+
+
+assert "postcondition not satisfied":
+    forall(int x, int i, int i$1, int[] xs):
+        if:
+            i == 0
+            contains_loopinvariant_20(i$1)
+            i$1 < |xs|
+            xs[i$1] == x
+        then:
+            contains_ensures_0(xs, x, true)
+
+

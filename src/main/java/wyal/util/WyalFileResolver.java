@@ -121,7 +121,7 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	private WyalFile loadModule(NameID nid, Name name) throws IOException, ResolutionError {
-		WyalFile enclosing = (WyalFile) name.getParent();
+		WyalFile enclosing = getWyalFile(name.getParent());
 		if (enclosing.getEntry().id().equals(nid.module())) {
 			// This is a local lookup.
 
@@ -180,26 +180,37 @@ public final class WyalFileResolver implements NameResolver {
 	 */
 	private NameID nonLocalNameLookup(Name name) throws NameResolver.ResolutionError {
 		try {
-			WyalFile enclosing = (WyalFile) name.getParent();
+			WyalFile enclosing = (WyalFile) getWyalFile(name.getParent());
 			List<Declaration.Import> imports = getImportsInReverseOrder(enclosing);
-			//
+			// Check name against import statements
 			for (Declaration.Import imp : imports) {
 				NameID nid = matchImport(imp, name);
 				if (nid != null) {
 					return nid;
 				}
 			}
-			// If we get here, then there is still an actual chance it could be
-			// referring to something declared in this compilation unit (i.e. a
-			// local lookup with a partially- or fully-qualified name)
+			// Check whether name is fully qualified or not
 			NameID nid = name.toNameID();
-			Path.ID localPathID = enclosing.getEntry().id();
-			//
-			if(matchPartialModulePath(nid.module(),localPathID)) {
-				// Yes, ok, we've matched a local item!
-				return new NameID(localPathID,nid.name());
+			if (project.exists(nid.module(), WyalFile.ContentType)) {
+				// Yes, this is a fully qualified name so load the module
+				WyalFile module = project.get(nid.module(), WyalFile.ContentType).read();
+				// Look inside to see whether a matching item is found
+				if (localNameLookup(nid.name(), module)) {
+					return nid;
+				}
+			} else {
+				// If we get here, then there is still an actual chance it could
+				// be referring to something declared in this compilation unit
+				// (i.e. a local lookup with a partially- or fully-qualified
+				// name)
+				Path.ID localPathID = enclosing.getEntry().id();
+				//
+				if (matchPartialModulePath(nid.module(), localPathID)) {
+					// Yes, ok, we've matched a local item!
+					return new NameID(localPathID, nid.name());
+				}
+				// Otherwise, we really couldn't figure out this name.
 			}
-			// Otherwise, we really couldn't figure out this name.
 		} catch (IOException e) {
 
 		}
@@ -211,13 +222,13 @@ public final class WyalFileResolver implements NameResolver {
 	 * in reverse order, since that is the order in which they will be examined
 	 * for the given named item.
 	 *
-	 * @param wf
+	 * @param heap
 	 * @return
 	 */
-	private List<Declaration.Import> getImportsInReverseOrder(WyalFile wf) {
+	private List<Declaration.Import> getImportsInReverseOrder(SyntacticHeap heap) {
 		ArrayList<Declaration.Import> imports = new ArrayList<>();
-		for (int i = wf.size() - 1; i >= 0; --i) {
-			SyntacticElement element = wf.getSyntacticItem(i);
+		for (int i = heap.size() - 1; i >= 0; --i) {
+			SyntacticElement element = heap.getSyntacticItem(i);
 			if (element instanceof Declaration.Import) {
 				imports.add((Declaration.Import) element);
 			}
@@ -310,4 +321,11 @@ public final class WyalFileResolver implements NameResolver {
 		return project.get(Content.filter(filter, WyalFile.ContentType));
 	}
 
+	public WyalFile getWyalFile(SyntacticHeap heap) {
+		if(heap instanceof WyalFile) {
+			return (WyalFile) heap;
+		} else {
+			return getWyalFile(heap.getParent());
+		}
+	}
 }

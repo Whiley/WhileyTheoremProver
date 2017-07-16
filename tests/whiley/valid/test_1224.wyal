@@ -1,0 +1,15 @@
+type binop is ({Expr left, int op, Expr right} _this)
+where:
+    (_this.op == 1) || ((_this.op == 2) || ((_this.op == 3) || (_this.op == 4)))
+
+
+type Expr is (int|binop self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {left: 1, op: 1, right: 2} is Expr
+
+

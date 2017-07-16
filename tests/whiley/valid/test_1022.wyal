@@ -1,0 +1,27 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+function sum(VecPoint vp) -> (int $)
+
+define sum_loopinvariant_20(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int r, int r$2, !Point&VecPoint vp$2, int i, int r$1, int i$1, VecPoint vp, int i$2):
+        if:
+            vp$2 == vp
+            vp is !Point
+            r == 0
+            i == 0
+            sum_loopinvariant_20(i$1)
+            i$1 < |vp$2|
+            r$2 == (r$1 + sum(vp$2[i$1]))
+            i$2 == (i$1 + 1)
+        then:
+            sum_loopinvariant_20(i$2)
+
+

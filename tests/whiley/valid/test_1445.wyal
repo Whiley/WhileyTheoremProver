@@ -1,0 +1,10 @@
+type rlist is (bool|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        true is rlist
+
+

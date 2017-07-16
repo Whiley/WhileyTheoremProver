@@ -1,0 +1,10 @@
+type Rtypes is ({int x, int y}|{int x, int z} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: 3, y: 1} is Rtypes
+
+

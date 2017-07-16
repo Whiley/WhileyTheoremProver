@@ -1,0 +1,11 @@
+type Rec is ({bool[] items} self)
+
+
+assert "index out of bounds (negative)":
+    forall(Rec r):
+        if:
+            r == {items: [true, true, false]}
+        then:
+            1 >= 0
+
+

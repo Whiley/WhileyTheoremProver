@@ -1,0 +1,12 @@
+type IntList is ({int|(int[]) op} self)
+
+
+assert "type invariant not satisfied":
+    forall(IntList x, IntList x$1):
+        if:
+            x == {op: 2}
+            x$1 == x{op:=1}
+        then:
+            x$1 is IntList
+
+

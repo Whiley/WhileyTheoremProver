@@ -1,0 +1,15 @@
+type func_t is (any self)
+
+
+define g_requires_0(int p) is:
+    p >= 0
+
+
+assert "type invariant not satisfied":
+    forall(any $10, int p):
+        if:
+            g_requires_0(p)
+        then:
+            $10 is func_t
+
+

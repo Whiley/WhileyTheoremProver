@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int[] bytes):
+        if:
+            true
+        then:
+            |bytes| >= 0
+
+

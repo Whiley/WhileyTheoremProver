@@ -1,0 +1,18 @@
+type State is ({int[] input, int pos} s)
+where:
+    (s.pos >= 0) && (s.pos <= |s.input|)
+
+
+type Expr is ({int num}|{int[] err}|{Expr lhs, int op, Expr rhs} self)
+
+
+assert "type invariant not satisfied":
+    forall(int[] input, Expr e):
+        if:
+            e == parseAddSubExpr({input: input, pos: 0})#0
+        then:
+            parseAddSubExpr({input: input, pos: 0})#1 is State
+
+
+function parseAddSubExpr(State st) -> (Expr e, State nst)
+

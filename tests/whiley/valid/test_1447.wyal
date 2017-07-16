@@ -1,0 +1,13 @@
+type rlist is (bool|(int[]) self)
+
+
+function f(rlist l) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f(true) == 0
+        f(false) == 0
+    then:
+        [1, 2, 3] is rlist
+
+

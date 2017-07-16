@@ -1,0 +1,17 @@
+type Sum is (&*:{int[] items, int result} self)
+
+
+define start_loopinvariant_11(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(Sum _this, int i, int sum, int[] items):
+        if:
+            sum == 0
+            i == 0
+            items == (*_this).items
+        then:
+            start_loopinvariant_11(i)
+
+

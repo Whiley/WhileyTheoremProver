@@ -1,0 +1,23 @@
+define permute_loopinvariant_36(int[] xs, int i, int[] ws) is:
+    (i >= 0) && (|xs| == |ws|)
+
+
+define permute_loopinvariant_49(int[] xs, int i, int[] ws) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (xs[j] == xs[ws[j]])
+
+
+assert "loop invariant not restored":
+    forall(int[] ws$1, int i, int[] ws$2, int[] ws, int i$1, int[] xs, int i$2):
+        if:
+            i == 0
+            ws == [0;|xs|]
+            permute_loopinvariant_36(xs, i$1, ws$1)
+            permute_loopinvariant_49(xs, i$1, ws$1)
+            i$1 < |xs|
+            ws$2 == ws$1[i$1:=i$1]
+            i$2 == (i$1 + 1)
+        then:
+            permute_loopinvariant_49(xs, i$2, ws$2)
+
+

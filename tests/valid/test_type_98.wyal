@@ -1,6 +1,6 @@
-type Leaf is (int this)
-type Link is ({LinkedList next} this)
-type LinkedList is (Leaf|Link this)
+type Leaf is (int self)
+type Link is ({LinkedList next} self)
+type LinkedList is (Leaf|Link self)
 
 assert "type invariant not satisfied":
     forall(LinkedList list):

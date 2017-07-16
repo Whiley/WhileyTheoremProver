@@ -1,0 +1,25 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define Cash_requires_0(nat[] coins) is:
+    forall(int i):
+        ((0 <= i) && (i < |coins|)) ==> (coins[i] < |[1, 5, 10, 20, 50, 100, 500, 1000]|)
+
+
+define Cash_loopinvariant_39(int[] cash) is:
+    forall(int k):
+        ((0 <= k) && (k < |cash|)) ==> (cash[k] >= 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] cash, nat i, nat[] coins):
+        if:
+            Cash_requires_0(coins)
+            cash == [0, 0, 0, 0, 0, 0, 0, 0]
+            i == 0
+        then:
+            Cash_loopinvariant_39(cash)
+
+

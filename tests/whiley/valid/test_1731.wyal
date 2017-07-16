@@ -1,0 +1,13 @@
+define test_loopinvariant_10(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall((int[])[] components, int i):
+        if:
+            components == [[0;0];5]
+            i == 0
+        then:
+            test_loopinvariant_10(i)
+
+

@@ -1,0 +1,14 @@
+type expr is ({int[] err}|{expr lhs, int op} self)
+
+
+function f(expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == f({err: [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]})
+            x == 11
+        then:
+            {lhs: {err: [71, 111, 116, 99, 104, 97]}, op: 1} is expr
+
+

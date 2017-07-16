@@ -1,0 +1,18 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define inc_loopinvariant_28(nat[] src, int i, int[] osrc) is:
+    (i >= 0) && (i <= |src|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(nat[] src, int i, int[] osrc):
+        if:
+            i == 0
+            osrc == src
+        then:
+            inc_loopinvariant_28(src, i, osrc)
+
+

@@ -1,0 +1,12 @@
+type TYPE is (null|int self)
+
+
+function f(TYPE[] xs, TYPE p) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f([null, 1, 2], null) == 0
+    then:
+        [1, 2, null, 10] is TYPE[]
+
+

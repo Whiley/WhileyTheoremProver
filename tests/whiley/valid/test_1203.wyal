@@ -1,0 +1,11 @@
+type Position is ({int x, int y} self)
+
+
+assert "type invariant not satisfied":
+    forall(int x, int y):
+        if:
+            true
+        then:
+            {x: x, y: y} is Position
+
+

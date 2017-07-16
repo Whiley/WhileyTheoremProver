@@ -1,0 +1,31 @@
+type nint is (null|int self)
+
+
+define move_requires_0(int from, int to, (nint[])[] list) is:
+    (from >= 0) && (from < |list|)
+
+
+define move_requires_1(int from, int to, (nint[])[] list) is:
+    (from + 1) < |list[from]|
+
+
+define move_requires_2(int from, int to, (nint[])[] list) is:
+    (to >= 0) && (to < |list|)
+
+
+define move_requires_3(int from, int to, (nint[])[] list) is:
+    (to + 1) < |list[to]|
+
+
+assert "index out of bounds (negative)":
+    forall(nint tmp, int to, int from, (nint[])[] list):
+        if:
+            move_requires_0(from, to, list)
+            move_requires_1(from, to, list)
+            move_requires_2(from, to, list)
+            move_requires_3(from, to, list)
+            tmp == list[from][from + 1]
+        then:
+            from >= 0
+
+

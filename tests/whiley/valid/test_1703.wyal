@@ -1,0 +1,19 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define inc_loopinvariant_42(nat[] src, int i, int[] osrc) is:
+    forall(int x):
+        ((0 <= x) && (x < i)) ==> (src[x] > 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(nat[] src, int i, int[] osrc):
+        if:
+            i == 0
+            osrc == src
+        then:
+            inc_loopinvariant_42(src, i, osrc)
+
+

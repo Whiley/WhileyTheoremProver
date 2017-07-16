@@ -1,0 +1,16 @@
+type bop is ({int x, int y} r)
+where:
+    r.x > 0
+
+
+type expr is (int|bop self)
+
+
+assert "type invariant not satisfied":
+    forall(expr e):
+        if:
+            e == 1
+        then:
+            e is expr
+
+

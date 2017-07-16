@@ -1,0 +1,17 @@
+type point is ({int x, int y} self)
+
+
+type listint is (int[] self)
+
+
+assert "index out of bounds (negative)":
+    forall(int x, listint li, point p):
+        if:
+            li == [1, 2, 3]
+            p == {x: 1, y: 2}
+            x == p.x
+            x == 1
+        then:
+            0 >= 0
+
+

@@ -1,0 +1,17 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+function match(Attribute attr) -> (bool $)
+
+assert "type invariant not satisfied":
+    forall(Attribute r):
+        if:
+            r == {name: [72, 101, 108, 108, 111]}
+            match(r) == false
+        then:
+            {data: [0;0], maxLocals: 0, maxStack: 0, name: [67, 111, 100, 101]} is Attribute
+
+

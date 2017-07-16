@@ -1,0 +1,19 @@
+type Piece is (int x)
+where:
+    (x == 0) || ((x == 1) || (x == 2))
+
+
+type Board is (Piece[] pieces)
+where:
+    |pieces| == 9
+
+
+assert "index out of bounds (not less than length)":
+    forall(Board b$1, Board b$2, Board b):
+        if:
+            b$1 == b[0:=2]
+            b$2 == b$1[1:=1]
+        then:
+            0 < |b$2|
+
+

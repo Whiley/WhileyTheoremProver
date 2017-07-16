@@ -1,0 +1,29 @@
+type char is (int x)
+where:
+    (0 <= x) && (x <= 255)
+
+
+type State is ({char[] input, int pos} s)
+where:
+    s.pos >= 0
+
+
+type Expr is (int|{int[] id} self)
+
+
+type SyntaxError is ({int[] err} self)
+
+
+type SExpr is (Expr|SyntaxError self)
+
+
+function parseTerm(State st) -> (SExpr f1, State f2)
+
+assert "type invariant not satisfied":
+    forall(SExpr f1):
+        if:
+            f1 == parseTerm({input: [49, 50, 51], pos: 0})#0
+        then:
+            parseTerm({input: [49, 50, 51], pos: 0})#1 is State
+
+

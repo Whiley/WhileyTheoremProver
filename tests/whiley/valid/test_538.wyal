@@ -1,0 +1,13 @@
+type func_t is (any self)
+
+
+function g(func_t func) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(any $5, any $0$1):
+        if:
+            g($0$1) == 1235
+        then:
+            $5 is func_t
+
+

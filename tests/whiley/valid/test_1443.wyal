@@ -1,0 +1,13 @@
+type src is (int|(src[]) self)
+
+
+function f(src e) -> (bool $)
+
+assert "type invariant not satisfied":
+    if:
+        f([1]) == true
+        f([[1]]) == true
+    then:
+        [[[1]]] is src
+
+

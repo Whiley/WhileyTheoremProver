@@ -1,0 +1,18 @@
+define g_requires_0(int x, int y) is:
+    (x >= 0) && (y >= 0)
+
+
+define g_ensures_0(int x, int y, int r) is:
+    r > 0
+
+
+assert "postcondition not satisfied":
+    forall(int x, int y, bool a):
+        if:
+            g_requires_0(x, y)
+            a == (x >= y)
+            !!a
+        then:
+            g_ensures_0(x, y, 1)
+
+

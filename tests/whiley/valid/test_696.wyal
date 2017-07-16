@@ -1,0 +1,13 @@
+define toInt_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i):
+        if:
+            r == 0
+            i == 0
+        then:
+            toInt_loopinvariant_8(i)
+
+

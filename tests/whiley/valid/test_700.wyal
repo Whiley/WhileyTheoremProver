@@ -1,0 +1,9 @@
+assert "assertion failed":
+    forall(int x, int y):
+        if:
+            x == 1
+            y == 2
+        then:
+            (x + y) == 3
+
+

@@ -1,0 +1,25 @@
+type Piece is (int x)
+where:
+    (x == 0) || ((x == 1) || (x == 2))
+
+
+type Board is (Piece[] pieces)
+where:
+    |pieces| == 9
+
+
+define numPieces_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int i, Board board, int i$1, int count):
+        if:
+            count == 0
+            i == 0
+            numPieces_loopinvariant_9(i$1)
+            i$1 < |board|
+        then:
+            i$1 >= 0
+
+

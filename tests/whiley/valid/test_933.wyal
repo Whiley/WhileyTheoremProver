@@ -1,0 +1,14 @@
+type MyProc is (&*:{int position} self)
+
+
+type MyMeth is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(MyProc p, any $4, &*:{int position} $2):
+        if:
+            p == $2
+        then:
+            $4 is MyMeth
+
+

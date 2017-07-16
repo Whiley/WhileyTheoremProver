@@ -1,0 +1,13 @@
+type c3num is (int x)
+where:
+    (1 <= x) && (x <= 4)
+
+
+assert "type invariant not satisfied":
+    forall(int z):
+        if:
+            true
+        then:
+            z is c3num
+
+

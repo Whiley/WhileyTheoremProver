@@ -1,0 +1,13 @@
+type MsgMode is ({int mode, int op} self)
+
+
+type IntList is ({int op, bool[] rest}|MsgMode self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {op: 1, rest: [false]} is IntList
+
+

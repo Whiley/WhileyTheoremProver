@@ -1,0 +1,11 @@
+type sr4list is (int[] self)
+
+
+assert "assertion failed":
+    forall(sr4list x):
+        if:
+            x == [1]
+        then:
+            x == [1]
+
+

@@ -1,0 +1,22 @@
+type ASCII_char is (int n)
+where:
+    (0 <= n) && (n <= 255)
+
+
+type C_string is (ASCII_char[] chars)
+where:
+    (|chars| > 0) && (chars[|chars| - 1] == 0)
+
+
+define strlen_loopinvariant_14(C_string str, int i) is:
+    (i >= 0) && (i < |str|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, C_string str):
+        if:
+            i == 0
+        then:
+            strlen_loopinvariant_14(str, i)
+
+

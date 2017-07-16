@@ -1,0 +1,18 @@
+type Matrix is ((int[])[] rows)
+where:
+    forall(int i, int j):
+        (((0 <= i) && (i < |rows|)) && ((0 <= j) && (j < |rows|))) ==> (|rows[i]| == |rows[j]|)
+
+
+define run_requires_0(Matrix A, Matrix B) is:
+    (|A| > 0) && ((|B| > 0) && (|B| == |A[0]|))
+
+
+assert "negative length possible":
+    forall(Matrix B, Matrix A):
+        if:
+            run_requires_0(A, B)
+        then:
+            0 >= 0
+
+

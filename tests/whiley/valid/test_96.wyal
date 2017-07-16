@@ -1,0 +1,26 @@
+define play_loopinvariant_14(bool[] board, bool[] nboard, int i) is:
+    (i >= 0) && (|board| == |nboard|)
+
+
+assert "loop invariant not restored":
+    forall(bool[] board, bool[] nboard$4, int i, bool[] nboard, bool[] nboard$1, int i$1, bool[] nboard$2, bool[] nboard$3, int i$2):
+        if:
+            nboard == board
+            i == 0
+            play_loopinvariant_14(board, nboard$1, i$1)
+            i$1 < |board|
+            either:
+                isAlive(i$1, board)
+                nboard$2 == nboard$1[i$1:=true]
+                nboard$4 == nboard$2
+            or:
+                !isAlive(i$1, board)
+                nboard$3 == nboard$1[i$1:=false]
+                nboard$4 == nboard$3
+            i$2 == (i$1 + 1)
+        then:
+            play_loopinvariant_14(board, nboard$4, i$2)
+
+
+function isAlive(int i, bool[] board) -> (bool $)
+

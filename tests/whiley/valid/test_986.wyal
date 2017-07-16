@@ -1,0 +1,7 @@
+assert "index out of bounds (negative)":
+    if:
+        true
+    then:
+        0 >= 0
+
+

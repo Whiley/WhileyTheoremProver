@@ -1,0 +1,14 @@
+type Point is ({int x, int y} p)
+where:
+    p.x != p.y
+
+
+function Point(int i, int j) -> (Point $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        Point(1, 1) is Point
+
+

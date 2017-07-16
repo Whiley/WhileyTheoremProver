@@ -1,0 +1,16 @@
+type codeOp is (int x)
+where:
+    (1 <= x) && (x <= 4)
+
+
+type code is ({codeOp op, int[] payload} self)
+
+
+assert "type invariant not satisfied":
+    forall(code y, codeOp x):
+        if:
+            y == {op: x, payload: [0]}
+        then:
+            y is code
+
+

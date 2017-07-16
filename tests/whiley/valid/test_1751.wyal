@@ -1,0 +1,26 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define f_loopinvariant_29(int[] xs, int r, int i) is:
+    (i >= 1) && (i <= |xs|)
+
+
+define f_loopinvariant_38(int[] xs, int r, int i) is:
+    exists(int j):
+        ((0 <= j) && (j < i)) && (r == xs[j])
+
+
+assert "index out of bounds (negative)":
+    forall(int r, int i, int r$1, int i$1, int[] xs):
+        if:
+            f_requires_0(xs)
+            r == xs[0]
+            i == 1
+            f_loopinvariant_29(xs, r$1, i$1)
+            f_loopinvariant_38(xs, r$1, i$1)
+            i$1 < |xs|
+        then:
+            i$1 >= 0
+
+

@@ -1,0 +1,11 @@
+type dr2point is ({bool x, bool y} self)
+
+
+assert "assertion failed":
+    forall(dr2point p):
+        if:
+            p == {x: true, y: false}
+        then:
+            p == {x: true, y: false}
+
+

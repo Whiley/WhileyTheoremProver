@@ -1,0 +1,14 @@
+define fn_loopinvariant_5(int i1) is:
+    i1 >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int i1$1, int i1, int[] xs):
+        if:
+            i1 == 0
+            fn_loopinvariant_5(i1$1)
+            i1$1 < |xs|
+        then:
+            i1$1 < |xs|
+
+

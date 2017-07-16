@@ -1,4 +1,4 @@
-type Buffer is ({int[] data, int wp} this)
+type Buffer is ({int[] data, int wp} self)
 
 assert:
   forall(Buffer x):

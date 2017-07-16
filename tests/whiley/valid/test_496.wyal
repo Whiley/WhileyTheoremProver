@@ -1,0 +1,16 @@
+define count_loopinvariant_34(int n, int i) is:
+    (n > 0) && ((i >= 0) && (i <= n))
+
+
+assert "loop invariant not restored":
+    forall(int i, int i$3, int i$2, int n):
+        if:
+            i == 0
+            count_loopinvariant_34(n, i$2)
+            i$2 < n
+            n > 0
+            i$3 == (i$2 + 1)
+        then:
+            count_loopinvariant_34(n, i$3)
+
+

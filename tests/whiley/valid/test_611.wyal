@@ -1,0 +1,28 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function abs(int x) -> (nat r)
+
+define abs_ensures_0(int x, nat r) is:
+    (r == x) || (r == -x)
+
+
+define abs_ensures_1(int x, nat r) is:
+    r >= 0
+
+
+define nop_ensures_0(nat item, nat r) is:
+    item == r
+
+
+assert "postcondition not satisfied":
+    forall(nat item):
+        if:
+            abs_ensures_0(item, abs(item))
+            abs_ensures_1(item, abs(item))
+        then:
+            nop_ensures_0(item, abs(item))
+
+

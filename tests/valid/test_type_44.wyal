@@ -2,7 +2,7 @@ type nat is (int n)
 where:
     n >= 0
 
-type T is (int|(int[]) this)
+type T is (int|(int[]) self)
 
 assert "type invariant not satisfied":
     forall(T x):

@@ -1,0 +1,12 @@
+type Expr is ({int num}|{int[] err}|{Expr lhs, int op, Expr rhs} self)
+
+
+function parseTerm() -> (Expr $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        parseTerm() is Expr
+
+

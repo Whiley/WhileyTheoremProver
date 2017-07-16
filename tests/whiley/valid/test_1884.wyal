@@ -1,0 +1,11 @@
+define buildNatList_requires_0(int n) is:
+    n >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        buildNatList_requires_0(0)
+
+

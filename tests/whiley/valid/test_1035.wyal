@@ -1,0 +1,18 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+function sum(VecPoint vp) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(VecPoint vp$1, VecPoint vp):
+        if:
+            vp == {x: 1, y: 2}
+            sum(vp) == 3
+            vp$1 == [{x: 1, y: 2}, {x: -10, y: 5}]
+        then:
+            vp$1 is VecPoint
+
+

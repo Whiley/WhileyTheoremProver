@@ -1,0 +1,20 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+define create_loopinvariant_11(int[] r) is:
+    r is nat[]
+
+
+assert "type invariant not satisfied":
+    forall(int[] r$3, int[] r, nat i$3, nat i, nat size):
+        if:
+            r == [0;size]
+            i == 0
+            create_loopinvariant_11(r$3)
+            i$3 >= |r$3|
+        then:
+            r$3 is nat[]
+
+

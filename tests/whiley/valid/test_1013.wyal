@@ -1,0 +1,14 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+assert "type invariant not satisfied":
+    forall(Attribute attr):
+        if:
+            attr == {data: [{offset: 1, op: 2}], name: [67, 111, 100, 101]}
+        then:
+            attr is Attribute
+
+

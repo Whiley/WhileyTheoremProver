@@ -1,0 +1,28 @@
+define buildNatList_requires_0(int n) is:
+    n >= 0
+
+
+define buildNatList_loopinvariant_18(int n, int i, int[] rs) is:
+    (i >= 0) && (|rs| == n)
+
+
+define buildNatList_loopinvariant_27(int n, int i, int[] rs) is:
+    forall(int r):
+        ((0 <= r) && (r < i)) ==> (rs[r] >= 0)
+
+
+assert "loop invariant not restored":
+    forall(int[] rs$1, int i, int[] rs, int i$1, int[] rs$2, int i$2, int n):
+        if:
+            buildNatList_requires_0(n)
+            i == 0
+            rs == [0;n]
+            buildNatList_loopinvariant_18(n, i$1, rs$1)
+            buildNatList_loopinvariant_27(n, i$1, rs$1)
+            i$1 < n
+            rs$2 == rs$1[i$1:=i$1]
+            i$2 == (i$1 + 1)
+        then:
+            buildNatList_loopinvariant_27(n, i$2, rs$2)
+
+

@@ -1,0 +1,13 @@
+type fr4nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall(fr4nat x):
+        if:
+            true
+        then:
+            (x + 1) is fr4nat
+
+

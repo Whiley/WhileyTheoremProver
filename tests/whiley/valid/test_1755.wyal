@@ -1,0 +1,31 @@
+define f_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define f_ensures_0(int[] xs, int result) is:
+    exists(int i):
+        ((0 <= i) && (i < |xs|)) && (result == xs[i])
+
+
+define f_loopinvariant_29(int[] xs, int r, int i) is:
+    (i >= 1) && (i <= |xs|)
+
+
+define f_loopinvariant_38(int[] xs, int r, int i) is:
+    exists(int j):
+        ((0 <= j) && (j < i)) && (r == xs[j])
+
+
+assert "postcondition not satisfied":
+    forall(int r$3, int r, int i, int i$3, int[] xs):
+        if:
+            f_requires_0(xs)
+            r == xs[0]
+            i == 1
+            f_loopinvariant_29(xs, r$3, i$3)
+            f_loopinvariant_38(xs, r$3, i$3)
+            i$3 >= |xs|
+        then:
+            f_ensures_0(xs, r$3)
+
+

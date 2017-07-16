@@ -1,0 +1,27 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function get(nat[] ls, int i) -> (int r)
+
+define get_requires_0(nat[] ls, int i) is:
+    (i >= 0) && (i <= |ls|)
+
+
+define get_ensures_0(nat[] ls, int i, int r) is:
+    r >= 0
+
+
+assert "precondition not satisfied":
+    forall(int[] xs):
+        if:
+            xs == [1, 3, 5, 7, 9, 11]
+            get_ensures_0(xs, 0, get(xs, 0))
+            get(xs, 0) == 1
+            get_ensures_0(xs, 1, get(xs, 1))
+            get(xs, 1) == 3
+        then:
+            get_requires_0(xs, 2)
+
+

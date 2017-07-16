@@ -1,0 +1,25 @@
+function indexOf(int[] list, int index) -> (int $)
+
+define test_loopinvariant_14(int[] items, int i) is:
+    i >= 0
+
+
+define test_loopinvariant_24(int[] items, int i) is:
+    forall(int k):
+        ((0 <= k) && (k < |items|)) ==> (items[k] >= 0)
+
+
+assert "loop invariant not restored":
+    forall(int i, int i$1, int i$2, int[] items):
+        if:
+            items == [5, 4, 6, 3, 7, 2, 8, 1]
+            i == 0
+            test_loopinvariant_14(items, i$1)
+            test_loopinvariant_24(items, i$1)
+            i$1 < |items|
+            indexOf(items, i$1) == items[i$1]
+            i$2 == (i$1 + 1)
+        then:
+            test_loopinvariant_14(items, i$2)
+
+

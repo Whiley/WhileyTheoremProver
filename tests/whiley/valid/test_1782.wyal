@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define sum_loopinvariant_12(int i, int sum) is:
+    (i >= 0) && (sum >= 0)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int i, int i$1, int sum, nat[] ls, int sum$1):
+        if:
+            i == 0
+            sum == 0
+            sum_loopinvariant_12(i$1, sum$1)
+            i$1 < |ls|
+        then:
+            i$1 < |ls|
+
+

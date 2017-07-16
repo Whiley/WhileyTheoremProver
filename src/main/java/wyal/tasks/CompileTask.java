@@ -80,8 +80,8 @@ public class CompileTask implements Build.Task {
 		this.logger = logger;
 	}
 
-	public void setVerify(boolean verify) {
-		this.verify = verify;
+	public void setVerify(boolean flag) {
+		this.verify = flag;
 	}
 
 	@Override

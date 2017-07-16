@@ -1,0 +1,24 @@
+type in_arr is ((null|int)[] self)
+
+
+type ib_arr is ((bool|int)[] self)
+
+
+type arr is (ib_arr|in_arr self)
+
+
+function read(arr x, int i) -> (null|bool|int r)
+
+define read_requires_0(arr x, int i) is:
+    (i >= 0) && (i < |x|)
+
+
+assert "precondition not satisfied":
+    forall(arr a):
+        if:
+            a == [1, null, 3]
+            read(a, 0) == 1
+        then:
+            read_requires_0(a, 1)
+
+

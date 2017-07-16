@@ -1,0 +1,14 @@
+define f_requires_0(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] >= 0)
+
+
+assert "precondition not satisfied":
+    forall(int[] ys, int[] zs):
+        if:
+            ys == [1, 2, 3]
+            zs == ys
+        then:
+            f_requires_0(zs)
+
+

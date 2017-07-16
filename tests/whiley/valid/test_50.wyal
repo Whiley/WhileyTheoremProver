@@ -1,0 +1,10 @@
+assert "assertion failed":
+    forall(bool x, bool y):
+        if:
+            x == true
+            y == false
+            (x && x) == true
+        then:
+            (x && y) == false
+
+

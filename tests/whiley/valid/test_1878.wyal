@@ -1,0 +1,18 @@
+define buildNatList_requires_0(int n) is:
+    n >= 0
+
+
+define buildNatList_loopinvariant_18(int n, int i, int[] rs) is:
+    (i >= 0) && (|rs| == n)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] rs, int n):
+        if:
+            buildNatList_requires_0(n)
+            i == 0
+            rs == [0;n]
+        then:
+            buildNatList_loopinvariant_18(n, i, rs)
+
+

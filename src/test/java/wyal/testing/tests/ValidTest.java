@@ -91,6 +91,8 @@ public class ValidTest {
 		IGNORED.put("test_array_64", "#91");
 		// Issue 92 "Recursive Array Update"
 		IGNORED.put("test_record_14", "#92");
+		// Issue 102 "Support Reference Lifetimes"
+		IGNORED.put("test_ref_12", "#102");
 		// Issue 104 "Incompleteness in CoerciveSubtypeOperator"
 		IGNORED.put("test_type_73", "#104");
 		IGNORED.put("test_type_98", "#104");
@@ -101,6 +103,9 @@ public class ValidTest {
 		// Issue 118 "Problem with Nested Quantifiers"
 		IGNORED.put("test_array_74", "#118");
 		IGNORED.put("test_array_75", "#118");
+		IGNORED.put("test_array_77", "#118");
+		// Issue 126 "Multi-Variable Quantifier Instantiation"
+		IGNORED.put("test_array_76", "#126");
 		//
 		IGNORED.put("test_type_94", "??");
 	}

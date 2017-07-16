@@ -1,0 +1,29 @@
+type char is (int x)
+where:
+    (0 <= x) && (x <= 255)
+
+
+type State is ({char[] input, int pos} s)
+where:
+    s.pos >= 0
+
+
+type Expr is (int|{int[] id} self)
+
+
+function isDigit(char c) -> (bool $)
+
+define parseNumber_loopinvariant_8(State st) is:
+    st.pos >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int n$3, State st$3, int n):
+        if:
+            n == 0
+            parseNumber_loopinvariant_8(st$3)
+            (st$3.pos >= |st$3.input|) || !isDigit(st$3.input[st$3.pos])
+        then:
+            n$3 is Expr
+
+

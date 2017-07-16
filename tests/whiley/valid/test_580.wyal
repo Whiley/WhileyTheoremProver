@@ -1,0 +1,11 @@
+type Sized is ({int value} self)
+
+
+assert "type invariant not satisfied":
+    forall(int value):
+        if:
+            true
+        then:
+            {value: value} is Sized
+
+

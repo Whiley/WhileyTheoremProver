@@ -1,0 +1,13 @@
+define meth_loopinvariant_16(int[] bytes, int[] data, int i) is:
+    |data| == |bytes|
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] bytes, int i, int[] data):
+        if:
+            data == [0;|bytes|]
+            i == 0
+        then:
+            meth_loopinvariant_16(bytes, data, i)
+
+

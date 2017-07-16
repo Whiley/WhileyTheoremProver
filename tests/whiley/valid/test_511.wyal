@@ -1,0 +1,32 @@
+type nbool is (null|bool self)
+
+
+define f_loopinvariant_11(int[] xs, nbool[] r, int i) is:
+    i >= 0
+
+
+define f_loopinvariant_16(int[] xs, nbool[] r, int i) is:
+    |xs| == |r|
+
+
+assert "loop invariant not restored":
+    forall(nbool[] r$1, nbool[] r, nbool[] r$4, int i, nbool[] r$3, nbool[] r$2, int i$1, int[] xs, int i$2):
+        if:
+            r == [false;|xs|]
+            i == 0
+            f_loopinvariant_11(xs, r$1, i$1)
+            f_loopinvariant_16(xs, r$1, i$1)
+            i$1 < |xs|
+            either:
+                xs[i$1] < 0
+                r$2 == r$1[i$1:=true]
+                r$4 == r$2
+            or:
+                xs[i$1] >= 0
+                r$3 == r$1[i$1:=null]
+                r$4 == r$3
+            i$2 == (i$1 + 1)
+        then:
+            f_loopinvariant_16(xs, r$4, i$2)
+
+

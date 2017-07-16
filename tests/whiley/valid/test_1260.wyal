@@ -1,0 +1,13 @@
+type BinOp is ({Expr lhs, Expr rhs} self)
+
+
+type Expr is (bool|(Expr[])|BinOp self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [true, false, true] is Expr
+
+

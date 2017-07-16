@@ -1,0 +1,20 @@
+type Point is ({int x, int y, ...} self)
+
+
+type VecPoint is ((Point[])|Point self)
+
+
+define sum_loopinvariant_13(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i, VecPoint vp):
+        if:
+            vp is Point[]
+            r == 0
+            i == 0
+        then:
+            sum_loopinvariant_13(i)
+
+

@@ -1,0 +1,12 @@
+type bignum is (int x)
+where:
+    (1 <= x) && (x <= 7)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, 2, 3, 5] is bignum[]
+
+

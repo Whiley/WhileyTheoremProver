@@ -1,0 +1,10 @@
+type cr1nat is (int self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        9 is cr1nat
+
+

@@ -1,0 +1,9 @@
+assert "assertion failed":
+    forall(int z, int[] x, int y):
+        if:
+            y == x[0]
+            z == x[1]
+        then:
+            y == z
+
+

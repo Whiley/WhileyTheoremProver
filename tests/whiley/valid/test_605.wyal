@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define abs_ensures_0(int x, nat r) is:
+    (r == x) || (r == -x)
+
+
+assert "postcondition not satisfied":
+    forall(int x):
+        if:
+            x >= 0
+        then:
+            abs_ensures_0(x, x)
+
+

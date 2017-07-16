@@ -1,0 +1,11 @@
+define f_ensures_0(int[] rs) is:
+    |rs| > 1
+
+
+assert "postcondition not satisfied":
+    if:
+        true
+    then:
+        f_ensures_0([1, 2])
+
+

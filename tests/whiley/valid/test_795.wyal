@@ -1,0 +1,17 @@
+define f_requires_0((int[])[] xs) is:
+    |xs| > 0
+
+
+define f_requires_1((int[])[] xs) is:
+    |xs[0]| > 0
+
+
+assert "index out of bounds (not less than length)":
+    forall((int[])[] xs):
+        if:
+            f_requires_0(xs)
+            f_requires_1(xs)
+        then:
+            0 < |xs[0]|
+
+

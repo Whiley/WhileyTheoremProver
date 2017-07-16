@@ -1,0 +1,12 @@
+define createActors_requires_0(int n) is:
+    n >= 0
+
+
+assert "negative length possible":
+    forall(int n):
+        if:
+            createActors_requires_0(n)
+        then:
+            n >= 0
+
+

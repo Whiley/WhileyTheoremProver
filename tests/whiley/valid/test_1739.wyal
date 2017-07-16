@@ -1,0 +1,22 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define create_loopinvariant_24(nat count, int[] r, int i) is:
+    (i <= count) && ((i >= 0) && (count == |r|))
+
+
+assert "loop invariant not restored":
+    forall(int[] r, int[] r$2, int value, int i, int i$1, nat count, int[] r$1, int i$2):
+        if:
+            r == [0;count]
+            i == 0
+            create_loopinvariant_24(count, r$1, i$1)
+            i$1 < count
+            r$2 == r$1[i$1:=value]
+            i$2 == (i$1 + 1)
+        then:
+            create_loopinvariant_24(count, r$2, i$2)
+
+

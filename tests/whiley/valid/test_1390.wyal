@@ -1,0 +1,9 @@
+assert "assertion failed":
+    forall(int[] x$1, int[] x):
+        if:
+            x == [1, 2]
+            x$1 == x[0:=2]
+        then:
+            x$1 == [2, 2]
+
+

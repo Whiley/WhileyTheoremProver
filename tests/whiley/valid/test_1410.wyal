@@ -1,0 +1,18 @@
+function f(int[] input) -> (int $)
+
+define f_requires_0(int[] input) is:
+    |input| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        f([78]) == 1
+        f([66]) == 2
+        f([82]) == 3
+        f([81]) == 4
+        f([75]) == 5
+        f([101]) == 6
+    then:
+        f_requires_0([49])
+
+

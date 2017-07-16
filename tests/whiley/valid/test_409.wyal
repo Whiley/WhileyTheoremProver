@@ -1,0 +1,13 @@
+type posintlist is (int[] list)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |list|)) ==> (list[i] >= 0)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, 2, 3, 4, 5, 6, 7] is posintlist
+
+

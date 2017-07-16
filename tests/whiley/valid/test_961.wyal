@@ -1,0 +1,12 @@
+type Point is ({int x, int y} self)
+
+
+function f(int y) -> (Point $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f(2) is Point
+
+

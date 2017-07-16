@@ -1,0 +1,13 @@
+type state is ({int[] input, int pos} s)
+where:
+    (s.pos >= 0) && (s.pos <= |s.input|)
+
+
+assert "index out of bounds (negative)":
+    forall(state st):
+        if:
+            st.pos < |st.input|
+        then:
+            st.pos >= 0
+
+

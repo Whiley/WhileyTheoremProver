@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int n):
+        if:
+            true
+        then:
+            n >= 0
+
+

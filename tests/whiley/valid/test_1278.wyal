@@ -1,0 +1,10 @@
+type SubExpr is (bool|{int data, SubExpr lhs} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        false is SubExpr
+
+

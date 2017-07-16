@@ -1,0 +1,9 @@
+assert "index out of bounds (negative)":
+    forall((int[])[] a1, (int[])[] a2):
+        if:
+            a1 == [[1, 2, 3], [0]]
+            a2 == a1
+        then:
+            0 >= 0
+
+

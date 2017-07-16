@@ -1,0 +1,14 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function sum(int[] list) -> (nat $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        sum([0, 1, 2, 3]) is nat
+
+

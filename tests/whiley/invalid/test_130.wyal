@@ -1,0 +1,19 @@
+type scf6nat is (int n)
+where:
+    n > 0
+
+
+type scf6tup is ({scf6nat f, int g} _this)
+where:
+    _this.g > _this.f
+
+
+assert "type invariant not satisfied":
+    forall({int f, int g} x, {int f, int g} x$1):
+        if:
+            x == {f: 1, g: 2}
+            x$1 == x{f:=2}
+        then:
+            x$1 is scf6tup
+
+

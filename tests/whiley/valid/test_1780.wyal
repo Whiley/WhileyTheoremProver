@@ -1,0 +1,13 @@
+define sum_loopinvariant_12(int i, int sum) is:
+    (i >= 0) && (sum >= 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int sum):
+        if:
+            i == 0
+            sum == 0
+        then:
+            sum_loopinvariant_12(i, sum)
+
+

@@ -1,0 +1,12 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        10 is nat
+
+

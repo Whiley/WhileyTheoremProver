@@ -1,0 +1,40 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define max(int[] xs, int max, int n) is:
+    forall(int i):
+        ((0 <= i) && (i < n)) ==> (max >= xs[i])
+    exists(int i$1):
+        ((0 <= i$1) && (i$1 < n)) && (max == xs[i$1])
+
+
+function max(int[] items) -> (int r)
+
+define max_requires_0(int[] items) is:
+    |items| > 0
+
+
+define max_loopinvariant_20(int[] items, nat i, int m) is:
+    i <= |items|
+
+
+define max_loopinvariant_24(int[] items, nat i, int m) is:
+    max(items, m, i)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int m$1, nat i, int m, nat i$1, int[] items):
+        if:
+            max_requires_0(items)
+            i == 1
+            m == items[0]
+            max_loopinvariant_20(items, i$1, m$1)
+            max_loopinvariant_24(items, i$1, m$1)
+            i$1 < |items|
+            items[i$1] > m$1
+        then:
+            i$1 < |items|
+
+

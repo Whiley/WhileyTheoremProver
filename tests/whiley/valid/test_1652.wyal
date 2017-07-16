@@ -1,0 +1,10 @@
+type IntBool is (bool|int self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        123 is IntBool
+
+

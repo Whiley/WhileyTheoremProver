@@ -1,0 +1,8 @@
+assert "assertion failed":
+    forall(int x):
+        if:
+            x == ((2 * 3) + 1)
+        then:
+            x == 7
+
+

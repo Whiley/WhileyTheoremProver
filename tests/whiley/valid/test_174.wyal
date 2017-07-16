@@ -1,0 +1,22 @@
+type nat is (int x)
+where:
+    x > 0
+
+
+type num is (int x)
+where:
+    (1 <= x) && (x <= 4)
+
+
+define g_requires_0(int x, nat z) is:
+    ((x == 1) || (x == 2)) && ((z == 1) || ((z == 2) || ((z == 3) || (z == x))))
+
+
+assert "type invariant not satisfied":
+    forall(nat z, int x):
+        if:
+            g_requires_0(x, z)
+        then:
+            z is num
+
+

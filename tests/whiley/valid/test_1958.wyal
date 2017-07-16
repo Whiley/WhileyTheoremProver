@@ -1,0 +1,21 @@
+define permute_loopinvariant_42(int[] xs, int i, int[] ws) is:
+    (i >= 0) && (|xs| == |ws|)
+
+
+define permute_loopinvariant_55(int[] xs, int i, int[] ws) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (xs[j] == xs[ws[j]])
+
+
+assert "index out of bounds (negative)":
+    forall(int[] ws$1, int i, int[] ws, int i$1, int[] xs):
+        if:
+            i == 0
+            ws == [0;|xs|]
+            permute_loopinvariant_42(xs, i$1, ws$1)
+            permute_loopinvariant_55(xs, i$1, ws$1)
+            i$1 < |xs|
+        then:
+            i$1 >= 0
+
+

@@ -1,0 +1,20 @@
+type Expr is (int|BinOp|Var self)
+
+
+type BinOp is ({Expr lhs, Expr rhs} self)
+
+
+type Var is ({int[] id} self)
+
+
+function build(int i) -> (Expr $)
+
+assert "type invariant not satisfied":
+    forall(int i):
+        if:
+            i <= 10
+            i <= 0
+        then:
+            {lhs: build(i + 10), rhs: build(i + 1)} is Expr
+
+

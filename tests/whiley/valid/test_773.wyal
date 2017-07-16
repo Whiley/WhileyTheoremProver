@@ -1,0 +1,20 @@
+define meth_loopinvariant_11(int[] bytes, int[] data, int i) is:
+    i >= 0
+
+
+define meth_loopinvariant_16(int[] bytes, int[] data, int i) is:
+    |data| == |bytes|
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] bytes, int i, int[] data$1, int i$1, int[] data):
+        if:
+            data == [0;|bytes|]
+            i == 0
+            meth_loopinvariant_11(bytes, data$1, i$1)
+            meth_loopinvariant_16(bytes, data$1, i$1)
+            i$1 < |bytes|
+        then:
+            i$1 < |bytes|
+
+

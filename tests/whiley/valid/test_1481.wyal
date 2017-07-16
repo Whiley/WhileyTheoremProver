@@ -1,0 +1,13 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int[] r, nat size):
+        if:
+            r == [0;size]
+        then:
+            0 is nat
+
+

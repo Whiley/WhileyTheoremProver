@@ -1,0 +1,20 @@
+define sum_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define sum_loopinvariant_27(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int r, int i, int[] xs, int i$2):
+        if:
+            sum_requires_0(xs)
+            i == 0
+            r == 0
+            sum_loopinvariant_27(i$2)
+            i$2 < |xs|
+        then:
+            i$2 < |xs|
+
+

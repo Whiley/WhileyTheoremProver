@@ -1,0 +1,10 @@
+type TYPE is (null|int self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        null is TYPE
+
+

@@ -1,0 +1,13 @@
+type irf2nat is (int x)
+where:
+    x > 0
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            true
+        then:
+            x is irf2nat
+
+

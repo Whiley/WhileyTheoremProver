@@ -2,13 +2,13 @@ type PieceKind is (int x)
 where:
     (0 <= x) && (x <= 5)
 
-type Piece is ({bool colour, PieceKind kind} this)
-type RowCol is (int this)
-type Pos is ({RowCol col, RowCol row} this)
+type Piece is ({bool colour, PieceKind kind} self)
+type RowCol is (int self)
+type Pos is ({RowCol col, RowCol row} self)
 // Move
-type SingleMove is ({Pos from, Piece piece, Pos to} this)
-type SingleTake is ({Pos from, Piece piece, Piece taken, Pos to} this)
-type Move is (SingleMove|SingleTake this)
+type SingleMove is ({Pos from, Piece piece, Pos to} self)
+type SingleTake is ({Pos from, Piece piece, Piece taken, Pos to} self)
+type Move is (SingleMove|SingleTake self)
 
 assert:
     forall((Move&SingleTake) m):

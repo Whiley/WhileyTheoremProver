@@ -1,0 +1,12 @@
+type Actor is ({int data} self)
+
+
+function createActors(int n) -> (&*:Actor[] r)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        createActors(10) is &*:Actor[]
+
+

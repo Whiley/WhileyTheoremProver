@@ -1,0 +1,24 @@
+type pos is (int n)
+where:
+    n > 0
+
+
+type neg is (int n)
+where:
+    n < 0
+
+
+type intlist is ((int[])|neg|pos self)
+
+
+function f(intlist x) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == f([1, 2, 3])
+            x == 1
+        then:
+            123 is intlist
+
+

@@ -1,0 +1,10 @@
+type imsg is (int|{int[] msg} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {msg: [72, 69, 76, 76, 79, 32, 87, 79, 82, 76, 68]} is imsg
+
+

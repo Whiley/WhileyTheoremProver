@@ -1,0 +1,15 @@
+type tac3ta is ({int f1, int f2} _this)
+where:
+    _this.f1 < _this.f2
+
+
+assert "assertion failed":
+    forall(tac3ta y, {int f1, int f2} x$1, {int f1, int f2} x):
+        if:
+            x == {f1: 2, f2: 3}
+            y == {f1: 1, f2: 3}
+            x$1 == x{f1:=1}
+        then:
+            x$1 != y
+
+

@@ -1,0 +1,14 @@
+type nat is (int self)
+
+
+type expr is ({expr left, int op, expr right}|nat self)
+
+
+assert "assertion failed":
+    forall(expr e):
+        if:
+            e == 14897
+        then:
+            e == 14897
+
+

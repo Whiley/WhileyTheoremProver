@@ -1,0 +1,15 @@
+type listibr is ((bool[])|(int[]) self)
+
+
+function len(listibr l) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int[] l, bool[] s):
+        if:
+            s == [true, false, true]
+            len(s) == 3
+            l == [1, 2]
+        then:
+            l is listibr
+
+

@@ -1,0 +1,21 @@
+define sum_requires_0(int[] xs) is:
+    |xs| > 0
+
+
+define sum_loopinvariant_28(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i, int r$1, int i$1, int[] xs):
+        if:
+            sum_requires_0(xs)
+            i == 0
+            r == 0
+            i >= 0
+            r$1 == (r + xs[i])
+            i$1 == (i + 1)
+        then:
+            sum_loopinvariant_28(i$1)
+
+

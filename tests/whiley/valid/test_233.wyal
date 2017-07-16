@@ -1,0 +1,12 @@
+type state is ({int[] input, int pos} _this)
+where:
+    (_this.pos >= 0) && (_this.pos <= |_this.input|)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {input: [104, 101, 108, 108, 111], pos: 0} is state
+
+

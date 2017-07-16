@@ -1,0 +1,11 @@
+define f_requires_0(bool[] x) is:
+    (|x| > 0) && x[0]
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([true])
+
+

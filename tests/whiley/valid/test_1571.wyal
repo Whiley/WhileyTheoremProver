@@ -1,0 +1,15 @@
+type tenup is (int x)
+where:
+    x > 10
+
+
+type msg1 is ({int[] data, tenup op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {data: [0;0], op: 11} is msg1
+
+

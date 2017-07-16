@@ -1,0 +1,15 @@
+assert "index out of bounds (negative)":
+    forall((int|(int[]))[] x$1, (int|(int[]))[] x, (int|(int[]))[] x$2):
+        if:
+            either:
+                0 == 0
+                x == [1, 2, 3]
+                x$2 == x
+            or:
+                0 != 0
+                x$1 == [[1], [2, 3], [5]]
+                x$2 == x$1
+        then:
+            0 >= 0
+
+

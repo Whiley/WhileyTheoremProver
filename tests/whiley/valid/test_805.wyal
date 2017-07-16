@@ -1,0 +1,12 @@
+define f_requires_1((int[])[] xs) is:
+    |xs[0]| > 0
+
+
+assert "precondition not satisfied":
+    forall((int[])[] xs):
+        if:
+            xs == [[0]]
+        then:
+            f_requires_1(xs)
+
+

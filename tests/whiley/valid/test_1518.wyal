@@ -1,0 +1,17 @@
+type bop is ({int x, int y} self)
+
+
+type expr is (int|bop self)
+
+
+function f(expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == f(1)
+            x == 2
+        then:
+            {x: 4, y: 10} is expr
+
+

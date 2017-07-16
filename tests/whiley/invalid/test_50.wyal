@@ -1,0 +1,17 @@
+type i8 is (int x)
+where:
+    (x >= -128) && (x <= 127)
+
+
+define f_requires_0(int x) is:
+    (x == 0) || (x == 256)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            f_requires_0(x)
+        then:
+            [x] is i8[]
+
+

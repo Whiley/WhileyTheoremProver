@@ -1,0 +1,15 @@
+type expr is (int|(int[]) self)
+
+
+function f(expr e) -> (bool $)
+
+assert "type invariant not satisfied":
+    forall(expr e, expr e$1):
+        if:
+            e == 1
+            f(e) == false
+            e$1 == [1, 2, 3, 4]
+        then:
+            e$1 is expr
+
+

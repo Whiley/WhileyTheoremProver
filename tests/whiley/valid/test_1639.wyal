@@ -1,0 +1,11 @@
+type IntList is ({int mode, int op}|{int op, bool[] rest} self)
+
+
+assert "type invariant not satisfied":
+    forall(IntList y):
+        if:
+            true
+        then:
+            y is IntList
+
+

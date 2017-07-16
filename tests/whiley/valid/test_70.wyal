@@ -1,0 +1,8 @@
+assert "assertion failed":
+    forall(bool[] ls):
+        if:
+            ls == [true, false, true]
+        then:
+            ls == [true, false, true]
+
+

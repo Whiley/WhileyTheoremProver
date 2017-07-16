@@ -1,0 +1,35 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function abs(int x) -> (nat r)
+
+define abs_ensures_0(int x, nat r) is:
+    (r == x) || (r == -x)
+
+
+define abs_ensures_1(int x, nat r) is:
+    r >= 0
+
+
+function nop(nat item) -> (nat r)
+
+define nop_ensures_0(nat item, nat r) is:
+    item == r
+
+
+assert "type invariant not satisfied":
+    forall(nat xs):
+        if:
+            abs_ensures_0(-123, abs(-123))
+            abs_ensures_1(-123, abs(-123))
+            xs == abs(-123)
+            abs_ensures_0(-123, abs(-123))
+            abs_ensures_1(-123, abs(-123))
+            xs == 123
+            nop_ensures_0(1, nop(1))
+        then:
+            nop(1) is nat
+
+

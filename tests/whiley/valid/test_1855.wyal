@@ -1,0 +1,13 @@
+define reverse_loopinvariant_41(int[] xs, int i, int[] zs) is:
+    (i >= 0) && ((i <= |xs|) && (|xs| == |zs|))
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] xs, int[] zs):
+        if:
+            i == 0
+            zs == xs
+        then:
+            reverse_loopinvariant_41(xs, i, zs)
+
+

@@ -1,0 +1,13 @@
+type point is ({int x, int y} p)
+where:
+    (p.x > 0) && (p.y > 0)
+
+
+assert "assertion failed":
+    forall(point p):
+        if:
+            p == {x: 1, y: 1}
+        then:
+            p.y == 1
+
+

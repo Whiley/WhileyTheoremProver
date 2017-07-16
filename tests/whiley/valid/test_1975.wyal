@@ -1,0 +1,16 @@
+define loop_requires_0(int[] array, int n) is:
+    |array| > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] array, int n):
+        if:
+            loop_requires_0(array, n)
+        then:
+            next_requires_0(array)
+
+
+define next_requires_0(int[] arr) is:
+    |arr| > 0
+
+

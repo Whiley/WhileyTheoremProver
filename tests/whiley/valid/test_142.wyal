@@ -1,0 +1,35 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type Piece is (int p)
+where:
+    (p == 0) || ((p == 1) || (p == 2))
+
+
+type Board is ({nat move, Piece[] pieces} b)
+where:
+    (b.move <= 9) && (|b.pieces| == 9)
+
+
+type EmptyBoard is (Board b)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |b.pieces|)) ==> (b.pieces[i] == 0)
+
+
+function EmptyBoard() -> (EmptyBoard $)
+
+define play_requires_0(Board b, Piece p, nat pos) is:
+    pos < 9
+
+
+assert "precondition not satisfied":
+    forall(Board b):
+        if:
+            b == EmptyBoard()
+        then:
+            play_requires_0(b, 1, 0)
+
+

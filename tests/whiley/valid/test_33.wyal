@@ -1,0 +1,16 @@
+type in_arr is ((null|int)[] self)
+
+
+type ib_arr is ((bool|int)[] self)
+
+
+type arr is (ib_arr|in_arr self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, null, 3] is arr
+
+

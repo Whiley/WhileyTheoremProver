@@ -1,0 +1,12 @@
+define f_requires_0(int[] a) is:
+    |a| > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] b):
+        if:
+            b == [1, 2, 3]
+        then:
+            f_requires_0(b)
+
+

@@ -1,0 +1,14 @@
+define find_loopinvariant_31(int[] items, int i) is:
+    (0 <= i) && (i <= |items|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(int i, int i$1, int[] items):
+        if:
+            i == 0
+            find_loopinvariant_31(items, i$1)
+            i$1 < |items|
+        then:
+            i$1 < |items|
+
+

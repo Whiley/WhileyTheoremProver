@@ -1,0 +1,30 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define loop_requires_0(int[] array, int n) is:
+    |array| > 0
+
+
+define loop_loopinvariant_13(int[] array, nat i) is:
+    i < |array|
+
+
+assert "index out of bounds (negative)":
+    forall(nat i, int[] array, nat i$1, int n):
+        if:
+            loop_requires_0(array, n)
+            next_ensures_0(array, next(array))
+            i == next(array)
+            loop_loopinvariant_13(array, i$1)
+        then:
+            i$1 >= 0
+
+
+function next(int[] arr) -> (int r)
+
+define next_ensures_0(int[] arr, int r) is:
+    (r >= 0) && (r < |arr|)
+
+

@@ -1,0 +1,13 @@
+type Matrix is ((int[])[] rows)
+where:
+    forall(int i, int j):
+        (((0 <= i) && (i < |rows|)) && ((0 <= j) && (j < |rows|))) ==> (|rows[i]| == |rows[j]|)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [[1, 2], [3, 4]] is Matrix
+
+

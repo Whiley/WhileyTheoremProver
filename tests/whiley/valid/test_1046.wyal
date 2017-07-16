@@ -1,0 +1,16 @@
+type MyProc is (&*:{bool flag} self)
+
+
+function run(MyProc _this) -> (bool $)
+
+assert "type invariant not satisfied":
+    forall(MyProc mproc$1, &*:{bool flag} $2, &*:{bool flag} $14, bool result, MyProc mproc):
+        if:
+            mproc == $2
+            result == run(mproc)
+            result == false
+            mproc$1 == $14
+        then:
+            mproc$1 is MyProc
+
+

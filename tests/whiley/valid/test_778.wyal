@@ -1,0 +1,10 @@
+type Rec is ({bool[] items} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {items: [true, true, false]} is Rec
+
+

@@ -1,0 +1,22 @@
+define f_requires_0(int[] args) is:
+    |args| >= 2
+
+
+define f_loopinvariant_27(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int[] args, int r$3, int r, int r$2, int i, int i$3, int i$2):
+        if:
+            f_requires_0(args)
+            r == 0
+            i == 0
+            f_loopinvariant_27(i$2)
+            (i$2 + 1) < |args|
+            r$3 == (r$2 + args[i$2])
+            i$3 == (i$2 + 1)
+        then:
+            f_loopinvariant_27(i$3)
+
+

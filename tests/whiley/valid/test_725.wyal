@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define g_requires_0(int p) is:
+    p >= 0
+
+
+assert "type invariant not satisfied":
+    forall(nat x, int p):
+        if:
+            g_requires_0(p)
+        then:
+            (x + 1) is nat
+
+

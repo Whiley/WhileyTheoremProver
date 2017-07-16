@@ -1,0 +1,18 @@
+function count(int n) -> (int r)
+
+define count_requires_0(int n) is:
+    n >= 0
+
+
+define count_ensures_0(int n, int r) is:
+    (r == n) || (r == 2)
+
+
+assert "precondition not satisfied":
+    if:
+        count_ensures_0(0, count(0))
+        count(0) == 0
+    then:
+        count_requires_0(1)
+
+

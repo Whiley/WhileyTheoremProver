@@ -1,0 +1,10 @@
+type btup is ({int index, int op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {index: 2, op: 1} is btup
+
+

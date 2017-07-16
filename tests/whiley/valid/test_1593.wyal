@@ -1,0 +1,17 @@
+type msg1 is ({int[] data, int op} self)
+
+
+type msg2 is ({{int dum}[] data, int op} self)
+
+
+type msgType is (msg1|msg2 self)
+
+
+assert "type invariant not satisfied":
+    forall(msg1 x):
+        if:
+            x == {data: [1, 2, 3], op: 1}
+        then:
+            x is msgType
+
+

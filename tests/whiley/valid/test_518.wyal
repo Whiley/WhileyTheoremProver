@@ -1,0 +1,18 @@
+function add(int x, int y) -> (int r)
+
+define add_requires_0(int x, int y) is:
+    (x >= 0) && (y >= 0)
+
+
+define add_ensures_0(int x, int y, int r) is:
+    r > 0
+
+
+assert "precondition not satisfied":
+    if:
+        add_ensures_0(1, 2, add(1, 2))
+        add(1, 2) == 3
+    then:
+        add_requires_0(1, 1)
+
+

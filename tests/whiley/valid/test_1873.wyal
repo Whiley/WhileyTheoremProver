@@ -1,0 +1,28 @@
+define add_requires_0(int[] items, int n) is:
+    n > 0
+
+
+define add_loopinvariant_23(int[] items, int i, int[] oitems) is:
+    (i >= 0) && ((i <= |items|) && (|items| == |oitems|))
+
+
+define add_loopinvariant_34(int[] items, int i, int[] oitems) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (oitems[j] < items[j])
+
+
+assert "loop invariant not restored":
+    forall(int[] items$2, int i, int[] items$1, int i$1, int[] oitems, int i$2, int[] items, int n):
+        if:
+            add_requires_0(items, n)
+            i == 0
+            oitems == items
+            add_loopinvariant_23(items$1, i$1, oitems)
+            add_loopinvariant_34(items$1, i$1, oitems)
+            i$1 < |items$1|
+            items$2 == items$1[i$1:=oitems[i$1] + n]
+            i$2 == (i$1 + 1)
+        then:
+            add_loopinvariant_23(items$2, i$2, oitems)
+
+

@@ -1,0 +1,14 @@
+define f_ensures_0(null|int x, null|int y, int r) is:
+    (r == 0) || (r == x)
+
+
+assert "postcondition not satisfied":
+    forall(null|int y, null|int x, int x$2, null|int x$1):
+        if:
+            x$2 == x$1
+            x$1 == y
+            (x$1 is int) && (x$2 >= 0)
+        then:
+            f_ensures_0(x, y, x$2)
+
+

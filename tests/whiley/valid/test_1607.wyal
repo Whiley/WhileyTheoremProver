@@ -1,0 +1,21 @@
+type char is (int x)
+where:
+    (0 <= x) && (x <= 255)
+
+
+type State is ({char[] input, int pos} s)
+where:
+    s.pos >= 0
+
+
+function isDigit(char c) -> (bool $)
+
+assert "type invariant not satisfied":
+    forall(State st):
+        if:
+            st.pos < |st.input|
+            isDigit(st.input[st.pos])
+        then:
+            st is State
+
+

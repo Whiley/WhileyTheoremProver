@@ -1,0 +1,11 @@
+type Actor is ({int data} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{int data} $4):
+        if:
+            true
+        then:
+            $4 is &*:Actor
+
+

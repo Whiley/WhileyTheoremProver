@@ -1,0 +1,23 @@
+type PieceKind is (int x)
+where:
+    (0 <= x) && (x <= 5)
+
+
+type Piece is ({bool colour, PieceKind kind} self)
+
+
+type Board is ({bool flag, Piece[] rows} self)
+
+
+define f_requires_0(Board board) is:
+    |board.rows| > 0
+
+
+assert "precondition not satisfied":
+    forall(Board r1):
+        if:
+            r1 == {flag: false, rows: [{colour: true, kind: 0}]}
+        then:
+            f_requires_0(r1)
+
+

@@ -1,0 +1,12 @@
+type Value is (bool|(Value[]) self)
+
+
+function init() -> (Value $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        init() is Value
+
+

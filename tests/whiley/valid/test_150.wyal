@@ -1,0 +1,12 @@
+define max_ensures_1(int a, int b, int r) is:
+    (a <= r) && (b <= r)
+
+
+assert "postcondition not satisfied":
+    forall(int b, int a):
+        if:
+            a >= b
+        then:
+            max_ensures_1(a, b, a)
+
+

@@ -1,0 +1,12 @@
+define f_ensures_0(int[] ls, int[] r) is:
+    r == [0;0]
+
+
+assert "postcondition not satisfied":
+    forall(int[] ls):
+        if:
+            |ls| != 0
+        then:
+            f_ensures_0(ls, [0;0])
+
+

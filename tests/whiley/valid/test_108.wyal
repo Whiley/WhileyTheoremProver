@@ -1,0 +1,13 @@
+define test_loopinvariant_6(int i) is:
+    i >= 0
+
+
+assert "loop invariant does not hold on entry":
+    forall(int r, int i):
+        if:
+            r == 0
+            i == 0
+        then:
+            test_loopinvariant_6(i)
+
+

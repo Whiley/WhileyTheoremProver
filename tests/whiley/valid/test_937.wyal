@@ -1,0 +1,15 @@
+type FileReader is (&*:{int position} self)
+
+
+type Reader is ({any read, FileReader thus} self)
+
+
+function openReader() -> (Reader $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        openReader() is Reader
+
+

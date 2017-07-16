@@ -1,0 +1,11 @@
+define count_requires_0(int n) is:
+    n >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        count_requires_0(0)
+
+

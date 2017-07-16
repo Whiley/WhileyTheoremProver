@@ -1,0 +1,14 @@
+define contains_loopinvariant_20(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int i, int i$1, int[] items):
+        if:
+            i == 0
+            contains_loopinvariant_20(i$1)
+            i$1 < |items|
+        then:
+            i$1 >= 0
+
+

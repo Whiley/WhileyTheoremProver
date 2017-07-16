@@ -1,0 +1,14 @@
+type FileReader is (&*:{int position} self)
+
+
+type Reader is ({any read, FileReader thus} self)
+
+
+assert "type invariant not satisfied":
+    forall(any $5, FileReader proc, &*:{int position} $3):
+        if:
+            proc == $3
+        then:
+            {read: $5, thus: proc} is Reader
+
+

@@ -1,0 +1,16 @@
+type utr12nat is (int self)
+
+
+type intList is ((int[])|utr12nat self)
+
+
+type tupper is ({intList il, int op} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {il: 1, op: 1} is tupper
+
+

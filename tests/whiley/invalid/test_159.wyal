@@ -1,0 +1,12 @@
+type bop is ({int lhs, int op, int rhs} r)
+where:
+    (1 <= r.op) && (r.op <= 4)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {lhs: 1, op: 0, rhs: 2} is bop
+
+

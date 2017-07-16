@@ -1,0 +1,8 @@
+assert "assertion failed":
+    forall(bool x):
+        if:
+            x == true
+        then:
+            x == true
+
+

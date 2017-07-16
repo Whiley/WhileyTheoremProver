@@ -1,0 +1,13 @@
+define f_loopinvariant_28(int[] xs, int i) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (xs[j] != 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] xs):
+        if:
+            i == 0
+        then:
+            f_loopinvariant_28(xs, i)
+
+

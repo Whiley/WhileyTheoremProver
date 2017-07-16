@@ -1,0 +1,30 @@
+define isSorted_requires_0(int[] items) is:
+    |items| >= 2
+
+
+define isSorted_ensures_0(int[] items, bool r) is:
+    !r || forall(int j).(((1 <= j) && (j < |items|)) ==> (items[j - 1] <= items[j]))
+
+
+define isSorted_loopinvariant_32(int[] items, int i) is:
+    (i >= 1) && (i <= |items|)
+
+
+define isSorted_loopinvariant_45(int[] items, int i) is:
+    forall(int j):
+        ((1 <= j) && (j < i)) ==> (items[j - 1] <= items[j])
+
+
+assert "postcondition not satisfied":
+    forall(int i, int i$1, int[] items):
+        if:
+            isSorted_requires_0(items)
+            i == 1
+            isSorted_loopinvariant_32(items, i$1)
+            isSorted_loopinvariant_45(items, i$1)
+            i$1 < |items|
+            items[i$1 - 1] > items[i$1]
+        then:
+            isSorted_ensures_0(items, false)
+
+

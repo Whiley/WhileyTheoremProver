@@ -1,0 +1,15 @@
+type pos is (int p)
+where:
+    p > 0
+
+
+type rec1 is ({any f1, pos f2} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {f1: [104, 101, 108, 108, 111], f2: 2} is rec1
+
+

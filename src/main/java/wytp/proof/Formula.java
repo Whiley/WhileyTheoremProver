@@ -21,6 +21,7 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wycc.util.ArrayUtils;
 
 /**
  * A special kind of expression which maintains a normal form representation. As
@@ -80,7 +81,7 @@ public interface Formula extends Expr {
 
 		@Override
 		public Conjunct clone(SyntacticItem[] children) {
-			return new Conjunct((Formula[]) children);
+			return new Conjunct(ArrayUtils.toArray(Formula.class, children));
 		}
 
 		@Override
@@ -114,7 +115,7 @@ public interface Formula extends Expr {
 
 		@Override
 		public Disjunct clone(SyntacticItem[] children) {
-			return new Disjunct((Formula[]) children);
+			return new Disjunct(ArrayUtils.toArray(Formula.class, children));
 		}
 
 		@Override

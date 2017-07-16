@@ -1,0 +1,10 @@
+type IntInt is (int self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is IntInt
+
+

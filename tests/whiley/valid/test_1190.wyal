@@ -1,0 +1,13 @@
+type Point is ({int x, int y} p)
+where:
+    (p.x > 0) && (p.y > 0)
+
+
+assert "type invariant not satisfied":
+    forall(Point x):
+        if:
+            true
+        then:
+            x is Point
+
+

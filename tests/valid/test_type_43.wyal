@@ -1,5 +1,5 @@
 type pos is (int n) where n > 0
-type intlist is ((int[])|pos this)
+type intlist is ((int[])|pos self)
 
 assert:
     if:

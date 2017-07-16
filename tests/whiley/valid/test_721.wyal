@@ -1,0 +1,12 @@
+type func is (any self)
+
+
+function g(int y) -> (func $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        g(3) is func
+
+

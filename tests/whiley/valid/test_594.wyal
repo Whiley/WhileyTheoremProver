@@ -1,0 +1,11 @@
+type Proc is (&*:{any func} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{any func} $2):
+        if:
+            true
+        then:
+            $2 is Proc
+
+

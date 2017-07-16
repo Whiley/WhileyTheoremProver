@@ -2,8 +2,8 @@ type nat is (int x)
 where:
     x >= 0
 
-type Link is ({int data, LinkedList next} this)
-type LinkedList is (null|Link this)
+type Link is ({int data, LinkedList next} self)
+type LinkedList is (null|Link self)
 
 define isLength(LinkedList list, nat len) is:
     (list is null) ==> (len == 0)

@@ -1,0 +1,15 @@
+type list is ((bool[])|(int[]) self)
+
+
+function len(list l) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int[] l, bool[] s):
+        if:
+            l == [1, 2, 3]
+            len(l) == 3
+            s == [true, false, true]
+        then:
+            s is list
+
+

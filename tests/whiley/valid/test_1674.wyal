@@ -1,0 +1,17 @@
+type list is (int[] self)
+
+
+function update(list l, int index, int value) -> (list $)
+
+assert "type invariant not satisfied":
+    forall(int[] l$1, int[] l):
+        if:
+            l == [49, 50, 51]
+            update(l, 1, 0) == [49, 0, 51]
+            update(l, 2, 0) == [49, 50, 0]
+            l$1 == [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+            update(l$1, 1, 0) == [72, 0, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+        then:
+            l$1 is list
+
+

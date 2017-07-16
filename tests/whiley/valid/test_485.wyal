@@ -1,0 +1,17 @@
+function f(int[] args) -> (int $)
+
+define f_requires_0(int[] args) is:
+    |args| >= 2
+
+
+assert "precondition not satisfied":
+    forall(int result, int result$1):
+        if:
+            result == f([1, 2, 3])
+            result == 3
+            result$1 == f([1, 2])
+            result$1 == 1
+        then:
+            f_requires_0([1, 2, 3, 4, 5, 6])
+
+

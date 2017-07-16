@@ -1,0 +1,19 @@
+type sr6nat is (int n)
+where:
+    n > 0
+
+
+type sr6tup is ({sr6nat f, int g} r)
+where:
+    r.g > r.f
+
+
+assert "assertion failed":
+    forall(sr6tup x, sr6tup x$1):
+        if:
+            x == {f: 1, g: 5}
+            x$1 == x{f:=2}
+        then:
+            x$1 == {f: 2, g: 5}
+
+

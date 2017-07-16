@@ -1,0 +1,18 @@
+define sum_loopinvariant_12(int r, int i) is:
+    (i >= 0) && (r >= 0)
+
+
+assert "loop invariant not restored":
+    forall(int r, int r$2, int[] list, int i, int r$1, int i$1, int i$2):
+        if:
+            r == 0
+            i == 0
+            sum_loopinvariant_12(r$1, i$1)
+            i$1 < |list|
+            r$2 == (r$1 + list[i$1])
+            r$2 >= 0
+            i$2 == (i$1 + 1)
+        then:
+            sum_loopinvariant_12(r$2, i$2)
+
+

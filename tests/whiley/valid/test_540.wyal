@@ -1,0 +1,10 @@
+type LinkedList is (null|{int data, LinkedList next} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        null is LinkedList
+
+

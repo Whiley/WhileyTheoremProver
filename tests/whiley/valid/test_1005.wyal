@@ -1,0 +1,17 @@
+type OpenRecord is ({int field, ...} self)
+
+
+function getField(OpenRecord r) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(OpenRecord r, OpenRecord r$1, OpenRecord r$2):
+        if:
+            r == {field: 1}
+            getField(r) == 1
+            r$1 == {field: 2, x: [104, 101, 108, 108, 111]}
+            getField(r$1) == 2
+            r$2 == {field: 3, x: 1, y: 2}
+        then:
+            r$2 is OpenRecord
+
+

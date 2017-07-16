@@ -1,0 +1,20 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define sum_loopinvariant_12(int i, int sum) is:
+    (i >= 0) && (sum >= 0)
+
+
+assert "type invariant not satisfied":
+    forall(int sum$3, int i, int sum, int i$3, nat[] ls):
+        if:
+            i == 0
+            sum == 0
+            sum_loopinvariant_12(i$3, sum$3)
+            i$3 >= |ls|
+        then:
+            sum$3 is nat
+
+

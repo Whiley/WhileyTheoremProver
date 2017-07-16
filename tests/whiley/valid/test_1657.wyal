@@ -1,0 +1,16 @@
+type ur4nat is (int self)
+
+
+type tur4nat is (int self)
+
+
+type wur4nat is (tur4nat|ur4nat self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is wur4nat
+
+

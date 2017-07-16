@@ -1,0 +1,20 @@
+type Buffer is ({int[] data, int wp} self)
+
+
+define update_requires_0(Buffer b, int i, int v) is:
+    (i >= 0) && (i < |b.data|)
+
+
+define update_ensures_0(Buffer b, int i, int v, Buffer r) is:
+    b.wp == r.wp
+
+
+assert "postcondition not satisfied":
+    forall(int i, int v, Buffer b$1, Buffer b):
+        if:
+            update_requires_0(b, i, v)
+            b$1 == b{data:=b.data[i:=v]}
+        then:
+            update_ensures_0(b, i, v, b$1)
+
+

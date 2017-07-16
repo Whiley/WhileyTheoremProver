@@ -1,0 +1,32 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type piece is (int p)
+where:
+    (p == 0) || ((p == 1) || (p == 2))
+
+
+type Board is ({nat move, piece[] pieces} b)
+where:
+    (b.move <= 9) && (|b.pieces| == 9)
+
+
+type EmptyBoard is (Board b)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |b.pieces|)) ==> (b.pieces[i] == 0)
+
+
+function EmptyBoard() -> (EmptyBoard $)
+
+assert "index out of bounds (not less than length)":
+    forall(Board b):
+        if:
+            b == EmptyBoard()
+            b.pieces[0] == 0
+        then:
+            1 < |b.pieces|
+
+

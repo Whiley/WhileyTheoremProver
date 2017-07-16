@@ -1,0 +1,23 @@
+define add_requires_0(int[] v1, int[] v2) is:
+    |v1| == |v2|
+
+
+define add_ensures_0(int[] v1, int[] v2, int[] vr) is:
+    |vr| == |v1|
+
+
+define add_loopinvariant_23(int[] v1, int[] v2, int i) is:
+    (i >= 0) && (|v1| == |v2|)
+
+
+assert "postcondition not satisfied":
+    forall(int[] v1$3, int i, int[] v2, int i$3, int[] v1):
+        if:
+            add_requires_0(v1, v2)
+            i == 0
+            add_loopinvariant_23(v1$3, v2, i$3)
+            i$3 >= |v1$3|
+        then:
+            add_ensures_0(v1, v2, v1$3)
+
+

@@ -1,0 +1,17 @@
+define seqSum_loopinvariant_8(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int r, int r$2, int i, int r$1, int i$1, int i$2, int[] items):
+        if:
+            r == 0
+            i == 0
+            seqSum_loopinvariant_8(i$1)
+            i$1 < |items|
+            r$2 == (r$1 + items[i$1])
+            i$2 == (i$1 + 1)
+        then:
+            seqSum_loopinvariant_8(i$2)
+
+

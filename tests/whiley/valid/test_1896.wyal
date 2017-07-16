@@ -1,0 +1,18 @@
+define sum_requires_0(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] >= 0)
+
+
+assert "type invariant not satisfied":
+    forall(int[] xs):
+        if:
+            sum_requires_0(xs)
+        then:
+            0 is nat
+
+
+type nat is (int x)
+where:
+    x >= 0
+
+

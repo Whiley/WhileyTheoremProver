@@ -1,0 +1,25 @@
+define sum_requires_0(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] >= 0)
+
+
+define sum_ensures_0(int[] xs, int r) is:
+    r >= 0
+
+
+assert "postcondition not satisfied":
+    forall(nat i$3, nat i, nat x, int[] xs, nat x$3):
+        if:
+            sum_requires_0(xs)
+            i == 0
+            x == 0
+            i$3 >= |xs|
+        then:
+            sum_ensures_0(xs, x$3)
+
+
+type nat is (int x)
+where:
+    x >= 0
+
+

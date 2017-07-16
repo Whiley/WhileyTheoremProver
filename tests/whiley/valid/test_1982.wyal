@@ -1,0 +1,12 @@
+define loop_requires_0(int[] array, int n) is:
+    |array| > 0
+
+
+assert "precondition not satisfied":
+    forall(int[] A):
+        if:
+            A == [1, 2, 3]
+        then:
+            loop_requires_0(A, 5)
+
+

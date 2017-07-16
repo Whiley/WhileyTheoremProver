@@ -1,0 +1,12 @@
+type T is (int|(int[]) self)
+
+
+function f(T x) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f(1) == 0
+    then:
+        -1 is T
+
+

@@ -1,0 +1,11 @@
+type Sum is (&*:{int[] items, int result} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{int[] items, int result} $5):
+        if:
+            true
+        then:
+            $5 is Sum
+
+

@@ -1,0 +1,8 @@
+assert "assertion failed":
+    forall(int x):
+        if:
+            x == 200
+        then:
+            x == 200
+
+

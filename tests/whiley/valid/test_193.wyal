@@ -1,0 +1,13 @@
+type a_nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == 0
+        then:
+            x is a_nat
+
+

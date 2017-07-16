@@ -1,0 +1,13 @@
+type sr8nat is (int self)
+
+
+type sr8tup is ({sr8nat f, int g} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [{f: 1, g: 3}, {f: 4, g: 8}] is sr8tup[]
+
+

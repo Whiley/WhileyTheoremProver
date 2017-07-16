@@ -1,0 +1,17 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define Cash_requires_0(nat[] coins) is:
+    forall(int i):
+        ((0 <= i) && (i < |coins|)) ==> (coins[i] < |[1, 5, 10, 20, 50, 100, 500, 1000]|)
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        Cash_requires_0([5, 1])
+
+

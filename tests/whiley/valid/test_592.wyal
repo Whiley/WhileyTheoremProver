@@ -1,0 +1,17 @@
+type Proc is (&*:{int data} self)
+
+
+function test(Proc p, int arg) -> (int $)
+
+function test() -> ()
+
+assert "type invariant not satisfied":
+    forall(int x, &*:{int data} $2, Proc p):
+        if:
+            p == $2
+            x == test(p, 123)
+            x == 124
+        then:
+            p is Proc
+
+

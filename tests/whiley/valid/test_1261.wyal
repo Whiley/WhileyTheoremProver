@@ -1,0 +1,17 @@
+type BinOp is ({Expr lhs, Expr rhs} self)
+
+
+type Expr is (bool|(Expr[])|BinOp self)
+
+
+function f(Expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int v):
+        if:
+            v == f([true, false, true])
+            v == 3
+        then:
+            false is Expr
+
+

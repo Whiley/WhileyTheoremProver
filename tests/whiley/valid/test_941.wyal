@@ -1,0 +1,11 @@
+type Proc is (&*:{int state} self)
+
+
+assert "type invariant not satisfied":
+    forall(Proc x):
+        if:
+            true
+        then:
+            x is Proc
+
+

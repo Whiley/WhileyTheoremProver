@@ -1,0 +1,13 @@
+type Point is ({int x, int y} self)
+
+
+function get() -> (int $)
+
+assert "type invariant not satisfied":
+    forall(int y):
+        if:
+            true
+        then:
+            {x: y, y: get()} is Point
+
+

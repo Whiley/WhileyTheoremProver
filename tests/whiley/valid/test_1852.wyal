@@ -1,0 +1,23 @@
+define zeroOut_loopinvariant_19(int[] items, int i, int[] oitems) is:
+    (i >= 0) && ((i <= |items|) && (|items| == |oitems|))
+
+
+define zeroOut_loopinvariant_28(int[] items, int i, int[] oitems) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (items[j] == 0)
+
+
+assert "loop invariant not restored":
+    forall(int[] items$2, int i, int[] items$1, int i$1, int[] oitems, int i$2, int[] items):
+        if:
+            i == 0
+            oitems == items
+            zeroOut_loopinvariant_19(items$1, i$1, oitems)
+            zeroOut_loopinvariant_28(items$1, i$1, oitems)
+            i$1 < |items$1|
+            items$2 == items$1[i$1:=0]
+            i$2 == (i$1 + 1)
+        then:
+            zeroOut_loopinvariant_28(items$2, i$2, oitems)
+
+

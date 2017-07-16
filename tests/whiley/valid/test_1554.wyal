@@ -1,0 +1,11 @@
+type SyntaxError is ({int[] msg} self)
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x > 0
+        then:
+            {input: [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]} is {int[] input}|SyntaxError
+
+

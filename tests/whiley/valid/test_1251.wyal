@@ -1,0 +1,13 @@
+type pos is (int self)
+
+
+type posExpr is ({posExpr lhs, posExpr rhs}|pos self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {lhs: {lhs: 1, rhs: 2}, rhs: 1} is posExpr
+
+

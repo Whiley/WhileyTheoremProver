@@ -1,0 +1,14 @@
+type tac1tup is ({int f1, int f2} _this)
+where:
+    _this.f1 < _this.f2
+
+
+assert "assertion failed":
+    forall(tac1tup x, tac1tup x$1):
+        if:
+            x == {f1: 1, f2: 3}
+            x$1 == x{f1:=2}
+        then:
+            x$1.f1 == x$1.f2
+
+

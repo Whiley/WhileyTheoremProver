@@ -1,0 +1,12 @@
+type odd is (int x)
+where:
+    (x == 1) || ((x == 3) || (x == 5))
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is odd
+
+

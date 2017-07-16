@@ -1,0 +1,18 @@
+define indexOf_requires_0(int[] list, int index) is:
+    forall(int i):
+        ((0 <= i) && (i < |list|)) ==> (list[i] >= 0)
+
+
+define indexOf_requires_1(int[] list, int index) is:
+    (index >= 0) && (index < |list|)
+
+
+assert "index out of bounds (negative)":
+    forall(int[] list, int index):
+        if:
+            indexOf_requires_0(list, index)
+            indexOf_requires_1(list, index)
+        then:
+            index >= 0
+
+

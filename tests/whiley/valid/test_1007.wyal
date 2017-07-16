@@ -1,0 +1,14 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+assert "type invariant not satisfied":
+    forall(Attribute r):
+        if:
+            r == {name: [72, 101, 108, 108, 111]}
+        then:
+            r is Attribute
+
+

@@ -1,0 +1,28 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+define init_loopinvariant_35(nat length, int value, int i, int[] data) is:
+    (0 <= i) && ((i <= |data|) && (|data| == length))
+
+
+define init_loopinvariant_44(nat length, int value, int i, int[] data) is:
+    forall(int j):
+        ((0 <= j) && (j < i)) ==> (data[j] == value)
+
+
+assert "loop invariant not restored":
+    forall(int value, int i, int[] data$1, int i$1, nat length, int[] data$2, int[] data, int i$2):
+        if:
+            i == 0
+            data == [0;length]
+            init_loopinvariant_35(length, value, i$1, data$1)
+            init_loopinvariant_44(length, value, i$1, data$1)
+            i$1 < length
+            data$2 == data$1[i$1:=value]
+            i$2 == (i$1 + 1)
+        then:
+            init_loopinvariant_35(length, value, i$2, data$2)
+
+

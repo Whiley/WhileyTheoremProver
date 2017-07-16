@@ -1,0 +1,14 @@
+type etype is ({int mode, int rest} self)
+
+
+type Ptype is (&*:etype self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{int mode, int rest} $3):
+        if:
+            true
+        then:
+            $3 is Ptype
+
+

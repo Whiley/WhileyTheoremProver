@@ -1,0 +1,10 @@
+type nat is (int self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        1 is nat
+
+

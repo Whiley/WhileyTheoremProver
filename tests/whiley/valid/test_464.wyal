@@ -1,0 +1,10 @@
+type listint is (int[] self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        [1, 2, 3] is listint
+
+

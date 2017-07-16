@@ -1,0 +1,8 @@
+assert "index out of bounds (negative)":
+    forall(int[] x):
+        if:
+            x == [2]
+        then:
+            0 >= 0
+
+

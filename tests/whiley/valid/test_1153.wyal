@@ -1,0 +1,15 @@
+type Buffer is ({int[] data, int wp} self)
+
+
+define update_requires_0(Buffer b, int i, int v) is:
+    (i >= 0) && (i < |b.data|)
+
+
+assert "precondition not satisfied":
+    forall(Buffer b):
+        if:
+            b == {data: [0, 0, 0, 0], wp: 0}
+        then:
+            update_requires_0(b, 0, 10)
+
+

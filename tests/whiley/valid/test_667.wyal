@@ -1,0 +1,11 @@
+type nat is (int self)
+
+
+assert "type invariant not satisfied":
+    forall(nat[] xs):
+        if:
+            true
+        then:
+            [0;|xs|] is nat[]
+
+

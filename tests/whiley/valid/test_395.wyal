@@ -1,0 +1,12 @@
+define f_requires_0(int[] x) is:
+    (|x| > 0) && (x[0] == 0)
+
+
+assert "assertion failed":
+    forall(int[] x):
+        if:
+            f_requires_0(x)
+        then:
+            x[0] == 0
+
+

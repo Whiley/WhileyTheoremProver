@@ -1,0 +1,16 @@
+define indexOf_loopinvariant_18(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(int x, int i, int i$1, int[] xs, int i$2):
+        if:
+            i == 0
+            indexOf_loopinvariant_18(i$1)
+            i$1 < |xs|
+            xs[i$1] != x
+            i$2 == (i$1 + 1)
+        then:
+            indexOf_loopinvariant_18(i$2)
+
+

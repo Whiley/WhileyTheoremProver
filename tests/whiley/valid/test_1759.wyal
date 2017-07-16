@@ -1,0 +1,14 @@
+define indexOf_loopinvariant_18(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int i, int i$1, int[] xs):
+        if:
+            i == 0
+            indexOf_loopinvariant_18(i$1)
+            i$1 < |xs|
+        then:
+            i$1 < |xs|
+
+

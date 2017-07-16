@@ -1,0 +1,12 @@
+type Piece is (int x)
+where:
+    (x == 0) || ((x == 1) || (x == 2))
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        2 is Piece
+
+

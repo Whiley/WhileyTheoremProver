@@ -1,0 +1,18 @@
+type fr5nat is (int x)
+where:
+    x >= 0
+
+
+define g_loopinvariant_17(fr5nat[] xs, fr5nat[] ys, int i) is:
+    (i >= 0) && (|xs| == |ys|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(fr5nat[] xs, fr5nat[] ys, int i):
+        if:
+            ys == [0;|xs|]
+            i == 0
+        then:
+            g_loopinvariant_17(xs, ys, i)
+
+

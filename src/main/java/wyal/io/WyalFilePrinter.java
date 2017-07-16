@@ -60,7 +60,7 @@ public class WyalFilePrinter {
 		// First, write package information
 		Path.ID pkg = wf.getEntry().id().parent();
 		if (pkg != Trie.ROOT) {
-			out.println("package " + pkg.toString());
+			out.println("package " + pkg.toString().replace("/","."));
 			out.println();
 		}
 		// Second, write all declarations
@@ -585,6 +585,10 @@ public class WyalFilePrinter {
 		case TYPE_ref: {
 			out.print("&");
 			Type.Reference t = (Type.Reference) type;
+			if(t.getLifetime() != null) {
+				out.print(t.getLifetime());
+				out.print(":");
+			}
 			writeTypeWithBraces(t.getElement());
 			break;
 		}

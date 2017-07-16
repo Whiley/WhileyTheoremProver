@@ -1,0 +1,17 @@
+type scf7nat is (int n)
+where:
+    n < 0
+
+
+type scf7tup is ({scf7nat f} self)
+
+
+assert "type invariant not satisfied":
+    forall({int f} x, {int f} x$1):
+        if:
+            x == {f: -1}
+            x$1 == x{f:=x.f + 1}
+        then:
+            x$1 is scf7tup
+
+

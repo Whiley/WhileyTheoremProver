@@ -1,0 +1,17 @@
+define add_requires_0(int[] v1, int[] v2) is:
+    |v1| == |v2|
+
+
+define add_loopinvariant_23(int[] v1, int[] v2, int i) is:
+    (i >= 0) && (|v1| == |v2|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int[] v2, int[] v1):
+        if:
+            add_requires_0(v1, v2)
+            i == 0
+        then:
+            add_loopinvariant_23(v1, v2, i)
+
+

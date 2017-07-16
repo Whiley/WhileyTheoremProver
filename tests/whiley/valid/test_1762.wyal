@@ -1,0 +1,22 @@
+define indexOf_ensures_0(int[] xs, int x, null|int result) is:
+    forall(int result$1):
+        if:
+            result$1 == result
+        then:
+            (result is null) || (xs[result$1] == x)
+
+
+define indexOf_loopinvariant_18(int i) is:
+    i >= 0
+
+
+assert "postcondition not satisfied":
+    forall(int x, int i, int i$3, int[] xs):
+        if:
+            i == 0
+            indexOf_loopinvariant_18(i$3)
+            i$3 >= |xs|
+        then:
+            indexOf_ensures_0(xs, x, null)
+
+

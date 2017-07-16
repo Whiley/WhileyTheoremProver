@@ -1,0 +1,19 @@
+define extract_requires_0(int[] ls, int[] r) is:
+    |ls| == |r|
+
+
+define extract_loopinvariant_13(int[] r) is:
+    |r| > 0
+
+
+assert "index out of bounds (not less than length)":
+    forall(int[] r$1, int[] ls, int[] r, int i$1, int i):
+        if:
+            extract_requires_0(ls, r)
+            i == 0
+            extract_loopinvariant_13(r$1)
+            i$1 < |ls|
+        then:
+            i$1 < |r$1|
+
+

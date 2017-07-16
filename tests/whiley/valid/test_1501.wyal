@@ -1,0 +1,13 @@
+define cons_loopinvariant_21(int[] input, int[] result, int i) is:
+    |result| == (|input| + 1)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int[] result, int[] input, int i):
+        if:
+            result == [0;|input| + 1]
+            i == 0
+        then:
+            cons_loopinvariant_21(input, result, i)
+
+

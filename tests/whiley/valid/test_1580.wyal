@@ -1,0 +1,17 @@
+type MsgMode is ({int mode, int op} self)
+
+
+type IntList is ({int op, bool[] rest}|MsgMode self)
+
+
+function f(IntList y) -> (IntList $)
+
+assert "type invariant not satisfied":
+    forall(IntList x):
+        if:
+            x == {op: 1, rest: [false]}
+            f(x) == {op: 1, rest: [false]}
+        then:
+            {mode: 0, op: 123} is MsgMode
+
+

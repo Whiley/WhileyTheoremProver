@@ -1,0 +1,13 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int[] input, nat pos):
+        if:
+            pos < |input|
+        then:
+            pos >= 0
+
+

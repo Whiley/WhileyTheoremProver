@@ -1,0 +1,29 @@
+define count_ensures_0(int n, int r) is:
+    r == n
+
+
+define count_loopinvariant_30(int n, int i) is:
+    (n > 0) && ((i >= 0) && (i <= n))
+
+
+assert "postcondition not satisfied":
+    forall(int i$5, int n, int i$4, int i, int i$2):
+        if:
+            i == 0
+            either:
+                either:
+                    n <= 0
+                    i$5 == i
+                or:
+                    count_loopinvariant_30(n, i$2)
+                    i$2 < n
+                    n <= 0
+                    i$5 == i$2
+            or:
+                count_loopinvariant_30(n, i$4)
+                i$4 >= n
+                i$5 == i$4
+        then:
+            count_ensures_0(n, i$5)
+
+

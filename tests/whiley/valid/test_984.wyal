@@ -1,0 +1,34 @@
+type Piece is (int x)
+where:
+    (x == 0) || ((x == 1) || (x == 2))
+
+
+type Board is (Piece[] pieces)
+where:
+    |pieces| == 9
+
+
+define numPieces_loopinvariant_9(int i) is:
+    i >= 0
+
+
+assert "loop invariant not restored":
+    forall(Piece p, Piece piece, int i, Board board, int count$3, int i$1, int count$2, int count$1, int i$2, int count):
+        if:
+            count == 0
+            i == 0
+            numPieces_loopinvariant_9(i$1)
+            i$1 < |board|
+            p == board[i$1]
+            either:
+                p == piece
+                count$2 == (count$1 + 1)
+                count$3 == count$2
+            or:
+                p != piece
+                count$3 == count$1
+            i$2 == (i$1 + 1)
+        then:
+            numPieces_loopinvariant_9(i$2)
+
+

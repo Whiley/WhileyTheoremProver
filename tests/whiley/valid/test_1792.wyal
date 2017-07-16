@@ -1,0 +1,15 @@
+define indexOf_loopinvariant_22(int[] items, int i) is:
+    (0 <= i) && (i <= |items|)
+
+
+assert "loop invariant not restored":
+    forall(int ch, int i, int i$1, int i$2, int[] items):
+        if:
+            i == 0
+            indexOf_loopinvariant_22(items, i$1)
+            (i$1 < |items|) && (items[i$1] != ch)
+            i$2 == (i$1 + 1)
+        then:
+            indexOf_loopinvariant_22(items, i$2)
+
+

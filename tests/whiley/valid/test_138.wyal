@@ -1,0 +1,27 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+type Piece is (int p)
+where:
+    (p == 0) || ((p == 1) || (p == 2))
+
+
+type Board is ({nat move, Piece[] pieces} b)
+where:
+    (b.move <= 9) && (|b.pieces| == 9)
+
+
+define play_requires_0(Board b, Piece p, nat pos) is:
+    pos < 9
+
+
+assert "index out of bounds (negative)":
+    forall(Piece p, Board b, nat pos):
+        if:
+            play_requires_0(b, p, pos)
+        then:
+            pos >= 0
+
+

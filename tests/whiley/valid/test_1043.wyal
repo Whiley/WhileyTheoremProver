@@ -1,0 +1,11 @@
+type MyProc is (&*:{bool flag} self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{bool flag} $2):
+        if:
+            true
+        then:
+            $2 is MyProc
+
+

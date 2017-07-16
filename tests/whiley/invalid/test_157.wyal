@@ -1,0 +1,19 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+type natlist is (nat[] self)
+
+
+type nlt is (nat|natlist self)
+
+
+assert "type invariant not satisfied":
+    forall(int y):
+        if:
+            true
+        then:
+            y is nlt
+
+

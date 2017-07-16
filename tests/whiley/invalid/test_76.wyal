@@ -1,0 +1,13 @@
+define count_loopinvariant_20(int n, int i) is:
+    (i >= 0) && (i <= n)
+
+
+assert "loop invariant not established by first iteration":
+    forall(int n, int i$1, int i):
+        if:
+            i == 0
+            i$1 == (i + 1)
+        then:
+            count_loopinvariant_20(n, i$1)
+
+

@@ -1,0 +1,12 @@
+assert "assertion failed":
+    forall(int x, int x$2, int x$1):
+        if:
+            x == 200
+            x == 200
+            x$1 == 1
+            x$1 == 1
+            x$2 == 0
+        then:
+            x$2 == 0
+
+

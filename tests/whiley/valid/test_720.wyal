@@ -1,0 +1,11 @@
+type func is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $6):
+        if:
+            true
+        then:
+            $6 is func
+
+

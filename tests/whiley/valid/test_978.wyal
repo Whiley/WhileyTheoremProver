@@ -1,0 +1,11 @@
+type Reader is ({any read} self)
+
+
+assert "type invariant not satisfied":
+    forall(any $0, Reader reader):
+        if:
+            reader == {read: $0}
+        then:
+            reader is Reader
+
+

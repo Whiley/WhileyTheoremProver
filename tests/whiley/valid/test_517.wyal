@@ -1,0 +1,11 @@
+define add_requires_0(int x, int y) is:
+    (x >= 0) && (y >= 0)
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        add_requires_0(1, 2)
+
+

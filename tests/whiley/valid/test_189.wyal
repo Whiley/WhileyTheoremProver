@@ -1,0 +1,17 @@
+type anat is (int self)
+
+
+type bnat is (int self)
+
+
+function atob(anat x) -> (bnat $)
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == 1
+            atob(x) == 1
+        then:
+            x is bnat
+
+

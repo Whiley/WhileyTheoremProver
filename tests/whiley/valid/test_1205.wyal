@@ -1,0 +1,16 @@
+type Position is ({int x, int y} self)
+
+
+function fromXY(int x, int y) -> (Position r)
+
+define fromXY_ensures_0(int x, int y, Position r) is:
+    (r.x == x) && (r.y == y)
+
+
+assert "type invariant not satisfied":
+    if:
+        fromXY_ensures_0(1, 2, fromXY(1, 2))
+    then:
+        fromXY(1, 2) is Position
+
+

@@ -1,0 +1,14 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall((null&nat)|(int&nat) x$1, null|int x):
+        if:
+            x$1 == x
+            x is nat
+        then:
+            x$1 is nat
+
+

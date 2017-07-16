@@ -1,0 +1,8 @@
+assert "negative length possible":
+    forall(int[] ls, int i):
+        if:
+            i == 0
+        then:
+            |ls| >= 0
+
+

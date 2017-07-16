@@ -1,0 +1,18 @@
+type irf3nat is (int x)
+where:
+    x < 10
+
+
+type pirf3nat is (irf3nat x)
+where:
+    x > 0
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            true
+        then:
+            x is pirf3nat
+
+

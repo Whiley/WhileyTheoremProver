@@ -1,0 +1,14 @@
+type RGB is (int x)
+where:
+    (x == 1) || ((x == 2) || (x == 3))
+
+
+function f(RGB c) -> (int $)
+
+assert "type invariant not satisfied":
+    if:
+        f(1) == 123
+    then:
+        3 is RGB
+
+

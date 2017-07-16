@@ -1,0 +1,14 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+function create(nat size, nat value) -> (nat[] $)
+
+assert "type invariant not satisfied":
+    if:
+        create(10, 10) == [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+    then:
+        5 is nat
+
+

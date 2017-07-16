@@ -1,0 +1,10 @@
+assert "assertion failed":
+    forall(int[] arr):
+        if:
+            arr == [1, 2, 3]
+            arr[0] < |arr|
+            arr[1] < |arr|
+        then:
+            arr[2] == |arr|
+
+

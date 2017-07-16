@@ -7,8 +7,8 @@ type pos is (int p)
 where:
     p > 0
 
-type expr is ({expr lhs, expr rhs}|nat this)
-type posExpr is ({posExpr lhs, posExpr rhs}|pos this)
+type expr is ({expr lhs, expr rhs}|nat self)
+type posExpr is ({posExpr lhs, posExpr rhs}|pos self)
 
 assert:
     if:

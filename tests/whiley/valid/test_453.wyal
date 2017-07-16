@@ -1,0 +1,10 @@
+type Contractive is (null|(Contractive[]) self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        null is Contractive
+
+

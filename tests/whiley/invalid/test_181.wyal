@@ -1,0 +1,14 @@
+define extract_requires_0(int i, int[] ls) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int[] ls, int r, int i$1, int i):
+        if:
+            extract_requires_0(i, ls)
+            r == 0
+            i$1 < |ls|
+        then:
+            i$1 >= 0
+
+

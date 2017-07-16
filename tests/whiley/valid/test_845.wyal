@@ -1,0 +1,15 @@
+type nint is (null|int self)
+
+
+define move_requires_0(int from, int to, (nint[])[] list) is:
+    (from >= 0) && (from < |list|)
+
+
+assert "precondition not satisfied":
+    forall((nint[])[] ls):
+        if:
+            ls == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        then:
+            move_requires_0(0, 1, ls)
+
+

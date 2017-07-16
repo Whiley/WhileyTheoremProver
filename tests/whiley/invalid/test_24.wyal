@@ -1,0 +1,10 @@
+assert "assertion failed":
+    forall(int[] arr2$1, int[] arr1, int[] arr2):
+        if:
+            arr1 == [1, 2, 4]
+            arr2 == arr1
+            arr2$1 == arr2[2:=3]
+        then:
+            arr2$1[2] != |arr1|
+
+

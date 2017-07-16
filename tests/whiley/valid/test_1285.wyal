@@ -1,0 +1,22 @@
+type Expr is (bool|(Expr[])|{int data, Expr lhs} self)
+
+
+type SubExpr is (bool|{int data, SubExpr lhs} self)
+
+
+function toString(Expr e) -> (int $)
+
+assert "type invariant not satisfied":
+    forall(SubExpr se2, Expr e1, SubExpr se3, Expr e2, SubExpr se1):
+        if:
+            se1 == false
+            se2 == {data: 1, lhs: se1}
+            se3 == {data: 45, lhs: se2}
+            e1 == [se1]
+            e2 == [e1, se1, se2]
+            toString(se1) == 0
+            toString(se2) == 1
+        then:
+            se3 is Expr
+
+

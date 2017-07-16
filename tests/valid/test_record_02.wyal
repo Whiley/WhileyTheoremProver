@@ -1,5 +1,5 @@
 type Point is ({int x, int y} p)
-type Expr is (int|Point this)
+type Expr is (int|Point self)
 
 assert:
     forall(Point x, Expr y):

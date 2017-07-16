@@ -1,0 +1,25 @@
+type Matrix is ((int[])[] rows)
+where:
+    forall(int i, int j):
+        (((0 <= i) && (i < |rows|)) && ((0 <= j) && (j < |rows|))) ==> (|rows[i]| == |rows[j]|)
+
+
+define run_requires_0(Matrix A, Matrix B) is:
+    (|A| > 0) && ((|B| > 0) && (|B| == |A[0]|))
+
+
+define run_loopinvariant_50(Matrix A, Matrix B, (int[])[] C, int i) is:
+    forall(int k):
+        ((0 <= k) && (k < i)) ==> (|C[k]| == |B[0]|)
+
+
+assert "loop invariant does not hold on entry":
+    forall(Matrix B, int i, (int[])[] C, Matrix A):
+        if:
+            run_requires_0(A, B)
+            C == [[0;0];|A|]
+            i == 0
+        then:
+            run_loopinvariant_50(A, B, C, i)
+
+

@@ -1,0 +1,14 @@
+type Link is ({int data, LinkedList next} self)
+
+
+type LinkedList is (null|Link self)
+
+
+assert "type invariant not satisfied":
+    forall(LinkedList l1):
+        if:
+            l1 == {data: 1, next: null}
+        then:
+            {data: 2, next: l1} is LinkedList
+
+

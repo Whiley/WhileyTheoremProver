@@ -1,0 +1,25 @@
+define sum_requires_0(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] >= 0)
+
+
+define sum_requires_1(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] > 0)
+
+
+define sum_loopinvariant_35(int i, int sum) is:
+    (i >= 0) && (sum >= 0)
+
+
+assert "loop invariant does not hold on entry":
+    forall(int i, int sum, int[] xs):
+        if:
+            sum_requires_0(xs)
+            sum_requires_1(xs)
+            i == 0
+            sum == 0
+        then:
+            sum_loopinvariant_35(i, sum)
+
+

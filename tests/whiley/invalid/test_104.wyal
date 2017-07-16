@@ -1,0 +1,26 @@
+define nat(int x) is:
+    x >= 0
+
+
+define pos(int x) is:
+    x > 0
+
+
+type nat is (int x)
+where:
+    nat(x)
+
+
+type pos is (int x)
+where:
+    pos(x)
+
+
+assert "type invariant not satisfied":
+    forall(nat x):
+        if:
+            true
+        then:
+            x is pos
+
+

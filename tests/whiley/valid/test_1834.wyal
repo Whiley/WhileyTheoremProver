@@ -1,0 +1,22 @@
+function isSorted(int[] items) -> (bool r)
+
+define isSorted_requires_0(int[] items) is:
+    |items| >= 2
+
+
+define isSorted_ensures_0(int[] items, bool r) is:
+    !r || forall(int j).(((1 <= j) && (j < |items|)) ==> (items[j - 1] <= items[j]))
+
+
+assert "precondition not satisfied":
+    if:
+        isSorted_ensures_0([1, 2, 3, 4], isSorted([1, 2, 3, 4]))
+        isSorted([1, 2, 3, 4])
+        isSorted_ensures_0([1, 2, 4, 3], isSorted([1, 2, 4, 3]))
+        !isSorted([1, 2, 4, 3])
+        isSorted_ensures_0([4, 2, 3, 5], isSorted([4, 2, 3, 5]))
+        !isSorted([4, 2, 3, 5])
+    then:
+        isSorted_requires_0([0;2])
+
+

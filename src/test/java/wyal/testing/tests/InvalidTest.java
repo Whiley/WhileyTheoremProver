@@ -56,6 +56,7 @@ public class InvalidTest {
 		IGNORED.put("test_058", "unclassified");
 		// Issue 36 "Support for Division Operator Feature"
 		IGNORED.put("test_079", "unclassified");
+		IGNORED.put("test_083", "unclassified");
 		// Issue 115 "OpenRecords in RecordEqualityCaseAnalysis"
 		IGNORED.put("test_105", "WyTP#115");
 	}

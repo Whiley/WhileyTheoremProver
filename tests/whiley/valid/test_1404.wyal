@@ -1,0 +1,11 @@
+define f_requires_0(int[] input) is:
+    |input| > 0
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([78])
+
+

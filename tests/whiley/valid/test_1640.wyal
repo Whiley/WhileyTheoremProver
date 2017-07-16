@@ -1,0 +1,10 @@
+type IntList is ({int mode, int op}|{int op, bool[] rest} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {op: 1, rest: [false]} is IntList
+
+

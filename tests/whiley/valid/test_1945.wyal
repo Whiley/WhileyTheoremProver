@@ -1,0 +1,19 @@
+function sum(int[] xs) -> (int r)
+
+define sum_requires_1(int[] xs) is:
+    forall(int i):
+        ((0 <= i) && (i < |xs|)) ==> (xs[i] > 0)
+
+
+define sum_ensures_0(int[] xs, int r) is:
+    r >= 0
+
+
+assert "precondition not satisfied":
+    if:
+        sum_ensures_0([1;0], sum([1;0]))
+        sum([1;0]) == 0
+    then:
+        sum_requires_1([1, 2, 3])
+
+

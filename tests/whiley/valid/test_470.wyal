@@ -1,0 +1,10 @@
+type dr2point is ({bool x, bool y} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {x: true, y: false} is dr2point
+
+

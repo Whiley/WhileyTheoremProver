@@ -1,0 +1,10 @@
+type structA is ({bool r} self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        {r: false} is structA
+
+

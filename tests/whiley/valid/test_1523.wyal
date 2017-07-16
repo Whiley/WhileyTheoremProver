@@ -1,0 +1,18 @@
+type pos is (bool self)
+
+
+type neg is (int n)
+where:
+    n < 0
+
+
+type expr is (neg|pos self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        -1 is expr
+
+

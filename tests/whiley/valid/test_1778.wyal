@@ -1,0 +1,26 @@
+define find_ensures_0(int[] items, int item, int r) is:
+    (0 <= r) && (r <= |items|)
+
+
+define find_loopinvariant_31(int[] items, int i) is:
+    (0 <= i) && (i <= |items|)
+
+
+assert "postcondition not satisfied":
+    forall(int i, int i$4, int i$1, int i$3, int item, int[] items):
+        if:
+            i == 0
+            either:
+                find_loopinvariant_31(items, i$1)
+                i$1 < |items|
+                items[i$1] == item
+                (0 <= i$1) && (i$1 < |items|)
+                i$4 == i$1
+            or:
+                find_loopinvariant_31(items, i$3)
+                i$3 >= |items|
+                i$4 == i$3
+        then:
+            find_ensures_0(items, item, i$4)
+
+

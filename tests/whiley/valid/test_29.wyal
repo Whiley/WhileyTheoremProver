@@ -1,0 +1,21 @@
+type in_arr is ((null|int)[] self)
+
+
+type ib_arr is ((bool|int)[] self)
+
+
+type arr is (ib_arr|in_arr self)
+
+
+define read_requires_0(arr x, int i) is:
+    (i >= 0) && (i < |x|)
+
+
+assert "index out of bounds (not less than length)":
+    forall(arr x, int i):
+        if:
+            read_requires_0(x, i)
+        then:
+            i < |x|
+
+

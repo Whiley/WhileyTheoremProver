@@ -1,0 +1,13 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+assert "negative length possible":
+    forall(nat size):
+        if:
+            true
+        then:
+            size >= 0
+
+

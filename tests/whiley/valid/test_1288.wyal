@@ -1,0 +1,17 @@
+type Expr is (int|BinOp|Var self)
+
+
+type BinOp is ({Expr lhs, Expr rhs} self)
+
+
+type Var is ({int[] id} self)
+
+
+assert "type invariant not satisfied":
+    forall(int i):
+        if:
+            i > 10
+        then:
+            {id: [118, 97, 114]} is Expr
+
+

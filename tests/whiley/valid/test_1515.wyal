@@ -1,0 +1,22 @@
+type pos is (int p)
+where:
+    p > 0
+
+
+type neg is (int n)
+where:
+    n < 0
+
+
+type expr is (neg|pos self)
+
+
+function f(expr e) -> (bool $)
+
+assert "type invariant not satisfied":
+    if:
+        f(-1) == false
+    then:
+        1 is expr
+
+

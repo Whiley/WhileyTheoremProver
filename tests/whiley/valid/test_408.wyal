@@ -1,0 +1,26 @@
+type posintlist is (int[] list)
+where:
+    forall(int i):
+        ((0 <= i) && (i < |list|)) ==> (list[i] >= 0)
+
+
+function sum(posintlist ls, int i) -> (int r)
+
+define sum_ensures_0(posintlist ls, int i, int r) is:
+    r >= 0
+
+
+function sum(posintlist ls) -> (int r)
+
+define sum_ensures_0(posintlist ls, int r) is:
+    r >= 0
+
+
+assert "postcondition not satisfied":
+    forall(posintlist ls):
+        if:
+            sum_ensures_0(ls, 0, sum(ls, 0))
+        then:
+            sum_ensures_0(ls, sum(ls, 0))
+
+

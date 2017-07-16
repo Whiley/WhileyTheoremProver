@@ -1,0 +1,12 @@
+type Expr is ({int num}|{int[] err}|{Expr lhs, int op, Expr rhs} self)
+
+
+function parse(int[] input) -> (Expr $)
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        parse([72, 101, 108, 108, 111]) is Expr
+
+

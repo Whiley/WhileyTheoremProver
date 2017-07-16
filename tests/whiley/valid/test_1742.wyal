@@ -1,0 +1,19 @@
+type nat is (int x)
+where:
+    x >= 0
+
+
+function create(nat count, int value) -> (int[] result)
+
+define create_ensures_0(nat count, int value, int[] result) is:
+    |result| == count
+
+
+assert "type invariant not satisfied":
+    if:
+        create_ensures_0(3, 3, create(3, 3))
+        create(3, 3) == [3, 3, 3]
+    then:
+        2 is nat
+
+

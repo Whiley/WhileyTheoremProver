@@ -1,0 +1,24 @@
+type LinkedList is (null|{int data, LinkedList next} self)
+
+
+type Reducer is (any self)
+
+
+function apply(Reducer r, LinkedList l) -> (int $)
+
+define test_loopinvariant_4(int i) is:
+    i >= 0
+
+
+assert "index out of bounds (negative)":
+    forall(int i, any[] $18$2, int i$1, any[] $7, any[] $10$2):
+        if:
+            i == 0
+            test_loopinvariant_4(i$1)
+            i$1 < |[$7]|
+            apply([$10$2][i$1], null) == 0
+            apply([$18$2][i$1], {next: null, data: 1}) == 1
+        then:
+            i$1 >= 0
+
+

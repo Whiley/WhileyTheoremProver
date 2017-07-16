@@ -1,0 +1,10 @@
+type IntList is (int|(int[]) self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        123 is IntList
+
+

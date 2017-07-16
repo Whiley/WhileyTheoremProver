@@ -1,0 +1,11 @@
+define f_requires_0(int[] args) is:
+    |args| >= 2
+
+
+assert "precondition not satisfied":
+    if:
+        true
+    then:
+        f_requires_0([1, 2, 3])
+
+

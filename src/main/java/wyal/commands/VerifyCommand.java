@@ -20,10 +20,15 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import wyal.lang.NameResolver;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.VerificationError;
 import wyal.tasks.CompileTask;
 import wyal.util.AbstractProjectCommand;
+import wyal.util.Interpreter;
+import wyal.util.SmallWorldDomain;
+import wyal.util.WyalFileResolver;
+import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.lang.SyntaxError.InternalFailure;
 import wybs.util.StdBuildRule;
@@ -33,6 +38,7 @@ import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
+import wytp.types.extractors.TypeInvariantExtractor;
 import wyfs.lang.Content.Registry;
 
 public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> {
@@ -67,6 +73,11 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	 * performed.
 	 */
 	protected boolean verify = true;
+
+	/**
+	 * Signals that counterexample generation should be performed.
+	 */
+	protected boolean counterexamples = false;
 
 	/**
 	 * Signals whether proofs should be printed to the console. This is useful
@@ -126,6 +137,8 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 			return "Enable verbose output from verifier";
 		case "verify":
 			return "Enable verification";
+		case "counterexamples":
+			return "Enable counterexample generation";
 		case "proof":
 			return "Print proofs to console";
 		case "width":
@@ -143,6 +156,9 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 			break;
 		case "verify":
 			this.verify = (Boolean) value;
+			break;
+		case "counterexamples":
+			this.counterexamples = true;
 			break;
 		case "proof":
 			this.printProof = true;
@@ -210,7 +226,7 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	// Helpers
 	// =======================================================================
 
-	private Result compile(StdProject project, List<Path.Entry<WyalFile>> entries) {
+	protected Result compile(StdProject project, List<Path.Entry<WyalFile>> entries) {
 		// Initialise Project
 		try {
 			addCompilationBuildRules(project);
@@ -226,7 +242,11 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 		} catch (InternalFailure e) {
 			throw e;
 		} catch (SyntaxError e) {
+			SyntacticElement element = e.getElement();
 			e.outputSourceError(syserr, false);
+			if(counterexamples && element instanceof WyalFile.Declaration.Assert) {
+				findCounterexamples((WyalFile.Declaration.Assert)element,project);
+			}
 			if (verbose) {
 				printStackTrace(syserr, e);
 			}
@@ -265,6 +285,21 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 			wyalBuildTask.setLogger(logger);
 		}
 		project.add(new StdBuildRule(wyalBuildTask, wyaldir, wyalIncludes, wyalExcludes, wycsdir));
+	}
+
+	public void findCounterexamples(WyalFile.Declaration.Assert assertion, StdProject project) {
+		// FIXME: it doesn't feel right creating new instances here.
+		NameResolver resolver = new WyalFileResolver(project);
+		TypeInvariantExtractor extractor = new TypeInvariantExtractor(resolver);
+		Interpreter interpreter = new Interpreter(new SmallWorldDomain(resolver), resolver, extractor);
+		try {
+			Interpreter.Result result = interpreter.evaluate(assertion);
+			if(!result.holds()) {
+				syserr.println("counterexample: " + result.getEnvironment());
+			}
+		} catch(Interpreter.UndefinedException e) {
+			// do nothing for now
+		}
 	}
 
 	/**

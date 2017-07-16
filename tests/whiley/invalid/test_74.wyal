@@ -1,0 +1,16 @@
+type tup is ({int x, int y} self)
+
+
+type point is ({int x, int y} r)
+where:
+    (r.x > 0) && (r.y > 0)
+
+
+assert "type invariant not satisfied":
+    forall(tup z):
+        if:
+            z == {x: 1, y: -2}
+        then:
+            z is point
+
+

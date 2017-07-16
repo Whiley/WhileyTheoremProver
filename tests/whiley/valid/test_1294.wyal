@@ -1,0 +1,13 @@
+type Link is (null|{int[] items, Link next} self)
+
+
+assert "negative length possible":
+    forall(int i, int i$1, Link start, int n):
+        if:
+            start == null
+            i == 0
+            i$1 < n
+        then:
+            0 >= 0
+
+

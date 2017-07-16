@@ -1,0 +1,11 @@
+type nat is (int self)
+
+
+assert "negative length possible":
+    forall(nat[] xs):
+        if:
+            true
+        then:
+            |xs| >= 0
+
+

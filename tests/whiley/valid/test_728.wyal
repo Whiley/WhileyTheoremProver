@@ -1,0 +1,12 @@
+function f1(int x) -> (any $)
+
+type func is (any self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        f1(10) is func
+
+

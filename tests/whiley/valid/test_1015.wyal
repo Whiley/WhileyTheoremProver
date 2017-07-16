@@ -1,0 +1,18 @@
+type string is (int[] self)
+
+
+type Attribute is ({string name, ...} self)
+
+
+function codeLength(Attribute a) -> (null|int $)
+
+assert "type invariant not satisfied":
+    forall(Attribute attr, Attribute attr$1):
+        if:
+            attr == {data: [{offset: 1, op: 2}], name: [67, 111, 100, 101]}
+            codeLength(attr) == 1
+            attr$1 == {name: [66, 108, 97, 104]}
+        then:
+            attr$1 is Attribute
+
+

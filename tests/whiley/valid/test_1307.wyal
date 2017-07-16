@@ -1,0 +1,15 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+type expr is ({expr left, int op, expr right}|nat self)
+
+
+assert "type invariant not satisfied":
+    if:
+        true
+    then:
+        14897 is expr
+
+

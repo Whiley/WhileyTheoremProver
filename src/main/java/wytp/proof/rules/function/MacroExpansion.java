@@ -170,12 +170,12 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) throws ResolutionError {
-		VariableDeclaration[] parameters = md.getParameters().getOperands();
+		Tuple<VariableDeclaration> parameters = md.getParameters();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
 		Map<SyntacticItem, SyntacticItem> map = new IdentityHashMap<>();
-		for (int i = 0; i != parameters.length; ++i) {
-			map.put(parameters[i], parameters[i]);
+		for (int i = 0; i != parameters.size(); ++i) {
+			map.put(parameters.getOperand(i), parameters.getOperand(i));
 		}
 		// Clone is required at this point to ensure that any variable
 		// declarations are distinguished appropriately.
@@ -185,7 +185,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			// At this point, we must substitute the parameter name used in
 			// the type declaration for the name used as the invocation
 			// argument.
-			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters[i]);
+			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters.getOperand(i));
 			body = (Formula) substitute(parameter, arguments[i], body);
 		}
 		return body;

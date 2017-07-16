@@ -1,0 +1,11 @@
+type meth is (any self)
+
+
+assert "type invariant not satisfied":
+    forall(any $4):
+        if:
+            true
+        then:
+            $4 is meth
+
+

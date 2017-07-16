@@ -1,0 +1,15 @@
+define max3_ensures_0(int x, int y, int z, int r) is:
+    (r >= x) && ((r >= y) && (r >= z))
+
+
+assert "postcondition not satisfied":
+    forall(bool isX, int x, int y, bool isY, int z):
+        if:
+            isX == ((x >= y) && (x >= z))
+            isY == ((y >= x) && (y >= z))
+            !isX
+            !isY
+        then:
+            max3_ensures_0(x, y, z, z)
+
+

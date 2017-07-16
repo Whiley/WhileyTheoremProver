@@ -1,0 +1,51 @@
+function max3(int x, int y, int z) -> (int r)
+
+define max3_ensures_0(int x, int y, int z, int r) is:
+    (r >= x) && ((r >= y) && (r >= z))
+
+
+define max3_ensures_1(int x, int y, int z, int r) is:
+    (r == x) || ((r == y) || (r == z))
+
+
+define fn_loopinvariant_5(int i1) is:
+    i1 >= 0
+
+
+define fn_loopinvariant_19(int i2) is:
+    i2 >= 0
+
+
+define fn_loopinvariant_33(int i3) is:
+    i3 >= 0
+
+
+assert "loop invariant not restored":
+    forall(int i3$1, int i1$1, int v1, int i1, int i3$2, int i2, int i2$1, int v2, int v3, int i3, int[] xs):
+        if:
+            i1 == 0
+            fn_loopinvariant_5(i1$1)
+            i1$1 < |xs|
+            v1 == xs[i1$1]
+            i2 == 0
+            fn_loopinvariant_19(i2$1)
+            i2$1 < |xs|
+            v2 == xs[i2$1]
+            i3 == 0
+            fn_loopinvariant_33(i3$1)
+            i3$1 < |xs|
+            v3 == xs[i3$1]
+            max3_ensures_0(v1, v2, v3, max3(v1, v2, v3))
+            max3_ensures_1(v1, v2, v3, max3(v1, v2, v3))
+            ((v1 > v3) || (v2 > v3)) || (max3(v1, v2, v3) == v3)
+            max3_ensures_0(v1, v2, v3, max3(v1, v2, v3))
+            max3_ensures_1(v1, v2, v3, max3(v1, v2, v3))
+            ((v1 > v2) || (v3 > v2)) || (max3(v1, v2, v3) == v2)
+            max3_ensures_0(v1, v2, v3, max3(v1, v2, v3))
+            max3_ensures_1(v1, v2, v3, max3(v1, v2, v3))
+            ((v2 > v3) || (v3 > v1)) || (max3(v1, v2, v3) == v1)
+            i3$2 == (i3$1 + 1)
+        then:
+            fn_loopinvariant_33(i3$2)
+
+

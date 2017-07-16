@@ -1,0 +1,15 @@
+type nat is (int n)
+where:
+    n >= 0
+
+
+function create(nat size, nat value) -> (nat[] $)
+
+assert "negative length possible":
+    if:
+        create(10, 10) == [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+        create(5, 0) == [0, 0, 0, 0, 0]
+    then:
+        0 >= 0
+
+

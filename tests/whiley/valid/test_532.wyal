@@ -1,0 +1,9 @@
+assert "possible panic":
+    forall(int x):
+        if:
+            x == 0
+            x != 0
+        then:
+            false
+
+

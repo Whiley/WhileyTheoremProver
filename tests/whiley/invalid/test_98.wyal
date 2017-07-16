@@ -1,0 +1,16 @@
+define f_requires_0(int x) is:
+    x > 1
+
+
+define g_requires_0(int p) is:
+    p >= 0
+
+
+assert "precondition not satisfied":
+    forall(int p, int x):
+        if:
+            g_requires_0(p)
+        then:
+            f_requires_0(x + 1)
+
+

@@ -1,0 +1,13 @@
+type anat is (int x)
+where:
+    x >= 0
+
+
+assert "type invariant not satisfied":
+    forall(int x):
+        if:
+            x == 1
+        then:
+            x is anat
+
+

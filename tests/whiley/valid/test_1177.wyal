@@ -1,0 +1,16 @@
+type i8 is (int x)
+where:
+    (x >= 0) && (x <= 255)
+
+
+type bytes is ({i8 b1, i8 b2} self)
+
+
+assert "type invariant not satisfied":
+    forall(i8 b):
+        if:
+            true
+        then:
+            {b1: b, b2: 2} is bytes
+
+

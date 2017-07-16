@@ -1,0 +1,14 @@
+type state is ({int x, int y} self)
+
+
+type pState is (&*:state self)
+
+
+assert "type invariant not satisfied":
+    forall(&*:{int x, int y} $3, pState ps):
+        if:
+            ps == $3
+        then:
+            ps is pState
+
+

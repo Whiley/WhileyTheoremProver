@@ -1,0 +1,20 @@
+type nat is (int self)
+
+
+type pos is (int self)
+
+
+type expr is ({expr lhs, expr rhs}|nat self)
+
+
+type posExpr is ({posExpr lhs, posExpr rhs}|pos self)
+
+
+assert "type invariant not satisfied":
+    forall(posExpr e1):
+        if:
+            true
+        then:
+            e1 is expr
+
+
