@@ -127,7 +127,9 @@ public class AutomatedTheoremProver {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
 				try {
 					if (!check(ast)) {
-						throw new SyntaxError(ast.getMessage(), originalSource, item);
+						String msg = ast.getMessage();
+						msg = msg != null ? msg : "assertion failure";
+						throw new SyntaxError(msg, originalSource, item);
 					}
 				} catch (NameResolver.ResolutionError e) {
 					throw new SyntaxError(e.getMessage(), originalSource, e.getName(), e);

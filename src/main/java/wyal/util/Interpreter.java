@@ -710,7 +710,7 @@ public class Interpreter {
 		}
 	}
 
-	protected static class Environment {
+	public static class Environment {
 		private final Environment parent;
 		private final Domain domain;
 		private final Map<VariableDeclaration,Object> values;
