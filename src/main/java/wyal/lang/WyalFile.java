@@ -612,6 +612,8 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 
 			public Identifier getName();
 
+			public Tuple<VariableDeclaration> getParameters();
+
 			public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Named {
 				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
 					super(Opcode.DECL_macro, name, parameters, body);
@@ -627,6 +629,7 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 					return (Identifier) getOperand(0);
 				}
 
+				@Override
 				public Tuple<VariableDeclaration> getParameters() {
 					return (Tuple) getOperand(1);
 				}
@@ -720,6 +723,11 @@ public class WyalFile extends AbstractSyntacticHeap implements CompilationUnit {
 				@Override
 				public Type clone(SyntacticItem[] operands) {
 					return new Type((Identifier) operands[0], (VariableDeclaration) operands[1], (Tuple) operands[2]);
+				}
+
+				@Override
+				public Tuple<VariableDeclaration> getParameters() {
+					return new Tuple<>(getVariableDeclaration());
 				}
 			}
 		}
