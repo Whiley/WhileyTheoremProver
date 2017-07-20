@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import wyal.lang.Domain;
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
@@ -24,6 +25,7 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.lang.Domain;
 import wytp.types.extractors.TypeInvariantExtractor;
 
 public class Interpreter {
@@ -673,49 +675,6 @@ public class Interpreter {
 
 		public boolean holds() {
 			return value;
-		}
-	}
-
-	/**
-	 * Represents the universe of all known values.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public interface Domain {
-		/**
-		 * Construct an iterator that will walk over all known values for a
-		 * given type.
-		 *
-		 * @param type
-		 * @return
-		 */
-		Generator generator(Type type);
-
-		public interface Generator {
-			/**
-			 * Determine whether there is another element in this domain.
-			 *
-			 * @return
-			 */
-			public boolean hasNext();
-
-			/**
-			 * Get the current value of this generator
-			 *
-			 * @return
-			 */
-			public Object get();
-
-			/**
-			 * Move this generator to its next value
-			 */
-			public void next();
-
-			/**
-			 * Reset this generator back to the beginning
-			 */
-			public void reset();
 		}
 	}
 
