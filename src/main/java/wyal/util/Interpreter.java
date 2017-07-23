@@ -472,9 +472,13 @@ public class Interpreter {
 	}
 
 	protected Object evaluateIs(Expr.Is expr, Environment environment) throws UndefinedException {
-		Object value = evaluateExpression(expr.getTestExpr(), environment);
-		Type type = expr.getTestType();
-		return isInstance(value,type);
+		try {
+			Object value = evaluateExpression(expr.getTestExpr(), environment);
+			Type type = expr.getTestType();
+			return isInstance(value,type);
+		} catch(NameResolver.ResolutionError e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	protected Object evaluateArrayAccess(Expr.ArrayAccess expr, Environment environment) throws UndefinedException {
@@ -568,7 +572,26 @@ public class Interpreter {
 
 
 
-	protected boolean isInstance(Object value, Type type) {
+	protected boolean isInstance(Object value, Type type) throws ResolutionError, UndefinedException {
+		// Handle nominal types
+		if(type instanceof Type.Nominal) {
+			Type.Nominal nom = (Type.Nominal) type;
+			Declaration.Named.Type decl = resolver.resolveExactly(nom.getName(), Declaration.Named.Type.class);
+			if(isInstance(value,decl.getVariableDeclaration().getType())) {
+				Tuple<Block> invariant = decl.getInvariant();
+				Environment environment = new Environment(domain);
+				environment.values.put(decl.getVariableDeclaration(), value);
+				for (int i = 0; i != invariant.size(); ++i) {
+					Result r = evaluateBlock(invariant.getOperand(i), environment);
+					if (!r.holds()) {
+						return false;
+					}
+				}
+				return true;
+			} else {
+				return false;
+			}
+		}
 		// Handle type connectives
 		if(type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
