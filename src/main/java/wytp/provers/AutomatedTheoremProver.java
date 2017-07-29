@@ -418,6 +418,10 @@ public class AutomatedTheoremProver {
 	// Useful for debugging
 	public void print(Proof proof) {
 		ProofPrinter printer = new ProofPrinter(System.out).setWidth(proofWidth);
+		for(int i=0;i!=proofWidth;++i) {
+			System.out.print("=");
+		}
+		System.out.println();
 		printer.print(proof);
 		printer.flush();
 	}

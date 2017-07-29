@@ -4,13 +4,13 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Comparator;
 
+import wyal.lang.Domain;
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
-import wyal.util.Interpreter.Domain;
 
 /**
  * The small world domain stems from the theory that all bugs can be found with

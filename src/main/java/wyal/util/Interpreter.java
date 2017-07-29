@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import wyal.lang.Domain;
 import wyal.lang.NameResolver;
 import wyal.lang.NameResolver.NameNotFoundError;
 import wyal.lang.NameResolver.ResolutionError;
@@ -24,6 +25,7 @@ import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Value;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.lang.Domain;
 import wytp.types.extractors.TypeInvariantExtractor;
 
 public class Interpreter {
@@ -470,9 +472,13 @@ public class Interpreter {
 	}
 
 	protected Object evaluateIs(Expr.Is expr, Environment environment) throws UndefinedException {
-		Object value = evaluateExpression(expr.getTestExpr(), environment);
-		Type type = expr.getTestType();
-		return isInstance(value,type);
+		try {
+			Object value = evaluateExpression(expr.getTestExpr(), environment);
+			Type type = expr.getTestType();
+			return isInstance(value,type);
+		} catch(NameResolver.ResolutionError e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	protected Object evaluateArrayAccess(Expr.ArrayAccess expr, Environment environment) throws UndefinedException {
@@ -566,7 +572,26 @@ public class Interpreter {
 
 
 
-	protected boolean isInstance(Object value, Type type) {
+	protected boolean isInstance(Object value, Type type) throws ResolutionError, UndefinedException {
+		// Handle nominal types
+		if(type instanceof Type.Nominal) {
+			Type.Nominal nom = (Type.Nominal) type;
+			Declaration.Named.Type decl = resolver.resolveExactly(nom.getName(), Declaration.Named.Type.class);
+			if(isInstance(value,decl.getVariableDeclaration().getType())) {
+				Tuple<Block> invariant = decl.getInvariant();
+				Environment environment = new Environment(domain);
+				environment.values.put(decl.getVariableDeclaration(), value);
+				for (int i = 0; i != invariant.size(); ++i) {
+					Result r = evaluateBlock(invariant.getOperand(i), environment);
+					if (!r.holds()) {
+						return false;
+					}
+				}
+				return true;
+			} else {
+				return false;
+			}
+		}
 		// Handle type connectives
 		if(type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
@@ -673,49 +698,6 @@ public class Interpreter {
 
 		public boolean holds() {
 			return value;
-		}
-	}
-
-	/**
-	 * Represents the universe of all known values.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public interface Domain {
-		/**
-		 * Construct an iterator that will walk over all known values for a
-		 * given type.
-		 *
-		 * @param type
-		 * @return
-		 */
-		Generator generator(Type type);
-
-		public interface Generator {
-			/**
-			 * Determine whether there is another element in this domain.
-			 *
-			 * @return
-			 */
-			public boolean hasNext();
-
-			/**
-			 * Get the current value of this generator
-			 *
-			 * @return
-			 */
-			public Object get();
-
-			/**
-			 * Move this generator to its next value
-			 */
-			public void next();
-
-			/**
-			 * Reset this generator back to the beginning
-			 */
-			public void reset();
 		}
 	}
 
