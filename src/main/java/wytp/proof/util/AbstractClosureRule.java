@@ -13,23 +13,10 @@
 // limitations under the License.
 package wytp.proof.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import wyal.lang.NameResolver;
-import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
-import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.rules.Simplification;
-import wytp.proof.rules.CongruenceClosure.Assignment;
 import wytp.types.TypeSystem;
 
 public abstract class AbstractClosureRule extends AbstractProofRule {

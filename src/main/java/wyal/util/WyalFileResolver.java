@@ -17,17 +17,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import wyal.lang.NameResolver;
-import wyal.lang.SyntacticHeap;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration.Named;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Name;
+import wybs.lang.CompilationUnit.Name;
+import wybs.lang.CompilationUnit.Identifier;
+import wybs.lang.CompilationUnit.Declaration;
 import wybs.lang.Build;
 import wybs.lang.NameID;
+import wybs.lang.NameResolver;
 import wybs.lang.SyntacticElement;
+import wybs.lang.SyntacticHeap;
+import wybs.lang.SyntacticItem;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
@@ -83,7 +83,7 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	@Override
-	public <T extends Named> T resolveExactly(Name name, Class<T> kind) throws ResolutionError {
+	public <T extends Declaration> T resolveExactly(Name name, Class<T> kind) throws ResolutionError {
 		List<T> matches = resolveAll(name, kind);
 		if (matches.size() == 1) {
 			return matches.get(0);
@@ -93,7 +93,7 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	@Override
-	public <T extends Named> List<T> resolveAll(Name name, Class<T> kind) throws ResolutionError {
+	public <T extends Declaration> List<T> resolveAll(Name name, Class<T> kind) throws ResolutionError {
 		try {
 			NameID nid = resolve(name);
 			WyalFile enclosing = loadModule(nid,name);
@@ -101,8 +101,8 @@ public final class WyalFileResolver implements NameResolver {
 			// Look through the enclosing file first!
 			for (int i = 0; i != enclosing.size(); ++i) {
 				SyntacticItem item = enclosing.getSyntacticItem(i);
-				if (item instanceof Declaration.Named) {
-					Declaration.Named nd = (Declaration.Named) item;
+				if (item instanceof WyalFile.Declaration.Named) {
+					WyalFile.Declaration.Named nd = (WyalFile.Declaration.Named) item;
 					if (nd.getName().get().equals(nid.name()) && kind.isInstance(nd)) {
 						result.add((T) nd);
 					}
@@ -156,8 +156,8 @@ public final class WyalFileResolver implements NameResolver {
 		// Look through the enclosing file first!
 		for (int i = 0; i != heap.size(); ++i) {
 			SyntacticItem item = heap.getSyntacticItem(i);
-			if (item instanceof Declaration.Named) {
-				Declaration.Named nd = (Declaration.Named) item;
+			if (item instanceof WyalFile.Declaration.Named) {
+				WyalFile.Declaration.Named nd = (WyalFile.Declaration.Named) item;
 				if (nd.getName().get().equals(name)) {
 					count = count + 1;
 				}
@@ -181,9 +181,9 @@ public final class WyalFileResolver implements NameResolver {
 	private NameID nonLocalNameLookup(Name name) throws NameResolver.ResolutionError {
 		try {
 			WyalFile enclosing = (WyalFile) getWyalFile(name.getParent());
-			List<Declaration.Import> imports = getImportsInReverseOrder(enclosing);
+			List<WyalFile.Declaration.Import> imports = getImportsInReverseOrder(enclosing);
 			// Check name against import statements
-			for (Declaration.Import imp : imports) {
+			for (WyalFile.Declaration.Import imp : imports) {
 				NameID nid = matchImport(imp, name);
 				if (nid != null) {
 					return nid;
@@ -225,12 +225,12 @@ public final class WyalFileResolver implements NameResolver {
 	 * @param heap
 	 * @return
 	 */
-	private List<Declaration.Import> getImportsInReverseOrder(SyntacticHeap heap) {
-		ArrayList<Declaration.Import> imports = new ArrayList<>();
+	private List<WyalFile.Declaration.Import> getImportsInReverseOrder(SyntacticHeap heap) {
+		ArrayList<WyalFile.Declaration.Import> imports = new ArrayList<>();
 		for (int i = heap.size() - 1; i >= 0; --i) {
 			SyntacticElement element = heap.getSyntacticItem(i);
-			if (element instanceof Declaration.Import) {
-				imports.add((Declaration.Import) element);
+			if (element instanceof WyalFile.Declaration.Import) {
+				imports.add((WyalFile.Declaration.Import) element);
 			}
 		}
 		return imports;
@@ -248,7 +248,7 @@ public final class WyalFileResolver implements NameResolver {
 	 * @return
 	 * @throws IOException
 	 */
-	private NameID matchImport(Declaration.Import imp, Name name) throws IOException {
+	private NameID matchImport(WyalFile.Declaration.Import imp, Name name) throws IOException {
 		NameID nid = name.toNameID();
 		//
 		for (Path.Entry<WyalFile> module : expandImport(imp)) {
@@ -308,7 +308,7 @@ public final class WyalFileResolver implements NameResolver {
 	 * @return
 	 * @throws IOException
 	 */
-	private List<Path.Entry<WyalFile>> expandImport(Declaration.Import imp) throws IOException {
+	private List<Path.Entry<WyalFile>> expandImport(WyalFile.Declaration.Import imp) throws IOException {
 		Trie filter = Trie.ROOT;
 		for (int i = 0; i != imp.size(); ++i) {
 			Identifier component = imp.getOperand(i);

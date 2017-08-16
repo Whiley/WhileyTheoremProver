@@ -20,7 +20,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import wyal.lang.NameResolver;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.VerificationError;
 import wyal.tasks.CompileTask;
@@ -28,6 +27,7 @@ import wyal.util.AbstractProjectCommand;
 import wyal.util.Interpreter;
 import wyal.util.SmallWorldDomain;
 import wyal.util.WyalFileResolver;
+import wybs.lang.NameResolver;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.lang.SyntaxError.InternalFailure;

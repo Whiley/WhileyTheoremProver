@@ -25,11 +25,10 @@ import java.util.Map;
 import wyal.io.WyalFileLexer.Token;
 import static wyal.lang.WyalFile.*;
 
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Opcode;
 import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
+import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
 import wyfs.lang.Path;
 import wyfs.util.Trie;

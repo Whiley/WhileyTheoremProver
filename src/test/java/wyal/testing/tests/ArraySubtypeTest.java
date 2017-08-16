@@ -15,8 +15,8 @@ package wyal.testing.tests;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
-import wyal.lang.NameResolver;
 import wyal.lang.WyalFile;
+import wybs.lang.NameResolver;
 import wytp.types.TypeSystem;
 
 import java.util.List;

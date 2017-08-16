@@ -14,11 +14,12 @@
 package wytp.types;
 
 import java.util.Set;
-import wyal.lang.NameResolver.ResolutionError;
+
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.NameResolver.ResolutionError;
 
 /**
  * Responsible for inferring the type for a given expression. More specifically,

@@ -18,11 +18,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.NameResolver.ResolutionError;
 import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;

@@ -15,8 +15,6 @@ package wytp.proof.util;
 
 import java.util.BitSet;
 
-import wyal.lang.NameResolver;
-import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
 import wycc.util.ArrayUtils;
 import wytp.proof.Formula;
@@ -28,6 +26,8 @@ import wytp.types.TypeInferer;
 import wytp.types.TypeInferer.Environment;
 import wytp.types.util.StdTypeEnvironment;
 import wyal.lang.WyalFile.Declaration.Assert;
+import wybs.lang.NameResolver;
+import wybs.lang.SyntacticHeap;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;

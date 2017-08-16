@@ -13,12 +13,11 @@
 // limitations under the License.
 package wytp.proof.rules.record;
 
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Type;
+import wybs.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;

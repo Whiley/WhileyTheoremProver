@@ -17,18 +17,15 @@ package wyal.io;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 
 import static wyal.lang.WyalFile.*;
 
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Value;
 import wybs.lang.Attribute;
+import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
@@ -247,7 +244,7 @@ public class WyalFilePrinter {
 
 	private void writeQuantifier(Stmt.Quantifier stmt, int indent) {
 		indent(indent);
-		if (stmt.getOpcode() == Opcode.STMT_forall) {
+		if (stmt.getOpcode() == WyalFile.STMT_forall) {
 			out.print("forall");
 		} else {
 			out.print("exists");
@@ -535,7 +532,7 @@ public class WyalFilePrinter {
 	}
 
 	private void writeQuantifier(Expr.Quantifier stmt) {
-		if (stmt.getOpcode() == Opcode.EXPR_forall) {
+		if (stmt.getOpcode() == WyalFile.EXPR_forall) {
 			out.print("forall");
 		} else {
 			out.print("exists");
@@ -708,24 +705,24 @@ public class WyalFilePrinter {
 	/**
 	 * A fixed map from token kinds to their correspond bytecode opcodes.
 	 */
-	private static final HashMap<Opcode, String> OPERATOR_MAP = new HashMap<>();
+	private static final HashMap<Integer, String> OPERATOR_MAP = new HashMap<>();
 
 	static {
-		OPERATOR_MAP.put(Opcode.EXPR_and, "&&");
-		OPERATOR_MAP.put(Opcode.EXPR_or, "||");
-		OPERATOR_MAP.put(Opcode.EXPR_implies, "==>");
-		OPERATOR_MAP.put(Opcode.EXPR_iff, "<==>");
-		OPERATOR_MAP.put(Opcode.EXPR_lteq, "<=");
-		OPERATOR_MAP.put(Opcode.EXPR_lt, "<");
-		OPERATOR_MAP.put(Opcode.EXPR_gteq, ">=");
-		OPERATOR_MAP.put(Opcode.EXPR_gt, ">");
-		OPERATOR_MAP.put(Opcode.EXPR_eq, "==");
-		OPERATOR_MAP.put(Opcode.EXPR_neq, "!=");
-		OPERATOR_MAP.put(Opcode.EXPR_is, "is");
-		OPERATOR_MAP.put(Opcode.EXPR_add, "+");
-		OPERATOR_MAP.put(Opcode.EXPR_sub, "-");
-		OPERATOR_MAP.put(Opcode.EXPR_mul, "*");
-		OPERATOR_MAP.put(Opcode.EXPR_div, "/");
-		OPERATOR_MAP.put(Opcode.EXPR_rem, "%");
+		OPERATOR_MAP.put(WyalFile.EXPR_and, "&&");
+		OPERATOR_MAP.put(WyalFile.EXPR_or, "||");
+		OPERATOR_MAP.put(WyalFile.EXPR_implies, "==>");
+		OPERATOR_MAP.put(WyalFile.EXPR_iff, "<==>");
+		OPERATOR_MAP.put(WyalFile.EXPR_lteq, "<=");
+		OPERATOR_MAP.put(WyalFile.EXPR_lt, "<");
+		OPERATOR_MAP.put(WyalFile.EXPR_gteq, ">=");
+		OPERATOR_MAP.put(WyalFile.EXPR_gt, ">");
+		OPERATOR_MAP.put(WyalFile.EXPR_eq, "==");
+		OPERATOR_MAP.put(WyalFile.EXPR_neq, "!=");
+		OPERATOR_MAP.put(WyalFile.EXPR_is, "is");
+		OPERATOR_MAP.put(WyalFile.EXPR_add, "+");
+		OPERATOR_MAP.put(WyalFile.EXPR_sub, "-");
+		OPERATOR_MAP.put(WyalFile.EXPR_mul, "*");
+		OPERATOR_MAP.put(WyalFile.EXPR_div, "/");
+		OPERATOR_MAP.put(WyalFile.EXPR_rem, "%");
 	}
 }

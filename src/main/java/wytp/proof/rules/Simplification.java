@@ -3,15 +3,10 @@ package wytp.proof.rules;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
+import wybs.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
 import wycc.util.ArrayUtils;
 import wytp.proof.Formula;
 import wytp.proof.Formula.ArithmeticEquality;
@@ -466,9 +461,9 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		Expr nSource = simplifyExpression(source);
 		if(nSource instanceof Expr.RecordInitialiser) {
 			Expr.RecordInitialiser ri = (Expr.RecordInitialiser) nSource;
-			WyalFile.Pair<Identifier, Expr>[] fields = ri.getFields();
+			Pair<Identifier, Expr>[] fields = ri.getFields();
 			for(int i=0;i!=fields.length;++i) {
-				WyalFile.Pair<Identifier, Expr> field = fields[i];
+				Pair<Identifier, Expr> field = fields[i];
 				if(e.getField().equals(field.getFirst())) {
 					return field.getSecond();
 				}
@@ -497,12 +492,12 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		//
 		if(nSource instanceof Expr.RecordInitialiser) {
 			Expr.RecordInitialiser ri = (Expr.RecordInitialiser) nSource;
-			WyalFile.Pair<Identifier, Expr>[] oldFields = ri.getFields();
-			WyalFile.Pair<Identifier, Expr>[] newFields = Arrays.copyOf(oldFields, oldFields.length);
+			Pair<Identifier, Expr>[] oldFields = ri.getFields();
+			Pair<Identifier, Expr>[] newFields = Arrays.copyOf(oldFields, oldFields.length);
 			for(int i=0;i!=oldFields.length;++i) {
-				WyalFile.Pair<Identifier, Expr> field = oldFields[i];
+				Pair<Identifier, Expr> field = oldFields[i];
 				if(e.getField().equals(field.getFirst())) {
-					newFields[i] = new WyalFile.Pair<>(field.getFirst(),nValue);
+					newFields[i] = new Pair<>(field.getFirst(),nValue);
 				}
 			}
 			return new Expr.RecordInitialiser(newFields);
@@ -555,7 +550,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		if (nSource instanceof Expr.Operator && nIndex instanceof Expr.Constant) {
 			// We may have a constant index value into a constant array
 			Expr.Operator arr = (Expr.Operator) nSource;
-			if (arr.getOpcode() == Opcode.EXPR_arrinit) {
+			if (arr.getOpcode() == EXPR_arrinit) {
 				// We definitely have a constant index value into a constant
 				// array
 				BigInteger i = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
@@ -565,7 +560,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 				}
 			}
 		}
-		if(nSource.getOpcode() == Opcode.EXPR_arrgen) {
+		if(nSource.getOpcode() == EXPR_arrgen) {
 			return (Expr) nSource.getOperand(0);
 		}
 		// If we get here, then no simplification of the array access expression
@@ -585,7 +580,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		Expr nIndex = simplifyExpression(index);
 		Expr nValue = simplifyExpression(value);
 		//
-		if(nIndex instanceof Expr.Constant && nSource.getOpcode() == Opcode.EXPR_arrinit) {
+		if(nIndex instanceof Expr.Constant && nSource.getOpcode() == EXPR_arrinit) {
 			Expr.Operator src = (Expr.Operator) nSource;
 			BigInteger b = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
 			if(b.compareTo(BigInteger.ZERO) >= 0 && b.compareTo(BigInteger.valueOf(nSource.size())) < 0) {
@@ -606,11 +601,11 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		Expr r = simplifyNonArithmetic(e);
 		if (r instanceof Expr.Operator) {
 			Expr src = (Expr) r.getOperand(0);
-			if (src.getOpcode() == Opcode.EXPR_arrinit) {
-				return new Expr.Constant(new WyalFile.Value.Int(src.size()));
-			} else if (src.getOpcode() == Opcode.EXPR_arrgen) {
+			if (src.getOpcode() == EXPR_arrinit) {
+				return new Expr.Constant(new Value.Int(src.size()));
+			} else if (src.getOpcode() == EXPR_arrgen) {
 				return (Expr) src.getOperand(1);
-			} else if (src.getOpcode() == Opcode.EXPR_arrupdt) {
+			} else if (src.getOpcode() == EXPR_arrupdt) {
 				return simplifyArrayLength(new Expr.ArrayLength((Expr) src.getOperand(0)));
 			}
 		}
@@ -679,7 +674,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @param rhs
 	 * @return
 	 */
-	public Formula.Truth evaluateInequality(Opcode opcode, Value.Int lhs, Value.Int rhs) {
+	public Formula.Truth evaluateInequality(int opcode, Value.Int lhs, Value.Int rhs) {
 		boolean result;
 		switch (opcode) {
 		case EXPR_lt:
@@ -710,7 +705,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @param rhs
 	 * @return
 	 */
-	public Formula.Truth evaluateEquality(Opcode opcode, Value lhs, Value rhs) {
+	public Formula.Truth evaluateEquality(int opcode, Value lhs, Value rhs) {
 		boolean result;
 		switch (opcode) {
 		case EXPR_eq:

@@ -16,45 +16,42 @@ package wytp.proof.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Value;
 import wycc.util.ArrayUtils;
-import wytp.proof.util.Arithmetic.Polynomial;
-
 
 public class Arithmetic {
 
 	public static Polynomial asPolynomial(Expr e) {
 		switch (e.getOpcode()) {
-		case EXPR_const: {
+		case WyalFile.EXPR_const: {
 			Expr.Constant c = (Expr.Constant) e;
 			Value.Int i = (Value.Int) c.getValue();
 			Polynomial.Term term = new Polynomial.Term(i.get());
 			return new Polynomial(term);
 		}
-		case EXPR_add: {
+		case WyalFile.EXPR_add: {
 			Polynomial result = asPolynomial((Expr) e.getOperand(0));
 			for(int i=1;i!=e.size();++i) {
 				result = result.add(asPolynomial((Expr) e.getOperand(i)));
 			}
 			return result;
 		}
-		case EXPR_sub: {
+		case WyalFile.EXPR_sub: {
 			Polynomial result = asPolynomial((Expr) e.getOperand(0));
 			for(int i=1;i!=e.size();++i) {
 				result = result.subtract(asPolynomial((Expr) e.getOperand(i)));
 			}
 			return result;
 		}
-		case EXPR_mul: {
+		case WyalFile.EXPR_mul: {
 			Polynomial result = asPolynomial((Expr) e.getOperand(0));
 			for(int i=1;i!=e.size();++i) {
 				result = result.multiply(asPolynomial((Expr) e.getOperand(i)));
 			}
 			return result;
 		}
-		case EXPR_div: {
+		case WyalFile.EXPR_div: {
 			throw new IllegalArgumentException("need to support division");
 		}
 		default: {

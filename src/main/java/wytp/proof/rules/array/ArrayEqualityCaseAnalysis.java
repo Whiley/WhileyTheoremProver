@@ -14,12 +14,10 @@
 package wytp.proof.rules.array;
 
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
+import wybs.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
+
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.ArithmeticEquality;
@@ -129,17 +127,17 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 	private State expandArrayEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
 		Expr lhs = eq.getOperand(0);
 		Expr rhs = eq.getOperand(1);
-		if (lhs.getOpcode() == Opcode.EXPR_arrinit && rhs.getOpcode() == Opcode.EXPR_arrinit) {
+		if (lhs.getOpcode() == WyalFile.EXPR_arrinit && rhs.getOpcode() == WyalFile.EXPR_arrinit) {
 			return expandArrayInitialiserInitialiserEquality(eq, (Expr.Operator) lhs, (Expr.Operator) rhs, state);
-		} else if (lhs.getOpcode() == Opcode.EXPR_arrgen && rhs.getOpcode() == Opcode.EXPR_arrinit) {
+		} else if (lhs.getOpcode() == WyalFile.EXPR_arrgen && rhs.getOpcode() == WyalFile.EXPR_arrinit) {
 			return expandArrayGeneratorInitialiserEquality(eq, (Expr.Operator) lhs, (Expr.Operator) rhs, state);
-		} else if (lhs.getOpcode() == Opcode.EXPR_arrinit && rhs.getOpcode() == Opcode.EXPR_arrgen) {
+		} else if (lhs.getOpcode() == WyalFile.EXPR_arrinit && rhs.getOpcode() == WyalFile.EXPR_arrgen) {
 			return expandArrayGeneratorInitialiserEquality(eq, (Expr.Operator) rhs, (Expr.Operator) lhs, state);
-		} else if (lhs.getOpcode() == Opcode.EXPR_arrgen && rhs.getOpcode() == Opcode.EXPR_arrgen) {
+		} else if (lhs.getOpcode() == WyalFile.EXPR_arrgen && rhs.getOpcode() == WyalFile.EXPR_arrgen) {
 			return expandArrayGeneratorGeneratorEquality(eq, (Expr.Operator) lhs, (Expr.Operator) rhs, state);
-		} else if (!eq.getSign() && lhs.getOpcode() == Opcode.EXPR_arrinit) {
+		} else if (!eq.getSign() && lhs.getOpcode() == WyalFile.EXPR_arrinit) {
 			return expandArrayInitialiserNonEquality(eq, (Expr.Operator) lhs, rhs, state);
-		} else if (!eq.getSign() && rhs.getOpcode() == Opcode.EXPR_arrinit) {
+		} else if (!eq.getSign() && rhs.getOpcode() == WyalFile.EXPR_arrinit) {
 			return expandArrayInitialiserNonEquality(eq, (Expr.Operator) rhs, lhs, state);
 		} else if (!eq.getSign()) {
 			return expandArrayArrayNonEquality(eq, lhs, rhs, state);

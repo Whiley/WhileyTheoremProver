@@ -15,12 +15,10 @@ package wytp.proof.rules.array;
 
 import java.util.List;
 
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
+import wybs.lang.SyntacticItem;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -42,7 +40,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 
 	@Override
 	public State apply(State state, Formula truth) throws ResolutionError {
-		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
+		List<Expr.Operator> matches = extractDefinedTerms(truth,WyalFile.EXPR_arridx);
 		if (matches.size() > 0) {
 			for(int i=0;i!=matches.size();++i) {
 				Expr.Operator match = matches.get(i);
@@ -59,10 +57,10 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 	private Formula[] generateCaseAnalysis(Expr.Operator split, Formula truth, Proof.State state) {
 		Formula[] result;
 		switch (split.getOpcode()) {
-		case EXPR_arridx: {
+		case WyalFile.EXPR_arridx: {
 			Expr src = split.getOperand(0);
 			Expr j = split.getOperand(1);
-			if (src.getOpcode() == Opcode.EXPR_arrupdt) {
+			if (src.getOpcode() == WyalFile.EXPR_arrupdt) {
 				// xs[i:=v][j]
 				Expr xs = (Expr) src.getOperand(0);
 				Expr i = (Expr) src.getOperand(1);
@@ -76,7 +74,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);
 				break;
-			} else if (src.getOpcode() == Opcode.EXPR_arrinit) {
+			} else if (src.getOpcode() == WyalFile.EXPR_arrinit) {
 				// [a,b,c][j] >= 0
 				result = new Formula[src.size()];
 				for (int i = 0; i != src.size(); ++i) {

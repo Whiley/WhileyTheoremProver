@@ -13,12 +13,8 @@
 // limitations under the License.
 package wytp.types.extractors;
 
-import java.util.ArrayList;
-
-import wyal.lang.NameResolver;
-import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Type;
+import wybs.lang.NameResolver;
 import wytp.types.TypeSystem;
 import wytp.types.util.AbstractTypeExtractor;
 
