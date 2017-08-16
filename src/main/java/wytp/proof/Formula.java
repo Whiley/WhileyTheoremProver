@@ -13,14 +13,10 @@
 // limitations under the License.
 package wytp.proof;
 
-import wyal.lang.SyntacticItem;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Name;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
+import wyal.lang.WyalFile;
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.SyntacticItem;
 import wycc.util.ArrayUtils;
 
 /**
@@ -66,7 +62,7 @@ public interface Formula extends Expr {
 	public static class Conjunct extends Expr.Operator implements Formula {
 
 		public Conjunct(Formula... operands) {
-			super(Opcode.EXPR_and, operands);
+			super(WyalFile.EXPR_and, operands);
 		}
 
 		@Override
@@ -100,7 +96,7 @@ public interface Formula extends Expr {
 	public static class Disjunct extends Expr.Operator implements Formula {
 
 		public Disjunct(Formula... operands) {
-			super(Opcode.EXPR_or, operands);
+			super(WyalFile.EXPR_or, operands);
 		}
 
 		@Override
@@ -133,20 +129,20 @@ public interface Formula extends Expr {
 
 	public static class Quantifier extends Expr.Quantifier implements Formula {
 		public Quantifier(boolean sign, VariableDeclaration parameter, Formula body) {
-			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, new Tuple<>(parameter), body);
+			super(sign ? WyalFile.EXPR_forall : WyalFile.EXPR_exists, new Tuple<>(parameter), body);
 		}
 
 		public Quantifier(boolean sign, VariableDeclaration[] parameters, Formula body) {
-			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists,
+			super(sign ? WyalFile.EXPR_forall : WyalFile.EXPR_exists,
 					new Tuple<>(parameters), body);
 		}
 
 		public Quantifier(boolean sign, Tuple<VariableDeclaration> parameters, Formula body) {
-			super(sign ? Opcode.EXPR_forall : Opcode.EXPR_exists, parameters, body);
+			super(sign ? WyalFile.EXPR_forall : WyalFile.EXPR_exists, parameters, body);
 		}
 
 		public boolean getSign() {
-			return getOpcode() == Opcode.EXPR_forall;
+			return getOpcode() == WyalFile.EXPR_forall;
 		}
 
 		@Override
@@ -195,15 +191,15 @@ public interface Formula extends Expr {
 
 	public static class Equality extends Expr.Operator implements Equation {
 		public Equality(boolean sign, Expr lhs, Expr rhs) {
-			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, lhs, rhs);
+			super(sign ? WyalFile.EXPR_eq : WyalFile.EXPR_neq, lhs, rhs);
 		}
 
 		public Equality(boolean sign, Expr[] arr) {
-			super(sign ? Opcode.EXPR_eq : Opcode.EXPR_neq, arr);
+			super(sign ? WyalFile.EXPR_eq : WyalFile.EXPR_neq, arr);
 		}
 
 		public boolean getSign() {
-			return getOpcode() == Opcode.EXPR_eq;
+			return getOpcode() == WyalFile.EXPR_eq;
 		}
 
 		@Override

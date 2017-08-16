@@ -18,13 +18,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import wyal.lang.NameResolver;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.NameResolver;
+import wybs.lang.SyntacticItem;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.rules.CongruenceClosure;
@@ -114,7 +113,8 @@ public abstract class AbstractProofRule implements Proof.Rule {
 	 *            Instances of this class will be extracted
 	 * @return
 	 */
-	public static <T extends Expr> List<T> extractDefinedTerms(SyntacticItem item, WyalFile.Opcode kind, Formula.Quantifier... stack) {
+	public static <T extends Expr> List<T> extractDefinedTerms(SyntacticItem item, int kind,
+			Formula.Quantifier... stack) {
 		List<T> result = Collections.EMPTY_LIST;
 		// Attempt to match the given item
 		if (item.getOpcode() == kind && !containsQuantifiedVariable(item, stack)) {
@@ -123,13 +123,13 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		}
 		// Now, try to handle quantifiers and disjuncts appropriately.
 		switch (item.getOpcode()) {
-		case EXPR_exists:
-		case EXPR_forall: {
+		case WyalFile.EXPR_exists:
+		case WyalFile.EXPR_forall: {
 			stack = Arrays.copyOf(stack, stack.length+1);
 			stack[stack.length-1] = (Formula.Quantifier)item;
 			break;
 		}
-		case EXPR_or: {
+		case WyalFile.EXPR_or: {
 			Formula.Disjunct disjunct = (Formula.Disjunct) item;
 			// Disjunctions need to be handled with care. We cannot extract
 			// truths which only hold in one clause of the disjunct. Rather, we

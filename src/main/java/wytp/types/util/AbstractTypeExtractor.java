@@ -15,10 +15,10 @@ package wytp.types.util;
 
 import java.util.Arrays;
 
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
+import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
 import wytp.types.TypeExtractor;
 import wytp.types.TypeSystem;

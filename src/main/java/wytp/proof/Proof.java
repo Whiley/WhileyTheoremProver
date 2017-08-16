@@ -15,13 +15,13 @@ package wytp.proof;
 
 import java.util.List;
 
-import wyal.lang.NameResolver;
-import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Declaration.Assert;
+import wybs.lang.NameResolver;
+import wybs.lang.SyntacticHeap;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula.Disjunct;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;

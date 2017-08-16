@@ -13,14 +13,10 @@
 // limitations under the License.
 package wytp.types.util;
 
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Tuple;
+import wyal.lang.WyalFile;
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
+import wybs.lang.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
@@ -45,53 +41,53 @@ public class StdTypeInfererence implements TypeInferer {
 
 	protected Type inferExpression(Environment environment, Expr expr) throws ResolutionError {
 		switch (expr.getOpcode()) {
-		case EXPR_const:
+		case WyalFile.EXPR_const:
 			return inferConstant(environment, (Expr.Constant) expr);
-		case EXPR_cast:
+		case WyalFile.EXPR_cast:
 			return inferCast(environment, (Expr.Cast) expr);
-		case EXPR_invoke:
+		case WyalFile.EXPR_invoke:
 			return inferInvoke(environment, (Expr.Invoke) expr);
-		case EXPR_var:
+		case WyalFile.EXPR_var:
 			return inferVariableAccess(environment, (Expr.VariableAccess) expr);
-		case EXPR_not:
-		case EXPR_and:
-		case EXPR_or:
-		case EXPR_implies:
-		case EXPR_iff:
-		case EXPR_eq:
-		case EXPR_neq:
-		case EXPR_lt:
-		case EXPR_lteq:
-		case EXPR_gt:
-		case EXPR_gteq:
+		case WyalFile.EXPR_not:
+		case WyalFile.EXPR_and:
+		case WyalFile.EXPR_or:
+		case WyalFile.EXPR_implies:
+		case WyalFile.EXPR_iff:
+		case WyalFile.EXPR_eq:
+		case WyalFile.EXPR_neq:
+		case WyalFile.EXPR_lt:
+		case WyalFile.EXPR_lteq:
+		case WyalFile.EXPR_gt:
+		case WyalFile.EXPR_gteq:
 			return inferLogicalOperator(environment, (Expr.Operator) expr);
-		case EXPR_forall:
-		case EXPR_exists:
+		case WyalFile.EXPR_forall:
+		case WyalFile.EXPR_exists:
 			return inferQuantifier(environment, (Expr.Quantifier) expr);
-		case EXPR_neg:
-		case EXPR_add:
-		case EXPR_sub:
-		case EXPR_mul:
-		case EXPR_div:
-		case EXPR_rem:
+		case WyalFile.EXPR_neg:
+		case WyalFile.EXPR_add:
+		case WyalFile.EXPR_sub:
+		case WyalFile.EXPR_mul:
+		case WyalFile.EXPR_div:
+		case WyalFile.EXPR_rem:
 			return inferArithmeticOperator(environment, (Expr.Operator) expr);
-		case EXPR_arrlen:
+		case WyalFile.EXPR_arrlen:
 			return inferArrayLength(environment, (Expr.Operator) expr);
-		case EXPR_arrinit:
+		case WyalFile.EXPR_arrinit:
 			return inferArrayInitialiser(environment, (Expr.Operator) expr);
-		case EXPR_arrgen:
+		case WyalFile.EXPR_arrgen:
 			return inferArrayGenerator(environment, (Expr.Operator) expr);
-		case EXPR_arridx:
+		case WyalFile.EXPR_arridx:
 			return inferArrayIndex(environment, (Expr.Operator) expr);
-		case EXPR_arrupdt:
+		case WyalFile.EXPR_arrupdt:
 			return inferArrayUpdate(environment, (Expr.Operator) expr);
-		case EXPR_recinit:
+		case WyalFile.EXPR_recinit:
 			return inferRecordInitialiser(environment, (Expr.RecordInitialiser) expr);
-		case EXPR_recfield:
+		case WyalFile.EXPR_recfield:
 			return inferRecordAccess(environment, (Expr.RecordAccess) expr);
-		case EXPR_recupdt:
+		case WyalFile.EXPR_recupdt:
 			return inferRecordUpdate(environment, (Expr.RecordUpdate) expr);
-		case EXPR_deref:
+		case WyalFile.EXPR_deref:
 			return inferDereference(environment, (Expr.Dereference) expr);
 		default:
 			throw new IllegalArgumentException("invalid expression encountered: " + expr);
@@ -115,7 +111,7 @@ public class StdTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferConstant(Environment environment, Expr.Constant expr) {
-		return expr.getValue().getType();
+		return inferValue(expr.getValue());
 	}
 
 	protected Type inferIs(Environment environment, Expr.Is expr) {
@@ -235,5 +231,23 @@ public class StdTypeInfererence implements TypeInferer {
 			}
 		}
 		return null;
+	}
+
+	// ======================================================================
+	// Values
+	// ======================================================================
+
+	protected Type inferValue(Value val) {
+		switch(val.getOpcode()) {
+		case CONST_null:
+			return Type.Null;
+		case CONST_bool:
+			return Type.Bool;
+		case CONST_int:
+			return Type.Int;
+		case CONST_utf8:
+		default:
+			throw new RuntimeException("invalid value encountered");
+		}
 	}
 }

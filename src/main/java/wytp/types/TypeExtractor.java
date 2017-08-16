@@ -13,8 +13,8 @@
 // limitations under the License.
 package wytp.types;
 
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Type;
+import wybs.lang.NameResolver.ResolutionError;
 
 public interface TypeExtractor<T,S> {
 	/**

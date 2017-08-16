@@ -13,8 +13,8 @@
 // limitations under the License.
 package wytp.types.extractors;
 
-import wyal.lang.NameResolver;
 import wyal.lang.WyalFile.Type;
+import wybs.lang.NameResolver;
 import wytp.types.TypeSystem;
 import wytp.types.util.AbstractTypeExtractor;
 

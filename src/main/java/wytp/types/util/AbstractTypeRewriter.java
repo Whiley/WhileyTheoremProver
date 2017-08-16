@@ -16,7 +16,7 @@ package wytp.types.util;
 import java.util.Arrays;
 
 import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Tuple;
+import wybs.util.AbstractCompilationUnit.Tuple;
 import wyal.lang.WyalFile.Type;
 import wytp.types.TypeRewriter;
 

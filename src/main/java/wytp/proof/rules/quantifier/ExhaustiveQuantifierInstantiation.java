@@ -21,14 +21,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.VariableDeclaration;
+
+import static wyal.lang.WyalFile.*;
+import wybs.lang.SyntacticItem;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Disjunct;
@@ -435,7 +432,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 	}
 
 	private boolean isTrigger(Expr e, VariableDeclaration variable) {
-		if(e.getOpcode() == Opcode.EXPR_arridx) {
+		if(e.getOpcode() == WyalFile.EXPR_arridx) {
 			Expr.Operator arridx = (Expr.Operator) e;
 			// Check whether the index includes the quantified variable or not.
 			return containsQuantifiedVariable(arridx.getOperand(1),variable);

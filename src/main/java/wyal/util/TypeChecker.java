@@ -13,11 +13,9 @@
 // limitations under the License.
 package wyal.util;
 
-import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.*;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.Declaration.Named;
 import wycc.util.ArrayUtils;
 import wycc.util.Pair;
@@ -25,20 +23,17 @@ import wyfs.lang.Path;
 import wytp.types.TypeInferer.Environment;
 import wytp.types.util.StdTypeEnvironment;
 import wytp.types.TypeSystem;
-import wytp.types.subtyping.CoerciveSubtypeOperator;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Name;
-import wyal.lang.WyalFile.Stmt;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.VariableDeclaration;
-import wybs.lang.Attribute;
+
 import wybs.lang.CompilationUnit;
+import wybs.lang.NameResolver;
 import wybs.lang.SyntacticElement;
+import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
+import wybs.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
 import static wybs.lang.SyntaxError.InternalFailure;
 
 /**
@@ -318,26 +313,26 @@ public class TypeChecker {
 	 */
 	protected Environment checkStatement(Environment env, boolean sign, Stmt stmt) {
 		switch (stmt.getOpcode()) {
-		case STMT_block:
+		case WyalFile.STMT_block:
 			return checkBlock(env, sign, (Stmt.Block) stmt);
-		case STMT_ifthen:
+		case WyalFile.STMT_ifthen:
 			return checkIfThen(env, sign, (Stmt.IfThen) stmt);
-		case STMT_caseof:
+		case WyalFile.STMT_caseof:
 			return checkCaseOf(env, sign, (Stmt.CaseOf) stmt);
-		case STMT_forall:
-		case STMT_exists:
+		case WyalFile.STMT_forall:
+		case WyalFile.STMT_exists:
 			return checkQuantifier(env, sign, (Stmt.Quantifier) stmt);
-		case EXPR_not:
+		case WyalFile.EXPR_not:
 			return checkLogicalNegation(env, sign, (Expr.Operator) stmt);
-		case EXPR_and:
-		case EXPR_or:
-		case EXPR_implies:
-		case EXPR_iff:
+		case WyalFile.EXPR_and:
+		case WyalFile.EXPR_or:
+		case WyalFile.EXPR_implies:
+		case WyalFile.EXPR_iff:
 			return checkLogicalConnective(env, sign, (Expr.Operator) stmt);
-		case EXPR_forall:
-		case EXPR_exists:
+		case WyalFile.EXPR_forall:
+		case WyalFile.EXPR_exists:
 			return checkQuantifier(env, sign, (Expr.Quantifier) stmt);
-		case EXPR_is:
+		case WyalFile.EXPR_is:
 			return checkIsOperator(env, sign, (Expr.Is) stmt);
 		default:
 			Type t = checkExpression(env, (Expr) stmt);
@@ -393,11 +388,11 @@ public class TypeChecker {
 	 */
 	private Environment checkLogicalConnective(Environment env, boolean sign, Expr.Operator expr) {
 		switch (expr.getOpcode()) {
-		case EXPR_implies:
+		case WyalFile.EXPR_implies:
 			return checkLogicalImplication(env, sign, expr);
-		case EXPR_and:
+		case WyalFile.EXPR_and:
 			return checkLogicalConjunction(env, sign, expr);
-		case EXPR_or:
+		case WyalFile.EXPR_or:
 			return checkLogicalDisjunction(env, sign, expr);
 		default:
 			throw new InternalFailure("unknown logical connective: " + expr,originatingEntry,expr);
@@ -507,55 +502,55 @@ public class TypeChecker {
 	private Type checkExpression(Environment env, Expr expr) {
 		switch (expr.getOpcode()) {
 		// Ignored
-		case EXPR_const:
+		case WyalFile.EXPR_const:
 			return checkConstant(env, (Expr.Constant) expr);
-		case EXPR_var:
+		case WyalFile.EXPR_var:
 			return checkVariable(env, (Expr.VariableAccess) expr);
-		case EXPR_invoke:
+		case WyalFile.EXPR_invoke:
 			return checkInvocation(env, (Expr.Invoke) expr);
-		case EXPR_iff:
-		case EXPR_implies:
-		case EXPR_and:
-		case EXPR_or:
+		case WyalFile.EXPR_iff:
+		case WyalFile.EXPR_implies:
+		case WyalFile.EXPR_and:
+		case WyalFile.EXPR_or:
 			checkLogicalConnective(env, true, (Expr.Operator) expr);
 			return new Type.Bool();
-		case EXPR_not:
+		case WyalFile.EXPR_not:
 			checkLogicalNegation(env, true, (Expr.Operator) expr);
 			return new Type.Bool();
-		case EXPR_eq:
-		case EXPR_neq:
-		case EXPR_lt:
-		case EXPR_lteq:
-		case EXPR_gt:
-		case EXPR_gteq:
+		case WyalFile.EXPR_eq:
+		case WyalFile.EXPR_neq:
+		case WyalFile.EXPR_lt:
+		case WyalFile.EXPR_lteq:
+		case WyalFile.EXPR_gt:
+		case WyalFile.EXPR_gteq:
 			return checkComparisonOperator(env, (Expr.Operator) expr);
-		case EXPR_neg:
-		case EXPR_add:
-		case EXPR_sub:
-		case EXPR_mul:
-		case EXPR_div:
-		case EXPR_rem:
+		case WyalFile.EXPR_neg:
+		case WyalFile.EXPR_add:
+		case WyalFile.EXPR_sub:
+		case WyalFile.EXPR_mul:
+		case WyalFile.EXPR_div:
+		case WyalFile.EXPR_rem:
 			return checkArithmeticOperator(env, (Expr.Operator) expr);
 		// Record expressions
-		case EXPR_recinit:
+		case WyalFile.EXPR_recinit:
 			return checkRecordInitialiser(env, (Expr.RecordInitialiser) expr);
-		case EXPR_recfield:
+		case WyalFile.EXPR_recfield:
 			return checkRecordAccess(env, (Expr.RecordAccess) expr);
-		case EXPR_recupdt:
+		case WyalFile.EXPR_recupdt:
 			return checkRecordUpdate(env, (Expr.RecordUpdate) expr);
 		// Array expressions
-		case EXPR_arrlen:
+		case WyalFile.EXPR_arrlen:
 			return checkArrayLength(env, (Expr.ArrayLength) expr);
-		case EXPR_arrinit:
+		case WyalFile.EXPR_arrinit:
 			return checkArrayInitialiser(env, (Expr.ArrayInitialiser) expr);
-		case EXPR_arrgen:
+		case WyalFile.EXPR_arrgen:
 			return checkArrayGenerator(env, (Expr.ArrayGenerator) expr);
-		case EXPR_arridx:
+		case WyalFile.EXPR_arridx:
 			return checkArrayAccess(env, (Expr.ArrayAccess) expr);
-		case EXPR_arrupdt:
+		case WyalFile.EXPR_arrupdt:
 			return checkArrayUpdate(env, (Expr.ArrayUpdate) expr);
 		// Reference expressions ?
-		case EXPR_deref:
+		case WyalFile.EXPR_deref:
 			return checkDereference(env, (Expr.Dereference) expr);
 		default:
 			throw new InternalFailure("unknown statement or expression: " + expr, originatingEntry, expr);
@@ -690,8 +685,8 @@ public class TypeChecker {
 	 */
 	private Type checkComparisonOperator(Environment env, Expr.Operator expr) {
 		switch (expr.getOpcode()) {
-		case EXPR_eq:
-		case EXPR_neq:
+		case WyalFile.EXPR_eq:
+		case WyalFile.EXPR_neq:
 			return checkEqualityOperator(env, expr);
 		default:
 			return checkArithmeticComparator(env, expr);

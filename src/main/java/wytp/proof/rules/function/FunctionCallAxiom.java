@@ -15,14 +15,10 @@ package wytp.proof.rules.function;
 
 import java.util.List;
 
-import wyal.lang.NameResolver.*;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.VariableDeclaration;
+import wyal.lang.WyalFile;
+import wybs.lang.NameResolver.*;
+
+import static wyal.lang.WyalFile.*;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -44,7 +40,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 
 	@Override
 	public State apply(State state, Formula truth) throws ResolutionError {
-		List<Expr.Invoke> matches = extractDefinedTerms(truth,Opcode.EXPR_invoke);
+		List<Expr.Invoke> matches = extractDefinedTerms(truth,WyalFile.EXPR_invoke);
 		if (matches.size() > 0) {
 			for (int i = 0; i != matches.size(); ++i) {
 				Expr.Invoke ivk = (Expr.Invoke) matches.get(i);

@@ -15,16 +15,14 @@ package wytp.types;
 
 import java.util.List;
 
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile;
+import wybs.util.AbstractCompilationUnit.Name;
 import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.WyalFileResolver;
 import wybs.lang.Build;
+import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.types.extractors.ReadableArrayExtractor;
 import wytp.types.extractors.ReadableRecordExtractor;

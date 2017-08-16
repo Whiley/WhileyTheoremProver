@@ -18,17 +18,15 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SyntacticHeap;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Name;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
+import wybs.util.AbstractCompilationUnit.*;
 import wyal.lang.WyalFile.Type;
 import wycc.util.Pair;
 import wyal.lang.WyalFile.Declaration.Named;
+import wybs.lang.NameResolver;
+import wybs.lang.SyntacticHeap;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.types.SubtypeOperator;
 import wytp.types.SubtypeOperator.Result;
 
@@ -143,9 +141,9 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			boolean conjunct = item.sign;
 			//
 			switch (t.getOpcode()) {
-			case TYPE_or:
+			case WyalFile.TYPE_or:
 				conjunct = !conjunct;
-			case TYPE_and: {
+			case WyalFile.TYPE_and: {
 				Type.UnionOrIntersection ut = (Type.UnionOrIntersection) t;
 				Type[] operands = ut.getOperands();
 				if (conjunct) {
@@ -166,12 +164,12 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				}
 				break;
 			}
-			case TYPE_not: {
+			case WyalFile.TYPE_not: {
 				Type.Negation nt = (Type.Negation) t;
 				worklist.push(!item.sign, nt.getElement(), !item.maximise);
 				break;
 			}
-			case TYPE_nom: {
+			case WyalFile.TYPE_nom: {
 				Type.Nominal nom = (Type.Nominal) t;
 				Named.Type decl = resolver.resolveExactly(nom.getName(), Named.Type.class);
 				if (item.maximise || decl.getInvariant().size() == 0) {
@@ -215,8 +213,8 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		// At this point, we have several cases left to consider.
 		boolean aSign = a.sign;
 		boolean bSign = b.sign;
-		WyalFile.Opcode aOpcode = a.type.getOpcode();
-		WyalFile.Opcode bOpcode = b.type.getOpcode();
+		int aOpcode = a.type.getOpcode();
+		int bOpcode = b.type.getOpcode();
 		//
 		if (aOpcode == bOpcode) {
 			// In this case, we are intersecting two atoms of the same kind, of
@@ -224,24 +222,24 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// to void is one of them is negative. For non-primitive types, it
 			// requires further investigation.
 			switch (aOpcode) {
-			case TYPE_void:
+			case WyalFile.TYPE_void:
 				// void & void => void
 				// !void & void => void
 				return true;
-			case TYPE_any:
-			case TYPE_null:
-			case TYPE_bool:
-			case TYPE_int:
+			case WyalFile.TYPE_any:
+			case WyalFile.TYPE_null:
+			case WyalFile.TYPE_bool:
+			case WyalFile.TYPE_int:
 				// any & !any => void
 				// int & !int => void
 				return (aSign != bSign) ? true : false;
-			case TYPE_arr:
+			case WyalFile.TYPE_arr:
 				return isVoidArray((Atom<Type.Array>) a, (Atom<Type.Array>) b, assumptions);
-			case TYPE_rec:
+			case WyalFile.TYPE_rec:
 				return isVoidRecord((Atom<Type.Record>) a, (Atom<Type.Record>) b, assumptions);
-			case TYPE_ref:
+			case WyalFile.TYPE_ref:
 				return isVoidReference((Atom<Type.Reference>) a, (Atom<Type.Reference>) b, assumptions);
-			case TYPE_fun:
+			case WyalFile.TYPE_fun:
 				return isVoidFunction((Atom<Type.Function>) a, (Atom<Type.Function>) b, assumptions);
 			default:
 				throw new RuntimeException("invalid type encountered: " + aOpcode);
@@ -250,24 +248,24 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 			// We have two positive atoms of different kind. For example, int
 			// and {int f}, or int and !bool. This always reduces to void,
 			// unless one of them is any.
-			return (aOpcode != Opcode.TYPE_any && bOpcode != Opcode.TYPE_any) ? true : false;
+			return (aOpcode != WyalFile.TYPE_any && bOpcode != WyalFile.TYPE_any) ? true : false;
 		} else if (aSign) {
 			// We have a positive atom and a negative atom of different kinds.
 			// For example, int and !bool or int and !(bool[]). This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return (aOpcode == Opcode.TYPE_void || bOpcode == Opcode.TYPE_any) ? true : false;
+			return (aOpcode == WyalFile.TYPE_void || bOpcode == WyalFile.TYPE_any) ? true : false;
 		} else if (bSign) {
 			// We have a negative atom and a positive atom of different kinds.
 			// For example, !int and bool or !(int[]) and bool[]. This only
 			// reduces to void in the case that one of them is equivalent to
 			// void (i.e. is void or !any).
-			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_void) ? true : false;
+			return (aOpcode == WyalFile.TYPE_any || bOpcode == WyalFile.TYPE_void) ? true : false;
 		} else {
 			// We have two negative atoms of different kinds. For example, !int
 			// and !bool or !int[] and !bool. This only reduces to void in the
 			// case that one of them is equivalent to void (i.e. is !any).
-			return (aOpcode == Opcode.TYPE_any || bOpcode == Opcode.TYPE_any) ? true : false;
+			return (aOpcode == WyalFile.TYPE_any || bOpcode == WyalFile.TYPE_any) ? true : false;
 		}
 	}
 

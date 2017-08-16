@@ -14,22 +14,15 @@
 package wytp.proof.rules.array;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
-import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
@@ -91,14 +84,14 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 	public State attemptInstantiationByEquation(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
 		for (int j = 0; j != existingTruths.size(); ++j) {
 			Formula existing = existingTruths.get(j);
-			List<Expr.Operator> matches = extractDefinedTerms(existing,Opcode.EXPR_arridx);
+			List<Expr.Operator> matches = extractDefinedTerms(existing,WyalFile.EXPR_arridx);
 			state = attemptInstantiation(existing,matches,truth,state);
 		}
 		return state;
 	}
 
 	public State attemptInstantiationByArrayAccess(Formula truth, Proof.Delta.Set existingTruths, Proof.State state) throws ResolutionError {
-		List<Expr.Operator> matches = extractDefinedTerms(truth,Opcode.EXPR_arridx);
+		List<Expr.Operator> matches = extractDefinedTerms(truth,WyalFile.EXPR_arridx);
 		// At this point, we have one or more array access expressions which
 		// potentially could be introduce some useful facts. Therefore, we need to look
 		// back through the history to determine any cases where this can be applied.

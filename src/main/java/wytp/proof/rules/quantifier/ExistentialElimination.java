@@ -14,10 +14,10 @@
 package wytp.proof.rules.quantifier;
 
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Tuple;
+
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.VariableDeclaration;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Conjunct;
