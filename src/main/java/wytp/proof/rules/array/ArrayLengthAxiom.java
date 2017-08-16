@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Opcode;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -27,7 +27,6 @@ import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.ResolutionError;
 
 /**
  * <p>
@@ -115,14 +114,14 @@ public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearR
 			ArrayList<WyalFile.Expr> matches = new ArrayList<>();
 			Expr.Operator op = (Expr.Operator) poly;
 			switch (op.getOpcode()) {
-			case EXPR_arrlen:
+			case WyalFile.EXPR_arrlen:
 				matches.add(poly);
 				break;
-			case EXPR_add:
-			case EXPR_sub:
-			case EXPR_mul:
-			case EXPR_div:
-			case EXPR_rem:
+			case WyalFile.EXPR_add:
+			case WyalFile.EXPR_sub:
+			case WyalFile.EXPR_mul:
+			case WyalFile.EXPR_div:
+			case WyalFile.EXPR_rem:
 				for (int i = 0; i != poly.size(); ++i) {
 					Expr term = op.getOperand(i);
 					matches.addAll(findMatches(term));

@@ -13,9 +13,9 @@
 // limitations under the License.
 package wytp.proof.rules;
 
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.ArithmeticEquality;

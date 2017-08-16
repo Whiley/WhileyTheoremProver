@@ -19,16 +19,11 @@ import java.util.BitSet;
 import java.util.HashSet;
 
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Opcode;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
+
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
+import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
 import wytp.proof.Formula.Disjunct;

@@ -15,13 +15,9 @@ package wytp.proof.util;
 
 import java.util.*;
 
-import wyal.lang.SyntacticHeap;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration.Assert;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Tuple;
-import wycc.util.ArrayUtils;
+import wybs.lang.SyntacticHeap;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 

@@ -3,29 +3,19 @@ package wyal.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import wyal.lang.Domain;
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.NameNotFoundError;
-import wyal.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
-import wyal.lang.WyalFile.Pair;
-import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Stmt.Block;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.Value;
-import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.lang.Domain;
+import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.NameNotFoundError;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.types.extractors.TypeInvariantExtractor;
 
 public class Interpreter {
@@ -55,15 +45,15 @@ public class Interpreter {
 
 	protected Result evaluateStatement(Stmt stmt, Environment environment) throws UndefinedException {
 		switch(stmt.getOpcode()) {
-		case STMT_block:
+		case WyalFile.STMT_block:
 			return evaluateBlock((Stmt.Block)stmt,environment);
-		case STMT_ifthen:
+		case WyalFile.STMT_ifthen:
 			return evaluateIfThen((Stmt.IfThen)stmt,environment);
-		case STMT_caseof:
+		case WyalFile.STMT_caseof:
 			return evaluateCaseOf((Stmt.CaseOf)stmt,environment);
-		case STMT_exists:
+		case WyalFile.STMT_exists:
 			return evaluateExists((Stmt.ExistentialQuantifier)stmt,environment);
-		case STMT_forall:
+		case WyalFile.STMT_forall:
 			return evaluateForAll((Stmt.UniversalQuantifier)stmt,environment);
 		default:
 			if (stmt instanceof Expr) {
@@ -130,65 +120,65 @@ public class Interpreter {
 	protected Object evaluateExpression(Expr expr, Environment environment) throws UndefinedException {
 
 		switch (expr.getOpcode()) {
-		case EXPR_const:
+		case WyalFile.EXPR_const:
 			return evaluateConstant((Expr.Constant) expr, environment);
-		case EXPR_var:
+		case WyalFile.EXPR_var:
 			return evaluateVariable((Expr.VariableAccess) expr, environment);
-		case EXPR_invoke:
+		case WyalFile.EXPR_invoke:
 			return evaluateInvoke((Expr.Invoke) expr, environment);
-		case EXPR_and:
+		case WyalFile.EXPR_and:
 			return evaluateLogicalAnd((Expr.LogicalAnd) expr,environment);
-		case EXPR_or:
+		case WyalFile.EXPR_or:
 			return evaluateLogicalOr((Expr.LogicalOr) expr,environment);
-		case EXPR_not:
+		case WyalFile.EXPR_not:
 			return evaluateLogicalNot((Expr.LogicalNot) expr,environment);
-		case EXPR_exists:
+		case WyalFile.EXPR_exists:
 			return evaluateExistentialQuantifier((Expr.ExistentialQuantifier) expr,environment);
-		case EXPR_forall:
+		case WyalFile.EXPR_forall:
 			return evaluateUniversalQuantifier((Expr.UniversalQuantifier) expr,environment);
-		case EXPR_implies:
+		case WyalFile.EXPR_implies:
 			return evaluateLogicalImplication((Expr.LogicalImplication) expr,environment);
-		case EXPR_iff:
+		case WyalFile.EXPR_iff:
 			return evaluateLogicalIff((Expr.LogicalIff) expr,environment);
-		case EXPR_eq:
+		case WyalFile.EXPR_eq:
 			return evaluateEqual((Expr.Equal) expr,environment);
-		case EXPR_neq:
+		case WyalFile.EXPR_neq:
 			return evaluateNotEqual((Expr.NotEqual) expr,environment);
-		case EXPR_neg:
+		case WyalFile.EXPR_neg:
 			return evaluateNegation((Expr.Negation) expr,environment);
-		case EXPR_lt:
+		case WyalFile.EXPR_lt:
 			return evaluateLessThan((Expr.LessThan) expr,environment);
-		case EXPR_lteq:
+		case WyalFile.EXPR_lteq:
 			return evaluateLessThanOrEqual((Expr.LessThanOrEqual) expr,environment);
-		case EXPR_gt:
+		case WyalFile.EXPR_gt:
 			return evaluateGreaterThan((Expr.GreaterThan) expr,environment);
-		case EXPR_gteq:
+		case WyalFile.EXPR_gteq:
 			return evaluateGreaterThanOrEqual((Expr.GreaterThanOrEqual) expr,environment);
-		case EXPR_add:
+		case WyalFile.EXPR_add:
 			return evaluateAddition((Expr.Addition) expr,environment);
-		case EXPR_sub:
+		case WyalFile.EXPR_sub:
 			return evaluateSubtraction((Expr.Subtraction) expr,environment);
-		case EXPR_mul:
+		case WyalFile.EXPR_mul:
 			return evaluateMultiplication((Expr.Multiplication) expr,environment);
-		case EXPR_div:
+		case WyalFile.EXPR_div:
 			return evaluateDivision((Expr.Division) expr,environment);
-		case EXPR_is:
+		case WyalFile.EXPR_is:
 			return evaluateIs((Expr.Is) expr,environment);
-		case EXPR_arrlen:
+		case WyalFile.EXPR_arrlen:
 			return evaluateArrayLength((Expr.ArrayLength) expr,environment);
-		case EXPR_arridx:
+		case WyalFile.EXPR_arridx:
 			return evaluateArrayAccess((Expr.ArrayAccess) expr,environment);
-		case EXPR_arrinit:
+		case WyalFile.EXPR_arrinit:
 			return evaluateArrayInitialiser((Expr.ArrayInitialiser) expr,environment);
-		case EXPR_arrupdt:
+		case WyalFile.EXPR_arrupdt:
 			return evaluateArrayUpdate((Expr.ArrayUpdate) expr,environment);
-		case EXPR_arrgen:
+		case WyalFile.EXPR_arrgen:
 			return evaluateArrayGenerator((Expr.ArrayGenerator) expr,environment);
-		case EXPR_recinit:
+		case WyalFile.EXPR_recinit:
 			return evaluateRecordInitialiser((Expr.RecordInitialiser) expr,environment);
-		case EXPR_recfield:
+		case WyalFile.EXPR_recfield:
 			return evaluateRecordAccess((Expr.RecordAccess) expr,environment);
-		case EXPR_recupdt:
+		case WyalFile.EXPR_recupdt:
 			return evaluateRecordUpdate((Expr.RecordUpdate) expr,environment);
 		default:
 			throw new RuntimeException("unknown expression encountered: " + expr.getClass().getName());

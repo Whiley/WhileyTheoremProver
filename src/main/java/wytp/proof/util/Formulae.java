@@ -13,15 +13,11 @@
 // limitations under the License.
 package wytp.proof.util;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.BitSet;
-
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.*;
-import wyal.lang.WyalFile.Declaration.Named;
-import wyal.lang.NameResolver.ResolutionError;
-import wycc.util.ArrayUtils;
+import wybs.lang.NameResolver.ResolutionError;
+
+import static wyal.lang.WyalFile.*;
+
 import wytp.proof.Formula;
 import wytp.proof.Formula.*;
 import wytp.types.TypeSystem;
@@ -70,67 +66,67 @@ public class Formulae {
 	 */
 	public static Formula toFormula(WyalFile.Stmt stmt, TypeSystem types) throws ResolutionError {
 		switch (stmt.getOpcode()) {
-		case STMT_block: {
+		case WyalFile.STMT_block: {
 			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Conjunct(operands);
 		}
-		case STMT_caseof: {
+		case WyalFile.STMT_caseof: {
 			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Disjunct(operands);
 		}
-		case STMT_ifthen: {
+		case WyalFile.STMT_ifthen: {
 			WyalFile.Stmt.IfThen it = (WyalFile.Stmt.IfThen) stmt;
 			Formula lhs = toFormula(it.getIfBody(), types);
 			Formula rhs = toFormula(it.getThenBody(), types);
 			return new Formula.Disjunct(invert(lhs), rhs);
 		}
-		case STMT_forall: {
+		case WyalFile.STMT_forall: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
-		case STMT_exists: {
+		case WyalFile.STMT_exists: {
 			Stmt.Quantifier q = (WyalFile.Stmt.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
-		case EXPR_forall: {
+		case WyalFile.EXPR_forall: {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
 			// Done
 			return new Formula.Quantifier(true, q.getParameters(), body);
 		}
-		case EXPR_exists: {
+		case WyalFile.EXPR_exists: {
 			Expr.Quantifier q = (WyalFile.Expr.Quantifier) stmt;
 			// Convert body of quantifier
 			Formula body = toFormula(q.getBody(), types);
 			// Done
 			return new Formula.Quantifier(false, q.getParameters(), body);
 		}
-		case EXPR_and: {
+		case WyalFile.EXPR_and: {
 			Expr.Operator b = (Expr.Operator) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Conjunct(operands);
 		}
-		case EXPR_or: {
+		case WyalFile.EXPR_or: {
 			Expr.Operator b = (Expr.Operator) stmt;
 			Formula[] operands = toFormulae(b.getOperands(), types);
 			return new Formula.Disjunct(operands);
 		}
-		case EXPR_implies: {
+		case WyalFile.EXPR_implies: {
 			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
 			Formula lhs = toFormula(it.getOperand(0), types);
 			Formula rhs = toFormula(it.getOperand(1), types);
 			return new Formula.Disjunct(invert(lhs), rhs);
 		}
-		case EXPR_eq: {
+		case WyalFile.EXPR_eq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
@@ -143,7 +139,7 @@ public class Formulae {
 				return new Formula.Equality(true, lhs, rhs);
 			}
 		}
-		case EXPR_neq: {
+		case WyalFile.EXPR_neq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
@@ -156,42 +152,42 @@ public class Formulae {
 				return new Formula.Equality(false, lhs, rhs);
 			}
 		}
-		case EXPR_lt: {
+		case WyalFile.EXPR_lt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			return lessThan(lhs,rhs);
 		}
-		case EXPR_lteq: {
+		case WyalFile.EXPR_lteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			return greaterOrEqual(rhs,lhs);
 		}
-		case EXPR_gt: {
+		case WyalFile.EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			// lhs > rhs ==> lhs+1 >= rhs
 			return lessThan(rhs,lhs);
 		}
-		case EXPR_gteq: {
+		case WyalFile.EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.getOperand(0);
 			Expr rhs = operator.getOperand(1);
 			return greaterOrEqual(lhs,rhs);
 		}
-		case EXPR_not: {
+		case WyalFile.EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Formula f = toFormula(operator.getOperand(0), types);
 			return invert(f);
 		}
-		case EXPR_const: {
+		case WyalFile.EXPR_const: {
 			Expr.Constant c = (Expr.Constant) stmt;
 			Value.Bool b = (Value.Bool) c.getValue();
 			return new Formula.Truth(b);
 		}
-		case EXPR_invoke: {
+		case WyalFile.EXPR_invoke: {
 			Expr.Invoke ivk = (Expr.Invoke) stmt;
 			if(ivk.getSignatureType() instanceof Type.Function) {
 				Expr TRUE = new Formula.Truth(new Value.Bool(true));
@@ -200,7 +196,7 @@ public class Formulae {
 				return new Formula.Invoke(true, ivk.getSignatureType(), ivk.getName(), ivk.getSelector(), ivk.getArguments());
 			}
 		}
-		case EXPR_is: {
+		case WyalFile.EXPR_is: {
 			Expr.Is operator = (Expr.Is) stmt;
 			Expr lhs = operator.getTestExpr();
 			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
@@ -276,27 +272,27 @@ public class Formulae {
 	 */
 	public static Formula invert(Formula f) {
 		switch (f.getOpcode()) {
-		case EXPR_const: {
+		case WyalFile.EXPR_const: {
 			Formula.Truth truth = (Formula.Truth) f;
 			return new Formula.Truth(!truth.holds());
 		}
-		case EXPR_and: {
+		case WyalFile.EXPR_and: {
 			Formula.Conjunct c = (Formula.Conjunct) f;
 			return new Disjunct(invert(c.getOperands()));
 		}
-		case EXPR_or: {
+		case WyalFile.EXPR_or: {
 			Formula.Disjunct c = (Formula.Disjunct) f;
 			return new Conjunct(invert(c.getOperands()));
 		}
-		case EXPR_exists:
-		case EXPR_forall: {
+		case WyalFile.EXPR_exists:
+		case WyalFile.EXPR_forall: {
 			Formula.Quantifier q = (Formula.Quantifier) f;
 			// FIXME: it's perhaps a little strange that we invert the body
 			// here?
 			return new Formula.Quantifier(!q.getSign(), q.getParameters(), invert(q.getBody()));
 		}
-		case EXPR_eq:
-		case EXPR_neq: {
+		case WyalFile.EXPR_eq:
+		case WyalFile.EXPR_neq: {
 			if (f instanceof ArithmeticEquality) {
 				ArithmeticEquality e = (ArithmeticEquality) f;
 				return new ArithmeticEquality(!e.getSign(), e.getOperand(0), e.getOperand(1));
@@ -305,18 +301,18 @@ public class Formulae {
 				return new Equality(!e.getSign(), e.getOperand(0), e.getOperand(1));
 			}
 		}
-		case EXPR_gteq: {
+		case WyalFile.EXPR_gteq: {
 			// !(lhs >= rhs) => lhs < rhs
 			Inequality e = (Inequality) f;
 			Expr lhs = e.getOperand(0);
 			Expr rhs = e.getOperand(1);
 			return lessThan(lhs,rhs);
 		}
-		case EXPR_invoke: {
+		case WyalFile.EXPR_invoke: {
 			Invoke e = (Invoke) f;
 			return new Formula.Invoke(!e.getSign(),e.getSignatureType(),e.getName(),e.getSelector(),e.getArguments());
 		}
-		case EXPR_is: {
+		case WyalFile.EXPR_is: {
 			Formula.Is c = (Formula.Is) f;
 			// FIXME: could simplify the type here I think
 			return new Is(c.getTestExpr(), new Type.Negation(c.getTestType()));

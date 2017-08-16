@@ -21,9 +21,10 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import wyal.lang.SyntacticHeap;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
+import wybs.lang.SyntacticHeap;
+import wybs.lang.SyntacticItem;
+import wybs.util.AbstractSyntacticHeap;
 
 /**
  * A structurally equivalent heap is one which maintains the "structural

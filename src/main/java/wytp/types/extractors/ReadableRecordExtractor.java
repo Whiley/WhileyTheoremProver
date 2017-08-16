@@ -15,13 +15,12 @@ package wytp.types.extractors;
 
 import java.util.ArrayList;
 
-import wyal.lang.NameResolver;
-import wyal.lang.NameResolver.ResolutionError;
 import wyal.lang.WyalFile.FieldDeclaration;
-import wyal.lang.WyalFile.Identifier;
+import static wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Type.Atom;
 import wyal.lang.WyalFile.Type.Record;
+import wybs.lang.NameResolver;
 import wytp.types.TypeSystem;
 import wytp.types.util.AbstractTypeExtractor;
 

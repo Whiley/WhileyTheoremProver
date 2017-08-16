@@ -19,16 +19,13 @@ import java.util.List;
 import java.util.Map;
 
 import wyal.heap.SyntacticHeaps;
-import wyal.lang.SyntacticItem;
 import wyal.lang.WyalFile;
-import wyal.lang.NameResolver.NameNotFoundError;
-import wyal.lang.NameResolver.ResolutionError;
-import wyal.lang.WyalFile.Declaration;
-import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.Tuple;
-import wyal.lang.WyalFile.Type;
-import wyal.lang.WyalFile.VariableDeclaration;
+
+import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Stmt.Block;
+import wybs.lang.SyntacticItem;
+import wybs.lang.NameResolver.NameNotFoundError;
+import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
