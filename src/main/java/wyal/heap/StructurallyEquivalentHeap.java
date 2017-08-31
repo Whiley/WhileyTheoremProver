@@ -57,7 +57,7 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 
 	private <T extends SyntacticItem> T allocate(T item, Map<SyntacticItem,SyntacticItem> map) {
 		//
-		SyntacticHeap parent = item.getParent();
+		SyntacticHeap parent = item.getHeap();
 		T allocated = (T) map.get(item);
 		if(allocated != null) {
 			return allocated;

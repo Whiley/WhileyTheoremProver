@@ -321,18 +321,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 
 	public Formula simplifyInvoke(Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
-		Expr[] children  = args.getOperands();
-		Expr[] nChildren = children;
-		for (int i = 0; i != children.length; ++i) {
-			Expr child = children[i];
+		Expr[] nChildren = new Expr[args.size()];
+		boolean changed = false;
+		for (int i = 0; i != args.size(); ++i) {
+			Expr child = args.getOperand(i);
 			Expr nChild = simplifyExpression(child);
 			//
-			if (child != nChild && children == nChildren) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
+			changed |= (child != nChild);
 			nChildren[i] = nChild;
 		}
-		if(children == nChildren) {
+		if(!changed) {
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);
@@ -374,7 +372,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 */
 	public Expr simplifyExpression(Expr e) throws ResolutionError {
 		switch (e.getOpcode()) {
-		case EXPR_var:
+		case EXPR_varcopy:
 			return e;
 		case EXPR_const:
 			return simplifyConstant((Expr.Constant) e);
@@ -522,18 +520,16 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 
 	public Expr simplifyInvoke(Expr.Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
-		Expr[] children  = args.getOperands();
-		Expr[] nChildren = children;
-		for (int i = 0; i != children.length; ++i) {
-			Expr child = children[i];
+		Expr[] nChildren = new Expr[args.size()];
+		boolean changed = false;
+		for (int i = 0; i != args.size(); ++i) {
+			Expr child = args.getOperand(i);
 			Expr nChild = simplifyExpression(child);
 			//
-			if (child != nChild && children == nChildren) {
-				nChildren = Arrays.copyOf(children, children.length);
-			}
+			changed |= (child != nChild);
 			nChildren[i] = nChild;
 		}
-		if(children == nChildren) {
+		if(!changed) {
 			return ivk;
 		} else {
 			Tuple<Expr> nArgs = new Tuple<>(nChildren);

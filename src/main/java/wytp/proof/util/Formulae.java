@@ -224,7 +224,7 @@ public class Formulae {
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public static Formula[] toFormulae(WyalFile.Stmt[] stmts, TypeSystem types) throws ResolutionError {
+	public static Formula[] toFormulae(Stmt[] stmts, TypeSystem types) throws ResolutionError {
 		Formula[] exprs = new Formula[stmts.length];
 		for (int i = 0; i != exprs.length; ++i) {
 			exprs[i] = toFormula(stmts[i], types);
@@ -329,7 +329,6 @@ public class Formulae {
 		}
 		return nChildren;
 	}
-
 	// ========================================================================
 	// Simplifications
 	// ========================================================================

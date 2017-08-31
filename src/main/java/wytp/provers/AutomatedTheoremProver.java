@@ -157,7 +157,7 @@ public class AutomatedTheoremProver {
 	 * @throws NameNotFoundError
 	 */
 	private boolean checkValidity(WyalFile.Declaration.Assert decl, Formula axiom) throws ResolutionError {
-		SyntacticHeap heap = new StructurallyEquivalentHeap(decl.getParent());
+		SyntacticHeap heap = new StructurallyEquivalentHeap(decl.getHeap());
 		Formula.Truth FALSE = heap.allocate(new Formula.Truth(false));
 		// Invert the body of the assertion in order to perform a
 		// "proof-by-contradiction".
