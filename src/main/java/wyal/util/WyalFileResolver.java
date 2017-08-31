@@ -69,7 +69,7 @@ public final class WyalFileResolver implements NameResolver {
 			Identifier ident = name.getOperand(0);
 			// This name is not fully qualified. Therefore, attempt to resolve
 			// it.
-			WyalFile enclosing = (WyalFile) name.getParent();
+			WyalFile enclosing = (WyalFile) name.getHeap();
 			if (localNameLookup(ident.get(), enclosing)) {
 				return new NameID(enclosing.getEntry().id(), ident.get());
 			}
@@ -121,7 +121,7 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	private WyalFile loadModule(NameID nid, Name name) throws IOException, ResolutionError {
-		WyalFile enclosing = getWyalFile(name.getParent());
+		WyalFile enclosing = getWyalFile(name.getHeap());
 		if (enclosing.getEntry().id().equals(nid.module())) {
 			// This is a local lookup.
 
@@ -180,7 +180,7 @@ public final class WyalFileResolver implements NameResolver {
 	 */
 	private NameID nonLocalNameLookup(Name name) throws NameResolver.ResolutionError {
 		try {
-			WyalFile enclosing = (WyalFile) getWyalFile(name.getParent());
+			WyalFile enclosing = (WyalFile) getWyalFile(name.getHeap());
 			List<WyalFile.Declaration.Import> imports = getImportsInReverseOrder(enclosing);
 			// Check name against import statements
 			for (WyalFile.Declaration.Import imp : imports) {

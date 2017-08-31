@@ -30,6 +30,7 @@ import wybs.lang.Attribute;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
+import wybs.util.AbstractCompilationUnit;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
@@ -1919,11 +1920,7 @@ public class WyalFileParser {
 	private void checkNotEof() {
 		skipWhiteSpace();
 		if (index >= tokens.size()) {
-			// FIXME: this is clearly not a sensible approach
-			SyntacticElement unknown = new SyntacticElement.Impl() {
-			};
-			unknown.attributes().add(new Attribute.Source(index - 1, index - 1, -1));
-			throw new SyntaxError("unexpected end-of-file", file.getEntry(), unknown);
+			throw new SyntaxError("unexpected end-of-file", file.getEntry(), null);
 		}
 	}
 
@@ -2139,16 +2136,12 @@ public class WyalFileParser {
 		return new Attribute.Source(t1.start, t2.end(), 0);
 	}
 
-	private void syntaxError(String msg, SyntacticElement elem) {
+	private void syntaxError(String msg, SyntacticItem elem) {
 		throw new SyntaxError(msg, file.getEntry(), elem);
 	}
 
 	private void syntaxError(String msg, Token t) {
-		// FIXME: this is clearly not a sensible approach
-		SyntacticElement unknown = new SyntacticElement.Impl() {
-		};
-		unknown.attributes().add(new Attribute.Source(t.start, t.start + t.text.length() - 1, -1));
-		throw new SyntaxError(msg, file.getEntry(), unknown);
+		throw new SyntaxError(msg, file.getEntry(), new AbstractCompilationUnit.Attribute.Span(null, t.start, t.end()));
 	}
 
 	private Expr[] toExprArray(List<Expr> exprs) {

@@ -75,7 +75,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 	 */
 	private Formula extractTypeInvariant(Type type, Expr root, HashSet<Type> visited) throws ResolutionError {
 		Formula invariant = null;
-		if(type.getParent() == null) {
+		if(type.getHeap() == null) {
 			invariant = extractTypeInvariantInner(type,root,visited);
 		} else if(!visited.contains(type)) {
 			visited.add(type);

@@ -239,13 +239,13 @@ public class StdTypeInfererence implements TypeInferer {
 
 	protected Type inferValue(Value val) {
 		switch(val.getOpcode()) {
-		case CONST_null:
+		case ITEM_null:
 			return Type.Null;
-		case CONST_bool:
+		case ITEM_bool:
 			return Type.Bool;
-		case CONST_int:
+		case ITEM_int:
 			return Type.Int;
-		case CONST_utf8:
+		case ITEM_utf8:
 		default:
 			throw new RuntimeException("invalid value encountered");
 		}

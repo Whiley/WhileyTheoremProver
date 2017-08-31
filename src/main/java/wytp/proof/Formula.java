@@ -252,8 +252,8 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Boolean getData() {
-			return sign;
+		public byte[] getData() {
+			return new byte[sign?1:0];
 		}
 
 		@Override

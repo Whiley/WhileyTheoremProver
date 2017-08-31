@@ -176,7 +176,7 @@ public class WyalFilePrinter {
 		out.print(" ");
 		out.print(decl.getVariableName().get());
 		// print nonces
-		if(nonces && decl.getParent() != null) {
+		if(nonces && decl.getHeap() != null) {
 			out.print("'" + decl.getIndex());
 		} else if(nonces) {
 			out.print("'?");
@@ -367,7 +367,7 @@ public class WyalFilePrinter {
 		// Print out the declared variable name
 		out.print(ident.get());
 		//
-		if(nonces && decl.getParent() != null) {
+		if(nonces && decl.getHeap() != null) {
 			out.print("'" + decl.getIndex());
 		} else if(nonces) {
 			out.print("'?");
@@ -384,15 +384,15 @@ public class WyalFilePrinter {
 	public void writeConstant(Expr.Constant expr) {
 		Value value = expr.getValue();
 		switch (value.getOpcode()) {
-		case CONST_null:
+		case ITEM_null:
 			out.print("null");
 			break;
-		case CONST_bool: {
+		case ITEM_bool: {
 			Value.Bool item = (Value.Bool) expr.getValue();
 			out.print(item.get());
 			break;
 		}
-		case CONST_int: {
+		case ITEM_int: {
 			Value.Int item = (Value.Int) expr.getValue();
 			out.print(item.get());
 			break;
@@ -460,7 +460,7 @@ public class WyalFilePrinter {
 			out.print("]");
 		}
 		out.print("(");
-		writeArguments(expr.getArguments().getOperands());
+		writeArguments(expr.getArguments().toArray(Expr.class));
 		out.print(")");
 		Value.Int selector = expr.getSelector();
 		if(selector != null) {
@@ -686,12 +686,11 @@ public class WyalFilePrinter {
 	}
 
 	private void writeName(Name n) {
-		Identifier[] components = n.getComponents();
-		for(int i=0;i!=components.length;++i) {
+		for(int i=0;i!=n.size();++i) {
 			if(i!=0) {
 				out.print(".");
 			}
-			out.print(components[i].get());
+			out.print(n.getOperand(i).get());
 		}
 	}
 

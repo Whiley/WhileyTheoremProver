@@ -135,7 +135,7 @@ public class SyntacticHeaps {
 	public static SyntacticItem substitute(SyntacticItem item, SyntacticItem from, SyntacticItem to) {
 		SyntacticItem nItem = substitute(item, from, to, new IdentityHashMap<>());
 		if(nItem != item) {
-			item.getParent().allocate(nItem);
+			item.getHeap().allocate(nItem);
 		}
 		return nItem;
 	}

@@ -159,14 +159,14 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 		} else if (decl instanceof Declaration.Named.Macro) {
 			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
 			// Expand the macro body with appropriate substitutions
-			return expandMacroBody(state, md, arguments.getOperands());
+			return expandMacroBody(state, md, arguments);
 		} else {
 			// Functions are ignored
 			return null;
 		}
 	}
 
-	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Expr[] arguments) throws ResolutionError {
+	private Formula expandMacroBody(Proof.State state, Declaration.Named.Macro md, Tuple<Expr> arguments) throws ResolutionError {
 		Tuple<VariableDeclaration> parameters = md.getParameters();
 		// Initialise the map with the identity for parameters to ensure they
 		// are preserved as is, and can then be substituted.
@@ -178,12 +178,12 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 		// declarations are distinguished appropriately.
 		WyalFile.Stmt.Block block = SyntacticHeaps.cloneOnly(md.getBody(), map, WyalFile.VariableDeclaration.class);
 		Formula body = Formulae.toFormula(block, types);
-		for (int i = 0; i != arguments.length; ++i) {
+		for (int i = 0; i != arguments.size(); ++i) {
 			// At this point, we must substitute the parameter name used in
 			// the type declaration for the name used as the invocation
 			// argument.
 			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters.getOperand(i));
-			body = (Formula) substitute(parameter, arguments[i], body);
+			body = (Formula) substitute(parameter, arguments.getOperand(i), body);
 		}
 		return body;
 	}

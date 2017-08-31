@@ -802,7 +802,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public Type[] getOperands() {
-				return ArrayUtils.toArray(Type.class, super.getOperands());
+				return (Type[]) super.getOperands();
 			}
 		}
 

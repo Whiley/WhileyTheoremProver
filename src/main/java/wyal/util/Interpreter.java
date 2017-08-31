@@ -266,9 +266,9 @@ public class Interpreter {
 	}
 
 	protected boolean evaluateLogicalAnd(Expr.LogicalAnd conjunct, Environment environment) throws UndefinedException {
-		Expr[] children = conjunct.getOperands();
-		for(int i=0;i!=children.length;++i) {
-			boolean b = (Boolean) evaluateExpression(children[i],environment);
+		for(int i=0;i!=conjunct.size();++i) {
+			Expr child = conjunct.getOperand(i);
+			boolean b = (Boolean) evaluateExpression(child,environment);
 			if(!b) {
 				return false;
 			}
@@ -277,10 +277,10 @@ public class Interpreter {
 	}
 
 	protected boolean evaluateLogicalOr(Expr.LogicalOr disjunct, Environment environment) throws UndefinedException {
-		Expr[] children = disjunct.getOperands();
-		for(int i=0;i!=children.length;++i) {
-			boolean b = (Boolean) evaluateExpression(children[i],environment);
-			if(b) {
+		for (int i = 0; i != disjunct.size(); ++i) {
+			Expr child = disjunct.getOperand(i);
+			boolean b = (Boolean) evaluateExpression(child, environment);
+			if (b) {
 				return true;
 			}
 		}
@@ -775,7 +775,7 @@ public class Interpreter {
 			private final Domain.Generator[] generators;
 
 			public Iterator(Tuple<VariableDeclaration> variables) {
-				this.variables = variables.getOperands();
+				this.variables = variables.toArray(VariableDeclaration.class);
 				this.generators = new Domain.Generator[this.variables.length];
 				for(int i=0;i!=this.variables.length;++i) {
 					VariableDeclaration var = this.variables[i];
