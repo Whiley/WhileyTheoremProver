@@ -343,15 +343,15 @@ public class TypeChecker {
 
 	private Environment checkBlock(Environment env, boolean sign, Stmt.Block stmt) {
 		if (sign) {
-			return conjunct(env, true, stmt.getOperands());
+			return conjunct(env, false, stmt.getOperands());
 		} else {
-			return disjunct(env, false, stmt.getOperands());
+			return disjunct(env, true, stmt.getOperands());
 		}
 	}
 
 	private Environment checkCaseOf(Environment env, boolean sign, Stmt.CaseOf stmt) {
-		for (Stmt child : stmt.getOperands()) {
-			env = checkStatement(env, sign, child);
+		for (int i = 0; i != stmt.size(); ++i) {
+			env = checkStatement(env, sign, stmt.getOperand(i));
 		}
 		return env;
 	}
@@ -504,7 +504,7 @@ public class TypeChecker {
 		// Ignored
 		case WyalFile.EXPR_const:
 			return checkConstant(env, (Expr.Constant) expr);
-		case WyalFile.EXPR_var:
+		case WyalFile.EXPR_varcopy:
 			return checkVariable(env, (Expr.VariableAccess) expr);
 		case WyalFile.EXPR_invoke:
 			return checkInvocation(env, (Expr.Invoke) expr);
@@ -567,11 +567,11 @@ public class TypeChecker {
 	private Type checkConstant(Environment env, Expr.Constant expr) {
 		Value item = expr.getValue();
 		switch (item.getOpcode()) {
-		case CONST_null:
+		case ITEM_null:
 			return new Type.Null();
-		case CONST_bool:
+		case ITEM_bool:
 			return new Type.Bool();
-		case CONST_int:
+		case ITEM_int:
 			return new Type.Int();
 		default:
 			throw new InternalFailure("unknown constant encountered: " + expr, originatingEntry, expr);
@@ -784,7 +784,7 @@ public class TypeChecker {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Type.Array checkIsArrayType(Type type, SyntacticElement element) {
+	private Type.Array checkIsArrayType(Type type, SyntacticItem element) {
 		try {
 			Type.Array arrT = types.extractReadableArray(type);
 			if (arrT == null) {
@@ -802,7 +802,7 @@ public class TypeChecker {
 	 * @param type
 	 * @return
 	 */
-	private Type.Record checkIsRecordType(Type type, SyntacticElement element) {
+	private Type.Record checkIsRecordType(Type type, SyntacticItem element) {
 		try {
 			Type.Record recT = types.extractReadableRecord(type);
 			if (recT == null) {
@@ -821,7 +821,7 @@ public class TypeChecker {
 	 * @return
 	 * @throws ResolutionError
 	 */
-	private Type.Reference checkIsReferenceType(Type type, SyntacticElement element) {
+	private Type.Reference checkIsReferenceType(Type type, SyntacticItem element) {
 		try {
 			Type.Reference refT = types.extractReadableReference(type);
 			if (refT == null) {
@@ -842,7 +842,7 @@ public class TypeChecker {
 	 * @param args
 	 * @return
 	 */
-	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, SyntacticElement context, Type... args) {
+	private Named.FunctionOrMacro resolveAsDeclaredFunctionOrMacro(Name name, SyntacticItem context, Type... args) {
 		try {
 			// Identify all function or macro declarations which should be
 			// considered
@@ -866,7 +866,7 @@ public class TypeChecker {
 	 * @param args
 	 * @return
 	 */
-	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(SyntacticElement context, List<Named.FunctionOrMacro> candidates,
+	private Named.FunctionOrMacro selectCandidateFunctionOrMacroDeclaration(SyntacticItem context, List<Named.FunctionOrMacro> candidates,
 			Type... args) {
 		Named.FunctionOrMacro best = null;
 		for (int i = 0; i != candidates.size(); ++i) {
@@ -939,7 +939,7 @@ public class TypeChecker {
 		}
 	}
 
-	private void checkIsSubtype(Type lhs, Type rhs, SyntacticElement element) {
+	private void checkIsSubtype(Type lhs, Type rhs, SyntacticItem element) {
 		try {
 			if (!types.isRawSubtype(lhs, rhs)) {
 				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, originatingEntry, element);

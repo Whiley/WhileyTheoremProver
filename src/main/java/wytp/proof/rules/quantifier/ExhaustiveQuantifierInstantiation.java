@@ -118,15 +118,14 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 		return state;
 	}
 
-	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Equation groundTerm,
-			State state) throws ResolutionError {
+	private State applyQuantifierInstantiation(Formula.Quantifier quantifier, Formula.Equation groundTerm, State state)
+			throws ResolutionError {
 		// FIXME: I believe there is a bug here in the (unlikely?) situation
 		// that we can in fact match *multiple* variables in the same quantifier
 		// against the same ground term.
-
-		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
-		for (int i = 0; i != parameters.length; ++i) {
-			VariableDeclaration variable = parameters[i];
+		Tuple<VariableDeclaration> parameters = quantifier.getParameters();
+		for (int i = 0; i != parameters.size(); ++i) {
+			VariableDeclaration variable = parameters.getOperand(i);
 			state = attemptQuantifierInstantiation(quantifier, variable, groundTerm, state);
 		}
 		return state;
@@ -199,7 +198,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 	 */
 	private State instantiateQuantifier(Formula.Quantifier quantifier, VariableDeclaration variable,
 			Formula.Equation groundTerm, Expr binding, State state) throws ResolutionError {
-		VariableDeclaration[] parameters = quantifier.getParameters().getOperands();
+		Tuple<VariableDeclaration> parameters = quantifier.getParameters();
 		// Substitute body through for the binding obtained the given parameter
 		Formula grounded = quantifier.getBody();
 		Expr access = new Expr.VariableAccess(variable);
@@ -211,13 +210,13 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			grounded = new Disjunct(Formulae.invert(invariant), grounded);
 		}
 		// Determine whether quantified variables still exist.
-		if (parameters.length > 1) {
+		if (parameters.size() > 1) {
 			// This does not represent a complete instantiation of this
 			// quantifier. Therefore, we need to retain all quantified variables
 			// except that which was instantiated.
-			parameters = stripInstantiatedParameter(parameters, variable);
+			VariableDeclaration[] stripped = stripInstantiatedParameter(parameters, variable);
 			// Re-quantify remaining variables
-			grounded = new Formula.Quantifier(true, parameters, grounded);
+			grounded = new Formula.Quantifier(true, stripped, grounded);
 		}
 		// Finally, assert the newly instantiated quantifier in the current
 		// state.
@@ -234,11 +233,11 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 	 * @param variable
 	 * @return
 	 */
-	private VariableDeclaration[] stripInstantiatedParameter(VariableDeclaration[] parameters,
+	private VariableDeclaration[] stripInstantiatedParameter(Tuple<VariableDeclaration> parameters,
 			VariableDeclaration variable) {
-		VariableDeclaration[] result = new VariableDeclaration[parameters.length - 1];
-		for (int i = 0, j = 0; i != parameters.length; ++i) {
-			VariableDeclaration parameter = parameters[i];
+		VariableDeclaration[] result = new VariableDeclaration[parameters.size() - 1];
+		for (int i = 0, j = 0; i != parameters.size(); ++i) {
+			VariableDeclaration parameter = parameters.getOperand(i);
 			if (parameter != variable) {
 				result[j++] = parameter;
 			}

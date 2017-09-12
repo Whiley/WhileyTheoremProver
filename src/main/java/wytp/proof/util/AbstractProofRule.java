@@ -23,6 +23,7 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wybs.lang.NameResolver;
 import wybs.lang.SyntacticItem;
+import wybs.util.AbstractCompilationUnit.Tuple;
 import wybs.lang.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
@@ -171,10 +172,11 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		for (int i = 0; i != quantifiers.length; ++i) {
 			Formula.Quantifier quantifier = quantifiers[i];
 			if (quantifier.getSign()) {
-				VariableDeclaration[] quantifiedVariables = quantifier.getParameters().getOperands();
-				for (int j = 0; j != quantifiedVariables.length; ++j) {
+				Tuple<VariableDeclaration> quantifiedVariables = quantifier.getParameters();
+				for (int j = 0; j != quantifiedVariables.size(); ++j) {
+					VariableDeclaration jth = quantifiedVariables.getOperand(j);
 					for (int k = 0; k != usedVariables.size(); ++k) {
-						if (quantifiedVariables[j] == usedVariables.get(k)) {
+						if (jth == usedVariables.get(k)) {
 							return true;
 						}
 					}

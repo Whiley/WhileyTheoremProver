@@ -80,7 +80,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 	};
 
-	public static final Content.Type<WyalFile> CompiledContentType = new Content.Type<WyalFile>() {
+	public static final Content.Type<WyalFile> BinaryContentType = new Content.Type<WyalFile>() {
 		public Path.Entry<WyalFile> accept(Path.Entry<?> e) {
 			if (e.contentType() == this) {
 				return (Path.Entry<WyalFile>) e;
@@ -112,83 +112,100 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// =========================================================================
 	// Item Kinds
 	// =========================================================================
-		// DECLARATIONS
-	public static final int DECL_linecomment = 106;
-	public static final int DECL_blkcomment = 107;
-	public static final int DECL_import = 108;
-	public static final int DECL_assert = 109;
-	public static final int DECL_type = 110;
-	public static final int DECL_fun = 111;
-	public static final int DECL_macro = 112;
-		// ERRORS
-	public static final int ERR_verify = 113;
-		// TYPES
-	public static final int TYPE_void = 0;
-	public static final int TYPE_any = 1;
-	public static final int TYPE_null = 2;
-	public static final int TYPE_bool = 3;
-	public static final int TYPE_int = 4;
-	public static final int TYPE_nom = 5;
-	public static final int TYPE_ref = 6;
-	public static final int TYPE_arr = 7;
-	public static final int TYPE_rec = 8;
-	public static final int TYPE_fun = 9;
-	public static final int TYPE_meth = 10;
-	public static final int TYPE_macro = 11;
-	public static final int TYPE_inv = 12;
-	public static final int TYPE_or = 13;
-	public static final int TYPE_and = 14;
-	public static final int TYPE_not = 15;
-	public static final int TYPE_byte = 16;
-	// STMTS
-	public static final int STMT_block = 17;
-	public static final int STMT_vardecl = 18;
-	public static final int STMT_ifthen = 19;
-	public static final int STMT_caseof = 20;
-	public static final int STMT_exists = 21;
-	public static final int STMT_forall = 22;
-	// EXPRESSIONS
-	public static final int EXPR_var = 23;
-	public static final int EXPR_const = 24;
-	public static final int EXPR_cast = 25;
-	public static final int EXPR_invoke = 26;
+	// DECLARATIONS: 00010000 (16) -- 00011111 (31)
+	public static final int DECL_mask = 0b00010000;
+	public static final int DECL_linecomment = DECL_mask + 0;
+	public static final int DECL_blkcomment = DECL_mask + 1;
+	public static final int DECL_import = DECL_mask + 2;
+	public static final int DECL_assert = DECL_mask + 3;
+	public static final int DECL_type = DECL_mask + 4;
+	public static final int DECL_fun = DECL_mask + 5;
+	public static final int DECL_macro = DECL_mask + 6;
+	// ERRORS
+	public static final int ERR_verify = DECL_mask + 7;
+	// TYPES: 00100000 (32) -- 00111111 (63)
+	public static final int TYPE_mask = 0b000100000;
+	public static final int TYPE_void = TYPE_mask + 0;
+	public static final int TYPE_any = TYPE_mask + 1;
+	public static final int TYPE_null = TYPE_mask + 2;
+	public static final int TYPE_bool = TYPE_mask + 3;
+	public static final int TYPE_int = TYPE_mask + 4;
+	public static final int TYPE_nom = TYPE_mask + 5;
+	public static final int TYPE_ref = TYPE_mask + 6;
+	public static final int TYPE_arr = TYPE_mask + 8;
+	public static final int TYPE_rec = TYPE_mask + 9;
+	public static final int TYPE_fun = TYPE_mask + 10;
+	public static final int TYPE_meth = TYPE_mask + 11;
+	public static final int TYPE_property = TYPE_mask + 12;
+	public static final int TYPE_inv = TYPE_mask + 13;
+	public static final int TYPE_or = TYPE_mask + 14;
+	public static final int TYPE_and = TYPE_mask + 15;
+	public static final int TYPE_not = TYPE_mask + 16;
+	public static final int TYPE_byte = TYPE_mask + 17;
+	// STATEMENTS: 01000000 (64) -- 001011111 (95)
+	public static final int STMT_mask = 0b01000000;
+	public static final int STMT_block = STMT_mask + 0;
+	public static final int STMT_vardecl = STMT_mask + 1;
+	public static final int STMT_ifthen = STMT_mask + 2;
+	public static final int STMT_caseof = STMT_mask + 3;
+	public static final int STMT_exists = STMT_mask + 4;
+	public static final int STMT_forall = STMT_mask + 5;
+	// EXPRESSIONS: 01100000 (96) -- 10011111 (159)
+	public static final int EXPR_mask = 0b01100000;
+	public static final int EXPR_varcopy = EXPR_mask + 0;
+	public static final int EXPR_varmove = EXPR_mask + 1;
+	public static final int EXPR_staticvar = EXPR_mask + 2;
+	public static final int EXPR_const = EXPR_mask + 3;
+	public static final int EXPR_cast = EXPR_mask + 4;
+	public static final int EXPR_invoke = EXPR_mask + 5;
+	public static final int EXPR_qualifiedinvoke = EXPR_mask + 6;
+	public static final int EXPR_indirectinvoke = EXPR_mask + 7;
 	// LOGICAL
-	public static final int EXPR_not = 30;
-	public static final int EXPR_and = 31;
-	public static final int EXPR_or = 32;
-	public static final int EXPR_implies = 33;
-	public static final int EXPR_iff = 34;
-	public static final int EXPR_exists = 35;
-	public static final int EXPR_forall = 36;
+	public static final int EXPR_not = EXPR_mask + 8;
+	public static final int EXPR_and = EXPR_mask + 9;
+	public static final int EXPR_or = EXPR_mask + 10;
+	public static final int EXPR_implies = EXPR_mask + 11;
+	public static final int EXPR_iff = EXPR_mask + 12;
+	public static final int EXPR_exists = EXPR_mask + 13;
+	public static final int EXPR_forall = EXPR_mask + 14;
 	// COMPARATORS
-	public static final int EXPR_eq = 40;
-	public static final int EXPR_neq = 41;
-	public static final int EXPR_lt = 42;
-	public static final int EXPR_lteq = 43;
-	public static final int EXPR_gt = 44;
-	public static final int EXPR_gteq = 45;
-	public static final int EXPR_is = 46;
+	public static final int EXPR_eq = EXPR_mask + 16;
+	public static final int EXPR_neq = EXPR_mask + 17;
+	public static final int EXPR_lt = EXPR_mask + 18;
+	public static final int EXPR_lteq = EXPR_mask + 19;
+	public static final int EXPR_gt = EXPR_mask + 20;
+	public static final int EXPR_gteq = EXPR_mask + 21;
+	public static final int EXPR_is = EXPR_mask + 22;
 	// ARITHMETIC
-	public static final int EXPR_neg = 50;
-	public static final int EXPR_add = 51;
-	public static final int EXPR_sub = 52;
-	public static final int EXPR_mul = 53;
-	public static final int EXPR_div = 54;
-	public static final int EXPR_rem = 55;
+	public static final int EXPR_neg = EXPR_mask + 24;
+	public static final int EXPR_add = EXPR_mask + 25;
+	public static final int EXPR_sub = EXPR_mask + 26;
+	public static final int EXPR_mul = EXPR_mask + 27;
+	public static final int EXPR_div = EXPR_mask + 28;
+	public static final int EXPR_rem = EXPR_mask + 29;
+	// BITWISE
+	public static final int EXPR_bitwisenot = EXPR_mask + 32;
+	public static final int EXPR_bitwiseand = EXPR_mask + 33;
+	public static final int EXPR_bitwiseor = EXPR_mask + 34;
+	public static final int EXPR_bitwisexor = EXPR_mask + 35;
+	public static final int EXPR_bitwiseshl = EXPR_mask + 36;
+	public static final int EXPR_bitwiseshr = EXPR_mask + 37;
 	// REFERENCES
-	public static final int EXPR_deref = 56;
+	public static final int EXPR_deref = EXPR_mask + 40;
+	public static final int EXPR_new = EXPR_mask + 41;
+	public static final int EXPR_qualifiedlambda = EXPR_mask + 42;
+	public static final int EXPR_lambda = EXPR_mask + 43;
 	// RECORDS
-	public static final int EXPR_recfield = 57;
-	public static final int EXPR_recupdt = 58;
+	public static final int EXPR_recfield = EXPR_mask + 48;
+	public static final int EXPR_recupdt = EXPR_mask + 49;
+	public static final int EXPR_recinit = EXPR_mask + 50;
 	// ARRAYS
-	public static final int EXPR_arridx = 59;
-	public static final int EXPR_arrlen = 60;
-	public static final int EXPR_arrupdt = 61;
-	// Initialisers come later so they not given preference for
-	// substitution.
-	public static final int EXPR_arrgen = 62;
-	public static final int EXPR_arrinit = 63;
-	public static final int EXPR_recinit = 64;
+	public static final int EXPR_arridx = EXPR_mask + 56;
+	public static final int EXPR_arrlen = EXPR_mask + 57;
+	public static final int EXPR_arrupdt = EXPR_mask + 58;
+	public static final int EXPR_arrgen = EXPR_mask + 59;
+	public static final int EXPR_arrinit = EXPR_mask + 60;
+	public static final int EXPR_arrrange = EXPR_mask + 61;
 
 	// =========================================================================
 	// Constructors
@@ -802,7 +819,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public Type[] getOperands() {
-				return ArrayUtils.toArray(Type.class, super.getOperands());
+				return (Type[]) super.getOperands();
 			}
 		}
 
@@ -958,11 +975,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public static class Property extends FunctionOrMethodOrProperty implements Type {
 			public Property(Tuple<Type> parameters) {
-				super(TYPE_macro, parameters, new Tuple<>(new Type.Bool()));
+				super(TYPE_property, parameters, new Tuple<>(new Type.Bool()));
 			}
 
 			private Property(Tuple<Type> parameters, Tuple<Type> returns) {
-				super(TYPE_macro, parameters, returns);
+				super(TYPE_property, parameters, returns);
 			}
 
 			@Override
@@ -1477,7 +1494,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		 */
 		public static class VariableAccess extends AbstractSyntacticItem implements Expr {
 			public VariableAccess(VariableDeclaration decl) {
-				super(EXPR_var, decl);
+				super(EXPR_varcopy, decl);
 			}
 
 			public VariableDeclaration getVariableDeclaration() {

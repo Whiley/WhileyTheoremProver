@@ -143,10 +143,9 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 
 	protected Disjunct toDisjunctiveNormalForm(Type.Union type) throws ResolutionError {
 		Disjunct result = null;
-		Type[] children = type.getOperands();
 		//
-		for (int i = 0; i != children.length; ++i) {
-			Disjunct child = toDisjunctiveNormalForm(children[i]);
+		for (int i = 0; i != type.size(); ++i) {
+			Disjunct child = toDisjunctiveNormalForm(type.getOperand(i));
 			if(result == null) {
 				result = child;
 			} else {
@@ -159,10 +158,9 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 
 	protected  Disjunct toDisjunctiveNormalForm(Type.Intersection type) throws ResolutionError {
 		Disjunct result = null;
-		Type[] children = type.getOperands();
 		//
-		for (int i = 0; i != children.length; ++i) {
-			Disjunct child = toDisjunctiveNormalForm(children[i]);
+		for (int i = 0; i != type.size(); ++i) {
+			Disjunct child = toDisjunctiveNormalForm(type.getOperand(i));
 			if(result == null) {
 				result = child;
 			} else {
