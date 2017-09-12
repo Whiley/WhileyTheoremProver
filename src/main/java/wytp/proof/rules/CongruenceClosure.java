@@ -335,7 +335,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 
 	private static boolean isVariable(Expr e) {
 		switch(e.getOpcode()) {
-		case EXPR_var:
+		case EXPR_varcopy:
 		case EXPR_arridx:
 		case EXPR_recfield:
 		case EXPR_invoke:

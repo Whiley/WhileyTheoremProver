@@ -47,7 +47,7 @@ public class StdTypeInfererence implements TypeInferer {
 			return inferCast(environment, (Expr.Cast) expr);
 		case WyalFile.EXPR_invoke:
 			return inferInvoke(environment, (Expr.Invoke) expr);
-		case WyalFile.EXPR_var:
+		case WyalFile.EXPR_varcopy:
 			return inferVariableAccess(environment, (Expr.VariableAccess) expr);
 		case WyalFile.EXPR_not:
 		case WyalFile.EXPR_and:

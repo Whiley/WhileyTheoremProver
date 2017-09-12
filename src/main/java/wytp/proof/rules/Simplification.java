@@ -372,7 +372,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 */
 	public Expr simplifyExpression(Expr e) throws ResolutionError {
 		switch (e.getOpcode()) {
-		case EXPR_var:
+		case EXPR_varcopy:
 			return e;
 		case EXPR_const:
 			return simplifyConstant((Expr.Constant) e);

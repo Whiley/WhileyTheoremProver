@@ -324,7 +324,7 @@ public class WyalFilePrinter {
 		case EXPR_is:
 			writeIsOperator((Expr.Is) expr);
 			break;
-		case EXPR_var:
+		case EXPR_varcopy:
 			writeVariableAccess((Expr.VariableAccess) expr);
 			break;
 		case EXPR_invoke:
@@ -642,7 +642,7 @@ public class WyalFilePrinter {
 			writeTypeArray(t.getReturns());
 			break;
 		}
-		case TYPE_macro: {
+		case TYPE_property: {
 			Type.Property t = (Type.Property) type;
 			out.print("macro");
 			writeTypeArray(t.getParameters());

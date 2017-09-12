@@ -122,7 +122,7 @@ public class Interpreter {
 		switch (expr.getOpcode()) {
 		case WyalFile.EXPR_const:
 			return evaluateConstant((Expr.Constant) expr, environment);
-		case WyalFile.EXPR_var:
+		case WyalFile.EXPR_varcopy:
 			return evaluateVariable((Expr.VariableAccess) expr, environment);
 		case WyalFile.EXPR_invoke:
 			return evaluateInvoke((Expr.Invoke) expr, environment);

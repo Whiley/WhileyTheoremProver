@@ -504,7 +504,7 @@ public class TypeChecker {
 		// Ignored
 		case WyalFile.EXPR_const:
 			return checkConstant(env, (Expr.Constant) expr);
-		case WyalFile.EXPR_var:
+		case WyalFile.EXPR_varcopy:
 			return checkVariable(env, (Expr.VariableAccess) expr);
 		case WyalFile.EXPR_invoke:
 			return checkInvocation(env, (Expr.Invoke) expr);
