@@ -43,8 +43,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 		if (truth instanceof Formula.ArithmeticEquality) {
 			Formula.ArithmeticEquality eq = (Formula.ArithmeticEquality) truth;
 			if (!eq.getSign()) {
-				Expr lhs = eq.getOperand(0);
-				Expr rhs = eq.getOperand(1);
+				Expr lhs = eq.get(0);
+				Expr rhs = eq.get(1);
 				// For an arithmetic equality of the form x != y, we return a
 				// disjunction of the form (x < y) || (x > y). This is not
 				// necessarily the most efficient thing to do. However, for our
@@ -56,8 +56,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 			}
 		} else if (truth instanceof Formula.Equality) {
 			Formula.Equality eq = (Formula.Equality) truth;
-			Expr lhs = eq.getOperand(0);
-			Expr rhs = eq.getOperand(1);
+			Expr lhs = eq.get(0);
+			Expr rhs = eq.get(1);
 			Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 			Type rhsT = types.inferType(state.getTypeEnvironment(), rhs);
 			if (lhsT != null && rhsT != null) {
@@ -82,8 +82,8 @@ public class EqualityCaseAnalysis extends AbstractProofRule implements Proof.Lin
 	}
 
 	private State expandBooleanEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
+		Expr lhs = eq.get(0);
+		Expr rhs = eq.get(1);
 		//
 		Formula lhs_f = Formulae.toFormula(lhs, types);
 		Formula rhs_f = Formulae.toFormula(rhs, types);

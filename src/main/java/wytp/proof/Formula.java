@@ -66,13 +66,13 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula getOperand(int i) {
-			return (Formula) super.getOperand(i);
+		public Formula get(int i) {
+			return (Formula) super.get(i);
 		}
 
 		@Override
-		public Formula[] getOperands() {
-			return (Formula[]) super.getOperands();
+		public Formula[] getAll() {
+			return (Formula[]) super.getAll();
 		}
 
 		@Override
@@ -87,7 +87,7 @@ public interface Formula extends Expr {
 				if (i != 0) {
 					r += " && ";
 				}
-				r += getOperand(i);
+				r += get(i);
 			}
 			return r;
 		}
@@ -100,13 +100,13 @@ public interface Formula extends Expr {
 		}
 
 		@Override
-		public Formula getOperand(int i) {
-			return (Formula) super.getOperand(i);
+		public Formula get(int i) {
+			return (Formula) super.get(i);
 		}
 
 		@Override
-		public Formula[] getOperands() {
-			return (Formula[]) super.getOperands();
+		public Formula[] getAll() {
+			return (Formula[]) super.getAll();
 		}
 
 		@Override
@@ -121,7 +121,7 @@ public interface Formula extends Expr {
 				if (i != 0) {
 					r += " || ";
 				}
-				r += getOperand(i);
+				r += get(i);
 			}
 			return r;
 		}
@@ -147,12 +147,12 @@ public interface Formula extends Expr {
 
 		@Override
 		public Tuple<VariableDeclaration> getParameters() {
-			return (Tuple<VariableDeclaration>) getOperand(0);
+			return (Tuple<VariableDeclaration>) get(0);
 		}
 
 		@Override
 		public Formula getBody() {
-			return (Formula) getOperand(1);
+			return (Formula) get(1);
 		}
 
 		@Override
@@ -163,18 +163,18 @@ public interface Formula extends Expr {
 
 	public interface Equation extends Formula {
 		@Override
-		public Expr getOperand(int i);
+		public Expr get(int i);
 
 		@Override
-		public Expr[] getOperands();
+		public Expr[] getAll();
 	}
 
 	public interface ArithmeticEquation extends Equation {
 		@Override
-		public Expr getOperand(int i);
+		public Expr get(int i);
 
 		@Override
-		public Expr[] getOperands();
+		public Expr[] getAll();
 	}
 
 	public static class Inequality extends Expr.GreaterThanOrEqual implements ArithmeticEquation {
@@ -215,7 +215,7 @@ public interface Formula extends Expr {
 				if (i != 0) {
 					r += str;
 				}
-				r += getOperand(i);
+				r += get(i);
 			}
 			return r;
 		}

@@ -105,7 +105,7 @@ public class ExistentialElimination extends AbstractProofRule implements Proof.L
 			throws ResolutionError {
 		Formula result = null;
 		for (int i = 0; i != declarations.size(); ++i) {
-			VariableDeclaration variable = declarations.getOperand(i);
+			VariableDeclaration variable = declarations.get(i);
 			Formula invariant = types.extractInvariant(variable.getType(), new Expr.VariableAccess(variable));
 			// FIXME: need to perform appropriate variable substitution here?
 			if (invariant != null && result == null) {

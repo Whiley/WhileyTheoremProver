@@ -58,13 +58,13 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 		Formula[] result;
 		switch (split.getOpcode()) {
 		case WyalFile.EXPR_arridx: {
-			Expr src = split.getOperand(0);
-			Expr j = split.getOperand(1);
+			Expr src = split.get(0);
+			Expr j = split.get(1);
 			if (src.getOpcode() == WyalFile.EXPR_arrupdt) {
 				// xs[i:=v][j]
-				Expr xs = (Expr) src.getOperand(0);
-				Expr i = (Expr) src.getOperand(1);
-				Expr v = (Expr) src.getOperand(2);
+				Expr xs = (Expr) src.get(0);
+				Expr i = (Expr) src.get(1);
+				Expr v = (Expr) src.get(2);
 				result = new Formula[2];
 				Formula case1 = (Formula) substitute(split, v, truth);
 				// NOTE: we must call construct here since we are creating a new
@@ -80,7 +80,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				for (int i = 0; i != src.size(); ++i) {
 					// a >= 0 && j == 0
 					Expr ith = new Expr.Constant(new WyalFile.Value.Int(i));
-					Formula lhs = (Formula) substitute(split, src.getOperand(i), truth);
+					Formula lhs = (Formula) substitute(split, src.get(i), truth);
 					Formula rhs = new Formula.ArithmeticEquality(true, j, ith);
 					result[i] = Formulae.and(lhs, rhs);
 				}

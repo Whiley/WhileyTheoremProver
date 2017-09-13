@@ -144,7 +144,7 @@ public class WyalFilePrinter {
 		out.println(")");
 		for(int i=0;i!=invariant.size();++i) {
 			out.println("where:");
-			writeBlock(invariant.getOperand(i),1);
+			writeBlock(invariant.get(i),1);
 		}
 	}
 
@@ -166,7 +166,7 @@ public class WyalFilePrinter {
 			if (i != 0) {
 				out.print(", ");
 			}
-			writeVariableDeclaration(parameters.getOperand(i));
+			writeVariableDeclaration(parameters.get(i));
 		}
 		out.print(")");
 	}
@@ -191,7 +191,7 @@ public class WyalFilePrinter {
 
 	public void writeBlock(Stmt.Block block, int indent) {
 		for (int i = 0; i != block.size(); i = i + 1) {
-			writeStatement(block.getOperand(i), indent);
+			writeStatement(block.get(i), indent);
 		}
 	}
 
@@ -238,7 +238,7 @@ public class WyalFilePrinter {
 			} else {
 				out.println("or:");
 			}
-			writeBlock(stmt.getOperand(i), indent + 1);
+			writeBlock(stmt.get(i), indent + 1);
 		}
 	}
 
@@ -406,20 +406,20 @@ public class WyalFilePrinter {
 		switch(expr.getOpcode()) {
 		case EXPR_not:
 			out.print("!");
-			writeExpressionWithBrackets(expr.getOperand(0));
+			writeExpressionWithBrackets(expr.get(0));
 			break;
 		case EXPR_neg:
 			out.print("-");
-			writeExpressionWithBrackets(expr.getOperand(0));
+			writeExpressionWithBrackets(expr.get(0));
 			break;
 		case EXPR_arrlen:
 			out.print("|");
-			writeExpression(expr.getOperand(0));
+			writeExpression(expr.get(0));
 			out.print("|");
 			break;
 		case EXPR_deref:
 			out.print("*");
-			writeExpressionWithBrackets(expr.getOperand(0));
+			writeExpressionWithBrackets(expr.get(0));
 			break;
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());
@@ -434,7 +434,7 @@ public class WyalFilePrinter {
 				out.print(OPERATOR_MAP.get(expr.getOpcode()));
 				out.print(" ");
 			}
-			writeExpressionWithBrackets(expr.getOperand(i));
+			writeExpressionWithBrackets(expr.get(i));
 		}
 	}
 
@@ -471,31 +471,31 @@ public class WyalFilePrinter {
 
 	public void writeArrayGenerator(Expr.Operator expr) {
 		out.print("[");
-		writeExpression(expr.getOperand(0));
+		writeExpression(expr.get(0));
 		out.print(";");
-		writeExpression(expr.getOperand(1));
+		writeExpression(expr.get(1));
 		out.print("]");
 	}
 
 	public void writeArrayAccess(Expr.Operator expr) {
-		writeExpressionWithBrackets(expr.getOperand(0));
+		writeExpressionWithBrackets(expr.get(0));
 		out.print("[");
-		writeExpression(expr.getOperand(1));
+		writeExpression(expr.get(1));
 		out.print("]");
 	}
 
 	public void writeArrayInitialiser(Expr.Operator expr) {
 		out.print("[");
-		writeArguments(expr.getOperands());
+		writeArguments(expr.getAll());
 		out.print("]");
 	}
 
 	public void writeArrayUpdate(Expr.Operator expr) {
-		writeExpressionWithBrackets(expr.getOperand(0));
+		writeExpressionWithBrackets(expr.get(0));
 		out.print("[");
-		writeExpression(expr.getOperand(1));
+		writeExpression(expr.get(1));
 		out.print(":=");
-		writeExpression(expr.getOperand(2));
+		writeExpression(expr.get(2));
 		out.print("]");
 	}
 
@@ -522,8 +522,8 @@ public class WyalFilePrinter {
 				out.print(", ");
 			}
 			Pair p = fields[i];
-			Identifier f = (Identifier) p.getOperand(0);
-			Expr e = (Expr) p.getOperand(1);
+			Identifier f = (Identifier) p.get(0);
+			Expr e = (Expr) p.get(1);
 			out.print(f.get());
 			out.print(": ");
 			writeExpression(e);
@@ -620,7 +620,7 @@ public class WyalFilePrinter {
 				if (i != 0) {
 					out.print("|");
 				}
-				writeTypeWithBraces(t.getOperand(i));
+				writeTypeWithBraces(t.get(i));
 			}
 			break;
 		}
@@ -630,7 +630,7 @@ public class WyalFilePrinter {
 				if (i != 0) {
 					out.print("&");
 				}
-				writeTypeWithBraces(t.getOperand(i));
+				writeTypeWithBraces(t.get(i));
 			}
 			break;
 		}
@@ -665,7 +665,7 @@ public class WyalFilePrinter {
 			if(i != 0) {
 				out.print(",");
 			}
-			writeType(types.getOperand(i));
+			writeType(types.get(i));
 		}
 		out.print(")");
 	}
@@ -690,7 +690,7 @@ public class WyalFilePrinter {
 			if(i!=0) {
 				out.print(".");
 			}
-			out.print(n.getOperand(i).get());
+			out.print(n.get(i).get());
 		}
 	}
 

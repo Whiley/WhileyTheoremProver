@@ -120,14 +120,14 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			}
 		} else if(formula instanceof Formula.Disjunct) {
 			Formula.Disjunct disjunct = (Formula.Disjunct) formula;
-			Formula[] children = disjunct.getOperands();
+			Formula[] children = disjunct.getAll();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
 				return new Formula.Disjunct(nChildren);
 			}
 		} else if(formula instanceof Formula.Conjunct) {
 			Formula.Conjunct disjunct = (Formula.Conjunct) formula;
-			Formula[] children = disjunct.getOperands();
+			Formula[] children = disjunct.getAll();
 			Formula[] nChildren = expandFormula(state, children);
 			if(nChildren != children) {
 				return new Formula.Conjunct(nChildren);
@@ -155,7 +155,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			// need to first determine what the invariant actually is.
 			Declaration.Named.Type td = (Declaration.Named.Type) decl;
 			// Expand the corresponding type invariant
-			return expandTypeInvariant(state, td, arguments.getOperand(0));
+			return expandTypeInvariant(state, td, arguments.get(0));
 		} else if (decl instanceof Declaration.Named.Macro) {
 			Declaration.Named.Macro md = (Declaration.Named.Macro) decl;
 			// Expand the macro body with appropriate substitutions
@@ -172,7 +172,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 		// are preserved as is, and can then be substituted.
 		Map<SyntacticItem, SyntacticItem> map = new IdentityHashMap<>();
 		for (int i = 0; i != parameters.size(); ++i) {
-			map.put(parameters.getOperand(i), parameters.getOperand(i));
+			map.put(parameters.get(i), parameters.get(i));
 		}
 		// Clone is required at this point to ensure that any variable
 		// declarations are distinguished appropriately.
@@ -182,8 +182,8 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 			// At this point, we must substitute the parameter name used in
 			// the type declaration for the name used as the invocation
 			// argument.
-			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters.getOperand(i));
-			body = (Formula) substitute(parameter, arguments.getOperand(i), body);
+			Expr.VariableAccess parameter = new Expr.VariableAccess(parameters.get(i));
+			body = (Formula) substitute(parameter, arguments.get(i), body);
 		}
 		return body;
 	}
@@ -194,7 +194,7 @@ public class MacroExpansion extends AbstractProofRule implements Proof.LinearRul
 		Formula result = types.extractInvariant(td.getVariableDeclaration().getType(), argument);
 		for (int i = 0; i != invariant.size(); ++i) {
 			// Convert the invariant clause into a formula
-			Formula ith = Formulae.toFormula(invariant.getOperand(i), types);
+			Formula ith = Formulae.toFormula(invariant.get(i), types);
 			//
 			result = result == null ? ith : new Formula.Conjunct(result, ith);
 		}

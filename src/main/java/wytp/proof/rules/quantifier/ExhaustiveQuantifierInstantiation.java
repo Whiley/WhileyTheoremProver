@@ -125,7 +125,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 		// against the same ground term.
 		Tuple<VariableDeclaration> parameters = quantifier.getParameters();
 		for (int i = 0; i != parameters.size(); ++i) {
-			VariableDeclaration variable = parameters.getOperand(i);
+			VariableDeclaration variable = parameters.get(i);
 			state = attemptQuantifierInstantiation(quantifier, variable, groundTerm, state);
 		}
 		return state;
@@ -237,7 +237,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			VariableDeclaration variable) {
 		VariableDeclaration[] result = new VariableDeclaration[parameters.size() - 1];
 		for (int i = 0, j = 0; i != parameters.size(); ++i) {
-			VariableDeclaration parameter = parameters.getOperand(i);
+			VariableDeclaration parameter = parameters.get(i);
 			if (parameter != variable) {
 				result[j++] = parameter;
 			}
@@ -263,9 +263,9 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			//
 			Formula.Inequality ieq = (Formula.Inequality) quantified;
 			// Positive (Quantified) versus Negative (Ground)
-			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), Match.NEGATIVE);
+			List<Expr> posNegMatches = bind(state, variable, ieq.get(0), ground.get(1), Match.NEGATIVE);
 			// Negative (Quantified) versus Positive (Ground)
-			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), Match.POSITIVE);
+			List<Expr> negPosMatches = bind(state, variable, ieq.get(1), ground.get(0), Match.POSITIVE);
 			//
 			result.addAll(posNegMatches);
 			result.addAll(negPosMatches);
@@ -273,10 +273,10 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			Formula.Equation ieq = (Formula.Equation) quantified;
 			Match leftSign = getSign(ieq,ground,0);
 			Match rightSign = getSign(ieq,ground,1);
-			List<Expr> posPosMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(0), leftSign);
-			List<Expr> posNegMatches = bind(state, variable, ieq.getOperand(0), ground.getOperand(1), rightSign);
-			List<Expr> negPosMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(0), leftSign);
-			List<Expr> negNegMatches = bind(state, variable, ieq.getOperand(1), ground.getOperand(1), rightSign);
+			List<Expr> posPosMatches = bind(state, variable, ieq.get(0), ground.get(0), leftSign);
+			List<Expr> posNegMatches = bind(state, variable, ieq.get(0), ground.get(1), rightSign);
+			List<Expr> negPosMatches = bind(state, variable, ieq.get(1), ground.get(0), leftSign);
+			List<Expr> negNegMatches = bind(state, variable, ieq.get(1), ground.get(1), rightSign);
 			//
 			result.addAll(posPosMatches);
 			result.addAll(posNegMatches);
@@ -285,12 +285,12 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 		} else if (quantified instanceof Formula.Conjunct) {
 			Formula.Conjunct c = (Formula.Conjunct) quantified;
 			for (int i = 0; i != c.size(); ++i) {
-				result.addAll(bind(state, variable, c.getOperand(i), ground));
+				result.addAll(bind(state, variable, c.get(i), ground));
 			}
 		} else if (quantified instanceof Formula.Disjunct) {
 			Formula.Disjunct c = (Formula.Disjunct) quantified;
 			for (int i = 0; i != c.size(); ++i) {
-				result.addAll(bind(state, variable, c.getOperand(i), ground));
+				result.addAll(bind(state, variable, c.get(i), ground));
 			}
 		}
 		return result;
@@ -377,14 +377,14 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 
 	private List<Expr> determineGroundTerms(Expr e, List<Expr> grounds) {
 		for (int i = 0; i != e.size(); ++i) {
-			SyntacticItem child = e.getOperand(i);
+			SyntacticItem child = e.get(i);
 			if (child instanceof Expr) {
 				determineGroundTerms((Expr) child, grounds);
 			} else if(child instanceof WyalFile.Tuple) {
 				// FIXME: this can occur for the parameters of a function
 				// invocation. Perhaps not ideal actually.
 				Tuple<?> t = (Tuple<?>) child;
-				for(SyntacticItem p : t.getOperands()) {
+				for(SyntacticItem p : t.getAll()) {
 					if (p instanceof Expr) {
 						determineGroundTerms((Expr) p, grounds);
 					}
@@ -408,7 +408,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			return true;
 		} else {
 			for (int i = 0; i != e.size(); ++i) {
-				SyntacticItem child = e.getOperand(i);
+				SyntacticItem child = e.get(i);
 				if (child instanceof Expr) {
 					if(containsTrigger((Expr) child, variable)) {
 						return true;
@@ -417,7 +417,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 					// FIXME: this can occur for the parameters of a function
 					// invocation. Perhaps not ideal actually.
 					Tuple<?> t = (Tuple<?>) child;
-					for(SyntacticItem p : t.getOperands()) {
+					for(SyntacticItem p : t.getAll()) {
 						if (p instanceof Expr) {
 							if(containsTrigger((Expr) p, variable)) {
 								return true;
@@ -434,7 +434,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 		if(e.getOpcode() == WyalFile.EXPR_arridx) {
 			Expr.Operator arridx = (Expr.Operator) e;
 			// Check whether the index includes the quantified variable or not.
-			return containsQuantifiedVariable(arridx.getOperand(1),variable);
+			return containsQuantifiedVariable(arridx.get(1),variable);
 		}
 		return false;
 	}
@@ -454,7 +454,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 			return true;
 		} else {
 			for (int i = 0; i != e.size(); ++i) {
-				SyntacticItem child = e.getOperand(i);
+				SyntacticItem child = e.get(i);
 				if (child instanceof Expr) {
 					if(containsQuantifiedVariable((Expr) child, variable)) {
 						return true;
@@ -463,7 +463,7 @@ public class ExhaustiveQuantifierInstantiation extends AbstractClosureRule imple
 					// FIXME: this can occur for the parameters of a function
 					// invocation. Perhaps not ideal actually.
 					Tuple<?> t = (Tuple<?>) child;
-					for(SyntacticItem p : t.getOperands()) {
+					for(SyntacticItem p : t.getAll()) {
 						if (p instanceof Expr) {
 							if(containsQuantifiedVariable((Expr) p, variable)) {
 								return true;

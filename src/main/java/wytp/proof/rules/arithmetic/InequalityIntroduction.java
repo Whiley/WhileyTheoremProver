@@ -148,7 +148,7 @@ public class InequalityIntroduction extends AbstractClosureRule implements Proof
 	 */
 	private static Polynomial extractBound(boolean sign, Formula.Inequality inequality) {
 		int i = sign ? 0 : 1;
-		return Arithmetic.asPolynomial(inequality.getOperand(i));
+		return Arithmetic.asPolynomial(inequality.get(i));
 	}
 
 	/**

@@ -31,23 +31,23 @@ public class Arithmetic {
 			return new Polynomial(term);
 		}
 		case WyalFile.EXPR_add: {
-			Polynomial result = asPolynomial((Expr) e.getOperand(0));
+			Polynomial result = asPolynomial((Expr) e.get(0));
 			for(int i=1;i!=e.size();++i) {
-				result = result.add(asPolynomial((Expr) e.getOperand(i)));
+				result = result.add(asPolynomial((Expr) e.get(i)));
 			}
 			return result;
 		}
 		case WyalFile.EXPR_sub: {
-			Polynomial result = asPolynomial((Expr) e.getOperand(0));
+			Polynomial result = asPolynomial((Expr) e.get(0));
 			for(int i=1;i!=e.size();++i) {
-				result = result.subtract(asPolynomial((Expr) e.getOperand(i)));
+				result = result.subtract(asPolynomial((Expr) e.get(i)));
 			}
 			return result;
 		}
 		case WyalFile.EXPR_mul: {
-			Polynomial result = asPolynomial((Expr) e.getOperand(0));
+			Polynomial result = asPolynomial((Expr) e.get(0));
 			for(int i=1;i!=e.size();++i) {
-				result = result.multiply(asPolynomial((Expr) e.getOperand(i)));
+				result = result.multiply(asPolynomial((Expr) e.get(i)));
 			}
 			return result;
 		}

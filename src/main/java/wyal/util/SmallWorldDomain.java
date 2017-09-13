@@ -66,7 +66,7 @@ public class SmallWorldDomain implements Domain {
 			Type.Union union = (Type.Union) type;
 			Domain.Generator[] generators = new Domain.Generator[arrayLengthBound];
 			for (int i = 0; i != generators.length; ++i) {
-				generators[i] = generator(union.getOperand(i),depth);
+				generators[i] = generator(union.get(i),depth);
 			}
 			return new UnionGenerator(generators);
 		} else if(type instanceof Type.Nominal) {

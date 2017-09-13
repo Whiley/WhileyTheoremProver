@@ -57,7 +57,7 @@ public class SyntacticHeaps {
 		SyntacticItem clonedItem = mapping.get(item);
 		if (clonedItem == null) {
 			// Item not previously cloned. Therefore, first create new item
-			SyntacticItem[] operands = item.getOperands();
+			SyntacticItem[] operands = item.getAll();
 			if (operands != null) {
 				operands = Arrays.copyOf(operands, operands.length);
 				for (int i = 0; i != operands.length; ++i) {
@@ -78,7 +78,7 @@ public class SyntacticHeaps {
 		SyntacticItem clonedItem = mapping.get(item);
 		if (clonedItem == null) {
 			// Item not previously cloned. Therefore, first create new item
-			SyntacticItem[] operands = item.getOperands();
+			SyntacticItem[] operands = item.getAll();
 			SyntacticItem[] nOperands = operands;
 			if (operands != null) {
 				for (int i = 0; i != operands.length; ++i) {
@@ -167,7 +167,7 @@ public class SyntacticHeaps {
 			// for the item to replace. The challenge here is that we need to
 			// ensure the original item is preserved as is if there is no
 			// change.
-			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] children = item.getAll();
 			// Initially, this will alias children. In the event of a child
 			// which is actually updated, then this will refer to a new array.
 			// That will be the signal that we need to create a new item to

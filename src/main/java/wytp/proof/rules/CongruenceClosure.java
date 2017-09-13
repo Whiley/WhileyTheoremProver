@@ -122,8 +122,8 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	}
 
 	private State applyEqualityTypeAxiom(Proof.State state, Formula.Equality newTruth) throws ResolutionError {
-		Expr lhs = newTruth.getOperand(0);
-		Expr rhs = newTruth.getOperand(1);
+		Expr lhs = newTruth.get(0);
+		Expr rhs = newTruth.get(1);
 		Type lhsT = types.inferType(state.getTypeEnvironment(),lhs);
 		Type rhsT = types.inferType(state.getTypeEnvironment(),rhs);
 		if(lhsT == null || rhsT == null) {
@@ -203,8 +203,8 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			// Arithmetic equalities are a special case because we can actually
 			// rearrange them.
 			Formula.ArithmeticEquality e = (Formula.ArithmeticEquality) equality;
-			Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(e.getOperand(0));
-			Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(e.getOperand(1));
+			Arithmetic.Polynomial lhs = Arithmetic.asPolynomial(e.get(0));
+			Arithmetic.Polynomial rhs = Arithmetic.asPolynomial(e.get(1));
 			Arithmetic.Polynomial diff = lhs.subtract(rhs);
 			Polynomial.Term candidate = selectCandidateForSubstitution(diff);
 			if(candidate == null) {
@@ -225,8 +225,8 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		} else {
 			// For non-arithmetic equalities, we can't rearrange them.
 			// Therefore, there are relatively few options.
-			Expr lhs = equality.getOperand(0);
-			Expr rhs = equality.getOperand(1);
+			Expr lhs = equality.get(0);
+			Expr rhs = equality.get(1);
 			//
 			Expr candidate = min(lhs,rhs);
 			Expr bound;
@@ -409,7 +409,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 			return true;
 		} else {
 			for (int i = 0; i != parent.size(); ++i) {
-				SyntacticItem pChild = parent.getOperand(i);
+				SyntacticItem pChild = parent.get(i);
 				if (pChild != null && isParentOf(pChild, child)) {
 					return true;
 				}
@@ -452,7 +452,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	 * @return
 	 */
 	public SyntacticItem construct(Proof.Delta.Set existingTruths, Proof.State head, SyntacticItem term, Formula newTruth, List<Formula> dependencies) {
-		SyntacticItem[] children = term.getOperands();
+		SyntacticItem[] children = term.getAll();
 		SyntacticItem[] nChildren = children;
 		if(children != null) {
 			for (int i = 0; i != children.length; ++i) {

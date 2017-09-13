@@ -68,7 +68,7 @@ public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements
 		} else {
 			// We need to recursively descend into children of this item
 			// allocating them all to this heap.
-			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] children = item.getAll();
 			// Initially, this will alias children. In the event of a child
 			// which is actually updated, then this will refer to a new
 			// array. That will be the signal that we need to create a new

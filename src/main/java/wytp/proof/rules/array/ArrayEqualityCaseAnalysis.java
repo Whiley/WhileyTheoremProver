@@ -104,8 +104,8 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 	public State apply(State state, Formula truth) throws ResolutionError {
 		if (truth instanceof Formula.Equality) {
 			Formula.Equality eq = (Formula.Equality) truth;
-			Expr lhs = eq.getOperand(0);
-			Expr rhs = eq.getOperand(1);
+			Expr lhs = eq.get(0);
+			Expr rhs = eq.get(1);
 			Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 			Type rhsT = types.inferType(state.getTypeEnvironment(), rhs);
 			if (lhsT != null && rhsT != null) {
@@ -125,8 +125,8 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 	}
 
 	private State expandArrayEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
+		Expr lhs = eq.get(0);
+		Expr rhs = eq.get(1);
 		if (lhs.getOpcode() == WyalFile.EXPR_arrinit && rhs.getOpcode() == WyalFile.EXPR_arrinit) {
 			return expandArrayInitialiserInitialiserEquality(eq, (Expr.Operator) lhs, (Expr.Operator) rhs, state);
 		} else if (lhs.getOpcode() == WyalFile.EXPR_arrgen && rhs.getOpcode() == WyalFile.EXPR_arrinit) {
@@ -150,8 +150,8 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 		if (lhs.size() != rhs.size()) {
 			return state.subsume(this, new Formula.Truth(!eq.getSign()), eq);
 		} else {
-			Expr[] lhsOperands = lhs.getOperands();
-			Expr[] rhsOperands = rhs.getOperands();
+			Expr[] lhsOperands = lhs.getAll();
+			Expr[] rhsOperands = rhs.getAll();
 			Formula[] clauses = new Formula[lhsOperands.length];
 			for (int i = 0; i != lhsOperands.length; ++i) {
 				Expr lhsOperand = lhsOperands[i];
@@ -166,10 +166,10 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 
 	private State expandArrayGeneratorInitialiserEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
 			Proof.State state) throws ResolutionError {
-		Expr lhsValue = lhs.getOperand(0);
-		Expr lhsSize = lhs.getOperand(1);
+		Expr lhsValue = lhs.get(0);
+		Expr lhsSize = lhs.get(1);
 		Expr rhsSize = new Expr.Constant(new Value.Int(rhs.size()));
-		Expr[] rhsOperands = rhs.getOperands();
+		Expr[] rhsOperands = rhs.getAll();
 		Formula[] clauses = new Formula[rhsOperands.length + 1];
 		for (int i = 0; i != rhsOperands.length; ++i) {
 			Expr rhsOperand = rhsOperands[i];
@@ -183,10 +183,10 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 
 	private State expandArrayGeneratorGeneratorEquality(Formula.Equality eq, Expr.Operator lhs, Expr.Operator rhs,
 			Proof.State state) throws ResolutionError {
-		Expr lhsValue = lhs.getOperand(0);
-		Expr lhsSize = lhs.getOperand(1);
-		Expr rhsValue = rhs.getOperand(0);
-		Expr rhsSize = rhs.getOperand(1);
+		Expr lhsValue = lhs.get(0);
+		Expr lhsSize = lhs.get(1);
+		Expr rhsValue = rhs.get(0);
+		Expr rhsSize = rhs.get(1);
 		Formula c1 = Formulae.toFormula(equal(eq.getSign(), lhsSize, rhsSize), types);
 		Formula c2 = Formulae.toFormula(equal(eq.getSign(), lhsValue, rhsValue), types);
 		//
@@ -198,7 +198,7 @@ public class ArrayEqualityCaseAnalysis extends AbstractProofRule implements Proo
 			throws ResolutionError {
 		Expr lhsSize = new Expr.Constant(new Value.Int(lhs.size()));
 		Expr rhsSize = new Expr.ArrayLength(rhs);
-		Expr[] lhsOperands = lhs.getOperands();
+		Expr[] lhsOperands = lhs.getAll();
 		Formula[] clauses = new Formula[lhsOperands.length + 1];
 		for (int i = 0; i != lhsOperands.length; ++i) {
 			Expr index = new Expr.Constant(new Value.Int(i));
