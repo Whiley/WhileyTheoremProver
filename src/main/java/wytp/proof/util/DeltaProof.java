@@ -163,7 +163,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 
 		@Override
 		public State[] split(Formula.Disjunct disjunct) {
-			Formula[] cases = disjunct.getOperands();
+			Formula[] cases = disjunct.getAll();
 			State[] result = new State[cases.length];
 			for (int i = 0; i != cases.length; ++i) {
 				result[i] = this.subsume(null,disjunct,cases[i]);

@@ -145,7 +145,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		Disjunct result = null;
 		//
 		for (int i = 0; i != type.size(); ++i) {
-			Disjunct child = toDisjunctiveNormalForm(type.getOperand(i));
+			Disjunct child = toDisjunctiveNormalForm(type.get(i));
 			if(result == null) {
 				result = child;
 			} else {
@@ -160,7 +160,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		Disjunct result = null;
 		//
 		for (int i = 0; i != type.size(); ++i) {
-			Disjunct child = toDisjunctiveNormalForm(type.getOperand(i));
+			Disjunct child = toDisjunctiveNormalForm(type.get(i));
 			if(result == null) {
 				result = child;
 			} else {

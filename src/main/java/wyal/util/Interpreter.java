@@ -35,7 +35,7 @@ public class Interpreter {
 
 	protected Result evaluateBlock(Block block, Environment environment) throws UndefinedException {
 		for(int i=0;i!=block.size();++i) {
-			Result r = evaluateStatement(block.getOperand(i),environment);
+			Result r = evaluateStatement(block.get(i),environment);
 			if(!r.holds()) {
 				return r;
 			}
@@ -76,7 +76,7 @@ public class Interpreter {
 
 	protected Result evaluateCaseOf(Stmt.CaseOf stmt, Environment environment) throws UndefinedException {
 		for(int i=0;i!=stmt.size();++i) {
-			Block block = stmt.getOperand(i);
+			Block block = stmt.get(i);
 			Result r = evaluateBlock(block,environment);
 			if(r.holds()) {
 				return r;
@@ -206,7 +206,7 @@ public class Interpreter {
 		Tuple<Expr> arguments = expr.getArguments();
 		Object[] argumentValues = new Object[arguments.size()];
 		for(int i=0;i!=argumentValues.length;++i) {
-			argumentValues[i] = evaluateExpression(arguments.getOperand(i),environment);
+			argumentValues[i] = evaluateExpression(arguments.get(i),environment);
 		}
 		//
 		Declaration.Named decl = resolve(expr);
@@ -214,7 +214,7 @@ public class Interpreter {
 		Tuple<VariableDeclaration> parameters = decl.getParameters();
 		Environment localEnvironment = new Environment(environment.domain);
 		for(int i=0;i!=parameters.size();++i) {
-			VariableDeclaration d = parameters.getOperand(i);
+			VariableDeclaration d = parameters.get(i);
 			localEnvironment.values.put(d, argumentValues[i]);
 		}
 		//
@@ -225,7 +225,7 @@ public class Interpreter {
 			Declaration.Named.Type type = (Declaration.Named.Type) decl;
 			Tuple<Block> invariant = type.getInvariant();
 			for(int i=0;i!=invariant.size();++i) {
-				if (!evaluateBlock(invariant.getOperand(i), localEnvironment).value) {
+				if (!evaluateBlock(invariant.get(i), localEnvironment).value) {
 					return false;
 				}
 			}
@@ -267,7 +267,7 @@ public class Interpreter {
 
 	protected boolean evaluateLogicalAnd(Expr.LogicalAnd conjunct, Environment environment) throws UndefinedException {
 		for(int i=0;i!=conjunct.size();++i) {
-			Expr child = conjunct.getOperand(i);
+			Expr child = conjunct.get(i);
 			boolean b = (Boolean) evaluateExpression(child,environment);
 			if(!b) {
 				return false;
@@ -278,7 +278,7 @@ public class Interpreter {
 
 	protected boolean evaluateLogicalOr(Expr.LogicalOr disjunct, Environment environment) throws UndefinedException {
 		for (int i = 0; i != disjunct.size(); ++i) {
-			Expr child = disjunct.getOperand(i);
+			Expr child = disjunct.get(i);
 			boolean b = (Boolean) evaluateExpression(child, environment);
 			if (b) {
 				return true;
@@ -293,14 +293,14 @@ public class Interpreter {
 	}
 
 	protected boolean evaluateLogicalImplication(Expr.LogicalImplication expr, Environment environment) throws UndefinedException {
-		boolean lhs = (Boolean) evaluateExpression(expr.getOperand(0),environment);
-		boolean rhs = (Boolean) evaluateExpression(expr.getOperand(1),environment);
+		boolean lhs = (Boolean) evaluateExpression(expr.get(0),environment);
+		boolean rhs = (Boolean) evaluateExpression(expr.get(1),environment);
 		return (!lhs) || rhs;
 	}
 
 	protected boolean evaluateLogicalIff(Expr.LogicalIff expr, Environment environment) throws UndefinedException {
-		boolean lhs = (Boolean) evaluateExpression(expr.getOperand(0),environment);
-		boolean rhs = (Boolean) evaluateExpression(expr.getOperand(1),environment);
+		boolean lhs = (Boolean) evaluateExpression(expr.get(0),environment);
+		boolean rhs = (Boolean) evaluateExpression(expr.get(1),environment);
 		return lhs == rhs;
 	}
 
@@ -336,14 +336,14 @@ public class Interpreter {
 		return true;
 	}
 	protected boolean evaluateEqual(Expr.Equal expr, Environment environment) throws UndefinedException {
-		Object lhs = evaluateExpression(expr.getOperand(0), environment);
-		Object rhs = evaluateExpression(expr.getOperand(1), environment);
+		Object lhs = evaluateExpression(expr.get(0), environment);
+		Object rhs = evaluateExpression(expr.get(1), environment);
 		return equals(lhs,rhs);
 	}
 
 	protected boolean evaluateNotEqual(Expr.NotEqual expr, Environment environment) throws UndefinedException {
-		Object lhs = evaluateExpression(expr.getOperand(0), environment);
-		Object rhs = evaluateExpression(expr.getOperand(1), environment);
+		Object lhs = evaluateExpression(expr.get(0), environment);
+		Object rhs = evaluateExpression(expr.get(1), environment);
 		return !equals(lhs,rhs);
 	}
 
@@ -394,65 +394,65 @@ public class Interpreter {
 	}
 
 	protected boolean evaluateLessThan(Expr.LessThan expr, Environment environment) throws UndefinedException {
-		BigInteger lhs = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
-		BigInteger rhs = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+		BigInteger lhs = (BigInteger) evaluateExpression(expr.get(0), environment);
+		BigInteger rhs = (BigInteger) evaluateExpression(expr.get(1), environment);
 		return lhs.compareTo(rhs) < 0;
 	}
 
 	protected boolean evaluateLessThanOrEqual(Expr.LessThanOrEqual expr, Environment environment) throws UndefinedException {
-		BigInteger lhs = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
-		BigInteger rhs = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+		BigInteger lhs = (BigInteger) evaluateExpression(expr.get(0), environment);
+		BigInteger rhs = (BigInteger) evaluateExpression(expr.get(1), environment);
 		return lhs.compareTo(rhs) <= 0;
 	}
 
 	protected boolean evaluateGreaterThan(Expr.GreaterThan expr, Environment environment) throws UndefinedException {
-		BigInteger lhs = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
-		BigInteger rhs = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+		BigInteger lhs = (BigInteger) evaluateExpression(expr.get(0), environment);
+		BigInteger rhs = (BigInteger) evaluateExpression(expr.get(1), environment);
 		return lhs.compareTo(rhs) > 0;
 	}
 
 	protected boolean evaluateGreaterThanOrEqual(Expr.GreaterThanOrEqual expr, Environment environment) throws UndefinedException {
-		BigInteger lhs = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
-		BigInteger rhs = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+		BigInteger lhs = (BigInteger) evaluateExpression(expr.get(0), environment);
+		BigInteger rhs = (BigInteger) evaluateExpression(expr.get(1), environment);
 		return lhs.compareTo(rhs) >= 0;
 	}
 
 	protected Object evaluateNegation(Expr.Negation expr, Environment environment) throws UndefinedException {
-		BigInteger value = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
+		BigInteger value = (BigInteger) evaluateExpression(expr.get(0), environment);
 		return value.negate();
 	}
 
 	protected Object evaluateAddition(Expr.Addition expr, Environment environment) throws UndefinedException {
-		BigInteger value = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
+		BigInteger value = (BigInteger) evaluateExpression(expr.get(0), environment);
 		for (int i = 1; i != expr.size(); ++i) {
-			BigInteger next = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+			BigInteger next = (BigInteger) evaluateExpression(expr.get(1), environment);
 			value = value.add(next);
 		}
 		return value;
 	}
 
 	protected Object evaluateSubtraction(Expr.Subtraction expr, Environment environment) throws UndefinedException {
-		BigInteger value = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
+		BigInteger value = (BigInteger) evaluateExpression(expr.get(0), environment);
 		for (int i = 1; i != expr.size(); ++i) {
-			BigInteger next = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+			BigInteger next = (BigInteger) evaluateExpression(expr.get(1), environment);
 			value = value.subtract(next);
 		}
 		return value;
 	}
 
 	protected Object evaluateMultiplication(Expr.Multiplication expr, Environment environment) throws UndefinedException {
-		BigInteger value = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
+		BigInteger value = (BigInteger) evaluateExpression(expr.get(0), environment);
 		for (int i = 1; i != expr.size(); ++i) {
-			BigInteger next = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+			BigInteger next = (BigInteger) evaluateExpression(expr.get(1), environment);
 			value = value.multiply(next);
 		}
 		return value;
 	}
 
 	protected Object evaluateDivision(Expr.Division expr, Environment environment) throws UndefinedException {
-		BigInteger value = (BigInteger) evaluateExpression(expr.getOperand(0), environment);
+		BigInteger value = (BigInteger) evaluateExpression(expr.get(0), environment);
 		for (int i = 1; i != expr.size(); ++i) {
-			BigInteger next = (BigInteger) evaluateExpression(expr.getOperand(1), environment);
+			BigInteger next = (BigInteger) evaluateExpression(expr.get(1), environment);
 			if (next == BigInteger.ZERO) {
 				throw new UndefinedException("division by zero");
 			}
@@ -490,7 +490,7 @@ public class Interpreter {
 			throws UndefinedException {
 		Object[] arr = new Object[expr.size()];
 		for (int i = 0; i != arr.length; ++i) {
-			arr[i] = evaluateExpression(expr.getOperand(i), environment);
+			arr[i] = evaluateExpression(expr.get(i), environment);
 		}
 		return arr;
 	}
@@ -572,7 +572,7 @@ public class Interpreter {
 				Environment environment = new Environment(domain);
 				environment.values.put(decl.getVariableDeclaration(), value);
 				for (int i = 0; i != invariant.size(); ++i) {
-					Result r = evaluateBlock(invariant.getOperand(i), environment);
+					Result r = evaluateBlock(invariant.get(i), environment);
 					if (!r.holds()) {
 						return false;
 					}
@@ -586,7 +586,7 @@ public class Interpreter {
 		if(type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
 			for(int i=0;i!=union.size();++i) {
-				if(isInstance(value,union.getOperand(i))) {
+				if(isInstance(value,union.get(i))) {
 					return true;
 				}
 			}
@@ -594,7 +594,7 @@ public class Interpreter {
 		} else if(type instanceof Type.Intersection) {
 			Type.Intersection intersection = (Type.Intersection) type;
 			for(int i=0;i!=intersection.size();++i) {
-				if(!isInstance(value,intersection.getOperand(i))) {
+				if(!isInstance(value,intersection.get(i))) {
 					return false;
 				}
 			}
@@ -650,7 +650,7 @@ public class Interpreter {
 			throws UndefinedException {
 		try {
 			for (int i = 0; i != vars.size(); ++i) {
-				VariableDeclaration decl = vars.getOperand(i);
+				VariableDeclaration decl = vars.get(i);
 				Expr invariant = extractor.extract(decl.getType(), new Expr.VariableAccess(decl));
 				if (invariant != null) {
 					boolean b = (Boolean) evaluateExpression(invariant, environment);

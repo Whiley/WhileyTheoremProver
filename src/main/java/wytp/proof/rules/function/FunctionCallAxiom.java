@@ -91,8 +91,8 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		Formula precondition = null;
 		Tuple<VariableDeclaration> parameters = decl.getParameters();
 		for (int i = 0; i != parameters.size(); ++i) {
-			VariableDeclaration parameter = parameters.getOperand(i);
-			Expr argument = arguments.getOperand(i);
+			VariableDeclaration parameter = parameters.get(i);
+			Expr argument = arguments.get(i);
 			Formula clause = types.extractInvariant(parameter.getType(), argument);
 			precondition = or(precondition, clause);
 		}
@@ -103,7 +103,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		Tuple<VariableDeclaration> returns = decl.getReturns();
 		Value.Int selector = ivk.getSelector();
 		int index = selector == null ? 0 : selector.get().intValue();
-		VariableDeclaration parameter = returns.getOperand(index);
+		VariableDeclaration parameter = returns.get(index);
 		return types.extractInvariant(parameter.getType(), ivk);
 	}
 

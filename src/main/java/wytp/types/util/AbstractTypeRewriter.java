@@ -140,7 +140,7 @@ public class AbstractTypeRewriter implements TypeRewriter {
 	}
 
 	protected Type rewriteUnion(Type.Union utype) {
-		Type[] types = utype.getOperands();
+		Type[] types = utype.getAll();
 		Type[] nTypes = rewrite(types);
 		//
 		if(types == nTypes) {
@@ -151,7 +151,7 @@ public class AbstractTypeRewriter implements TypeRewriter {
 	}
 
 	protected Type rewriteIntersection(Type.Intersection utype) {
-		Type[] types = utype.getOperands();
+		Type[] types = utype.getAll();
 		Type[] nTypes = rewrite(types);
 		if(types == nTypes) {
 			return utype;
@@ -165,7 +165,7 @@ public class AbstractTypeRewriter implements TypeRewriter {
 		boolean changed = false;
 		//
 		for (int i = 0; i != tuple.size(); ++i) {
-			Type type = tuple.getOperand(i);
+			Type type = tuple.get(i);
 			Type nType = rewrite(type);
 			changed |= (type != nType);
 			nTypes[i] = nType;

@@ -82,7 +82,7 @@ public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearR
 		// equivalence class.
 		if (truth instanceof Formula.Inequality) {
 			Formula.Inequality inequality = (Formula.Inequality) truth;
-			List<WyalFile.Expr> matches = findMatches(inequality.getOperand(1));
+			List<WyalFile.Expr> matches = findMatches(inequality.get(1));
 			for (int i = 0; i != matches.size(); ++i) {
 				WyalFile.Expr match = matches.get(i);
 				Expr len = match;
@@ -123,7 +123,7 @@ public class ArrayLengthAxiom extends AbstractProofRule implements Proof.LinearR
 			case WyalFile.EXPR_div:
 			case WyalFile.EXPR_rem:
 				for (int i = 0; i != poly.size(); ++i) {
-					Expr term = op.getOperand(i);
+					Expr term = op.get(i);
 					matches.addAll(findMatches(term));
 				}
 			}

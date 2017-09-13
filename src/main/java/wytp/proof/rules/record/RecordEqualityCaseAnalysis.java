@@ -73,8 +73,8 @@ public class RecordEqualityCaseAnalysis extends AbstractProofRule implements Pro
 	public State apply(State state, Formula truth) throws ResolutionError {
 		if (truth instanceof Formula.Equality) {
 			Formula.Equality eq = (Formula.Equality) truth;
-			Expr lhs = eq.getOperand(0);
-			Expr rhs = eq.getOperand(1);
+			Expr lhs = eq.get(0);
+			Expr rhs = eq.get(1);
 			Type lhsT = types.inferType(state.getTypeEnvironment(), lhs);
 			Type rhsT = types.inferType(state.getTypeEnvironment(), rhs);
 			if (lhsT != null && rhsT != null) {
@@ -94,8 +94,8 @@ public class RecordEqualityCaseAnalysis extends AbstractProofRule implements Pro
 	}
 
 	private State expandRecordEquality(Formula.Equality eq, Proof.State state) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
+		Expr lhs = eq.get(0);
+		Expr rhs = eq.get(1);
 		if (eq.getSign()) {
 			// Equality
 			if (lhs instanceof Expr.RecordInitialiser && rhs instanceof Expr.RecordInitialiser) {

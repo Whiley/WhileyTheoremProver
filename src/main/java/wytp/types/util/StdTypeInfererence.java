@@ -126,9 +126,9 @@ public class StdTypeInfererence implements TypeInferer {
 		if (selector == null && returns.size() != 1) {
 			throw new IllegalArgumentException("need support for multiple returns");
 		} else if(selector == null) {
-			return returns.getOperand(0);
+			return returns.get(0);
 		} else {
-			return returns.getOperand(selector.get().intValue());
+			return returns.get(selector.get().intValue());
 		}
 	}
 
@@ -148,7 +148,7 @@ public class StdTypeInfererence implements TypeInferer {
 		if (expr.size() > 0) {
 			Type[] ts = new Type[expr.size()];
 			for (int i = 0; i != ts.length; ++i) {
-				ts[i] = inferExpression(environment, expr.getOperand(i));
+				ts[i] = inferExpression(environment, expr.get(i));
 			}
 			// Perform a little simplification here by collapsing
 			// identical types together.
@@ -161,12 +161,12 @@ public class StdTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferArrayGenerator(Environment environment, Expr.Operator expr) throws ResolutionError {
-		Type element = inferExpression(environment, expr.getOperand(0));
+		Type element = inferExpression(environment, expr.get(0));
 		return new Type.Array(element);
 	}
 
 	protected Type inferArrayIndex(Environment environment, Expr.Operator expr) throws ResolutionError {
-		Type src = inferExpression(environment, expr.getOperand(0));
+		Type src = inferExpression(environment, expr.get(0));
 		if(src != null) {
 			Type.Array effectiveArray = types.extractReadableArray(src);
 			if(effectiveArray != null) {
@@ -177,7 +177,7 @@ public class StdTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferArrayUpdate(Environment environment, Expr.Operator expr) throws ResolutionError {
-		return inferExpression(environment, expr.getOperand(0));
+		return inferExpression(environment, expr.get(0));
 	}
 
 	protected Type inferRecordAccess(Environment environment, Expr.RecordAccess expr) throws ResolutionError {

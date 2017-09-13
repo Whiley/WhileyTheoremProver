@@ -175,7 +175,7 @@ public class TypeTestClosure extends AbstractClosureRule implements Proof.Linear
 
 	private Proof.State retypeVariable(Proof.Delta.Set existingTruths, Formula.Is typeTest, Type refinement,
 			Proof.State state) throws ResolutionError {
-		Expr.VariableAccess variable = (Expr.VariableAccess) typeTest.getOperand(0);
+		Expr.VariableAccess variable = (Expr.VariableAccess) typeTest.get(0);
 		VariableDeclaration declaration = variable.getVariableDeclaration();
 		TypeInferer.Environment environment = state.getTypeEnvironment();
 		// Check whether or not the type has actually changed in some sense

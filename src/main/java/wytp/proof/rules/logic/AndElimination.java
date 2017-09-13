@@ -61,7 +61,7 @@ public class AndElimination extends AbstractProofRule implements Proof.LinearRul
 		if (truth instanceof Formula.Conjunct) {
 			Formula.Conjunct conjunct = (Formula.Conjunct) truth;
 			for(int i=0;i!=conjunct.size();++i) {
-				head = head.subsume(this, conjunct, conjunct.getOperand(i));
+				head = head.subsume(this, conjunct, conjunct.get(i));
 			}
 			return head;
 		} else {

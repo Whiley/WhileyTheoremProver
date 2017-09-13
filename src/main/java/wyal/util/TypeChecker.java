@@ -241,7 +241,7 @@ public class TypeChecker {
 		WyalFile.Tuple<Stmt.Block> invariant = decl.getInvariant();
 		Environment env = TypeSystem.NULL_ENVIRONMENT;
 		for (int i = 0; i != invariant.size(); ++i) {
-			Stmt.Block clause = invariant.getOperand(i);
+			Stmt.Block clause = invariant.get(i);
 			env = checkStatement(env, true, clause);
 		}
 	}
@@ -343,15 +343,15 @@ public class TypeChecker {
 
 	private Environment checkBlock(Environment env, boolean sign, Stmt.Block stmt) {
 		if (sign) {
-			return conjunct(env, false, stmt.getOperands());
+			return conjunct(env, false, stmt.getAll());
 		} else {
-			return disjunct(env, true, stmt.getOperands());
+			return disjunct(env, true, stmt.getAll());
 		}
 	}
 
 	private Environment checkCaseOf(Environment env, boolean sign, Stmt.CaseOf stmt) {
 		for (int i = 0; i != stmt.size(); ++i) {
-			env = checkStatement(env, sign, stmt.getOperand(i));
+			env = checkStatement(env, sign, stmt.get(i));
 		}
 		return env;
 	}
@@ -376,7 +376,7 @@ public class TypeChecker {
 	}
 
 	private Environment checkLogicalNegation(Environment env, boolean sign, Expr.Operator expr) {
-		return checkStatement(env, !sign, expr.getOperand(0));
+		return checkStatement(env, !sign, expr.get(0));
 	}
 
 	/**
@@ -403,34 +403,34 @@ public class TypeChecker {
 		// To understand this, remember that A ==> B is equivalent to !A || B.
 		if (sign) {
 			// First case assumes the if body doesn't hold.
-			Environment left = checkStatement(env, false, expr.getOperand(0));
+			Environment left = checkStatement(env, false, expr.get(0));
 			// Second case assumes the if body holds ...
-			env = checkStatement(env, true, expr.getOperand(0));
+			env = checkStatement(env, true, expr.get(0));
 			// ... and then passes this into the then body
-			Environment right = checkStatement(env, true, expr.getOperand(1));
+			Environment right = checkStatement(env, true, expr.get(1));
 			//
 			return union(left, right);
 		} else {
 			// Effectively, this is a conjunction now: A && !B
-			env = checkStatement(env, true, expr.getOperand(0));
-			env = checkStatement(env, false, expr.getOperand(1));
+			env = checkStatement(env, true, expr.get(0));
+			env = checkStatement(env, false, expr.get(1));
 			return env;
 		}
 	}
 
 	private Environment checkLogicalDisjunction(Environment env, boolean sign, Expr.Operator expr) {
 		if (sign) {
-			return disjunct(env, true, expr.getOperands());
+			return disjunct(env, true, expr.getAll());
 		} else {
-			return conjunct(env, false, expr.getOperands());
+			return conjunct(env, false, expr.getAll());
 		}
 	}
 
 	private Environment checkLogicalConjunction(Environment env, boolean sign, Expr.Operator expr) {
 		if (sign) {
-			return conjunct(env, true, expr.getOperands());
+			return conjunct(env, true, expr.getAll());
 		} else {
-			return disjunct(env, false, expr.getOperands());
+			return disjunct(env, false, expr.getAll());
 		}
 	}
 
@@ -596,7 +596,7 @@ public class TypeChecker {
 		WyalFile.Tuple<Expr> arguments = expr.getArguments();
 		Type[] types = new Type[arguments.size()];
 		for (int i = 0; i != arguments.size(); ++i) {
-			types[i] = checkExpression(env, arguments.getOperand(i));
+			types[i] = checkExpression(env, arguments.get(i));
 		}
 		// Attempt to resolve the appropriate function type
 		Named.FunctionOrMacro sig = resolveAsDeclaredFunctionOrMacro(expr.getName(), expr, types);
@@ -609,9 +609,9 @@ public class TypeChecker {
 		if (selector == null && type.getReturns().size() != 1) {
 			throw new SyntaxError("invalid number of returns", originatingEntry, expr);
 		} else if(selector == null){
-			return type.getReturns().getOperand(0);
+			return type.getReturns().get(0);
 		} else {
-			return type.getReturns().getOperand(selector.get().intValue());
+			return type.getReturns().get(selector.get().intValue());
 		}
 	}
 
@@ -697,7 +697,7 @@ public class TypeChecker {
 		// FIXME: we could be more selective here I think. For example, by
 		// checking that the given operands actually overall.
 		for (int i = 0; i != expr.size(); ++i) {
-			checkExpression(env, expr.getOperand(i));
+			checkExpression(env, expr.get(i));
 		}
 		return new Type.Bool();
 	}
@@ -709,7 +709,7 @@ public class TypeChecker {
 
 	private void checkOperands(Environment env, Expr.Operator expr, Type type) {
 		for (int i = 0; i != expr.size(); ++i) {
-			Expr operand = expr.getOperand(i);
+			Expr operand = expr.get(i);
 			checkIsSubtype(type, checkExpression(env, operand), operand);
 		}
 	}
@@ -723,7 +723,7 @@ public class TypeChecker {
 	private Type checkArrayInitialiser(Environment env, Expr.ArrayInitialiser expr) {
 		Type[] ts = new Type[expr.size()];
 		for (int i = 0; i != ts.length; ++i) {
-			ts[i] = checkExpression(env, expr.getOperand(i));
+			ts[i] = checkExpression(env, expr.get(i));
 		}
 		ts = ArrayUtils.removeDuplicates(ts);
 		Type element = ts.length == 1 ? ts[0] : new Type.Union(ts);
@@ -927,7 +927,7 @@ public class TypeChecker {
 			// Number of parameters matches number of arguments. Now, check that
 			// each argument is a subtype of its corresponding parameter.
 			for (int i = 0; i != args.length; ++i) {
-				Type param = parameters.getOperand(i).getType();
+				Type param = parameters.get(i).getType();
 				if (!types.isRawSubtype(param, args[i])) {
 					return false;
 				}
@@ -970,8 +970,8 @@ public class TypeChecker {
 			// Number of parameters matches number of arguments. Now, check that
 			// each argument is a subtype of its corresponding parameter.
 			for (int i = 0; i != parentParams.size(); ++i) {
-				Type parentParam = parentParams.getOperand(i).getType();
-				Type childParam = childParams.getOperand(i).getType();
+				Type parentParam = parentParams.get(i).getType();
+				Type childParam = childParams.get(i).getType();
 				if (!types.isRawSubtype(parentParam, childParam)) {
 					return false;
 				}
@@ -985,7 +985,7 @@ public class TypeChecker {
 
 	private void checkNonEmpty(Tuple<WyalFile.VariableDeclaration> decls) {
 		for(int i=0;i!=decls.size();++i) {
-			checkNonEmpty(decls.getOperand(i));
+			checkNonEmpty(decls.get(i));
 		}
 	}
 

@@ -145,7 +145,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				conjunct = !conjunct;
 			case WyalFile.TYPE_and: {
 				Type.UnionOrIntersection ut = (Type.UnionOrIntersection) t;
-				Type[] operands = ut.getOperands();
+				Type[] operands = ut.getAll();
 				if (conjunct) {
 					// Conjunction
 					worklist.push(item.sign, operands, item.maximise);
@@ -533,8 +533,8 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 		} else {
 			//
 			for (int i = 0; i != lhs.size(); ++i) {
-				Type lhsParameter = lhs.getOperand(i);
-				Type rhsParameter = rhs.getOperand(i);
+				Type lhsParameter = lhs.get(i);
+				Type rhsParameter = rhs.get(i);
 				Term<?> lhsTerm = new Term<>(lhsSign, lhsParameter, lhsMax);
 				Term<?> rhsTerm = new Term<>(rhsSign, rhsParameter, rhsMax);
 				if (sign == isVoidTerm(lhsTerm, rhsTerm, assumptions)) {

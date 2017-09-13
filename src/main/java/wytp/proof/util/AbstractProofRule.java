@@ -66,7 +66,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		}
 		// Generic traversal, returning first split point encountered.
 		for (int i = 0; i != e.size(); ++i) {
-			SyntacticItem child = e.getOperand(i);
+			SyntacticItem child = e.get(i);
 			if(child != null) {
 				result = union(result,findAllInstances(child,kind));
 			}
@@ -137,7 +137,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 			// can only extract truths which hold on all clauses.
 			result = null;
 			for(int i=0;i!=disjunct.size();++i) {
-				SyntacticItem child = disjunct.getOperand(i);
+				SyntacticItem child = disjunct.get(i);
 				List<T> tmp = extractDefinedTerms(child,kind,stack);
 				if(result == null) {
 					result = tmp;
@@ -150,7 +150,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		}
 		// Generic traversal, returning first split point encountered.
 		for (int i = 0; i != item.size(); ++i) {
-			SyntacticItem child = item.getOperand(i);
+			SyntacticItem child = item.get(i);
 			if(child != null) {
 				result = union(result,extractDefinedTerms(child,kind,stack));
 			}
@@ -174,7 +174,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 			if (quantifier.getSign()) {
 				Tuple<VariableDeclaration> quantifiedVariables = quantifier.getParameters();
 				for (int j = 0; j != quantifiedVariables.size(); ++j) {
-					VariableDeclaration jth = quantifiedVariables.getOperand(j);
+					VariableDeclaration jth = quantifiedVariables.get(j);
 					for (int k = 0; k != usedVariables.size(); ++k) {
 						if (jth == usedVariables.get(k)) {
 							return true;
@@ -211,7 +211,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 		} else {
 			// No immediate substitution possible. Instead, recursively traverse
 			// term looking for substitution.
-			SyntacticItem[] children = item.getOperands();
+			SyntacticItem[] children = item.getAll();
 			SyntacticItem[] nChildren = children;
 			if(children != null) {
 				for (int i = 0; i != children.length; ++i) {

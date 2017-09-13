@@ -68,12 +68,12 @@ public class Formulae {
 		switch (stmt.getOpcode()) {
 		case WyalFile.STMT_block: {
 			WyalFile.Stmt.Block b = (WyalFile.Stmt.Block) stmt;
-			Formula[] operands = toFormulae(b.getOperands(), types);
+			Formula[] operands = toFormulae(b.getAll(), types);
 			return new Formula.Conjunct(operands);
 		}
 		case WyalFile.STMT_caseof: {
 			WyalFile.Stmt.CaseOf b = (WyalFile.Stmt.CaseOf) stmt;
-			Formula[] operands = toFormulae(b.getOperands(), types);
+			Formula[] operands = toFormulae(b.getAll(), types);
 			return new Formula.Disjunct(operands);
 		}
 		case WyalFile.STMT_ifthen: {
@@ -112,24 +112,24 @@ public class Formulae {
 		}
 		case WyalFile.EXPR_and: {
 			Expr.Operator b = (Expr.Operator) stmt;
-			Formula[] operands = toFormulae(b.getOperands(), types);
+			Formula[] operands = toFormulae(b.getAll(), types);
 			return new Formula.Conjunct(operands);
 		}
 		case WyalFile.EXPR_or: {
 			Expr.Operator b = (Expr.Operator) stmt;
-			Formula[] operands = toFormulae(b.getOperands(), types);
+			Formula[] operands = toFormulae(b.getAll(), types);
 			return new Formula.Disjunct(operands);
 		}
 		case WyalFile.EXPR_implies: {
 			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
-			Formula lhs = toFormula(it.getOperand(0), types);
-			Formula rhs = toFormula(it.getOperand(1), types);
+			Formula lhs = toFormula(it.get(0), types);
+			Formula rhs = toFormula(it.get(1), types);
 			return new Formula.Disjunct(invert(lhs), rhs);
 		}
 		case WyalFile.EXPR_eq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
 			Type rhs_t = types.inferType(new StdTypeEnvironment(),rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
@@ -141,8 +141,8 @@ public class Formulae {
 		}
 		case WyalFile.EXPR_neq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			Type lhs_t = types.inferType(new StdTypeEnvironment(),lhs);
 			Type rhs_t = types.inferType(new StdTypeEnvironment(),rhs);
 			if (types.isRawSubtype(new Type.Int(), lhs_t) && types.isRawSubtype(new Type.Int(), rhs_t)) {
@@ -154,32 +154,32 @@ public class Formulae {
 		}
 		case WyalFile.EXPR_lt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			return lessThan(lhs,rhs);
 		}
 		case WyalFile.EXPR_lteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			return greaterOrEqual(rhs,lhs);
 		}
 		case WyalFile.EXPR_gt: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			// lhs > rhs ==> lhs+1 >= rhs
 			return lessThan(rhs,lhs);
 		}
 		case WyalFile.EXPR_gteq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Expr lhs = operator.getOperand(0);
-			Expr rhs = operator.getOperand(1);
+			Expr lhs = operator.get(0);
+			Expr rhs = operator.get(1);
 			return greaterOrEqual(lhs,rhs);
 		}
 		case WyalFile.EXPR_not: {
 			Expr.Operator operator = (Expr.Operator) stmt;
-			Formula f = toFormula(operator.getOperand(0), types);
+			Formula f = toFormula(operator.get(0), types);
 			return invert(f);
 		}
 		case WyalFile.EXPR_const: {
@@ -278,11 +278,11 @@ public class Formulae {
 		}
 		case WyalFile.EXPR_and: {
 			Formula.Conjunct c = (Formula.Conjunct) f;
-			return new Disjunct(invert(c.getOperands()));
+			return new Disjunct(invert(c.getAll()));
 		}
 		case WyalFile.EXPR_or: {
 			Formula.Disjunct c = (Formula.Disjunct) f;
-			return new Conjunct(invert(c.getOperands()));
+			return new Conjunct(invert(c.getAll()));
 		}
 		case WyalFile.EXPR_exists:
 		case WyalFile.EXPR_forall: {
@@ -295,17 +295,17 @@ public class Formulae {
 		case WyalFile.EXPR_neq: {
 			if (f instanceof ArithmeticEquality) {
 				ArithmeticEquality e = (ArithmeticEquality) f;
-				return new ArithmeticEquality(!e.getSign(), e.getOperand(0), e.getOperand(1));
+				return new ArithmeticEquality(!e.getSign(), e.get(0), e.get(1));
 			} else {
 				Equality e = (Equality) f;
-				return new Equality(!e.getSign(), e.getOperand(0), e.getOperand(1));
+				return new Equality(!e.getSign(), e.get(0), e.get(1));
 			}
 		}
 		case WyalFile.EXPR_gteq: {
 			// !(lhs >= rhs) => lhs < rhs
 			Inequality e = (Inequality) f;
-			Expr lhs = e.getOperand(0);
-			Expr rhs = e.getOperand(1);
+			Expr lhs = e.get(0);
+			Expr rhs = e.get(1);
 			return lessThan(lhs,rhs);
 		}
 		case WyalFile.EXPR_invoke: {

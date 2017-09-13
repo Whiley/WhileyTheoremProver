@@ -145,8 +145,8 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			Formula result = null;
 			boolean hasInvariant = false;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root, visited);
-				Formula.Is tt = new Formula.Is(root, t.getOperand(i));
+				Formula inv = extractTypeInvariant(t.get(i),root, visited);
+				Formula.Is tt = new Formula.Is(root, t.get(i));
 				if(result == null) {
 					result = tt;
 				} else {
@@ -164,7 +164,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			Type.Intersection t = (Type.Intersection) type;
 			Formula result = null;
 			for(int i=0;i!=t.size();++i) {
-				Formula inv = extractTypeInvariant(t.getOperand(i),root, visited);
+				Formula inv = extractTypeInvariant(t.get(i),root, visited);
 				if(inv != null && result == null) {
 					result = inv;
 				} else if(inv != null) {

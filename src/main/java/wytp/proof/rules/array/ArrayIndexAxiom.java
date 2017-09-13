@@ -106,29 +106,29 @@ public class ArrayIndexAxiom extends AbstractClosureRule implements Proof.Linear
 		//
 		for (int i = 0; i != matches.size(); ++i) {
 			Expr.Operator match = matches.get(i);
-			Expr index = match.getOperand(1);
+			Expr index = match.get(1);
 			// NOTE: we must call construct here since we are creating a new
 			// term from scratch.
-			Expr length = new Expr.ArrayLength(match.getOperand(0));
+			Expr length = new Expr.ArrayLength(match.get(0));
 			// Now, try to match!
 			if (target instanceof Formula.Inequality) {
 				Formula.Inequality ieq = (Formula.Inequality) target;
 				//
-				if(match(ieq.getOperand(1), index, Match.NONNEGATIVE)) {
+				if(match(ieq.get(1), index, Match.NONNEGATIVE)) {
 					// A[i] ~ e && 0 >= i+1
 					state = instantiateIndexAxiom(index,state,target,source);
 				}
 				//
-				if (match(ieq.getOperand(0), index, Match.NEGATIVE)
-						&& match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
+				if (match(ieq.get(0), index, Match.NEGATIVE)
+						&& match(ieq.get(1), length, Match.NONNEGATIVE)) {
 					// A[i] ~ e && i-1 >= |A|+1 ==> i < |A|
 					state = instantiateLengthAxiom(index, length, state, target, source);
 				}
 			} else if(target instanceof Formula.ArithmeticEquality) {
 				Formula.ArithmeticEquality ieq = (Formula.ArithmeticEquality) target;
 				// A[i] ~ e && |A| == c ==> i < |A|
-				if (match(ieq.getOperand(0), length, Match.NONNEGATIVE)
-						|| match(ieq.getOperand(1), length, Match.NONNEGATIVE)) {
+				if (match(ieq.get(0), length, Match.NONNEGATIVE)
+						|| match(ieq.get(1), length, Match.NONNEGATIVE)) {
 					// A[i] ~ e && 0 >= i+1
 					state = instantiateLengthAxiom(index,length,state,target,source);
 				}

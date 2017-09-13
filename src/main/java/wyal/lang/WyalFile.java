@@ -254,12 +254,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Identifier[] getComponents() {
-				return (Identifier[]) getOperands();
+				return (Identifier[]) getAll();
 			}
 
 			@Override
-			public Identifier getOperand(int i) {
-				return (Identifier) super.getOperand(i);
+			public Identifier get(int i) {
+				return (Identifier) super.get(i);
 			}
 
 			@Override
@@ -274,7 +274,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 					if (i != 0) {
 						r += ".";
 					}
-					Identifier component = getOperand(i);
+					Identifier component = get(i);
 					if (component == null) {
 						r += "*";
 					} else {
@@ -294,7 +294,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Stmt.Block getBody() {
-				return (Stmt.Block) getOperand(0);
+				return (Stmt.Block) get(0);
 			}
 
 			public String getMessage() {
@@ -330,12 +330,12 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				@Override
 				public Identifier getName() {
-					return (Identifier) getOperand(0);
+					return (Identifier) get(0);
 				}
 
 				@Override
 				public Tuple<VariableDeclaration> getParameters() {
-					return (Tuple) getOperand(1);
+					return (Tuple) get(1);
 				}
 
 				public abstract WyalFile.Type.FunctionOrMethodOrProperty getSignatureType();
@@ -356,7 +356,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				}
 
 				public Tuple<VariableDeclaration> getReturns() {
-					return (Tuple<VariableDeclaration>) getOperand(2);
+					return (Tuple<VariableDeclaration>) get(2);
 				}
 
 				@Override
@@ -383,7 +383,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				}
 
 				public Stmt.Block getBody() {
-					return (Stmt.Block) getOperand(2);
+					return (Stmt.Block) get(2);
 				}
 
 				@Override
@@ -413,15 +413,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				@Override
 				public Identifier getName() {
-					return (Identifier) getOperand(0);
+					return (Identifier) get(0);
 				}
 
 				public VariableDeclaration getVariableDeclaration() {
-					return (VariableDeclaration) getOperand(1);
+					return (VariableDeclaration) get(1);
 				}
 
 				public Tuple<Stmt.Block> getInvariant() {
-					return (Tuple) getOperand(2);
+					return (Tuple) get(2);
 				}
 
 				@Override
@@ -636,7 +636,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Type getElement() {
-				return (Type) getOperand(0);
+				return (Type) get(0);
 			}
 
 			@Override
@@ -665,10 +665,10 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Type getElement() {
-				return (Type) getOperand(0);
+				return (Type) get(0);
 			}
 			public Identifier getLifetime() {
-				return (Identifier) getOperand(1);
+				return (Identifier) get(1);
 			}
 
 			@Override
@@ -706,13 +706,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public boolean isOpen() {
-				Value.Bool flag = (Value.Bool) getOperand(0);
+				Value.Bool flag = (Value.Bool) get(0);
 				return flag.get();
 			}
 
 			public FieldDeclaration[] getFields() {
 				// FIXME: this should be packed as a Tuple and return a Tuple
-				SyntacticItem[] operands = getOperands();
+				SyntacticItem[] operands = getAll();
 				FieldDeclaration[] fields = new FieldDeclaration[size() - 1];
 				System.arraycopy(operands, 1, fields, 0, fields.length);
 				return fields;
@@ -764,7 +764,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Name getName() {
-				return (Name) getOperand(0);
+				return (Name) get(0);
 			}
 
 			@Override
@@ -793,7 +793,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Type getElement() {
-				return (Type) getOperand(0);
+				return (Type) get(0);
 			}
 
 			@Override
@@ -813,13 +813,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			@Override
-			public Type getOperand(int i) {
-				return (Type) super.getOperand(i);
+			public Type get(int i) {
+				return (Type) super.get(i);
 			}
 
 			@Override
-			public Type[] getOperands() {
-				return (Type[]) super.getOperands();
+			public Type[] getAll() {
+				return (Type[]) super.getAll();
 			}
 		}
 
@@ -853,7 +853,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 					if (i != 0) {
 						r += "|";
 					}
-					r += getOperand(i);
+					r += get(i);
 				}
 				return "(" + r + ")";
 			}
@@ -890,7 +890,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 					if (i != 0) {
 						r += "&";
 					}
-					r += getOperand(i);
+					r += get(i);
 				}
 				return "(" + r + ")";
 			}
@@ -904,11 +904,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 				super(opcode, items);
 			}
 			public Tuple<Type> getParameters() {
-				return (Tuple<Type>) getOperand(0);
+				return (Tuple<Type>) get(0);
 			}
 
 			public Tuple<Type> getReturns() {
-				return (Tuple<Type>) getOperand(1);
+				return (Tuple<Type>) get(1);
 			}
 
 			@Override
@@ -960,11 +960,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Tuple<Identifier> getContextLifetimes() {
-				return (Tuple<Identifier>) getOperand(2);
+				return (Tuple<Identifier>) get(2);
 			}
 
 			public Tuple<Identifier> getLifetimeParameters() {
-				return (Tuple<Identifier>) getOperand(3);
+				return (Tuple<Identifier>) get(3);
 			}
 
 			@Override
@@ -1024,11 +1024,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 
 		public Type getType() {
-			return (Type) getOperand(0);
+			return (Type) get(0);
 		}
 
 		public Identifier getVariableName() {
-			return (Identifier) getOperand(1);
+			return (Identifier) get(1);
 		}
 
 		@Override
@@ -1051,11 +1051,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		}
 
 		public Type getType() {
-			return (Type) getOperand(0);
+			return (Type) get(0);
 		}
 
 		public Identifier getVariableName() {
-			return (Identifier) getOperand(1);
+			return (Identifier) get(1);
 		}
 
 		@Override
@@ -1076,13 +1076,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			@Override
-			public Stmt getOperand(int i) {
-				return (Stmt) super.getOperand(i);
+			public Stmt get(int i) {
+				return (Stmt) super.get(i);
 			}
 
 			@Override
-			public Stmt[] getOperands() {
-				return (Stmt[]) super.getOperands();
+			public Stmt[] getAll() {
+				return (Stmt[]) super.getAll();
 			}
 
 			@Override
@@ -1101,11 +1101,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Tuple<VariableDeclaration> getParameters() {
-				return (Tuple<VariableDeclaration>) getOperand(0);
+				return (Tuple<VariableDeclaration>) get(0);
 			}
 
 			public Block getBody() {
-				return (Block) getOperand(1);
+				return (Block) get(1);
 			}
 
 			@Override
@@ -1169,11 +1169,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Block getIfBody() {
-				return (Block) getOperand(0);
+				return (Block) get(0);
 			}
 
 			public Block getThenBody() {
-				return (Block) getOperand(1);
+				return (Block) get(1);
 			}
 
 			@Override
@@ -1188,13 +1188,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			@Override
-			public Block getOperand(int i) {
-				return (Block) super.getOperand(i);
+			public Block get(int i) {
+				return (Block) super.get(i);
 			}
 
 			@Override
-			public Block[] getOperands() {
-				return (Block[]) super.getOperands();
+			public Block[] getAll() {
+				return (Block[]) super.getAll();
 			}
 
 			@Override
@@ -1224,11 +1224,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Type getCastType() {
-				return (Type) super.getOperand(0);
+				return (Type) super.get(0);
 			}
 
 			public Expr getCastedExpr() {
-				return (Expr) super.getOperand(1);
+				return (Expr) super.get(1);
 			}
 
 			@Override
@@ -1256,7 +1256,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Value getValue() {
-				return (Value) getOperand(0);
+				return (Value) get(0);
 			}
 
 			@Override
@@ -1284,11 +1284,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getTestExpr() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Type getTestType() {
-				return (Type) getOperand(1);
+				return (Type) get(1);
 			}
 
 			@Override
@@ -1323,7 +1323,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Type.FunctionOrMacroOrInvariant getSignatureType() {
-				return (Type.FunctionOrMacroOrInvariant) getOperand(0);
+				return (Type.FunctionOrMacroOrInvariant) get(0);
 			}
 
 			public void setSignatureType(Type.FunctionOrMacroOrInvariant type) {
@@ -1331,15 +1331,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Name getName() {
-				return (Name) getOperand(1);
+				return (Name) get(1);
 			}
 
 			public Value.Int getSelector() {
-				return (Value.Int) getOperand(2);
+				return (Value.Int) get(2);
 			}
 
 			public Tuple<Expr> getArguments() {
-				return (Tuple) getOperand(3);
+				return (Tuple) get(3);
 			}
 
 			@Override
@@ -1371,13 +1371,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			@Override
-			public Expr getOperand(int i) {
-				return (Expr) super.getOperand(i);
+			public Expr get(int i) {
+				return (Expr) super.get(i);
 			}
 
 			@Override
-			public Expr[] getOperands() {
-				return (Expr[]) super.getOperands();
+			public Expr[] getAll() {
+				return (Expr[]) super.getAll();
 			}
 
 			@Override
@@ -1404,11 +1404,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Tuple<VariableDeclaration> getParameters() {
-				return (Tuple<VariableDeclaration>) getOperand(0);
+				return (Tuple<VariableDeclaration>) get(0);
 			}
 
 			public Expr getBody() {
-				return (Expr) getOperand(1);
+				return (Expr) get(1);
 			}
 
 			@Override
@@ -1498,7 +1498,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public VariableDeclaration getVariableDeclaration() {
-				return (VariableDeclaration) getOperand(0);
+				return (VariableDeclaration) get(0);
 			}
 
 			@Override
@@ -1526,7 +1526,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 					if (i != 0) {
 						r += str;
 					}
-					r += getOperand(i);
+					r += get(i);
 				}
 				return r;
 			}
@@ -1661,7 +1661,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getOperand() {
-				return getOperand(0);
+				return get(0);
 			}
 
 			@Override
@@ -1992,7 +1992,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getOperand() {
-				return getOperand(0);
+				return get(0);
 			}
 
 			@Override
@@ -2019,7 +2019,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getOperand() {
-				return getOperand(0);
+				return get(0);
 			}
 
 			@Override
@@ -2055,11 +2055,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) getOperand(1);
+				return (Expr) get(1);
 			}
 
 			@Override
@@ -2086,15 +2086,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) getOperand(1);
+				return (Expr) get(1);
 			}
 
 			public Expr getValue() {
-				return (Expr) getOperand(2);
+				return (Expr) get(2);
 			}
 
 			@Override
@@ -2129,7 +2129,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public String toString() {
-				return Arrays.toString(getOperands());
+				return Arrays.toString(getAll());
 			}
 		}
 
@@ -2150,11 +2150,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getValue() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Expr getLength() {
-				return (Expr) getOperand(1);
+				return (Expr) get(1);
 			}
 
 			@Override
@@ -2178,7 +2178,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			@Override
@@ -2210,11 +2210,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Identifier getField() {
-				return (Identifier) getOperand(1);
+				return (Identifier) get(1);
 			}
 
 			@Override
@@ -2244,7 +2244,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Pair<Identifier, Expr>[] getFields() {
-				return ArrayUtils.toArray(Pair.class, getOperands());
+				return ArrayUtils.toArray(Pair.class, getAll());
 			}
 
 			@Override
@@ -2270,15 +2270,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) getOperand(0);
+				return (Expr) get(0);
 			}
 
 			public Identifier getField() {
-				return (Identifier) getOperand(1);
+				return (Identifier) get(1);
 			}
 
 			public Expr getValue() {
-				return (Expr) getOperand(2);
+				return (Expr) get(2);
 			}
 
 			@Override
@@ -2331,7 +2331,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	public static Tuple<Type> projectTypes(Tuple<VariableDeclaration> decls) {
 		Type[] types = new Type[decls.size()];
 		for (int i = 0; i != types.length; ++i) {
-			types[i] = decls.getOperand(i).getType();
+			types[i] = decls.get(i).getType();
 		}
 		return new Tuple<>(types);
 	}
@@ -2393,7 +2393,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 						out.print(",");
 					}
 					out.flush();
-					print(tuple.getOperand(j));
+					print(tuple.get(j));
 				}
 				out.print(")");
 			} else if (item == null) {

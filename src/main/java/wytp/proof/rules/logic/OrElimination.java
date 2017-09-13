@@ -97,7 +97,7 @@ public class OrElimination implements Proof.NonLinearRule {
 	public Proof.State[] apply(Proof.State state, Formula truth) {
 		if(truth instanceof Formula.Disjunct) {
 			Formula.Disjunct disjunct = (Formula.Disjunct) truth;
-			Formula[] cases = disjunct.getOperands();
+			Formula[] cases = disjunct.getAll();
 			Proof.State[] result = new Proof.State[cases.length];
 			for (int i = 0; i != cases.length; ++i) {
 				result[i] = state.subsume(this,disjunct,cases[i]);

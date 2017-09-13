@@ -97,7 +97,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	public Formula simplifyConjunct(Conjunct conjunct) throws ResolutionError {
-		Formula[] children = conjunct.getOperands();
+		Formula[] children = conjunct.getAll();
 		Formula[] nChildren = simplify(children);
 		// Check whether contains false
 		if (ArrayUtils.firstIndexOf(nChildren, FALSE) >= 0) {
@@ -123,7 +123,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	public Formula simplifyDisjunct(Disjunct disjunct) throws ResolutionError {
-		Formula[] children = disjunct.getOperands();
+		Formula[] children = disjunct.getAll();
 		Formula[] nChildren = simplify(children);
 		// Check whether contains true
 		if (ArrayUtils.firstIndexOf(nChildren, TRUE) >= 0) {
@@ -205,8 +205,8 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws NameNotFoundError
 	 */
 	public Formula simplifyInequality(Inequality ieq) throws ResolutionError {
-		Expr lhs = ieq.getOperand(0);
-		Expr rhs = ieq.getOperand(1);
+		Expr lhs = ieq.get(0);
+		Expr rhs = ieq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
 		Expr nRhs = simplifyExpression(rhs);
 		Pair<Expr, Expr> bs = normaliseBounds(nLhs, nRhs);
@@ -249,8 +249,8 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws NameNotFoundError
 	 */
 	public Formula simplifyArithmeticEquality(ArithmeticEquality eq) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
+		Expr lhs = eq.get(0);
+		Expr rhs = eq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
 		Expr nRhs = simplifyExpression(rhs);
 		Pair<Expr, Expr> bs = normaliseBounds(nLhs, nRhs);
@@ -294,8 +294,8 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws NameNotFoundError
 	 */
 	public Formula simplifyEquality(Equality eq) throws ResolutionError {
-		Expr lhs = eq.getOperand(0);
-		Expr rhs = eq.getOperand(1);
+		Expr lhs = eq.get(0);
+		Expr rhs = eq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
 		Expr nRhs = simplifyExpression(rhs);
 		if (nLhs instanceof Expr.Constant && nRhs instanceof Expr.Constant) {
@@ -324,7 +324,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		Expr[] nChildren = new Expr[args.size()];
 		boolean changed = false;
 		for (int i = 0; i != args.size(); ++i) {
-			Expr child = args.getOperand(i);
+			Expr child = args.get(i);
 			Expr nChild = simplifyExpression(child);
 			//
 			changed |= (child != nChild);
@@ -523,7 +523,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		Expr[] nChildren = new Expr[args.size()];
 		boolean changed = false;
 		for (int i = 0; i != args.size(); ++i) {
-			Expr child = args.getOperand(i);
+			Expr child = args.get(i);
 			Expr nChild = simplifyExpression(child);
 			//
 			changed |= (child != nChild);
@@ -538,8 +538,8 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	public Expr simplifyArrayIndex(Expr.Operator e) throws ResolutionError {
-		Expr source = e.getOperand(0);
-		Expr index = e.getOperand(1);
+		Expr source = e.get(0);
+		Expr index = e.get(1);
 		Expr nSource = simplifyExpression(source);
 		Expr nIndex = simplifyExpression(index);
 		//
@@ -552,12 +552,12 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 				BigInteger i = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
 				if (i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(arr.size())) < 0) {
 					// The constant index is within bounds
-					return arr.getOperand(i.intValue());
+					return arr.get(i.intValue());
 				}
 			}
 		}
 		if(nSource.getOpcode() == EXPR_arrgen) {
-			return (Expr) nSource.getOperand(0);
+			return (Expr) nSource.get(0);
 		}
 		// If we get here, then no simplification of the array access expression
 		// was possible.
@@ -569,9 +569,9 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	public Expr simplifyArrayUpdate(Expr.Operator e) throws ResolutionError {
-		Expr source = e.getOperand(0);
-		Expr index = e.getOperand(1);
-		Expr value = e.getOperand(2);
+		Expr source = e.get(0);
+		Expr index = e.get(1);
+		Expr value = e.get(2);
 		Expr nSource = simplifyExpression(source);
 		Expr nIndex = simplifyExpression(index);
 		Expr nValue = simplifyExpression(value);
@@ -581,7 +581,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			BigInteger b = ((Value.Int) ((Expr.Constant) nIndex).getValue()).get();
 			if(b.compareTo(BigInteger.ZERO) >= 0 && b.compareTo(BigInteger.valueOf(nSource.size())) < 0) {
 				int idx = b.intValue();
-				Expr[] nChildren = Arrays.copyOf(src.getOperands(),src.size());
+				Expr[] nChildren = Arrays.copyOf(src.getAll(),src.size());
 				nChildren[idx] = nValue;
 				return src.clone(nChildren);
 			}
@@ -596,20 +596,20 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	public Expr simplifyArrayLength(Expr.Operator e) throws ResolutionError {
 		Expr r = simplifyNonArithmetic(e);
 		if (r instanceof Expr.Operator) {
-			Expr src = (Expr) r.getOperand(0);
+			Expr src = (Expr) r.get(0);
 			if (src.getOpcode() == EXPR_arrinit) {
 				return new Expr.Constant(new Value.Int(src.size()));
 			} else if (src.getOpcode() == EXPR_arrgen) {
-				return (Expr) src.getOperand(1);
+				return (Expr) src.get(1);
 			} else if (src.getOpcode() == EXPR_arrupdt) {
-				return simplifyArrayLength(new Expr.ArrayLength((Expr) src.getOperand(0)));
+				return simplifyArrayLength(new Expr.ArrayLength((Expr) src.get(0)));
 			}
 		}
 		return r;
 	}
 
 	public Expr simplifyNonArithmetic(Expr.Operator e) throws ResolutionError {
-		Expr[] children = e.getOperands();
+		Expr[] children = e.getAll();
 		Expr[] nChildren = simplifyExpressions(children);
 
 		if (nChildren == children) {
@@ -625,7 +625,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 	public Expr simplifyArithmetic(Expr.Operator e) throws ResolutionError {
-		Expr[] children = e.getOperands();
+		Expr[] children = e.getAll();
 		Polynomial result = Arithmetic.asPolynomial(simplifyExpression(children[0]));
 		switch (e.getOpcode()) {
 		case EXPR_add: {
@@ -759,7 +759,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			if(child instanceof Formula.Disjunct) {
 				// We found a nested disjunct!
 				Formula.Disjunct disjunct = (Formula.Disjunct) child;
-				Formula[] nested = disjunct.getOperands();
+				Formula[] nested = disjunct.getAll();
 				// Inline the nested disjunct's operands
 				nChildren = inlineNestedArray(nChildren,i,nested);
 				// Can safely skip all elements in nested since disjunct already
@@ -777,7 +777,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 			if (child instanceof Formula.Conjunct) {
 				// We found a nested conjunct!
 				Formula.Conjunct conjunct = (Formula.Conjunct) child;
-				Formula[] nested = conjunct.getOperands();
+				Formula[] nested = conjunct.getAll();
 				// Inline the nested conjunct's operands
 				nChildren = inlineNestedArray(nChildren, i, nested);
 				// Can safely skip all elements in nested since conjunct already
