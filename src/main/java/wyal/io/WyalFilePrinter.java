@@ -397,6 +397,13 @@ public class WyalFilePrinter {
 			out.print(item.get());
 			break;
 		}
+		case ITEM_utf8: {
+			Value.UTF8 item = (Value.UTF8) expr.getValue();
+			out.print("\"");
+			out.print(new String(item.get()));
+			out.print("\"");
+			break;
+		}
 		default:
 			throw new RuntimeException("unknown bytecode encountered:" + expr.getOpcode());
 		}

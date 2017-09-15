@@ -573,6 +573,8 @@ public class TypeChecker {
 			return new Type.Bool();
 		case ITEM_int:
 			return new Type.Int();
+		case ITEM_utf8:
+			return new Type.Array(new Type.Int());
 		default:
 			throw new InternalFailure("unknown constant encountered: " + expr, originatingEntry, expr);
 		}
