@@ -15,13 +15,14 @@ package wytp.types.util;
 
 import java.util.Arrays;
 
-import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Declaration.Named;
+
+import static wyal.lang.WyalFile.Type;
 import wybs.lang.NameResolver;
 import wybs.lang.NameResolver.ResolutionError;
-import wycc.util.ArrayUtils;
 import wytp.types.TypeExtractor;
 import wytp.types.TypeSystem;
+import wycc.util.ArrayUtils;
 
 /**
  * <p>
@@ -109,6 +110,8 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 			return toDisjunctiveNormalForm((Type.Reference) type);
 		} else if (type instanceof Type.Record) {
 			return toDisjunctiveNormalForm((Type.Record) type);
+		} else if (type instanceof Type.FunctionOrMethodOrProperty) {
+			return toDisjunctiveNormalForm((Type.FunctionOrMethodOrProperty) type);
 		} else if (type instanceof Type.Negation) {
 			return toDisjunctiveNormalForm((Type.Negation) type);
 		} else if (type instanceof Type.Nominal) {
@@ -133,6 +136,10 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 	}
 
 	protected Disjunct toDisjunctiveNormalForm(Type.Array type) throws ResolutionError {
+		return new Disjunct(type);
+	}
+
+	protected Disjunct toDisjunctiveNormalForm(Type.FunctionOrMethodOrProperty type) throws ResolutionError {
 		return new Disjunct(type);
 	}
 
@@ -236,13 +243,21 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 		// First, combine the positive terms together
 		Type.Atom[] positives = type.positives;
 		for (int i = 0; i != positives.length; ++i) {
-			T tmp = construct(positives[i]);
-			if (tmp == null) {
-				return null;
-			} else if (result == null) {
-				result = tmp;
+			Type.Atom pos = positives[i];
+			if(pos instanceof Type.Any) {
+				// This is an exceptional case, since can never extract a
+				// specific type from any. And yet, intersecting any with any
+				// type T gives that type T.
+				continue;
 			} else {
-				result = intersect(result, tmp);
+				T tmp = construct(pos);
+				if (tmp == null) {
+					return null;
+				} else if (result == null) {
+					result = tmp;
+				} else {
+					result = intersect(result, tmp);
+				}
 			}
 		}
 		if (result != null) {
@@ -453,7 +468,7 @@ public abstract class AbstractTypeExtractor<T extends Type> implements TypeExtra
 				}
 				r += positives[i];
 			}
-			r += " - ";
+			r += ") - (";
 			for(int i=0;i!=negatives.length;++i) {
 				if(i != 0) {
 					r += " \\/ ";

@@ -7,12 +7,13 @@
 
   <groupId>org.whiley</groupId>
   <artifactId>wytp</artifactId>
-  <version>0.6.7</version>
+  <version>0.6.8</version>
   <packaging>jar</packaging>
 
   <licenses>
     <license>
-      <name>BSD 3-Clause License</name>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -50,7 +51,7 @@
     <dependency>
       <groupId>org.whiley</groupId>
       <artifactId>wycc</artifactId>
-      <version>0.6.1</version>
+      <version>0.6.2</version>
     </dependency>
     <dependency>
       <groupId>ant</groupId>
