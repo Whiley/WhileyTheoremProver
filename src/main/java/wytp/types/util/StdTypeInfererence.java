@@ -246,6 +246,7 @@ public class StdTypeInfererence implements TypeInferer {
 		case ITEM_int:
 			return Type.Int;
 		case ITEM_utf8:
+			return new Type.Array(Type.Int);
 		default:
 			throw new RuntimeException("invalid value encountered");
 		}

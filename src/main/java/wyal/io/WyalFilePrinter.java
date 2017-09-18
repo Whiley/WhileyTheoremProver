@@ -392,9 +392,21 @@ public class WyalFilePrinter {
 			out.print(item.get());
 			break;
 		}
+		case ITEM_byte: {
+			Value.Byte item = (Value.Byte) expr.getValue();
+			out.print(item.get());
+			break;
+		}
 		case ITEM_int: {
 			Value.Int item = (Value.Int) expr.getValue();
 			out.print(item.get());
+			break;
+		}
+		case ITEM_utf8: {
+			Value.UTF8 item = (Value.UTF8) expr.getValue();
+			out.print("\"");
+			out.print(new String(item.get()));
+			out.print("\"");
 			break;
 		}
 		default:

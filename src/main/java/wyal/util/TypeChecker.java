@@ -343,17 +343,23 @@ public class TypeChecker {
 
 	private Environment checkBlock(Environment env, boolean sign, Stmt.Block stmt) {
 		if (sign) {
-			return conjunct(env, false, stmt.getAll());
+			return conjunct(env, true, stmt.getAll());
 		} else {
-			return disjunct(env, true, stmt.getAll());
+			return disjunct(env, false, stmt.getAll());
 		}
 	}
 
 	private Environment checkCaseOf(Environment env, boolean sign, Stmt.CaseOf stmt) {
+		Environment result = null;
 		for (int i = 0; i != stmt.size(); ++i) {
-			env = checkStatement(env, sign, stmt.get(i));
+			Environment e = checkStatement(env, sign, stmt.get(i));
+			if(result == null) {
+				result = e;
+			} else {
+				result = union(result,e);
+			}
 		}
-		return env;
+		return result;
 	}
 
 	private Environment checkIfThen(Environment env, boolean sign, Stmt.IfThen stmt) {
@@ -390,6 +396,8 @@ public class TypeChecker {
 		switch (expr.getOpcode()) {
 		case WyalFile.EXPR_implies:
 			return checkLogicalImplication(env, sign, expr);
+		case WyalFile.EXPR_iff:
+			return checkLogicalIff(env, sign, expr);
 		case WyalFile.EXPR_and:
 			return checkLogicalConjunction(env, sign, expr);
 		case WyalFile.EXPR_or:
@@ -397,6 +405,12 @@ public class TypeChecker {
 		default:
 			throw new InternalFailure("unknown logical connective: " + expr,originatingEntry,expr);
 		}
+	}
+
+	private Environment checkLogicalIff(Environment env, boolean sign, Expr.Operator expr) {
+		env = checkStatement(env, true, expr.get(0));
+		env = checkStatement(env, false, expr.get(1));
+		return env;
 	}
 
 	private Environment checkLogicalImplication(Environment env, boolean sign, Expr.Operator expr) {
@@ -573,6 +587,8 @@ public class TypeChecker {
 			return new Type.Bool();
 		case ITEM_int:
 			return new Type.Int();
+		case ITEM_utf8:
+			return new Type.Array(new Type.Int());
 		default:
 			throw new InternalFailure("unknown constant encountered: " + expr, originatingEntry, expr);
 		}
