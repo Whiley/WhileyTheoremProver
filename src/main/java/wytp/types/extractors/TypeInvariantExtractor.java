@@ -25,9 +25,12 @@ import wyal.lang.WyalFile.Declaration;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Identifier;
+import wyal.lang.WyalFile.Name;
 import wyal.lang.WyalFile.Opcode;
 import wyal.lang.WyalFile.Tuple;
 import wyal.lang.WyalFile.Type;
+import wybs.lang.NameID;
+import wyfs.lang.Path;
 import wyal.lang.WyalFile.Declaration.Named;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
@@ -106,7 +109,13 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
 				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
-				return new Formula.Invoke(true, ft, nom.getName(), null, root);
+				// FIXME: this is a hack to make sure fully qualified name is included.
+				Name name = nom.getName();
+				if(name.size() == 1) {
+					// Unresolved name
+					name = fullyResolveName(nom.getName());
+				}
+				return new Formula.Invoke(true, ft, name, null, root);
 			}
 		}
 		case TYPE_rec: {
@@ -202,5 +211,18 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 		}
 	}
 
-
+	public Name fullyResolveName(Name name) throws ResolutionError {
+		NameID nid = resolver.resolve(name);
+		Path.ID mid = nid.module();
+		if(mid.size() > 0) {
+			Identifier[] components = new Identifier[mid.size()+1];
+			for(int i=0;i!=mid.size();++i) {
+				components[i] = new Identifier(mid.get(i));
+			}
+			components[mid.size()] = name.getOperand(0);
+			return new Name(components);
+		} else {
+			return name;
+		}
+	}
 }
