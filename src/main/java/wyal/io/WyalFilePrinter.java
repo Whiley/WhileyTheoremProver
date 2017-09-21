@@ -99,7 +99,9 @@ public class WyalFilePrinter {
 	}
 
 	private void write(WyalFile wf, Declaration s) {
-		if (s instanceof Declaration.Named.Function) {
+		if(s instanceof Declaration.Import) {
+			write(wf, (Declaration.Import) s);
+		} else if (s instanceof Declaration.Named.Function) {
 			write(wf, (Declaration.Named.Function) s);
 		} else if (s instanceof Declaration.Named.Macro) {
 			write(wf, (Declaration.Named.Macro) s);
@@ -111,6 +113,16 @@ public class WyalFilePrinter {
 			throw new InternalFailure("unknown statement encountered " + s, wf.getEntry(), s);
 		}
 		out.println();
+	}
+
+	public void write(WyalFile wf, Declaration.Import s) {
+		out.print("import ");
+		for(int i=0;i!=s.size();++i) {
+			if(i != 0) {
+				out.print(".");
+			}
+			out.print(s.get(i));
+		}
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Function s) {
