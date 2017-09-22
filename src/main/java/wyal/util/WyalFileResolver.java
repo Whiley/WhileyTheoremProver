@@ -69,16 +69,23 @@ public final class WyalFileResolver implements NameResolver {
 			Identifier ident = name.get(0);
 			// This name is not fully qualified. Therefore, attempt to resolve
 			// it.
-			WyalFile enclosing = (WyalFile) name.getHeap();
+			WyalFile enclosing = getEnclosingWyalFile(name.getHeap());
 			if (localNameLookup(ident.get(), enclosing)) {
 				return new NameID(enclosing.getEntry().id(), ident.get());
 			}
-			//
-			throw new NameResolver.NameNotFoundError(name);
+			// Failed local lookup
+		}
+		// If we get here, then either we failed the local lookup or it was already a
+		// partially or fully qualified name. Eitherway, we need to validate that it has
+		// indeed been imported.
+		return nonLocalNameLookup(name);
+	}
+
+	public WyalFile getEnclosingWyalFile(SyntacticHeap heap) {
+		if(heap instanceof WyalFile) {
+			return (WyalFile) heap;
 		} else {
-			// This must be already partially or fully qualified. Therefore, we
-			// need to validate that it has indeed been imported.
-			return nonLocalNameLookup(name);
+			return getEnclosingWyalFile(heap.getParent());
 		}
 	}
 
@@ -191,14 +198,14 @@ public final class WyalFileResolver implements NameResolver {
 			}
 			// Check whether name is fully qualified or not
 			NameID nid = name.toNameID();
-			if (project.exists(nid.module(), WyalFile.ContentType)) {
+			if (name.size() > 1 && project.exists(nid.module(), WyalFile.ContentType)) {
 				// Yes, this is a fully qualified name so load the module
 				WyalFile module = project.get(nid.module(), WyalFile.ContentType).read();
 				// Look inside to see whether a matching item is found
 				if (localNameLookup(nid.name(), module)) {
 					return nid;
 				}
-			} else {
+			} else if(name.size() > 1){
 				// If we get here, then there is still an actual chance it could
 				// be referring to something declared in this compilation unit
 				// (i.e. a local lookup with a partially- or fully-qualified

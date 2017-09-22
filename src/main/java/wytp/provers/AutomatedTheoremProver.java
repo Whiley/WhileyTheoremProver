@@ -132,7 +132,7 @@ public class AutomatedTheoremProver {
 						throw new SyntaxError(msg, originalSource, item);
 					}
 				} catch (NameResolver.ResolutionError e) {
-					throw new SyntaxError(e.getMessage(), originalSource, e.getName(), e);
+					throw new SyntaxError(e.getMessage(), originalSource, item, e);
 				}
 			}
 		}
