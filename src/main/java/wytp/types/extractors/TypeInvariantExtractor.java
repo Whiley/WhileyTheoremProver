@@ -1,4 +1,4 @@
-// Copyright 2017 David J. Pearce
+// Copyright 2011 The Whiley Project Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,12 @@ import java.util.BitSet;
 import java.util.HashSet;
 
 import wyal.lang.WyalFile;
-
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
+import wybs.lang.NameID;
 import wybs.lang.NameResolver;
 import wybs.lang.NameResolver.ResolutionError;
+import wyfs.lang.Path;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
 import wytp.proof.Formula.Disjunct;
@@ -101,7 +102,13 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
 				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
-				return new Formula.Invoke(true, ft, nom.getName(), null, root);
+				// FIXME: this is a hack to make sure fully qualified name is included.
+				Name name = nom.getName();
+				if(name.size() == 1) {
+					// Unresolved name
+					name = fullyResolveName(nom.getName());
+				}
+				return new Formula.Invoke(true, ft, name, null, root);
 			}
 		}
 		case TYPE_rec: {
@@ -197,5 +204,18 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 		}
 	}
 
-
+	public Name fullyResolveName(Name name) throws ResolutionError {
+		NameID nid = resolver.resolve(name);
+		Path.ID mid = nid.module();
+		if(mid.size() > 0) {
+			Identifier[] components = new Identifier[mid.size()+1];
+			for(int i=0;i!=mid.size();++i) {
+				components[i] = new Identifier(mid.get(i));
+			}
+			components[mid.size()] = name.get(0);
+			return new Name(components);
+		} else {
+			return name;
+		}
+	}
 }

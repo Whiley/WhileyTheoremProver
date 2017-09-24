@@ -1,4 +1,4 @@
-// Copyright 2017 David J. Pearce
+// Copyright 2011 The Whiley Project Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -184,6 +184,7 @@ public class DeltaProof extends AbstractProof<DeltaProof.State> {
 			}
 		}
 
+		@Override
 		public Formula allocate(Formula truth) {
 			return proof.getHeap().allocate(truth);
 		}

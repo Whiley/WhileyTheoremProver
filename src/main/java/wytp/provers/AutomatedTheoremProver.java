@@ -1,4 +1,4 @@
-// Copyright 2017 David J. Pearce
+// Copyright 2011 The Whiley Project Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ public class AutomatedTheoremProver {
 						throw new SyntaxError(msg, originalSource, item);
 					}
 				} catch (NameResolver.ResolutionError e) {
-					throw new SyntaxError(e.getMessage(), originalSource, e.getName(), e);
+					throw new SyntaxError(e.getMessage(), originalSource, item, e);
 				}
 			}
 		}
