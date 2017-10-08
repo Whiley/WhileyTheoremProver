@@ -126,6 +126,14 @@ public class Formulae {
 			Formula rhs = toFormula(it.get(1), types);
 			return new Formula.Disjunct(invert(lhs), rhs);
 		}
+		case WyalFile.EXPR_iff: {
+			WyalFile.Expr.Operator it = (Expr.Operator) stmt;
+			Formula lhs = toFormula(it.get(0), types);
+			Formula rhs = toFormula(it.get(1), types);
+			Formula a1 = new Formula.Conjunct(lhs,rhs);
+			Formula a2 = new Formula.Conjunct(invert(lhs),invert(rhs));
+			return new Formula.Disjunct(a1, a2);
+		}
 		case WyalFile.EXPR_eq: {
 			Expr.Operator operator = (Expr.Operator) stmt;
 			Expr lhs = operator.get(0);
