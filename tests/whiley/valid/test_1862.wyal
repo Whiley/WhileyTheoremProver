@@ -8,7 +8,7 @@ define reverse_loopinvariant_57(int[] xs, int i, int[] zs) is:
 
 
 assert "loop invariant not restored":
-    forall(int[] xs$1, int i, int[] xs$2, int i$1, int j, int[] xs, int[] zs, int i$2):
+    forall(int[] xs$1, int i, int[] xs$2, int i$1, int j, int[] xs, int[] zs):
         if:
             i == 0
             zs == xs
@@ -17,8 +17,7 @@ assert "loop invariant not restored":
             i$1 < |xs$1|
             j == (|xs$1| - (i$1 + 1))
             xs$2 == xs$1[i$1:=zs[j]]
-            i$2 == (i$1 + 1)
         then:
-            reverse_loopinvariant_57(xs$2, i$2, zs)
+            reverse_loopinvariant_57(xs$2, i$1+1, zs)
 
 

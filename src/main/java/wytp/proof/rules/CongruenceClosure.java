@@ -14,13 +14,19 @@
 package wytp.proof.rules;
 
 import java.util.List;
+
+import wyal.heap.StructurallyEquivalentHeap;
+import wyal.lang.WyalFile;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import static wyal.lang.WyalFile.*;
 import wybs.lang.SyntacticItem;
+import wybs.lang.SyntaxError;
 import wybs.lang.NameResolver.ResolutionError;
+import wybs.lang.SyntacticHeap;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -217,9 +223,9 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 				bound = bound.negate();
 			}
 			if(candidate.getAtoms().length > 1) {
-				throw new RuntimeException("Need support for non-linear arithmetic");
+				syntaxError("Need support for non-linear arithmetic", equality);
 			} else if(candidate.getCoefficient().compareTo(BigInteger.ONE) != 0) {
-				throw new RuntimeException("Need to fix this prexisting bug: " + candidate.getCoefficient());
+				syntaxError("Need support for reasoning about rationals", equality);
 			}
 			return new Assignment(candidate.toExpression(),bound.toExpression(),equality);
 		} else {
@@ -280,12 +286,21 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
 		Expr[] lhs_atoms = lhs.getAtoms();
 		Expr[] rhs_atoms = rhs.getAtoms();
+		// FIXME: this is *clearly* a hack
+		long lhs_coeff = Math.abs(lhs.getCoefficient().longValue());
+		long rhs_coeff = Math.abs(rhs.getCoefficient().longValue());
 		//
 		int lengthDifference = lhs_atoms.length - rhs_atoms.length;
 		if (lengthDifference < 0) {
 			return true;
 		} else if (lengthDifference > 0) {
 			return false;
+		} else if(lhs_coeff == 1 && rhs_coeff != 1) {
+			return true;
+		} else if(lhs_coeff != 1 && rhs_coeff == 1) {
+			return false;
+		} else if(lhs_coeff != rhs_coeff) {
+			return lhs_coeff < rhs_coeff;
 		} else {
 			for (int i = 0; i != lhs_atoms.length; ++i) {
 				if (lessThan(lhs_atoms[i], rhs_atoms[i])) {
@@ -296,9 +311,171 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		}
 	}
 
-	private static boolean lessThan(Expr lhs, Expr rhs) {
-		return lhs.getIndex() < rhs.getIndex();
+//	private static boolean lessThan(Expr lhs, Expr rhs) {
+//		return lhs.getIndex() < rhs.getIndex();
+//	}
+
+	public static boolean lessThan(Expr lhs, Expr rhs) {
+		int lhsOpcode = lhs.getOpcode();
+		int rhsOpcode = rhs.getOpcode();
+		if(lhsOpcode < rhsOpcode) {
+			return true;
+		} else if(lhsOpcode > rhsOpcode) {
+			return false;
+		} else {
+			switch(lhsOpcode) {
+			case EXPR_const:
+				return lessThan((Expr.Constant) lhs, (Expr.Constant) rhs);
+			case EXPR_varcopy:
+				return lessThan((Expr.VariableAccess) lhs, (Expr.VariableAccess) rhs);
+			case EXPR_recinit:
+				return lessThan((Expr.RecordInitialiser) lhs, (Expr.RecordInitialiser) rhs);
+			case EXPR_recfield:
+				return lessThan((Expr.RecordAccess) lhs, (Expr.RecordAccess) rhs);
+			case EXPR_recupdt:
+				return lessThan((Expr.RecordUpdate) lhs, (Expr.RecordUpdate) rhs);
+			case EXPR_invoke:
+				return lessThan((Expr.Invoke) lhs, (Expr.Invoke) rhs);
+			case EXPR_arridx:
+				return lessThan((Expr.ArrayAccess) lhs, (Expr.ArrayAccess) rhs);
+			case EXPR_arrlen:
+				return lessThan((Expr.ArrayLength) lhs, (Expr.ArrayLength) rhs);
+			case EXPR_arrinit:
+				return lessThan((Expr.ArrayInitialiser) lhs, (Expr.ArrayInitialiser) rhs);
+			case EXPR_arrupdt:
+				return lessThan((Expr.ArrayUpdate) lhs, (Expr.ArrayUpdate) rhs);
+			default:
+//				return syntaxError("unknown expression encountered during congruence closure (" + lhs.getClass().getName() + ")", lhs);
+				return lhs.getIndex() < rhs.getIndex();
+			}
+		}
 	}
+
+	public static boolean lessThan(Expr.Constant lhs, Expr.Constant rhs) {
+		return lhs.getValue().compareTo(rhs.getValue()) < 0;
+	}
+
+	public static boolean lessThan(Expr.VariableAccess lhs, Expr.VariableAccess rhs) {
+		// FIXME: could do this based on string as well?
+		return lhs.getVariableDeclaration().getIndex() < rhs.getVariableDeclaration().getIndex();
+	}
+
+	public static boolean lessThan(Expr.ArrayAccess lhs, Expr.ArrayAccess rhs) {
+		if(lessThan(lhs.getSource(),rhs.getSource())) {
+			return true;
+		} else if(lessThan(rhs.getSource(),lhs.getSource())) {
+			return false;
+		} else {
+			return lessThan(lhs.getSubscript(),rhs.getSubscript());
+		}
+	}
+
+	public static boolean lessThan(Expr.ArrayUpdate lhs, Expr.ArrayUpdate rhs) {
+		if(lessThan(lhs.getSource(),rhs.getSource())) {
+			return true;
+		} else if(lessThan(rhs.getSource(),lhs.getSource())) {
+			return false;
+		} else if(lessThan(lhs.getSubscript(),rhs.getSubscript())){
+			return true;
+		} else if(lessThan(rhs.getSubscript(),lhs.getSubscript())) {
+			return false;
+		} else {
+			return lessThan(lhs.getValue(),rhs.getValue());
+		}
+	}
+
+	public static boolean lessThan(Expr.ArrayLength lhs, Expr.ArrayLength rhs) {
+		return lessThan(lhs.getSource(),rhs.getSource());
+	}
+
+	public static boolean lessThan(Expr.ArrayInitialiser lhs, Expr.ArrayInitialiser rhs) {
+		if (lhs.size() != rhs.size()) {
+			return lhs.size() < rhs.size();
+		} else {
+			for (int i = 0; i != lhs.size(); ++i) {
+				Expr larg = lhs.get(i);
+				Expr rarg = rhs.get(i);
+				if (lessThan(larg, rarg)) {
+					return true;
+				} else if (lessThan(rarg, larg)) {
+					return false;
+				}
+			}
+			return false;
+		}
+	}
+
+	public static boolean lessThan(Expr.RecordAccess lhs, Expr.RecordAccess rhs) {
+		if(lessThan(lhs.getSource(),rhs.getSource())) {
+			return true;
+		} else if(lessThan(rhs.getSource(),lhs.getSource())) {
+			return false;
+		} else {
+			return lhs.getField().compareTo(rhs.getField()) < 0;
+		}
+	}
+
+	public static boolean lessThan(Expr.RecordInitialiser lhs, Expr.RecordInitialiser rhs) {
+		Pair<Identifier, Expr>[] lhsArgs = lhs.getFields();
+		Pair<Identifier, Expr>[] rhsArgs = rhs.getFields();
+		if (lhsArgs.length != rhsArgs.length) {
+			return lhsArgs.length < rhsArgs.length;
+		} else {
+			for (int i = 0; i != lhsArgs.length; ++i) {
+				Pair<Identifier, Expr> lp = lhsArgs[i];
+				Pair<Identifier, Expr> rp = rhsArgs[i];
+				int c = lp.getFirst().compareTo(rp.getSecond());
+				if (c != 0) {
+					return c < 0;
+				}
+				Expr larg = lp.getSecond();
+				Expr rarg = rp.getSecond();
+				if (lessThan(larg, rarg)) {
+					return true;
+				} else if (lessThan(rarg, larg)) {
+					return false;
+				}
+			}
+			return false;
+		}
+	}
+
+	public static boolean lessThan(Expr.RecordUpdate lhs, Expr.RecordUpdate rhs) {
+		if(lessThan(lhs.getSource(),rhs.getSource())) {
+			return true;
+		} else if(lessThan(rhs.getSource(),lhs.getSource())) {
+			return false;
+		} else if(lessThan(lhs.getValue(),rhs.getValue())){
+			return true;
+		} else if(lessThan(rhs.getValue(),lhs.getValue())) {
+			return false;
+		} else {
+			return lhs.getField().compareTo(rhs.getField()) < 0;
+		}
+	}
+	public static boolean lessThan(Expr.Invoke lhs, Expr.Invoke rhs) {
+		Tuple<Expr> lhsArgs = lhs.getArguments();
+		Tuple<Expr> rhsArgs = rhs.getArguments();
+		int c = lhs.getName().compareTo(rhs.getName());
+		if (c != 0) {
+			return c < 0;
+		} else if (lhsArgs.size() != rhsArgs.size()) {
+			return lhsArgs.size() < rhsArgs.size();
+		} else {
+			for (int i = 0; i != lhsArgs.size(); ++i) {
+				Expr larg = lhsArgs.get(i);
+				Expr rarg = rhsArgs.get(i);
+				if (lessThan(larg, rarg)) {
+					return true;
+				} else if (lessThan(rarg, larg)) {
+					return false;
+				}
+			}
+			return false;
+		}
+	}
+
+
 
 	public static Expr min(Expr lhs, Expr rhs) {
 		// First, prefer variables as these are always more useful.
