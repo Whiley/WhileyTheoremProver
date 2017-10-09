@@ -85,9 +85,6 @@ public class ValidTest {
 		IGNORED.put("test_type_77", "#80");
 		IGNORED.put("test_type_78", "#80");
 		IGNORED.put("test_type_91", "#80");
-		// Issue 86 "Handle Coefficients for CongruenceClosure"
-		IGNORED.put("test_arith_32", "#86");
-		IGNORED.put("test_arith_41", "#86");
 		// Issue 91 "Variable Ordering Effect"
 		IGNORED.put("test_array_64", "#91");
 		// Issue 92 "Recursive Array Update"

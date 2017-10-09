@@ -223,9 +223,9 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 				bound = bound.negate();
 			}
 			if(candidate.getAtoms().length > 1) {
-				throw new RuntimeException("Need support for non-linear arithmetic");
+				syntaxError("Need support for non-linear arithmetic", equality);
 			} else if(candidate.getCoefficient().compareTo(BigInteger.ONE) != 0) {
-				throw new RuntimeException("Need to fix this prexisting bug: " + candidate.getCoefficient());
+				syntaxError("Need support for reasoning about rationals", equality);
 			}
 			return new Assignment(candidate.toExpression(),bound.toExpression(),equality);
 		} else {
@@ -286,12 +286,21 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
 		Expr[] lhs_atoms = lhs.getAtoms();
 		Expr[] rhs_atoms = rhs.getAtoms();
+		// FIXME: this is *clearly* a hack
+		long lhs_coeff = Math.abs(lhs.getCoefficient().longValue());
+		long rhs_coeff = Math.abs(rhs.getCoefficient().longValue());
 		//
 		int lengthDifference = lhs_atoms.length - rhs_atoms.length;
 		if (lengthDifference < 0) {
 			return true;
 		} else if (lengthDifference > 0) {
 			return false;
+		} else if(lhs_coeff == 1 && rhs_coeff != 1) {
+			return true;
+		} else if(lhs_coeff != 1 && rhs_coeff == 1) {
+			return false;
+		} else if(lhs_coeff != rhs_coeff) {
+			return lhs_coeff < rhs_coeff;
 		} else {
 			for (int i = 0; i != lhs_atoms.length; ++i) {
 				if (lessThan(lhs_atoms[i], rhs_atoms[i])) {
