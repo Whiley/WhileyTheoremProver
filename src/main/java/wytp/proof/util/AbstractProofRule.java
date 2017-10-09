@@ -18,13 +18,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import wyal.heap.StructurallyEquivalentHeap;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wybs.lang.NameResolver;
 import wybs.lang.SyntacticItem;
+import wybs.lang.SyntaxError;
 import wybs.util.AbstractCompilationUnit.Tuple;
 import wybs.lang.NameResolver.ResolutionError;
+import wybs.lang.SyntacticHeap;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.rules.CongruenceClosure;
@@ -39,6 +42,16 @@ public abstract class AbstractProofRule implements Proof.Rule {
 	public AbstractProofRule(Simplification simp, TypeSystem types) {
 		this.types = types;
 		this.simp = simp;
+	}
+
+	public static <T> T syntaxError(String msg, SyntacticItem item) {
+		SyntacticHeap heap = item.getHeap();
+		if(heap instanceof StructurallyEquivalentHeap) {
+			// FIXME: I think this is necessary in some cases
+			heap = ((StructurallyEquivalentHeap) heap).getParent();
+		}
+		WyalFile wf = (WyalFile) heap;
+		throw new SyntaxError(msg, wf.getEntry(), item);
 	}
 
 	public Proof.State apply(Proof.State current, Proof.State head) throws ResolutionError {
