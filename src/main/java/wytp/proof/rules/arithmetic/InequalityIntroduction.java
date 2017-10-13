@@ -194,29 +194,6 @@ public class InequalityIntroduction extends AbstractClosureRule implements Proof
 		return null;
 	}
 
-	private static boolean lessThan(Polynomial.Term lhs, Polynomial.Term rhs) {
-		Expr[] lhs_atoms = lhs.getAtoms();
-		Expr[] rhs_atoms = rhs.getAtoms();
-		//
-		int lengthDifference = lhs_atoms.length - rhs_atoms.length;
-		if (lengthDifference < 0) {
-			return true;
-		} else if (lengthDifference > 0) {
-			return false;
-		} else {
-			for (int i = 0; i != lhs_atoms.length; ++i) {
-				if (lessThan(lhs_atoms[i], rhs_atoms[i])) {
-					return true;
-				}
-			}
-			return false;
-		}
-	}
-
-	private static boolean lessThan(Expr lhs, Expr rhs) {
-		return lhs.getIndex() < rhs.getIndex();
-	}
-
 	/**
 	 * Rearrange a given equation such that the given term appears on the
 	 * right-hand side, and everything else is moved on to the left side. For
