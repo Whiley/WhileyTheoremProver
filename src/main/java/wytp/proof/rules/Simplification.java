@@ -423,6 +423,8 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		case EXPR_eq:
 		case EXPR_neq:
 		case EXPR_lt:
+		case EXPR_lteq:
+		case EXPR_gt:
 		case EXPR_gteq:
 		case EXPR_is:
 			if(e instanceof Formula) {
@@ -433,7 +435,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 				return simplify(Formulae.toFormula(e,types));
 			}
 		default:
-			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
+			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getClass().getName());
 		}
 	}
 
