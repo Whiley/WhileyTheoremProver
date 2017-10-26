@@ -107,7 +107,7 @@ public class ValidTest {
 		//
 		IGNORED.put("test_type_94", "??");
 		//
-		IGNORED.put("test_macro_07", "#140");
+		//IGNORED.put("test_macro_07", "#140");
 	}
 
 	// ======================================================================
