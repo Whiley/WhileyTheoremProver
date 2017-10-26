@@ -433,7 +433,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 				return simplify(Formulae.toFormula(e,types));
 			}
 		default:
-			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getOpcode());
+			throw new IllegalArgumentException("cannot convert expression to atom: " + e.getClass().getName());
 		}
 	}
 

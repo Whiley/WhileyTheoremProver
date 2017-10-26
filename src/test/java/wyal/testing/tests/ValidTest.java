@@ -106,6 +106,8 @@ public class ValidTest {
 		IGNORED.put("test_array_76", "#126");
 		//
 		IGNORED.put("test_type_94", "??");
+		//
+		IGNORED.put("test_macro_07", "#140");
 	}
 
 	// ======================================================================

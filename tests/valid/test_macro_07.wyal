@@ -1,0 +1,6 @@
+define prop(bool r, int x, int y) is:
+        r <==> (x <= y)
+
+assert:
+    forall(bool r, int x, int y):
+        prop(x <= y,x,y)
