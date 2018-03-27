@@ -665,6 +665,9 @@ public class Interpreter {
 			for (int i = 0; i != vars.size(); ++i) {
 				VariableDeclaration decl = vars.get(i);
 				Expr invariant = extractor.extract(decl.getType(), new Expr.VariableAccess(decl));
+				// NOTE: need to allocate extracted invariant here since it is not a
+				// source-level construct. Is kinda strange that we have to do this.
+				invariant = decl.getHeap().allocate(invariant);
 				if (invariant != null) {
 					boolean b = (Boolean) evaluateExpression(invariant, environment);
 					if (!b) {

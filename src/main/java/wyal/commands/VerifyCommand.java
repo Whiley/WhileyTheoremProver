@@ -25,12 +25,15 @@ import wyal.util.AbstractProjectCommand;
 import wyal.util.Interpreter;
 import wyal.util.SmallWorldDomain;
 import wyal.util.WyalFileResolver;
+import wybs.lang.NameID;
 import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.ResolutionError;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.lang.SyntaxError.InternalFailure;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
+import wycc.util.ArrayUtils;
 import wycc.util.Logger;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
@@ -126,6 +129,19 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	@Override
 	public String getDescription() {
 		return "Compile and verify one or more WyAL files";
+	}
+
+	private static final String[] SCHEMA = {
+			"verbose",
+			"verify",
+			"counterexamples",
+			"proof",
+			"width"
+	};
+
+	@Override
+	public String[] getOptions() {
+		return ArrayUtils.append(super.getOptions(),SCHEMA);
 	}
 
 	@Override

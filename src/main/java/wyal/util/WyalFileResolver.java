@@ -187,7 +187,7 @@ public final class WyalFileResolver implements NameResolver {
 	 */
 	private NameID nonLocalNameLookup(Name name) throws NameResolver.ResolutionError {
 		try {
-			WyalFile enclosing = (WyalFile) getWyalFile(name.getHeap());
+			WyalFile enclosing = getWyalFile(name.getHeap());
 			List<WyalFile.Declaration.Import> imports = getImportsInReverseOrder(enclosing);
 			// Check name against import statements
 			for (WyalFile.Declaration.Import imp : imports) {
