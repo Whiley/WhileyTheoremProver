@@ -258,13 +258,14 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 		} catch (SyntaxError e) {
 			SyntacticElement element = e.getElement();
 			e.outputSourceError(syserr, false);
-			if(counterexamples && element instanceof WyalFile.Declaration.Assert) {
-				findCounterexamples((WyalFile.Declaration.Assert)element,project);
-			}
 			if (verbose) {
 				printStackTrace(syserr, e);
 			}
-			return Result.ERRORS;
+			if(counterexamples && element instanceof WyalFile.Declaration.Assert) {
+				return findCounterexamples((WyalFile.Declaration.Assert)element,project);
+			} else {
+				return Result.ERRORS;
+			}
 		} catch (Exception e) {
 			// now what?
 			throw new RuntimeException(e);
@@ -301,19 +302,26 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 		project.add(new StdBuildRule(wyalBuildTask, wyaldir, wyalIncludes, wyalExcludes, wycsdir));
 	}
 
-	public void findCounterexamples(WyalFile.Declaration.Assert assertion, StdProject project) {
+	public Result findCounterexamples(WyalFile.Declaration.Assert assertion, StdProject project) {
 		// FIXME: it doesn't feel right creating new instances here.
 		NameResolver resolver = new WyalFileResolver(project);
 		TypeInvariantExtractor extractor = new TypeInvariantExtractor(resolver);
 		Interpreter interpreter = new Interpreter(new SmallWorldDomain(resolver), resolver, extractor);
 		try {
 			Interpreter.Result result = interpreter.evaluate(assertion);
-			if(!result.holds()) {
+			if (!result.holds()) {
 				syserr.println("counterexample: " + result.getEnvironment());
 			}
-		} catch(Interpreter.UndefinedException e) {
+		} catch (Interpreter.UndefinedException e) {
 			// do nothing for now
+		} catch (Throwable t) {
+			System.err.println("internal failure (counterexample generation): " + t.getMessage());
+			if (verbose) {
+				printStackTrace(syserr, t);
+			}
+			return Result.INTERNAL_FAILURE;
 		}
+		return Result.ERRORS;
 	}
 
 	/**
