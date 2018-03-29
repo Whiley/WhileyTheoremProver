@@ -223,56 +223,57 @@ public class Interpreter {
 		}
 		//
 		Declaration.Named decl = resolve(expr);
-		//
-		Tuple<VariableDeclaration> parameters = decl.getParameters();
-		Environment localEnvironment = new Environment(environment.domain);
-		for(int i=0;i!=parameters.size();++i) {
-			VariableDeclaration d = parameters.get(i);
-			localEnvironment.values.put(d, argumentValues[i]);
-		}
-		//
-		if(decl instanceof Declaration.Named.Macro) {
-			Declaration.Named.Macro macro = (Declaration.Named.Macro) decl;
-			return evaluateBlock(macro.getBody(),localEnvironment).value;
+		if(decl instanceof Declaration.Named.Function) {
+		  // Hard case, as we don't have access to bodies of functions.
+      Declaration.Named.Function fn = (Declaration.Named.Function) decl;
+      return environment.getReturnValue(fn, argumentValues);
 		} else {
-			Declaration.Named.Type type = (Declaration.Named.Type) decl;
-			Tuple<Block> invariant = type.getInvariant();
-			for(int i=0;i!=invariant.size();++i) {
-				if (!evaluateBlock(invariant.get(i), localEnvironment).value) {
-					return false;
-				}
-			}
-			return true;
+      // Easier case, as we have access to bodies of macros and types.
+		  Tuple<VariableDeclaration> parameters = decl.getParameters();
+		  Environment localEnvironment = new Environment(environment.domain);
+		  for(int i=0;i!=parameters.size();++i) {
+		    VariableDeclaration d = parameters.get(i);
+		    localEnvironment.values.put(d, argumentValues[i]);
+		  }
+		  //
+		  if(decl instanceof Declaration.Named.Macro) {
+		    Declaration.Named.Macro macro = (Declaration.Named.Macro) decl;
+		    return evaluateBlock(macro.getBody(),localEnvironment).value;
+		  } else {
+		    Declaration.Named.Type type = (Declaration.Named.Type) decl;
+		    Tuple<Block> invariant = type.getInvariant();
+		    for(int i=0;i!=invariant.size();++i) {
+		      if (!evaluateBlock(invariant.get(i), localEnvironment).value) {
+		        return false;
+		      }
+		    }
+		    return true;
+		  }
 		}
 	}
 
 	protected Declaration.Named resolve(Expr.Invoke ivk) {
 		Type.FunctionOrMacroOrInvariant signature = ivk.getSignatureType();
 		//
-		try {
-			if (signature instanceof Type.Property) {
-				// We need to find the property in question so that we can
-				// evaluate it and see what's going on.
-				List<Declaration.Named.Macro> candidates = resolver.resolveAll(ivk.getName(),
-						Declaration.Named.Macro.class);
-				// Look for matching signature
-				for (int i = 0; i != candidates.size(); ++i) {
-					Declaration.Named.Macro macro = candidates.get(i);
-					if (macro.getSignatureType().equals(signature)) {
-						return macro;
-					}
-				}
-				// Should really be impossible to get here
-				throw new NameNotFoundError(ivk.getName());
-			} else if (signature instanceof Type.Function) {
-				// What we need to do here is look at the return type and return
-				// something sensible. Or we could preiterate all function
-				// invocations beforehand.
-				throw new RuntimeException("UNKNOWN");
-			} else {
-				// Must be a type declaration
-				return resolver.resolveExactly(ivk.getName(), Declaration.Named.Type.class);
-			}
+    try {
+      if (signature instanceof Type.Property || signature instanceof Type.Function) {
+        // We need to find the property in question so that we can
+        // evaluate it and see what's going on.
+        List<Declaration.Named.FunctionOrMacro> candidates = resolver.resolveAll(ivk.getName(),
+            Declaration.Named.FunctionOrMacro.class);
+        // Look for matching signature
+        for (int i = 0; i != candidates.size(); ++i) {
+          Declaration.Named.FunctionOrMacro candidate = candidates.get(i);
+          if (candidate.getSignatureType().equals(signature)) {
+            return candidate;
+          }
+        }
+        // Should really be impossible to get here
+        throw new NameNotFoundError(ivk.getName());
+      } else {
+        // Must be a type declaration
+        return resolver.resolveExactly(ivk.getName(), Declaration.Named.Type.class);
+      }
 		} catch(NameResolver.ResolutionError e) {
 			throw new RuntimeException(e);
 		}
@@ -666,6 +667,10 @@ public class Interpreter {
 				VariableDeclaration decl = vars.get(i);
 				Expr invariant = extractor.extract(decl.getType(), new Expr.VariableAccess(decl));
 				if (invariant != null) {
+					// NOTE: need to allocate extracted invariant here since it is not a
+					// source-level construct. Is kinda strange that we have to do this.
+					invariant = decl.getHeap().allocate(invariant);
+					//
 					boolean b = (Boolean) evaluateExpression(invariant, environment);
 					if (!b) {
 						throw new UndefinedException("invalid type invariant");
@@ -731,6 +736,12 @@ public class Interpreter {
 				throw new IllegalArgumentException("invalid variable access");
 			}
 		}
+
+    public Object getReturnValue(Declaration.Named.Function fn, Object... arguments) {
+      // FIXME: need to handle tuple returns.
+      // FIXME: need to iterate on return values and lock-in parameter assignments.
+      return domain.generator(fn.getSignatureType().getReturns().get(0)).get();
+    }
 
 		public Iterable<Environment> declare(Tuple<VariableDeclaration> variables) {
 			// Some Java switcheroo stuff

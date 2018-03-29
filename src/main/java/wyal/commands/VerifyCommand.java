@@ -25,12 +25,15 @@ import wyal.util.AbstractProjectCommand;
 import wyal.util.Interpreter;
 import wyal.util.SmallWorldDomain;
 import wyal.util.WyalFileResolver;
+import wybs.lang.NameID;
 import wybs.lang.NameResolver;
+import wybs.lang.NameResolver.ResolutionError;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntaxError;
 import wybs.lang.SyntaxError.InternalFailure;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
+import wycc.util.ArrayUtils;
 import wycc.util.Logger;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
@@ -126,6 +129,19 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 	@Override
 	public String getDescription() {
 		return "Compile and verify one or more WyAL files";
+	}
+
+	private static final String[] SCHEMA = {
+			"verbose",
+			"verify",
+			"counterexamples",
+			"proof",
+			"width"
+	};
+
+	@Override
+	public String[] getOptions() {
+		return ArrayUtils.append(super.getOptions(),SCHEMA);
 	}
 
 	@Override
@@ -242,13 +258,14 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 		} catch (SyntaxError e) {
 			SyntacticElement element = e.getElement();
 			e.outputSourceError(syserr, false);
-			if(counterexamples && element instanceof WyalFile.Declaration.Assert) {
-				findCounterexamples((WyalFile.Declaration.Assert)element,project);
-			}
 			if (verbose) {
 				printStackTrace(syserr, e);
 			}
-			return Result.ERRORS;
+			if(counterexamples && element instanceof WyalFile.Declaration.Assert) {
+				return findCounterexamples((WyalFile.Declaration.Assert)element,project);
+			} else {
+				return Result.ERRORS;
+			}
 		} catch (Exception e) {
 			// now what?
 			throw new RuntimeException(e);
@@ -285,19 +302,26 @@ public class VerifyCommand extends AbstractProjectCommand<VerifyCommand.Result> 
 		project.add(new StdBuildRule(wyalBuildTask, wyaldir, wyalIncludes, wyalExcludes, wycsdir));
 	}
 
-	public void findCounterexamples(WyalFile.Declaration.Assert assertion, StdProject project) {
+	public Result findCounterexamples(WyalFile.Declaration.Assert assertion, StdProject project) {
 		// FIXME: it doesn't feel right creating new instances here.
 		NameResolver resolver = new WyalFileResolver(project);
 		TypeInvariantExtractor extractor = new TypeInvariantExtractor(resolver);
 		Interpreter interpreter = new Interpreter(new SmallWorldDomain(resolver), resolver, extractor);
 		try {
 			Interpreter.Result result = interpreter.evaluate(assertion);
-			if(!result.holds()) {
+			if (!result.holds()) {
 				syserr.println("counterexample: " + result.getEnvironment());
 			}
-		} catch(Interpreter.UndefinedException e) {
+		} catch (Interpreter.UndefinedException e) {
 			// do nothing for now
+		} catch (Throwable t) {
+			System.err.println("internal failure (counterexample generation): " + t.getMessage());
+			if (verbose) {
+				printStackTrace(syserr, t);
+			}
+			return Result.INTERNAL_FAILURE;
 		}
+		return Result.ERRORS;
 	}
 
 	/**
