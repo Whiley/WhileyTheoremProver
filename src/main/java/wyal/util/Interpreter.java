@@ -225,7 +225,8 @@ public class Interpreter {
 		Declaration.Named decl = resolve(expr);
 		if(decl instanceof Declaration.Named.Function) {
 		  // Hard case, as we don't have access to bodies of functions.
-		  throw new RuntimeException("GOT HERE");
+      Declaration.Named.Function fn = (Declaration.Named.Function) decl;
+      return environment.getReturnValue(fn, argumentValues);
 		} else {
       // Easier case, as we have access to bodies of macros and types.
 		  Tuple<VariableDeclaration> parameters = decl.getParameters();
@@ -735,6 +736,12 @@ public class Interpreter {
 				throw new IllegalArgumentException("invalid variable access");
 			}
 		}
+
+    public Object getReturnValue(Declaration.Named.Function fn, Object... arguments) {
+      // FIXME: need to handle tuple returns.
+      // FIXME: need to iterate on return values and lock-in parameter assignments.
+      return domain.generator(fn.getSignatureType().getReturns().get(0)).get();
+    }
 
 		public Iterable<Environment> declare(Tuple<VariableDeclaration> variables) {
 			// Some Java switcheroo stuff
