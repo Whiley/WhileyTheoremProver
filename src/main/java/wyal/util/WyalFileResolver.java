@@ -17,44 +17,25 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import wyal.Activator;
 import wyal.lang.WyalFile;
-import wyal.lang.WyalFile.Declaration.Named;
 import wybs.lang.CompilationUnit.Name;
 import wybs.lang.CompilationUnit.Identifier;
 import wybs.lang.CompilationUnit.Declaration;
 import wybs.lang.Build;
+import wybs.lang.CompilationUnit;
 import wybs.lang.NameID;
 import wybs.lang.NameResolver;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
+import wybs.util.AbstractCompilationUnit.Tuple;
+import wybs.util.AbstractCompilationUnit.Value;
+import wycc.cfg.Configuration;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
-/**
- * Responsible for resolving a name which occurs at some position in a WyalFile.
- * This takes into account the context and, if necessary, will traverse
- * important statements to resolve the query. For example, consider a
- * WyalFile entitled "file":
- *
- * <pre>
- * import wyal.lang.*
- *
- * assert:
- *    Test.g(0) >= 0
- * </pre>
- *
- * Here the name "<code>g</code>" is not fully qualified. Depending on which
- * file the matching declaration of <code>g</code> occurs will depend on what
- * its fully qualified name is. For example, if <code>g</code> is declared in
- * the current compilation unit then it's fully quaified name would be
- * <code>test.g</code>. However, it could well be declared in a compilation unit
- * matching the import <code>wyal.lang.*</code>.
- *
- * @author David J. Pearce
- *
- */
 public final class WyalFileResolver implements NameResolver {
 	private final Build.Project project;
 
@@ -63,13 +44,13 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	@Override
-	public NameID resolve(Name name) throws ResolutionError {
+	public NameID resolve(CompilationUnit.Name name) throws ResolutionError {
 		//
 		if (name.size() == 1) {
-			Identifier ident = name.get(0);
+			CompilationUnit.Identifier ident = name.get(0);
 			// This name is not fully qualified. Therefore, attempt to resolve
 			// it.
-			WyalFile enclosing = getEnclosingWyalFile(name.getHeap());
+			WyalFile enclosing = (WyalFile) name.getHeap();
 			if (localNameLookup(ident.get(), enclosing)) {
 				return new NameID(enclosing.getEntry().id(), ident.get());
 			}
@@ -81,16 +62,8 @@ public final class WyalFileResolver implements NameResolver {
 		return nonLocalNameLookup(name);
 	}
 
-	public WyalFile getEnclosingWyalFile(SyntacticHeap heap) {
-		if(heap instanceof WyalFile) {
-			return (WyalFile) heap;
-		} else {
-			return getEnclosingWyalFile(heap.getParent());
-		}
-	}
-
 	@Override
-	public <T extends Declaration> T resolveExactly(Name name, Class<T> kind) throws ResolutionError {
+	public <T extends Declaration> T resolveExactly(CompilationUnit.Name name, Class<T> kind) throws ResolutionError {
 		List<T> matches = resolveAll(name, kind);
 		if (matches.size() == 1) {
 			return matches.get(0);
@@ -100,7 +73,7 @@ public final class WyalFileResolver implements NameResolver {
 	}
 
 	@Override
-	public <T extends Declaration> List<T> resolveAll(Name name, Class<T> kind) throws ResolutionError {
+	public <T extends Declaration> List<T> resolveAll(CompilationUnit.Name name, Class<T> kind) throws ResolutionError {
 		try {
 			NameID nid = resolve(name);
 			WyalFile enclosing = loadModule(nid,name);
@@ -127,7 +100,39 @@ public final class WyalFileResolver implements NameResolver {
 		}
 	}
 
-	private WyalFile loadModule(NameID nid, Name name) throws IOException, ResolutionError {
+
+	/**
+	 * Load a given WyIL file from this project. This will search through local
+	 * roots and package dependencies in search of a matching file.
+	 *
+	 * @param id
+	 *            The module ID of the file to load.
+	 * @return
+	 * @throws IOException
+	 */
+	public Path.Entry<WyalFile> load(Path.ID id) throws IOException {
+		// Check within this project
+		for(Path.Root root : project.getRoots()) {
+			Path.Entry<WyalFile> e = root.get(id, WyalFile.BinaryContentType);
+			if(e != null) {
+				return e;
+			}
+		}
+		// Check within dependencies
+		for(Build.Package pkg : project.getPackages()) {
+			Path.Root root = getPlatformBinaryRoot(pkg);
+			//
+			Path.Entry<WyalFile> e = root.get(id, WyalFile.BinaryContentType);
+			if(e != null) {
+				return e;
+			}
+		}
+		//
+		return null;
+	}
+
+
+	private WyalFile loadModule(NameID nid, CompilationUnit.Name name) throws IOException, ResolutionError {
 		WyalFile enclosing = getWyalFile(name.getHeap());
 		if (enclosing.getEntry().id().equals(nid.module())) {
 			// This is a local lookup.
@@ -139,7 +144,7 @@ public final class WyalFileResolver implements NameResolver {
 			return enclosing;
 		} else {
 			// This is a non-local lookup.
-			Path.Entry<WyalFile> entry = project.get(nid.module(), WyalFile.ContentType);
+			Path.Entry<WyalFile> entry = load(nid.module());
 			if (entry != null) {
 				return entry.read();
 			} else {
@@ -158,7 +163,7 @@ public final class WyalFileResolver implements NameResolver {
 	 * @return
 	 * @throws NameNotFoundError
 	 */
-	private <T extends Named> boolean localNameLookup(String name, SyntacticHeap heap) {
+	private <T extends WyalFile.Declaration.Named> boolean localNameLookup(String name, SyntacticHeap heap) {
 		int count = 0;
 		// Look through the enclosing file first!
 		for (int i = 0; i != heap.size(); ++i) {
@@ -185,9 +190,9 @@ public final class WyalFileResolver implements NameResolver {
 	 *
 	 * @throws NameNotFoundError
 	 */
-	private NameID nonLocalNameLookup(Name name) throws NameResolver.ResolutionError {
+	private NameID nonLocalNameLookup(CompilationUnit.Name name) throws NameResolver.ResolutionError {
 		try {
-			WyalFile enclosing = getWyalFile(name.getHeap());
+			WyalFile enclosing = (WyalFile) getWyalFile(name.getHeap());
 			List<WyalFile.Declaration.Import> imports = getImportsInReverseOrder(enclosing);
 			// Check name against import statements
 			for (WyalFile.Declaration.Import imp : imports) {
@@ -198,25 +203,27 @@ public final class WyalFileResolver implements NameResolver {
 			}
 			// Check whether name is fully qualified or not
 			NameID nid = name.toNameID();
-			if (name.size() > 1 && project.exists(nid.module(), WyalFile.ContentType)) {
-				// Yes, this is a fully qualified name so load the module
-				WyalFile module = project.get(nid.module(), WyalFile.ContentType).read();
-				// Look inside to see whether a matching item is found
-				if (localNameLookup(nid.name(), module)) {
-					return nid;
+			if (name.size() > 1) {
+				// Could be fully or partially qualified name
+				Path.Entry<WyalFile> e = load(nid.module());
+				if (e != null) {
+					// Look inside to see whether a matching item is found
+					if (localNameLookup(nid.name(), e.read())) {
+						return nid;
+					}
+				} else {
+					// If we get here, then there is still an actual chance it could
+					// be referring to something declared in this compilation unit
+					// (i.e. a local lookup with a partially- or fully-qualified
+					// name)
+					Path.ID localPathID = enclosing.getEntry().id();
+					//
+					if (matchPartialModulePath(nid.module(), localPathID)) {
+						// Yes, ok, we've matched a local item!
+						return new NameID(localPathID, nid.name());
+					}
+					// Otherwise, we really couldn't figure out this name.
 				}
-			} else if(name.size() > 1){
-				// If we get here, then there is still an actual chance it could
-				// be referring to something declared in this compilation unit
-				// (i.e. a local lookup with a partially- or fully-qualified
-				// name)
-				Path.ID localPathID = enclosing.getEntry().id();
-				//
-				if (matchPartialModulePath(nid.module(), localPathID)) {
-					// Yes, ok, we've matched a local item!
-					return new NameID(localPathID, nid.name());
-				}
-				// Otherwise, we really couldn't figure out this name.
 			}
 		} catch (IOException e) {
 
@@ -255,19 +262,21 @@ public final class WyalFileResolver implements NameResolver {
 	 * @return
 	 * @throws IOException
 	 */
-	private NameID matchImport(WyalFile.Declaration.Import imp, Name name) throws IOException {
+	private NameID matchImport(WyalFile.Declaration.Import imp, CompilationUnit.Name name) throws IOException {
 		NameID nid = name.toNameID();
-		//
-		for (Path.Entry<WyalFile> module : expandImport(imp)) {
+		for (Path.Entry<WyalFile> e : expandImport(imp)) {
+			WyalFile module = e.read();
+			// Path.ID id = toPathID(module.getModule().getName());
+			Path.ID id = e.id();
 			// Determine whether this concrete module path matches the partial
 			// module path or not.
-			if (matchPartialModulePath(nid.module(), module.id())) {
+			if (matchPartialModulePath(nid.module(), id)) {
 				// Yes, it does match. Therefore, do we now have a valid name
 				// identifier?
-				if (localNameLookup(nid.name(), module.read())) {
+				if (localNameLookup(nid.name(), module)) {
 					// Ok, we have found a matching item. Therefore, we are
 					// done.
-					return new NameID(module.id(), nid.name());
+					return new NameID(id, nid.name());
 				}
 			}
 		}
@@ -317,6 +326,7 @@ public final class WyalFileResolver implements NameResolver {
 	 */
 	private List<Path.Entry<WyalFile>> expandImport(WyalFile.Declaration.Import imp) throws IOException {
 		Trie filter = Trie.ROOT;
+		//
 		for (int i = 0; i != imp.size(); ++i) {
 			Identifier component = imp.get(i);
 			if (component == null) {
@@ -325,7 +335,30 @@ public final class WyalFileResolver implements NameResolver {
 				filter = filter.append(component.get());
 			}
 		}
-		return project.get(Content.filter(filter, WyalFile.ContentType));
+		//
+		Content.Filter<WyalFile> cf = Content.filter(filter, WyalFile.BinaryContentType);
+		//
+		ArrayList<Path.Entry<WyalFile>> matches = new ArrayList<>();
+		//
+		for(Path.Root root : project.getRoots()) {
+			matches.addAll(root.get(cf));
+		}
+		// Check within dependencies
+		for(Build.Package pkg : project.getPackages()) {
+			Path.Root root = getPlatformBinaryRoot(pkg);
+			matches.addAll(root.get(cf));
+		}
+		return matches;
+	}
+
+	private Path.Root getPlatformBinaryRoot(Build.Package pkg) throws IOException {
+		// Extract package configuration. This tells us where the binary root for the
+		// "whiley" platform is.
+		Configuration configuration = pkg.getConfiguration();
+		// Extract the path for the binary root of the Whiley platform.
+		Path.ID binroot = Trie.fromString(configuration.get(Value.UTF8.class, Activator.TARGET_CONFIG_OPTION).unwrap());
+		// Create relative root from pkg root.
+		return pkg.getRoot().createRelativeRoot(binroot);
 	}
 
 	public WyalFile getWyalFile(SyntacticHeap heap) {
@@ -334,5 +367,13 @@ public final class WyalFileResolver implements NameResolver {
 		} else {
 			return getWyalFile(heap.getParent());
 		}
+	}
+
+	private Path.ID toPathID(CompilationUnit.Name name) {
+		Trie r = Trie.ROOT;
+		for(int i=0;i!=name.size();++i) {
+			r = r.append(name.get(i).get());
+		}
+		return r;
 	}
 }

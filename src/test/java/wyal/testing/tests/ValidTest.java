@@ -33,7 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import wyal.commands.VerifyCommand;
+import wyal.util.TestUtils;
 import wycc.lang.Feature.ConfigurationError;
 import wycc.util.Logger;
 import wycc.util.Pair;
@@ -117,44 +117,22 @@ public class ValidTest {
 	protected void runTest(String testName) throws IOException {
 		try {
 			// this will need to turn on verification at some point.
-			String whileyFilename = WYAL_SRC_DIR + File.separatorChar + testName
-					+ ".wyal";
+			File wyalSrcDir = new File(WYAL_SRC_DIR);
 
-			Pair<VerifyCommand.Result,String> p = compile(
-					WYAL_SRC_DIR,      // location of source directory
-					true,               // no verification
-					whileyFilename);     // name of test to compile
+			Pair<Boolean, String> p = TestUtils.compile(wyalSrcDir, // location of source directory
+					true, // use verification
+					testName); // name of test to compile
 
-			VerifyCommand.Result r = p.first();
+
+			boolean r = p.first();
 
 			System.out.print(p.second());
 
-			if (r != VerifyCommand.Result.SUCCESS) {
+			if (!r) {
 				fail("Test failed to compile!");
-			} else if (r == VerifyCommand.Result.INTERNAL_FAILURE) {
-				fail("Test caused internal failure!");
 			}
 		} catch(IOException e) {
 			fail("Test threw IOException");
-		}
-	}
-
-	public static Pair<VerifyCommand.Result,String> compile(String wyaldir, boolean verify, String... args) throws IOException {
-		try {
-			ByteArrayOutputStream syserr = new ByteArrayOutputStream();
-			ByteArrayOutputStream sysout = new ByteArrayOutputStream();
-			Content.Registry registry = new wyal.Activator.Registry();
-			VerifyCommand cmd = new VerifyCommand(registry, Logger.NULL, sysout, syserr);
-			cmd.setWyaldir(wyaldir);
-			cmd.set("verify", verify);
-			VerifyCommand.Result result = cmd.execute(args);
-			byte[] errBytes = syserr.toByteArray();
-			byte[] outBytes = sysout.toByteArray();
-			String output = new String(errBytes) + new String(outBytes);
-			return new Pair<>(result, output);
-		} catch (ConfigurationError e) {
-			// Should be dead code
-			throw new IllegalArgumentException(e);
 		}
 	}
 
