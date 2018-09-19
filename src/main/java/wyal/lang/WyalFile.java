@@ -94,7 +94,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		@Override
 		public void write(OutputStream output, WyalFile module) throws IOException {
-			throw new RuntimeException("Implement me!");
+			// FIXME: this is screwed
+			//throw new RuntimeException("Implement me!");
 		}
 
 		@Override

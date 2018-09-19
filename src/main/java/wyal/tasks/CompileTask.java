@@ -94,18 +94,30 @@ public class CompileTask implements Build.Task {
 		// ========================================================================
 		// Parse and register source files
 		// ========================================================================
-
-		int count = 0;
+		ArrayList<Pair<Path.Entry,WyalFile>> files = new ArrayList<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> src = p.first();
 			if (src.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> sf = (Path.Entry<WyalFile>) src;
-				sf.read(); // force file to be parsed
-				count++;
+				WyalFile wf = sf.read(); // force file to be parsed
+				// Write WyIL skeleton. This is a stripped down version of the
+				// source file which is easily translated into a temporary
+				// WyilFile. This is needed for resolution.
+				Path.Root dst = p.second();
+				Path.Entry<WyalFile> target = dst.create(sf.id(), WyalFile.BinaryContentType);
+				target.write(createSkeleton(wf,target));
+				// Register the derivation in the build graph. This is important
+				// to understand what a particular intermediate file was
+				// derived from.
+				graph.registerDerivation(sf, target);
+				//
+				Path.Entry<? extends CompilationUnit> originalSource = determineSource(sf,graph);
+
+				files.add(new Pair<>(originalSource,wf));
 			}
 		}
 
-		logger.logTimedMessage("Parsed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Parsed " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
@@ -116,29 +128,11 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		ArrayList<Pair<Path.Entry,WyalFile>> files = new ArrayList<>();
-		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
-			Path.Entry<?> entry = p.first();
-			if (entry.contentType() == WyalFile.ContentType) {
-				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
-				Path.Entry<? extends CompilationUnit> originalSource = determineSource(source,graph);
-				WyalFile wf = source.read();
-				new TypeChecker(typeSystem,wf,originalSource).check();
-				files.add(new Pair<>(originalSource,wf));
-				// Write WyIL skeleton. This is a stripped down version of the
-				// source file which is easily translated into a temporary
-				// WyilFile. This is needed for resolution.
-				Path.Root dst = p.second();
-				Path.Entry<WyalFile> target = dst.create(entry.id(), WyalFile.BinaryContentType);
-				target.write(createSkeleton(wf,target));
-				// Register the derivation in the build graph. This is important
-				// to understand what a particular intermediate file was
-				// derived from.
-				graph.registerDerivation(source, target);
-			}
+		for (Pair<Path.Entry, WyalFile> p : files) {
+			new TypeChecker(typeSystem, p.second(), p.first()).check();
 		}
 
-		logger.logTimedMessage("Typed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Typed " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
@@ -157,7 +151,7 @@ public class CompileTask implements Build.Task {
 			}
 		}
 
-		logger.logTimedMessage("Verified " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Verified " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 
@@ -181,7 +175,7 @@ public class CompileTask implements Build.Task {
 			}
 		}
 
-		logger.logTimedMessage("Generated code for " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Generated code for " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
@@ -211,6 +205,6 @@ public class CompileTask implements Build.Task {
 
 	private WyalFile createSkeleton(WyalFile whileyFile, Path.Entry<WyalFile> target) {
 		// FIXME: this is a temporary hack
-		return null;
+		return whileyFile;
 	}
 }

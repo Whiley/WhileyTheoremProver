@@ -79,8 +79,8 @@ public class InvalidTest {
 
 			System.out.print(p.second());
 
-			if (!r) {
-				fail("Test failed to compile!");
+			if (r) {
+				fail("Test shouldn't have compiled!");
 			}
 		} catch(IOException e) {
 			fail("Test threw IOException");

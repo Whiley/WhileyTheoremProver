@@ -164,24 +164,18 @@ public final class WyalFileResolver implements NameResolver {
 	 * @throws NameNotFoundError
 	 */
 	private <T extends WyalFile.Declaration.Named> boolean localNameLookup(String name, SyntacticHeap heap) {
-		int count = 0;
 		// Look through the enclosing file first!
 		for (int i = 0; i != heap.size(); ++i) {
 			SyntacticItem item = heap.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Named) {
 				WyalFile.Declaration.Named nd = (WyalFile.Declaration.Named) item;
 				if (nd.getName().get().equals(name)) {
-					count = count + 1;
+					return true;
 				}
 			}
 		}
 		//
-		if (count == 0) {
-			return false;
-		} else {
-			//
-			return true;
-		}
+		return false;
 	}
 
 	/**
@@ -226,7 +220,7 @@ public final class WyalFileResolver implements NameResolver {
 				}
 			}
 		} catch (IOException e) {
-
+			e.printStackTrace();
 		}
 		throw new NameResolver.NameNotFoundError(name);
 	}
