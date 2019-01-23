@@ -16,7 +16,9 @@ package wytp.proof.rules.function;
 import java.util.List;
 
 import wyal.lang.WyalFile;
-import wybs.lang.NameResolver.*;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
+import wyal.util.NameResolver.NameNotFoundError;
 
 import static wyal.lang.WyalFile.*;
 import wytp.proof.Formula;
@@ -43,7 +45,7 @@ public class FunctionCallAxiom extends AbstractProofRule implements Proof.Linear
 		List<Expr.Invoke> matches = extractDefinedTerms(truth,WyalFile.EXPR_invoke);
 		if (matches.size() > 0) {
 			for (int i = 0; i != matches.size(); ++i) {
-				Expr.Invoke ivk = (Expr.Invoke) matches.get(i);
+				Expr.Invoke ivk = matches.get(i);
 				// Determine the type declaration in question
 				Type.FunctionOrMacroOrInvariant af = ivk.getSignatureType();
 				if(af instanceof Type.Function) {

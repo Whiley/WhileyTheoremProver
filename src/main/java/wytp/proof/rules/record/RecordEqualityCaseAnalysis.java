@@ -15,7 +15,8 @@ package wytp.proof.rules.record;
 
 import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 import wytp.proof.Formula;

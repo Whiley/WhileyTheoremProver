@@ -28,7 +28,7 @@ import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameID;
+import wyal.lang.NameID;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
@@ -2055,11 +2055,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			@Override
@@ -2086,15 +2086,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			public Expr getValue() {
-				return (Expr) get(2);
+				return get(2);
 			}
 
 			@Override
@@ -2150,11 +2150,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getValue() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getLength() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			@Override
@@ -2178,7 +2178,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			@Override

@@ -16,7 +16,7 @@ package wytp.proof.rules.arithmetic;
 import java.util.Arrays;
 
 import wyal.lang.WyalFile.Expr;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver.ResolutionError;
 import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;

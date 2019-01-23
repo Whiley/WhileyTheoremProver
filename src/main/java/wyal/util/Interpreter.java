@@ -26,9 +26,9 @@ import wyal.lang.Domain;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Stmt.Block;
-import wybs.lang.NameResolver;
-import wybs.lang.NameResolver.NameNotFoundError;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.NameNotFoundError;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.types.extractors.TypeInvariantExtractor;
 
 public class Interpreter {

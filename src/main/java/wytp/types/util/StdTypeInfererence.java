@@ -16,7 +16,8 @@ package wytp.types.util;
 import wyal.lang.WyalFile;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Type;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wycc.util.ArrayUtils;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
@@ -95,7 +96,7 @@ public class StdTypeInfererence implements TypeInferer {
 	}
 
 	protected Type inferCast(Environment environment, Expr.Cast expr) {
-		return (Type) expr.getCastType();
+		return expr.getCastType();
 	}
 
 	protected Type inferLogicalOperator(Environment environment, Expr.Operator expr) throws ResolutionError {

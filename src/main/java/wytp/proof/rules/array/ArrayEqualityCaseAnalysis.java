@@ -14,7 +14,8 @@
 package wytp.proof.rules.array;
 
 import wyal.lang.WyalFile;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 

@@ -17,7 +17,8 @@ import wyal.lang.WyalFile;
 
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.VariableDeclaration;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.Conjunct;

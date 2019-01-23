@@ -20,7 +20,8 @@ import static wyal.lang.WyalFile.Identifier;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.Type.Atom;
 import wyal.lang.WyalFile.Type.Record;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.types.TypeSystem;
 import wytp.types.util.AbstractTypeExtractor;
 

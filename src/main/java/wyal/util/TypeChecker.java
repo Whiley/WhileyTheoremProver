@@ -27,11 +27,11 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
-import wybs.lang.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 import static wybs.lang.SyntaxError.InternalFailure;

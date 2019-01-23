@@ -19,8 +19,8 @@ import java.util.Comparator;
 
 import wyal.lang.Domain;
 import wyal.lang.WyalFile.Declaration.Named;
-import wybs.lang.NameResolver;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 

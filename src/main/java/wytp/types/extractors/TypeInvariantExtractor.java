@@ -18,12 +18,12 @@ import static wytp.proof.util.Formulae.*;
 import java.util.BitSet;
 import java.util.HashSet;
 
+import wyal.lang.NameID;
 import wyal.lang.WyalFile;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
-import wybs.lang.NameID;
-import wybs.lang.NameResolver;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wyfs.lang.Path;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
@@ -116,7 +116,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			FieldDeclaration[] fields = r.getFields();
 			Formula inv = null;
 			for(int i=0;i!=fields.length;++i) {
-				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
+				FieldDeclaration fieldDecl = fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
 				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, visited);
 				if(fieldInv != null) {

@@ -13,7 +13,8 @@
 // limitations under the License.
 package wytp.proof.util;
 
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.rules.Simplification;

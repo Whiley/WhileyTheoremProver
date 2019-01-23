@@ -14,7 +14,8 @@
 package wytp.types.extractors;
 
 import wyal.lang.WyalFile.Type;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.types.TypeSystem;
 import wytp.types.util.AbstractTypeExtractor;
 

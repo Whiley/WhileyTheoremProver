@@ -25,7 +25,8 @@ import java.util.Arrays;
 import static wyal.lang.WyalFile.*;
 import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticHeap;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
@@ -478,9 +479,9 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 				SyntacticItem child = children[i];
 				SyntacticItem nChild;
 				if (child instanceof Expr) {
-					nChild = construct(existingTruths, head, (Expr) child, newTruth, dependencies);
+					nChild = construct(existingTruths, head, child, newTruth, dependencies);
 				} else if (child instanceof Tuple) {
-					nChild = construct(existingTruths, head, (Tuple) child, newTruth, dependencies);
+					nChild = construct(existingTruths, head, child, newTruth, dependencies);
 				} else {
 					nChild = child;
 				}
@@ -495,7 +496,7 @@ public class CongruenceClosure extends AbstractClosureRule implements Proof.Line
 		if (nChildren != children) {
 			// At least one child was changed, therefore clone the original
 			// item with the new children.
-			term = (SyntacticItem) term.clone(nChildren);
+			term = term.clone(nChildren);
 		}
 		if(term instanceof Expr) {
 			return localConstruct(existingTruths, head,(Expr) term, newTruth, dependencies);

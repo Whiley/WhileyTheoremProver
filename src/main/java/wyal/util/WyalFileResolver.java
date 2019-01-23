@@ -24,8 +24,8 @@ import wybs.lang.CompilationUnit.Identifier;
 import wybs.lang.CompilationUnit.Declaration;
 import wybs.lang.Build;
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameID;
-import wybs.lang.NameResolver;
+import wyal.lang.NameID;
+import wyal.util.NameResolver;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
@@ -186,7 +186,7 @@ public final class WyalFileResolver implements NameResolver {
 	 */
 	private NameID nonLocalNameLookup(CompilationUnit.Name name) throws NameResolver.ResolutionError {
 		try {
-			WyalFile enclosing = (WyalFile) getWyalFile(name.getHeap());
+			WyalFile enclosing = getWyalFile(name.getHeap());
 			List<WyalFile.Declaration.Import> imports = getImportsInReverseOrder(enclosing);
 			// Check name against import statements
 			for (WyalFile.Declaration.Import imp : imports) {
