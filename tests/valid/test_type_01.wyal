@@ -1,6 +1,6 @@
-type nat is (int n) where:
+type std::nat is (int n) where:
     n >= 0
 
 assert:
-    forall(nat x):
+    forall(std::nat x):
         x >= 0

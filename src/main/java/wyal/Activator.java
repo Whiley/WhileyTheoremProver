@@ -18,22 +18,27 @@ import java.io.IOException;
 import wyal.lang.WyalFile;
 import wyal.tasks.CompileTask;
 import wybs.lang.Build;
+import wybs.lang.Build.Graph;
 import wybs.lang.Build.Task;
 import wybs.util.AbstractCompilationUnit.Value;
 import wycc.cfg.Configuration;
 import wycc.lang.Module;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
+import wyfs.lang.Path.Root;
 import wyfs.util.Trie;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
 
 public class Activator implements Module.Activator {
+	private static Trie PKGNAME_CONFIG_OPTION = Trie.fromString("package/name");
 	public static Trie SOURCE_CONFIG_OPTION = Trie.fromString("build/wyal/source");
 	public static Trie TARGET_CONFIG_OPTION = Trie.fromString("build/wyal/target");
 	private static Value.UTF8 TARGET_DEFAULT = new Value.UTF8("bin");
 
 	public static Build.Platform WYAL_PLATFORM = new Build.Platform() {
+		private Trie pkg;
+		// Specify directory where generated JS files are dumped.
 		private Trie source;
 		// Specify directory where generated WyIL files are dumped.
 		private Trie target;
@@ -52,6 +57,8 @@ public class Activator implements Module.Activator {
 
 		@Override
 		public void apply(Configuration configuration) {
+			this.pkg = Trie.fromString(configuration.get(Value.UTF8.class, PKGNAME_CONFIG_OPTION).unwrap());
+			//
 			// Extract source path
 			this.source = Trie.fromString(configuration.get(Value.UTF8.class, SOURCE_CONFIG_OPTION).unwrap());
 			this.target = Trie.fromString(configuration.get(Value.UTF8.class, TARGET_CONFIG_OPTION).unwrap());
@@ -97,6 +104,22 @@ public class Activator implements Module.Activator {
 		@Override
 		public void execute(Build.Project project, Path.ID id, String method, Value... args) {
 			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void refresh(Graph graph, Root src, Root bin) throws IOException {
+			// Basically, for the pkg wyil we will create a corresponding js file.
+			//
+			Path.Entry<WyalFile> source = src.get(pkg, WyalFile.ContentType);
+			Path.Entry<WyalFile> binary = bin.get(pkg, WyalFile.BinaryContentType);
+			// Check whether target binary exists or not
+			if (binary == null) {
+				// Doesn't exist, so create with default value
+				binary = bin.create(pkg, WyalFile.BinaryContentType);
+				binary.write(new WyalFile(binary));
+			}
+			// Register source converted by us into the js file.
+			graph.connect(source, binary);
 		}
 	};
 

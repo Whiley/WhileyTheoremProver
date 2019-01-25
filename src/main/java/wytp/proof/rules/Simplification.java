@@ -55,7 +55,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 
 
 	@Override
-	public State apply(State head, Formula truth) {
+	public State apply(State head, Formula truth) throws ResolutionError {
 		Formula simplifiedTruth = simplify(truth);
 		if(!simplifiedTruth.equals(truth)) {
 			// FIXME: useful optimisation would be to support pointer equality
@@ -75,7 +75,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Formula simplify(Formula f) {
+	public Formula simplify(Formula f) throws ResolutionError {
 		switch (f.getOpcode()) {
 		case EXPR_const:
 			return f;
@@ -110,7 +110,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Formula simplifyConjunct(Conjunct conjunct) {
+	public Formula simplifyConjunct(Conjunct conjunct) throws ResolutionError {
 		Formula[] children = conjunct.getAll();
 		Formula[] nChildren = simplify(children);
 		// Check whether contains false
@@ -136,7 +136,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Formula simplifyDisjunct(Disjunct disjunct) {
+	public Formula simplifyDisjunct(Disjunct disjunct) throws ResolutionError {
 		Formula[] children = disjunct.getAll();
 		Formula[] nChildren = simplify(children);
 		// Check whether contains true
@@ -162,7 +162,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Formula[] simplify(Formula[] children) {
+	public Formula[] simplify(Formula[] children) throws ResolutionError {
 		Formula[] nChildren = children;
 		for (int i = 0; i != nChildren.length; ++i) {
 			Formula child = children[i];
@@ -185,7 +185,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Formula simplifyQuantifier(Quantifier quantifier) {
+	public Formula simplifyQuantifier(Quantifier quantifier) throws ResolutionError {
 		Formula body = quantifier.getBody();
 		Formula nBody = simplify(body);
 		if (nBody instanceof Truth) {
@@ -218,7 +218,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Formula simplifyInequality(Inequality ieq) {
+	public Formula simplifyInequality(Inequality ieq) throws ResolutionError {
 		Expr lhs = ieq.get(0);
 		Expr rhs = ieq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
@@ -262,7 +262,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Formula simplifyArithmeticEquality(ArithmeticEquality eq) {
+	public Formula simplifyArithmeticEquality(ArithmeticEquality eq) throws ResolutionError {
 		Expr lhs = eq.get(0);
 		Expr rhs = eq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
@@ -307,7 +307,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Formula simplifyEquality(Equality eq) {
+	public Formula simplifyEquality(Equality eq) throws ResolutionError {
 		Expr lhs = eq.get(0);
 		Expr rhs = eq.get(1);
 		Expr nLhs = simplifyExpression(lhs);
@@ -333,7 +333,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Formula simplifyInvoke(Invoke ivk) {
+	public Formula simplifyInvoke(Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] nChildren = new Expr[args.size()];
 		boolean changed = false;
@@ -352,7 +352,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Formula simplifyIs(Formula.Is e) {
+	public Formula simplifyIs(Formula.Is e) throws ResolutionError {
 		Expr lhs = e.getTestExpr();
 		Expr nLhs = simplifyExpression(lhs);
 		if(lhs != nLhs) {
@@ -363,7 +363,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	}
 
 
-	public Expr[] simplifyExpressions(Expr[] children) {
+	public Expr[] simplifyExpressions(Expr[] children) throws ResolutionError {
 		Expr[] nChildren = children;
 		for (int i = 0; i != children.length; ++i) {
 			Expr child = children[i];
@@ -384,7 +384,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 	 * @throws AmbiguousNameError
 	 * @throws NameNotFoundError
 	 */
-	public Expr simplifyExpression(Expr e) {
+	public Expr simplifyExpression(Expr e) throws ResolutionError {
 		switch (e.getOpcode()) {
 		case EXPR_varcopy:
 			return e;
@@ -450,7 +450,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyRecordInitialiser(Expr.RecordInitialiser e) {
+	public Expr simplifyRecordInitialiser(Expr.RecordInitialiser e) throws ResolutionError {
 		Pair<Identifier,Expr>[] fields = e.getFields();
 		Pair<Identifier,Expr>[] nFields = fields;
 		for(int i=0;i!=fields.length;++i) {
@@ -470,7 +470,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyRecordAccess(Expr.RecordAccess e) {
+	public Expr simplifyRecordAccess(Expr.RecordAccess e) throws ResolutionError {
 		Expr source = e.getSource();
 		Expr nSource = simplifyExpression(source);
 		if(nSource instanceof Expr.RecordInitialiser) {
@@ -498,7 +498,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyRecordUpdate(Expr.RecordUpdate e) {
+	public Expr simplifyRecordUpdate(Expr.RecordUpdate e) throws ResolutionError {
 		Expr source = e.getSource();
 		Expr value = e.getValue();
 		Expr nSource = simplifyExpression(source);
@@ -524,7 +524,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyDereference(Expr.Dereference e) {
+	public Expr simplifyDereference(Expr.Dereference e) throws ResolutionError {
 		Expr source = e.getOperand();
 		Expr nSource = simplifyExpression(source);
 		if (source == nSource) {
@@ -534,7 +534,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyInvoke(Expr.Invoke ivk) {
+	public Expr simplifyInvoke(Expr.Invoke ivk) throws ResolutionError {
 		Tuple<Expr> args = ivk.getArguments();
 		Expr[] nChildren = new Expr[args.size()];
 		boolean changed = false;
@@ -553,7 +553,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyArrayIndex(Expr.Operator e) {
+	public Expr simplifyArrayIndex(Expr.Operator e) throws ResolutionError {
 		Expr source = e.get(0);
 		Expr index = e.get(1);
 		Expr nSource = simplifyExpression(source);
@@ -584,7 +584,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyArrayUpdate(Expr.Operator e) {
+	public Expr simplifyArrayUpdate(Expr.Operator e) throws ResolutionError {
 		Expr source = e.get(0);
 		Expr index = e.get(1);
 		Expr value = e.get(2);
@@ -609,7 +609,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyArrayLength(Expr.Operator e) {
+	public Expr simplifyArrayLength(Expr.Operator e) throws ResolutionError {
 		Expr r = simplifyNonArithmetic(e);
 		if (r instanceof Expr.Operator) {
 			Expr src = (Expr) r.get(0);
@@ -624,7 +624,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		return r;
 	}
 
-	public Expr simplifyNonArithmetic(Expr.Operator e) {
+	public Expr simplifyNonArithmetic(Expr.Operator e) throws ResolutionError {
 		Expr[] children = e.getAll();
 		Expr[] nChildren = simplifyExpressions(children);
 
@@ -640,7 +640,7 @@ public class Simplification extends AbstractProofRule implements Proof.LinearRul
 		}
 	}
 
-	public Expr simplifyArithmetic(Expr.Operator e) {
+	public Expr simplifyArithmetic(Expr.Operator e) throws ResolutionError {
 		Expr[] children = e.getAll();
 		Polynomial result = Arithmetic.asPolynomial(simplifyExpression(children[0]));
 		switch (e.getOpcode()) {

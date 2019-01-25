@@ -15,7 +15,6 @@ package wyal.util;
 
 import java.util.List;
 
-import wyal.lang.NameID;
 import wybs.lang.CompilationUnit.Name;
 import wybs.lang.CompilationUnit.Declaration;;
 
@@ -43,17 +42,6 @@ import wybs.lang.CompilationUnit.Declaration;;
  *
  */
 public interface NameResolver {
-
-	/**
-	 * Fully resolve a given name which occurs at some position in a compilation
-	 * unit. This takes into account the context and, if necessary, will
-	 * traverse important statements to resolve the query. This is the primary
-	 * function of a name resolver, and all other functions build on this.
-	 *
-	 * @param name
-	 * @return
-	 */
-	public NameID resolve(Name name) throws ResolutionError;
 
 	/**
 	 * <p>

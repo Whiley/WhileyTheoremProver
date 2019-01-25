@@ -106,14 +106,8 @@ public class CompileTask implements Build.Task {
 				Path.Root dst = p.second();
 				Path.Entry<WyalFile> target = dst.create(sf.id(), WyalFile.BinaryContentType);
 				target.write(createSkeleton(wf,target));
-				// Register the derivation in the build graph. This is important
-				// to understand what a particular intermediate file was
-				// derived from.
-				graph.registerDerivation(sf, target);
-				//
-				Path.Entry<? extends CompilationUnit> originalSource = determineSource(sf,graph);
 
-				files.add(new Pair<>(originalSource,wf));
+				files.add(new Pair<>(sf, wf));
 			}
 		}
 
@@ -147,7 +141,7 @@ public class CompileTask implements Build.Task {
 			for (Pair<Path.Entry, WyalFile> p : files) {
 				Path.Entry<? extends CompilationUnit> originalSource = p.first();
 				WyalFile wf = p.second();
-				prover.check(wf, originalSource);
+				prover.check(wf, project.getRoot());
 			}
 		}
 
@@ -187,16 +181,6 @@ public class CompileTask implements Build.Task {
 				startMemory - runtime.freeMemory());
 
 		return generatedFiles;
-	}
-
-	private static Path.Entry<? extends CompilationUnit> determineSource(Path.Entry<?> child, Build.Graph graph) {
-		// FIXME: this is a temporary hack
-		Path.Entry<?> parent = graph.parent(child);
-		while (parent != null) {
-			child = parent;
-			parent = graph.parent(child);
-		}
-		return (Path.Entry<? extends CompilationUnit>) child;
 	}
 
 	// ======================================================================

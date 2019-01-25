@@ -196,8 +196,6 @@ public class TypeChecker {
 			check((WyalFile.Declaration.Assert) decl);
 		} else if (decl instanceof WyalFile.Declaration.Named) {
 			check((WyalFile.Declaration.Named) decl);
-		} else if (decl instanceof WyalFile.Declaration.Import) {
-			// nothing to do here
 		} else {
 			throw new InternalFailure("unknown declaration: " + decl,originatingEntry,decl);
 		}

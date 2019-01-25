@@ -13,6 +13,7 @@
 // limitations under the License.
 package wytp.provers;
 
+import java.io.IOException;
 import java.util.BitSet;
 
 import wyal.heap.StructurallyEquivalentHeap;
@@ -118,11 +119,12 @@ public class AutomatedTheoremProver {
 				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
 
-	public void check(WyalFile source, Path.Entry<?> originalSource) {
+	public void check(WyalFile source, Path.Root root) throws IOException {
 		for (int i = 0; i != source.size(); ++i) {
 			SyntacticItem item = source.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
+				Path.Entry<?> originalSource = ast.getEnclosingFile(root);
 				try {
 					if (!check(ast)) {
 						String msg = ast.getMessage();

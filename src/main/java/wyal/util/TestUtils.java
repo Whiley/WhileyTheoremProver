@@ -23,7 +23,9 @@ import java.util.List;
 
 import wyal.lang.WyalFile;
 import wyal.tasks.CompileTask;
+import wybs.lang.Build;
 import wybs.lang.SyntaxError;
+import wybs.util.StdBuildGraph;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
 import wycc.util.Pair;
@@ -81,11 +83,13 @@ public class TestUtils {
 		try {
 			// Construct the project
 			DirectoryRoot root = new DirectoryRoot(whileydir, registry);
-			StdProject project = new StdProject(Arrays.asList(root));
+			StdProject project = new StdProject(root);
 			// Add build rules
 			addCompilationRules(project,root,verify);
+			// Create empty build graph
+			Build.Graph graph = new StdBuildGraph();
 			// Identify source files and build project
-			project.build(findSourceFiles(root,args));
+			project.build(findSourceFiles(root,args),graph);
 			// Flush any created resources (e.g. wyil files)
 			root.flush();
 		} catch (SyntaxError e) {
