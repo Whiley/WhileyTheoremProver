@@ -40,7 +40,7 @@ public final class WyalFileResolver implements NameResolver {
 				return (T) d;
 			}
 		}
-		throw new ResolutionError(name, "resolution error");
+		throw new ResolutionError(name, "resolution error (" + name + ")");
 	}
 
 	@Override

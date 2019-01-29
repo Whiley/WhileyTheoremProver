@@ -53,13 +53,7 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf) {
-		// First, write package information
-		Path.ID pkg = wf.getEntry().id().parent();
-		if (pkg != Trie.ROOT) {
-			out.println("package " + pkg.toString().replace("/","."));
-			out.println();
-		}
-		// Second, write all declarations
+		// Write all declarations
 		for (WyalFile.Declaration d : wf.getSyntacticItems(WyalFile.Declaration.class)) {
 			write(wf, d);
 			out.println();
