@@ -16,6 +16,8 @@ package wyal.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 
 import wyal.lang.Domain;
 import wyal.lang.WyalFile.Declaration.Named;
@@ -48,8 +50,13 @@ public class SmallWorldDomain implements Domain {
 	}
 
 	public Generator generator(Type type, int depth) {
+		return generator(type, depth, new HashSet<>());
+	}
+
+	private Generator generator(Type type, int depth, Set<Name> visited) {
 		if(depth >= depthBound) {
-			return null;
+			System.out.println("DEPTH: " + depth + " : " + type);
+			return VOID_GENERATOR;
 		} else if (type instanceof Type.Null) {
 			return new NullGenerator();
 		} else if (type instanceof Type.Bool) {
@@ -86,8 +93,17 @@ public class SmallWorldDomain implements Domain {
 			Type.Nominal nominal = (Type.Nominal) type;
 			try {
 				Named.Type decl = resolver.resolveExactly(nominal.getName(), Named.Type.class);
-				// FIXME: what about recursive types?
-				return generator(decl.getVariableDeclaration().getType(),depth+1);
+				Name name = decl.getName();
+				// Check for recursive types
+				if(visited.contains(name)) {
+					// Recursive type encountered
+					depth = depth + 1;
+					visited.clear();
+				} else {
+					visited.add(name);
+				}
+				//
+				return generator(decl.getVariableDeclaration().getType(), depth, visited);
 			} catch (ResolutionError e) {
 				throw new RuntimeException(e);
 			}
@@ -104,6 +120,29 @@ public class SmallWorldDomain implements Domain {
 		}
 
 	};
+
+	private static EmptyGenerator VOID_GENERATOR = new EmptyGenerator();
+
+	private static class EmptyGenerator implements Domain.Generator {
+
+		@Override
+		public boolean hasNext() {
+			return false;
+		}
+
+		@Override
+		public Object get() {
+			throw new IllegalArgumentException("invalid operation");
+		}
+
+		@Override
+		public void next() {
+		}
+
+		@Override
+		public void reset() {
+		}
+	}
 
 	private static class NullGenerator implements Domain.Generator {
 
@@ -297,12 +336,22 @@ public class SmallWorldDomain implements Domain {
 		private int index;
 
 		public UnionGenerator(Domain.Generator[] generators) {
+			for(int i=0;i!=generators.length;++i) {
+				if(generators[i] == null) {
+					throw new IllegalArgumentException("generator cannot be null");
+				}
+			}
 			this.generators = generators;
 			this.index = 0;
 		}
 
 		@Override
 		public boolean hasNext() {
+			// Skip over any empty generators
+			while(index < generators.length && !generators[index].hasNext()) {
+				index = index + 1;
+			}
+			//
 			return index < generators.length;
 		}
 
