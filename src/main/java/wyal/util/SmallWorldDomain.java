@@ -34,7 +34,7 @@ import static wyal.lang.WyalFile.*;
  *
  */
 public class SmallWorldDomain implements Domain {
-	private final int intLowerBound = -5;
+	private final int intLowerBound = -3;
 	private final int intUpperBound = 5;
 	private final int arrayLengthBound = 2;
 	private final int depthBound = 2;
@@ -49,13 +49,15 @@ public class SmallWorldDomain implements Domain {
 		return generator(type,0);
 	}
 
-	public Generator generator(Type type, int depth) {
+	private Generator generator(Type type, int depth) {
 		return generator(type, depth, new HashSet<>());
 	}
 
 	private Generator generator(Type type, int depth, Set<Name> visited) {
+		// TODO: this could be made more efficient using a bitset instead of the
+		// HashSet<Name> for visited. Could also avoid cloning in the non-contained
+		// case.
 		if(depth >= depthBound) {
-			System.out.println("DEPTH: " + depth + " : " + type);
 			return VOID_GENERATOR;
 		} else if (type instanceof Type.Null) {
 			return new NullGenerator();
@@ -72,21 +74,21 @@ public class SmallWorldDomain implements Domain {
 			for (int i = 0; i != generators.length; ++i) {
 				FieldDeclaration field = fields[i];
 				fieldNames[i] = field.getVariableName();
-				generators[i] = generator(field.getType(),depth);
+				generators[i] = generator(field.getType(),depth,visited);
 			}
 			return new RecordGenerator(fieldNames,generators);
 		} else if (type instanceof Type.Array) {
 			Type elementType = ((Type.Array) type).getElement();
 			Domain.Generator[] generators = new Domain.Generator[arrayLengthBound];
 			for (int i = 0; i != generators.length; ++i) {
-				generators[i] = generator(elementType,depth);
+				generators[i] = generator(elementType,depth,visited);
 			}
 			return new ArrayGenerator(generators);
 		} else if (type instanceof Type.Union) {
 			Type.Union union = (Type.Union) type;
 			Domain.Generator[] generators = new Domain.Generator[arrayLengthBound];
 			for (int i = 0; i != generators.length; ++i) {
-				generators[i] = generator(union.get(i),depth);
+				generators[i] = generator(union.get(i),depth,visited);
 			}
 			return new UnionGenerator(generators);
 		} else if(type instanceof Type.Nominal) {
@@ -95,15 +97,19 @@ public class SmallWorldDomain implements Domain {
 				Named.Type decl = resolver.resolveExactly(nominal.getName(), Named.Type.class);
 				Name name = decl.getName();
 				// Check for recursive types
+				HashSet<Name> nvisited = new HashSet<>();
 				if(visited.contains(name)) {
-					// Recursive type encountered
+					// Have previously visited this type. Therefore, increase recursive depth and
+					// reset the visited relation to prevent types contained within this from
+					// tripping it.
 					depth = depth + 1;
-					visited.clear();
 				} else {
-					visited.add(name);
+					// Haven't yet visited this type, so simply make a record.
+					nvisited.addAll(visited);
 				}
-				//
-				return generator(decl.getVariableDeclaration().getType(), depth, visited);
+				nvisited.add(name);
+				// Recursively generate for this type
+				return  generator(decl.getVariableDeclaration().getType(), depth, nvisited);
 			} catch (ResolutionError e) {
 				throw new RuntimeException(e);
 			}
@@ -280,7 +286,7 @@ public class SmallWorldDomain implements Domain {
 	private static class RecordGenerator implements Domain.Generator {
 		private final Identifier[] fields;
 		private final Domain.Generator[] generators;
-
+		private boolean done;
 
 		public RecordGenerator(Identifier[] fields, Domain.Generator[] generators) {
 			this.fields = fields;
@@ -289,12 +295,16 @@ public class SmallWorldDomain implements Domain {
 
 		@Override
 		public boolean hasNext() {
-			for(int i=0;i!=generators.length;++i) {
-				if(generators[i].hasNext()) {
-					return true;
+			if(done) {
+				return false;
+			} else {
+				for(int i=0;i!=generators.length;++i) {
+					if(!generators[i].hasNext()) {
+						return false;
+					}
 				}
+				return true;
 			}
-			return false;
 		}
 
 		@Override
@@ -310,8 +320,8 @@ public class SmallWorldDomain implements Domain {
 		public void next() {
 			for (int i = 0; i != generators.length; ++i) {
 				Domain.Generator gen = generators[i];
+				gen.next();
 				if (gen.hasNext()) {
-					gen.next();
 					return;
 				} else {
 					gen.reset();
@@ -319,6 +329,7 @@ public class SmallWorldDomain implements Domain {
 			}
 			// If we get here then we have exhausted all arrays upto the given
 			// length.
+			done = true;
 		}
 
 		@Override
@@ -326,6 +337,7 @@ public class SmallWorldDomain implements Domain {
 			for(int i=0;i!=generators.length;++i) {
 				generators[i].reset();
 			}
+			this.done = false;
 		}
 
 	}

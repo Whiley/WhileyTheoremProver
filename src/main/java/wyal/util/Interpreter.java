@@ -647,14 +647,18 @@ public class Interpreter {
 				Record record = (Record) value;
 				Type.Record recT = (Type.Record) type;
 				FieldDeclaration[] fields = recT.getFields();
-				Arrays.sort(fields,fieldDeclarationComparator);
-				for(int i=0;i!=recT.size();++i) {
-					FieldDeclaration field = fields[i];
-					if(!isInstance(record.values[i],field.getType())) {
-						return false;
+				if(record.values.length >= fields.length) {
+					Arrays.sort(fields,fieldDeclarationComparator);
+					for(int i=0;i!=fields.length;++i) {
+						FieldDeclaration field = fields[i];
+						if(!isInstance(record.values[i],field.getType())) {
+							return false;
+						}
 					}
+					return record.values.length == recT.size() || recT.isOpen();
+				} else {
+					return false;
 				}
-				return true;
 			} else {
 				return false;
 			}
@@ -821,7 +825,6 @@ public class Interpreter {
 
 			@Override
 			public boolean hasNext() {
-				// Check whether secret signal has been made
 				return generators[0] != null;
 			}
 

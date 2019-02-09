@@ -227,8 +227,7 @@ public class CompileTask implements Build.Task {
 		Interpreter interpreter = new Interpreter(new SmallWorldDomain(resolver), resolver, extractor);
 		try {
 			Interpreter.Result result = interpreter.evaluate(assertion);
-			if (!result.holds() && !result.getEnvironment().isEmpty()) {
-				// FIXME: this is broken
+			if (!result.holds()) {
 				return result.getEnvironment().toString();
 			}
 		} catch (Interpreter.UndefinedException e) {
@@ -238,9 +237,9 @@ public class CompileTask implements Build.Task {
 //			// NOTE: getting here usually means some kind of exception occurred in the
 //			// interpreter. At the moment this can happen as a result of incorrectly
 //			// processed undefined values.
-//			return "{counterexample failure}";
+//			return "{" + e.getMessage() + "}";
 //		}
-		return null;
+		return "{}";
 	}
 
 }
