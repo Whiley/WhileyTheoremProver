@@ -14,8 +14,11 @@
 package wyal.util;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -644,14 +647,18 @@ public class Interpreter {
 				Record record = (Record) value;
 				Type.Record recT = (Type.Record) type;
 				FieldDeclaration[] fields = recT.getFields();
-				Arrays.sort(fields,fieldDeclarationComparator);
-				for(int i=0;i!=recT.size();++i) {
-					FieldDeclaration field = fields[i];
-					if(!isInstance(record.values[i],field.getType())) {
-						return false;
+				if(record.values.length >= fields.length) {
+					Arrays.sort(fields,fieldDeclarationComparator);
+					for(int i=0;i!=fields.length;++i) {
+						FieldDeclaration field = fields[i];
+						if(!isInstance(record.values[i],field.getType())) {
+							return false;
+						}
 					}
+					return record.values.length == recT.size() || recT.isOpen();
+				} else {
+					return false;
 				}
-				return true;
 			} else {
 				return false;
 			}
@@ -726,6 +733,10 @@ public class Interpreter {
 			this.values = new IdentityHashMap<>();
 		}
 
+		public boolean isEmpty() {
+			return values.isEmpty();
+		}
+
 		public Object read(Expr.VariableAccess expr) {
 			VariableDeclaration var = expr.getVariableDeclaration();
 			if(values.containsKey(var)) {
@@ -737,11 +748,11 @@ public class Interpreter {
 			}
 		}
 
-    public Object getReturnValue(Declaration.Named.Function fn, Object... arguments) {
-      // FIXME: need to handle tuple returns.
-      // FIXME: need to iterate on return values and lock-in parameter assignments.
-      return domain.generator(fn.getSignatureType().getReturns().get(0)).get();
-    }
+		public Object getReturnValue(Declaration.Named.Function fn, Object... arguments) {
+			// FIXME: need to handle tuple returns.
+			// FIXME: need to iterate on return values and lock-in parameter assignments.
+			return domain.generator(fn.getSignatureType().getReturns().get(0)).get();
+		}
 
 		public Iterable<Environment> declare(Tuple<VariableDeclaration> variables) {
 			// Some Java switcheroo stuff
@@ -765,14 +776,19 @@ public class Interpreter {
 			if(env == null) {
 				return "";
 			} else {
-				r = toString(env.parent);
-				boolean firstTime=true;
+				HashMap<String,String> m = new HashMap<>();
 				for(Map.Entry<VariableDeclaration, Object> e : env.values.entrySet()) {
-					if(!firstTime) {
+					m.put(e.getKey().getVariableName().toString(),toString(e.getValue()));
+				}
+				//
+				ArrayList<String> values = new ArrayList<>(m.keySet());
+				Collections.sort(values);
+				r = toString(env.parent);
+				for(int i=0;i!=values.size();++i) {
+					if(i > 0) {
 						r += ", ";
 					}
-					firstTime=false;
-					r += e.getKey().getVariableName() + "=" + toString(e.getValue());
+					r += values.get(i) + "=" + m.get(values.get(i));
 				}
 				return r;
 			}
@@ -809,7 +825,6 @@ public class Interpreter {
 
 			@Override
 			public boolean hasNext() {
-				// Check whether secret signal has been made
 				return generators[0] != null;
 			}
 
