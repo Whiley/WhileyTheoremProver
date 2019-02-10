@@ -24,9 +24,9 @@ import wybs.util.AbstractCompilationUnit.*;
 import wyal.lang.WyalFile.Type;
 import wycc.util.Pair;
 import wyal.lang.WyalFile.Declaration.Named;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticHeap;
-import wybs.lang.NameResolver.ResolutionError;
 import wytp.types.SubtypeOperator;
 import wytp.types.SubtypeOperator.Result;
 
@@ -152,7 +152,7 @@ public class CoerciveSubtypeOperator implements SubtypeOperator {
 				} else {
 					// Disjunction
 					for (int i = 0; i != operands.length; ++i) {
-						Worklist tmp = (Worklist) worklist.clone();
+						Worklist tmp = worklist.clone();
 						tmp.push(item.sign, operands[i], item.maximise);
 						if (!isVoid((ArrayList<Atom<?>>) truths.clone(), tmp, assumptions)) {
 							// If a single clause of the disjunct is definitely

@@ -28,7 +28,6 @@ import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
 import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameID;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
@@ -94,7 +93,8 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		@Override
 		public void write(OutputStream output, WyalFile module) throws IOException {
-			throw new RuntimeException("Implement me!");
+			// FIXME: this is screwed
+			//throw new RuntimeException("Implement me!");
 		}
 
 		@Override
@@ -234,66 +234,24 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// ============================================================
 	public static interface Declaration extends CompilationUnit.Declaration {
 
-		/**
-		 * Represents an import declaration in a Wycs source file. For example:
-		 *
-		 * <pre>
-		 * import wycs.lang.Map
-		 * </pre>
-		 *
-		 * Here, the package is <code>wycs.lang</code>, and the module is
-		 * <code>Map</code>.
-		 *
-		 * @author David J. Pearce
-		 *
-		 */
-		public static class Import extends AbstractSyntacticItem implements Declaration {
-			public Import(Identifier... components) {
-				super(DECL_import, components);
-			}
-
-			public Identifier[] getComponents() {
-				return (Identifier[]) getAll();
-			}
-
-			@Override
-			public Identifier get(int i) {
-				return (Identifier) super.get(i);
-			}
-
-			@Override
-			public Import clone(SyntacticItem[] operands) {
-				return new Import(ArrayUtils.toArray(Identifier.class, operands));
-			}
-
-			@Override
-			public String toString() {
-				String r = "import ";
-				for (int i = 0; i != size(); ++i) {
-					if (i != 0) {
-						r += ".";
-					}
-					Identifier component = get(i);
-					if (component == null) {
-						r += "*";
-					} else {
-						r += component.get();
-					}
-				}
-				return r;
-			}
-		}
-
 		public static class Assert extends AbstractSyntacticItem implements Declaration {
 			private String message;
+			private Path.ID file;
+			private Content.Type<?> contentType;
 
-			public Assert(Stmt.Block body, String message) {
+			public Assert(Stmt.Block body, String message, Path.ID file, Content.Type<?> contentType) {
 				super(DECL_assert, body);
 				this.message = message;
+				this.file = file;
+				this.contentType = contentType;
 			}
 
 			public Stmt.Block getBody() {
 				return (Stmt.Block) get(0);
+			}
+
+			public Path.Entry<?> getEnclosingFile(Path.Root root) throws IOException {
+				return root.get(file, contentType);
 			}
 
 			public String getMessage() {
@@ -302,7 +260,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
-				return new Assert((Stmt.Block) operands[0], message);
+				return new Assert((Stmt.Block) operands[0], message, file, contentType);
 			}
 
 			@Override
@@ -313,23 +271,23 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public static interface Named extends Declaration {
 
-			public Identifier getName();
+			public Name getName();
 
 			public Tuple<VariableDeclaration> getParameters();
 
 			public static abstract class FunctionOrMacro extends AbstractSyntacticItem implements Named {
-				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
+				public FunctionOrMacro(Name name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
 					super(DECL_macro, name, parameters, body);
 				}
 
-				public FunctionOrMacro(Identifier name, Tuple<VariableDeclaration> parameters,
+				public FunctionOrMacro(Name name, Tuple<VariableDeclaration> parameters,
 						Tuple<VariableDeclaration> returns) {
 					super(DECL_fun, name, parameters, returns);
 				}
 
 				@Override
-				public Identifier getName() {
-					return (Identifier) get(0);
+				public Name getName() {
+					return (Name) get(0);
 				}
 
 				@Override
@@ -345,11 +303,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			// ============================================================
 			public static class Function extends FunctionOrMacro {
 
-				public Function(Identifier name, VariableDeclaration[] parameters, VariableDeclaration[] returns) {
+				public Function(Name name, VariableDeclaration[] parameters, VariableDeclaration[] returns) {
 					super(name, new Tuple(parameters), new Tuple(returns));
 				}
 
-				public Function(Identifier name, Tuple<VariableDeclaration> parameters,
+				public Function(Name name, Tuple<VariableDeclaration> parameters,
 						Tuple<VariableDeclaration> returns) {
 					super(name, parameters, returns);
 				}
@@ -365,7 +323,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				@Override
 				public Function clone(SyntacticItem[] operands) {
-					return new Function((Identifier) operands[0], (Tuple) operands[1], (Tuple) operands[2]);
+					return new Function((Name) operands[0], (Tuple) operands[1], (Tuple) operands[2]);
 				}
 			}
 
@@ -373,11 +331,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			// Macro Declaration
 			// ============================================================
 			public static class Macro extends FunctionOrMacro {
-				public Macro(Identifier name, VariableDeclaration[] parameters, Stmt.Block body) {
+				public Macro(Name name, VariableDeclaration[] parameters, Stmt.Block body) {
 					super(name, new Tuple<>(parameters), body);
 				}
 
-				private Macro(Identifier name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
+				private Macro(Name name, Tuple<VariableDeclaration> parameters, Stmt.Block body) {
 					super(name, parameters, body);
 				}
 
@@ -392,7 +350,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				@Override
 				public Macro clone(SyntacticItem[] operands) {
-					return new Macro((Identifier) operands[0], (Tuple<VariableDeclaration>) operands[1],
+					return new Macro((Name) operands[0], (Tuple<VariableDeclaration>) operands[1],
 							(Stmt.Block) operands[2]);
 				}
 			}
@@ -402,17 +360,17 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			// ============================================================
 			public static class Type extends AbstractSyntacticItem implements Named {
 
-				public Type(Identifier name, VariableDeclaration vardecl, Stmt.Block... invariant) {
+				public Type(Name name, VariableDeclaration vardecl, Stmt.Block... invariant) {
 					super(DECL_type, name, vardecl, new Tuple(invariant));
 				}
 
-				private Type(Identifier name, VariableDeclaration vardecl, Tuple<Stmt.Block> invariant) {
+				private Type(Name name, VariableDeclaration vardecl, Tuple<Stmt.Block> invariant) {
 					super(DECL_type, name, vardecl, invariant);
 				}
 
 				@Override
-				public Identifier getName() {
-					return (Identifier) get(0);
+				public Name getName() {
+					return (Name) get(0);
 				}
 
 				public VariableDeclaration getVariableDeclaration() {
@@ -425,7 +383,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 				@Override
 				public Type clone(SyntacticItem[] operands) {
-					return new Type((Identifier) operands[0], (VariableDeclaration) operands[1], (Tuple) operands[2]);
+					return new Type((Name) operands[0], (VariableDeclaration) operands[1], (Tuple) operands[2]);
 				}
 
 				@Override
@@ -2054,11 +2012,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			@Override
@@ -2085,15 +2043,15 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getSubscript() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			public Expr getValue() {
-				return (Expr) get(2);
+				return get(2);
 			}
 
 			@Override
@@ -2149,11 +2107,11 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getValue() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			public Expr getLength() {
-				return (Expr) get(1);
+				return get(1);
 			}
 
 			@Override
@@ -2177,7 +2135,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 			}
 
 			public Expr getSource() {
-				return (Expr) get(0);
+				return get(0);
 			}
 
 			@Override

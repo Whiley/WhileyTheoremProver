@@ -15,7 +15,8 @@ package wytp.proof.rules;
 
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.*;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Formula.ArithmeticEquality;

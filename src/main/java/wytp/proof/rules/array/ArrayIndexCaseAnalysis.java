@@ -18,7 +18,8 @@ import java.util.List;
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
 import wybs.lang.SyntacticItem;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
@@ -69,7 +70,7 @@ public class ArrayIndexCaseAnalysis extends AbstractProofRule implements Proof.L
 				Formula case1 = (Formula) substitute(split, v, truth);
 				// NOTE: we must call construct here since we are creating a new
 				// term from scratch.
-				WyalFile.Expr arridx = (Expr) new Expr.ArrayAccess(xs, j);
+				WyalFile.Expr arridx = new Expr.ArrayAccess(xs, j);
 				Formula case2 = (Formula) substitute(split, arridx, truth);
 				result[0] = Formulae.and(new Formula.ArithmeticEquality(true, i, j), case1);
 				result[1] = Formulae.and(new Formula.ArithmeticEquality(false, i, j), case2);

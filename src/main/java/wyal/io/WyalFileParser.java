@@ -57,23 +57,19 @@ public class WyalFileParser {
 		while (index < tokens.size()) {
 			Token lookahead = tokens.get(index);
 			Declaration declaration;
-			if (lookahead.kind == Import) {
-				declaration = parseImportDeclaration(file);
+			checkNotEof();
+			lookahead = tokens.get(index);
+			if (lookahead.kind == Assert) {
+				declaration = parseAssertDeclaration(file);
+			} else if (lookahead.text.equals("type")) {
+				declaration = parseTypeDeclaration(file);
+			} else if (lookahead.text.equals("define")) {
+				declaration = parseMacroDeclaration(file);
+			} else if (lookahead.kind == Function) {
+				declaration = parseFunctionDeclaration(file);
 			} else {
-				checkNotEof();
-				lookahead = tokens.get(index);
-				if (lookahead.kind == Assert) {
-					declaration = parseAssertDeclaration(file);
-				} else if (lookahead.text.equals("type")) {
-					declaration = parseTypeDeclaration(file);
-				} else if (lookahead.text.equals("define")) {
-					declaration = parseMacroDeclaration(file);
-				} else if (lookahead.kind == Function) {
-					declaration = parseFunctionDeclaration(file);
-				} else {
-					syntaxError("unrecognised declaration", lookahead);
-					return null; // dead-code
-				}
+				syntaxError("unrecognised declaration", lookahead);
+				return null; // dead-code
 			}
 			skipWhiteSpace();
 		}
@@ -97,30 +93,6 @@ public class WyalFileParser {
 		} else {
 			return pkg; // no package
 		}
-	}
-
-	/**
-	 * Parse an import declaration, which is of the form:
-	 *
-	 * <pre>
-	 * ImportDecl ::= Identifier ["from" ('*' | Identifier)] ( ('.' | '..') ('*' | Identifier) )*
-	 * </pre>
-	 *
-	 * @param parent
-	 *            WyalFile being constructed
-	 */
-	private Declaration parseImportDeclaration(WyalFile parent) {
-		int start = index;
-		EnclosingScope scope = new EnclosingScope(parent);
-
-		match(Import);
-		Identifier[] filterPath = parseFilterPath(scope);
-
-		int end = index;
-		matchEndLine();
-
-		Declaration.Import imprt = new Declaration.Import(filterPath);
-		return allocate(imprt, sourceAttr(start, end - 1));
 	}
 
 	private Identifier[] parseFilterPath(EnclosingScope scope) {
@@ -151,6 +123,7 @@ public class WyalFileParser {
 	 *            The WyAL file in which this declaration is defined.
 	 */
 	protected Declaration parseAssertDeclaration(WyalFile parent) {
+		Path.Entry<WyalFile> entry = parent.getEntry();
 		EnclosingScope scope = new EnclosingScope(parent);
 		int start = index;
 		String message = null;
@@ -164,7 +137,7 @@ public class WyalFileParser {
 
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body, message);
+		Declaration.Assert declaration = new Declaration.Assert(body, message, entry.id(), entry.contentType());
 		return allocate(declaration, sourceAttr(start, index - 1));
 	}
 
@@ -183,7 +156,7 @@ public class WyalFileParser {
 		// be "type" as, otherwise, this method would not have been called.
 		match(Identifier);
 		//
-		Identifier name = parseIdentifier(scope);
+		Name name = parseName(scope);
 		match(Is);
 		// Parse parameter declaration and invariant (if applicable)
 		match(LeftBrace);
@@ -217,7 +190,7 @@ public class WyalFileParser {
 		int start = index;
 		//
 		match(Function);
-		Identifier name = parseIdentifier(scope);
+		Name name = parseName(scope);
 		//
 		VariableDeclaration[] parameters = parseParameterDeclarations(scope);
 		match(MinusGreater);
@@ -233,7 +206,7 @@ public class WyalFileParser {
 		int start = index;
 		//
 		match(Define);
-		Identifier name = parseIdentifier(scope);
+		Name name = parseName(scope);
 		//
 		VariableDeclaration[] parameters = parseParameterDeclarations(scope);
 		match(Is);
@@ -699,7 +672,7 @@ public class WyalFileParser {
 			// not an identifier, or the identifier is a local variable.
 			return parseTermExpression(scope, terminated);
 		} else {
-			Name nid = parseNameID(scope);
+			Name nid = parseName(scope);
 			// At this point, either we have a function invocation, or we have a
 			// constant access.
 			lookahead = tokens.get(skipLineSpace(index));
@@ -1680,7 +1653,7 @@ public class WyalFileParser {
 	private Type parseNominalType(EnclosingScope scope) {
 		int start = index;
 		//
-		Name name = parseNameID(scope);
+		Name name = parseName(scope);
 		// this is a nominal type constructor
 		Type type = new Type.Nominal(name);
 		return allocate(type, sourceAttr(start, index - 1));
@@ -1728,11 +1701,11 @@ public class WyalFileParser {
 		return allocate(id, sourceAttr(start, index - 1));
 	}
 
-	private Name parseNameID(EnclosingScope scope) {
+	private Name parseName(EnclosingScope scope) {
 		int start = index;
 		List<Identifier> components = new ArrayList<>();
 		components.add(parseIdentifier(scope));
-		while (tryAndMatch(false, Dot) != null) {
+		while (tryAndMatch(false, ColonColon) != null) {
 			components.add(parseIdentifier(scope));
 		}
 		Identifier[] ids = components.toArray(new Identifier[components.size()]);

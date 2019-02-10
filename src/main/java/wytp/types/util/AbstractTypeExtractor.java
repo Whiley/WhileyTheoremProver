@@ -18,8 +18,8 @@ import java.util.Arrays;
 import wyal.lang.WyalFile.Declaration.Named;
 
 import static wyal.lang.WyalFile.Type;
-import wybs.lang.NameResolver;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.types.TypeExtractor;
 import wytp.types.TypeSystem;
 import wycc.util.ArrayUtils;

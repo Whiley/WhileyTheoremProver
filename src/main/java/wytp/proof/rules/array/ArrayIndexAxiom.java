@@ -17,7 +17,8 @@ import java.math.BigInteger;
 import java.util.List;
 
 import wyal.lang.WyalFile.Expr;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;

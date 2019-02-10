@@ -53,13 +53,7 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf) {
-		// First, write package information
-		Path.ID pkg = wf.getEntry().id().parent();
-		if (pkg != Trie.ROOT) {
-			out.println("package " + pkg.toString().replace("/","."));
-			out.println();
-		}
-		// Second, write all declarations
+		// Write all declarations
 		for (WyalFile.Declaration d : wf.getSyntacticItems(WyalFile.Declaration.class)) {
 			write(wf, d);
 			out.println();
@@ -99,9 +93,7 @@ public class WyalFilePrinter {
 	}
 
 	private void write(WyalFile wf, Declaration s) {
-		if(s instanceof Declaration.Import) {
-			write(wf, (Declaration.Import) s);
-		} else if (s instanceof Declaration.Named.Function) {
+		if (s instanceof Declaration.Named.Function) {
 			write(wf, (Declaration.Named.Function) s);
 		} else if (s instanceof Declaration.Named.Macro) {
 			write(wf, (Declaration.Named.Macro) s);
@@ -115,19 +107,9 @@ public class WyalFilePrinter {
 		out.println();
 	}
 
-	public void write(WyalFile wf, Declaration.Import s) {
-		out.print("import ");
-		for(int i=0;i!=s.size();++i) {
-			if(i != 0) {
-				out.print(".");
-			}
-			out.print(s.get(i));
-		}
-	}
-
 	public void write(WyalFile wf, Declaration.Named.Function s) {
 		out.print("function ");
-		out.print(s.getName().get());
+		out.print(s.getName());
 		writeVariableDeclarations(s.getParameters());
 		out.print(" -> ");
 		writeVariableDeclarations(s.getReturns());
@@ -136,7 +118,7 @@ public class WyalFilePrinter {
 	public void write(WyalFile wf, Declaration.Named.Macro s) {
 		out.print("define ");
 
-		out.print(s.getName().get());
+		out.print(s.getName());
 		writeVariableDeclarations(s.getParameters());
 		if (s.getBody() != null) {
 			out.println(" is:");
@@ -145,11 +127,10 @@ public class WyalFilePrinter {
 	}
 
 	public void write(WyalFile wf, Declaration.Named.Type s) {
-		Identifier name = s.getName();
 		VariableDeclaration vardecl = s.getVariableDeclaration();
 		Tuple<Stmt.Block> invariant = s.getInvariant();
 		out.print("type ");
-		out.print(name.get());
+		out.print(s.getName());
 		out.print(" is (");
 		writeVariableDeclaration(vardecl);
 		out.println(")");
@@ -711,7 +692,7 @@ public class WyalFilePrinter {
 	private void writeName(Name n) {
 		for(int i=0;i!=n.size();++i) {
 			if(i!=0) {
-				out.print(".");
+				out.print("::");
 			}
 			out.print(n.get(i).get());
 		}

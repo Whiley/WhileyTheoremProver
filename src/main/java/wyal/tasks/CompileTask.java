@@ -20,9 +20,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Declaration;
+import wyal.util.Interpreter;
+import wyal.util.NameResolver;
+import wyal.util.SmallWorldDomain;
 import wyal.util.TypeChecker;
+import wyal.util.WyalFileResolver;
 import wybs.lang.Build;
 import wybs.lang.CompilationUnit;
+import wybs.lang.SyntacticItem;
+import wybs.lang.SyntaxError;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;
 import wycc.util.Logger;
@@ -32,14 +39,15 @@ import wyfs.lang.Path.Entry;
 import wyfs.lang.Path.Root;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
+import wytp.types.extractors.TypeInvariantExtractor;
 import wytp.types.subtyping.CoerciveSubtypeOperator;
 
 public class CompileTask implements Build.Task {
 
 	/**
-	 * The master project for identifying all resources available to the
-	 * builder. This includes all modules declared in the project being compiled
-	 * and/or defined in external resources (e.g. jar files).
+	 * The master project for identifying all resources available to the builder.
+	 * This includes all modules declared in the project being compiled and/or
+	 * defined in external resources (e.g. jar files).
 	 */
 	private final Build.Project project;
 
@@ -61,7 +69,12 @@ public class CompileTask implements Build.Task {
 	/**
 	 * Signals whether or not verification should be enabled.
 	 */
-	private  boolean verify = true;
+	private boolean verify = true;
+
+	/**
+	 * Signals whether not to try and generate counterexamples
+	 */
+	private boolean counterexamples = false;
 
 	public CompileTask(Build.Project project, TypeSystem typeSystem, AutomatedTheoremProver prover) {
 		this.logger = Logger.NULL;
@@ -83,6 +96,10 @@ public class CompileTask implements Build.Task {
 		this.verify = flag;
 	}
 
+	public void setCounterExamples(boolean flag) {
+		this.counterexamples = flag;
+	}
+
 	@Override
 	public Set<Entry<?>> build(Collection<Pair<Entry<?>, Root>> delta, Graph graph) throws IOException {
 		Runtime runtime = Runtime.getRuntime();
@@ -94,18 +111,24 @@ public class CompileTask implements Build.Task {
 		// ========================================================================
 		// Parse and register source files
 		// ========================================================================
-
-		int count = 0;
+		ArrayList<Pair<Path.Entry, WyalFile>> files = new ArrayList<>();
 		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
 			Path.Entry<?> src = p.first();
 			if (src.contentType() == WyalFile.ContentType) {
 				Path.Entry<WyalFile> sf = (Path.Entry<WyalFile>) src;
-				sf.read(); // force file to be parsed
-				count++;
+				WyalFile wf = sf.read(); // force file to be parsed
+				// Write WyIL skeleton. This is a stripped down version of the
+				// source file which is easily translated into a temporary
+				// WyilFile. This is needed for resolution.
+				Path.Root dst = p.second();
+				Path.Entry<WyalFile> target = dst.create(sf.id(), WyalFile.BinaryContentType);
+				target.write(createSkeleton(wf, target));
+
+				files.add(new Pair<>(sf, wf));
 			}
 		}
 
-		logger.logTimedMessage("Parsed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Parsed " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
@@ -116,29 +139,11 @@ public class CompileTask implements Build.Task {
 		tmpTime = System.currentTimeMillis();
 		tmpMemory = runtime.freeMemory();
 
-		ArrayList<Pair<Path.Entry,WyalFile>> files = new ArrayList<>();
-		for (Pair<Path.Entry<?>, Path.Root> p : delta) {
-			Path.Entry<?> entry = p.first();
-			if (entry.contentType() == WyalFile.ContentType) {
-				Path.Entry<WyalFile> source = (Path.Entry<WyalFile>) entry;
-				Path.Entry<? extends CompilationUnit> originalSource = determineSource(source,graph);
-				WyalFile wf = source.read();
-				new TypeChecker(typeSystem,wf,originalSource).check();
-				files.add(new Pair<>(originalSource,wf));
-				// Write WyIL skeleton. This is a stripped down version of the
-				// source file which is easily translated into a temporary
-				// WyilFile. This is needed for resolution.
-				Path.Root dst = p.second();
-				Path.Entry<WyalFile> target = dst.create(entry.id(), WyalFile.BinaryContentType);
-				target.write(createSkeleton(wf,target));
-				// Register the derivation in the build graph. This is important
-				// to understand what a particular intermediate file was
-				// derived from.
-				graph.registerDerivation(source, target);
-			}
+		for (Pair<Path.Entry, WyalFile> p : files) {
+			new TypeChecker(typeSystem, p.second(), p.first()).check();
 		}
 
-		logger.logTimedMessage("Typed " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Typed " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
@@ -150,16 +155,27 @@ public class CompileTask implements Build.Task {
 		tmpMemory = runtime.freeMemory();
 
 		if (verify) {
-			for (Pair<Path.Entry, WyalFile> p : files) {
-				Path.Entry<? extends CompilationUnit> originalSource = p.first();
-				WyalFile wf = p.second();
-				prover.check(wf, originalSource);
+			try {
+				for (Pair<Path.Entry, WyalFile> p : files) {
+					Path.Entry<? extends CompilationUnit> originalSource = p.first();
+					WyalFile wf = p.second();
+					prover.check(wf, project.getRoot());
+				}
+			} catch (SyntaxError e) {
+				SyntacticItem item = e.getElement();
+				if (counterexamples && item instanceof Declaration.Assert) {
+					String message = findCounterexamples((Declaration.Assert) item);
+					if (message != null) {
+						throw new SyntaxError(e.getMessage() + " " + message, e.getEntry(), item, e.getCause());
+					} else {
+						throw e;
+					}
+				}
 			}
 		}
 
-		logger.logTimedMessage("Verified " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
+		logger.logTimedMessage("Verified " + files.size() + " source file(s).", System.currentTimeMillis() - tmpTime,
 				tmpMemory - runtime.freeMemory());
-
 
 		// ========================================================================
 		// Code Generation
@@ -181,8 +197,8 @@ public class CompileTask implements Build.Task {
 			}
 		}
 
-		logger.logTimedMessage("Generated code for " + count + " source file(s).", System.currentTimeMillis() - tmpTime,
-				tmpMemory - runtime.freeMemory());
+		logger.logTimedMessage("Generated code for " + files.size() + " source file(s).",
+				System.currentTimeMillis() - tmpTime, tmpMemory - runtime.freeMemory());
 
 		// ========================================================================
 		// Done
@@ -195,22 +211,35 @@ public class CompileTask implements Build.Task {
 		return generatedFiles;
 	}
 
-	private static Path.Entry<? extends CompilationUnit> determineSource(Path.Entry<?> child, Build.Graph graph) {
-		// FIXME: this is a temporary hack
-		Path.Entry<?> parent = graph.parent(child);
-		while (parent != null) {
-			child = parent;
-			parent = graph.parent(child);
-		}
-		return (Path.Entry<? extends CompilationUnit>) child;
-	}
-
 	// ======================================================================
 	// Private Implementation
 	// ======================================================================
 
 	private WyalFile createSkeleton(WyalFile whileyFile, Path.Entry<WyalFile> target) {
 		// FIXME: this is a temporary hack
-		return null;
+		return whileyFile;
 	}
+
+	public String findCounterexamples(WyalFile.Declaration.Assert assertion) {
+		// FIXME: it doesn't feel right creating new instances here.
+		NameResolver resolver = new WyalFileResolver(project);
+		TypeInvariantExtractor extractor = new TypeInvariantExtractor(resolver);
+		Interpreter interpreter = new Interpreter(new SmallWorldDomain(resolver), resolver, extractor);
+		try {
+			Interpreter.Result result = interpreter.evaluate(assertion);
+			if (!result.holds()) {
+				return result.getEnvironment().toString();
+			}
+		} catch (Interpreter.UndefinedException e) {
+			// do nothing for now
+		}
+//		catch (Exception e) {
+//			// NOTE: getting here usually means some kind of exception occurred in the
+//			// interpreter. At the moment this can happen as a result of incorrectly
+//			// processed undefined values.
+//			return "{" + e.getMessage() + "}";
+//		}
+		return "{}";
+	}
+
 }

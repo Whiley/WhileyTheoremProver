@@ -16,7 +16,7 @@ package wyal.testing.tests;
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.lang.WyalFile;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
 import wytp.types.TypeSystem;
 
 import static org.junit.Assert.*;

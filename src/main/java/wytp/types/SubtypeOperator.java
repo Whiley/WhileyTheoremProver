@@ -14,7 +14,8 @@
 package wytp.types;
 
 import wyal.lang.WyalFile.Type;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 
 /**
  * <p>

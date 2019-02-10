@@ -13,18 +13,17 @@
 // limitations under the License.
 package wytp.provers;
 
+import java.io.IOException;
 import java.util.BitSet;
 
 import wyal.heap.StructurallyEquivalentHeap;
 import wyal.heap.SyntacticHeaps;
 import wyal.lang.WyalFile;
-import wybs.lang.NameResolver;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
-import wybs.lang.NameResolver.AmbiguousNameError;
-import wybs.lang.NameResolver.NameNotFoundError;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wyfs.lang.Path;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
@@ -120,11 +119,12 @@ public class AutomatedTheoremProver {
 				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
 
-	public void check(WyalFile source, Path.Entry<?> originalSource) {
+	public void check(WyalFile source, Path.Root root) throws IOException {
 		for (int i = 0; i != source.size(); ++i) {
 			SyntacticItem item = source.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
+				Path.Entry<?> originalSource = ast.getEnclosingFile(root);
 				try {
 					if (!check(ast)) {
 						String msg = ast.getMessage();

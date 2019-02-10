@@ -27,11 +27,11 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 
 import wybs.lang.CompilationUnit;
-import wybs.lang.NameResolver;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticItem;
 import wybs.lang.SyntaxError;
-import wybs.lang.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 import static wybs.lang.SyntaxError.InternalFailure;
@@ -196,8 +196,6 @@ public class TypeChecker {
 			check((WyalFile.Declaration.Assert) decl);
 		} else if (decl instanceof WyalFile.Declaration.Named) {
 			check((WyalFile.Declaration.Named) decl);
-		} else if (decl instanceof WyalFile.Declaration.Import) {
-			// nothing to do here
 		} else {
 			throw new InternalFailure("unknown declaration: " + decl,originatingEntry,decl);
 		}

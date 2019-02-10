@@ -17,7 +17,8 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import wyal.lang.WyalFile.Expr;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
 import wycc.util.ArrayUtils;

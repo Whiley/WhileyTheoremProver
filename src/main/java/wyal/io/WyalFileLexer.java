@@ -260,6 +260,9 @@ public class WyalFileLexer {
 			if ((pos + 1) < input.length() && input.charAt(pos + 1) == '=') {
 				pos += 2;
 				return new Token(Token.Kind.ColonEquals, ":=", pos - 2);
+			} else if (pos + 1 < input.length() && input.charAt(pos + 1) == ':') {
+				pos += 2;
+				return new Token(Token.Kind.ColonColon, "::", pos - 2);
 			} else {
 				return new Token(Token.Kind.Colon, ":", pos++);
 			}
@@ -774,6 +777,12 @@ public class WyalFileLexer {
 				@Override
 				public String toString() {
 					return ":";
+				}
+			},
+			ColonColon {
+				@Override
+				public String toString() {
+					return "::";
 				}
 			},
 			ColonEquals {

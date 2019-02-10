@@ -1,5 +1,3 @@
-import wyal.*
-
 assert:
     forall(&int x, &int y):
         if:

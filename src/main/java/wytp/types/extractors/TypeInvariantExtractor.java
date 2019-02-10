@@ -21,9 +21,8 @@ import java.util.HashSet;
 import wyal.lang.WyalFile;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Declaration.Named;
-import wybs.lang.NameID;
-import wybs.lang.NameResolver;
-import wybs.lang.NameResolver.ResolutionError;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.ResolutionError;
 import wyfs.lang.Path;
 import wytp.proof.Formula;
 import wytp.proof.Formula.Conjunct;
@@ -102,13 +101,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			} else {
 				Type parameter = td.getVariableDeclaration().getType();
 				Type.Invariant ft = new Type.Invariant(new Tuple<>(parameter));
-				// FIXME: this is a hack to make sure fully qualified name is included.
-				Name name = nom.getName();
-				if(name.size() == 1) {
-					// Unresolved name
-					name = fullyResolveName(nom.getName());
-				}
-				return new Formula.Invoke(true, ft, name, null, root);
+				return new Formula.Invoke(true, ft, nom.getName(), null, root);
 			}
 		}
 		case TYPE_rec: {
@@ -116,7 +109,7 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 			FieldDeclaration[] fields = r.getFields();
 			Formula inv = null;
 			for(int i=0;i!=fields.length;++i) {
-				FieldDeclaration fieldDecl = (FieldDeclaration) fields[i];
+				FieldDeclaration fieldDecl = fields[i];
 				Expr.RecordAccess access = new Expr.RecordAccess(root, fieldDecl.getVariableName());
 				Formula fieldInv = extractTypeInvariant(fieldDecl.getType(), access, visited);
 				if(fieldInv != null) {
@@ -201,21 +194,6 @@ public class TypeInvariantExtractor implements TypeExtractor<Formula,Expr> {
 		}
 		default:
 			throw new IllegalArgumentException("invalid type opcode: " + type.getOpcode());
-		}
-	}
-
-	public Name fullyResolveName(Name name) throws ResolutionError {
-		NameID nid = resolver.resolve(name);
-		Path.ID mid = nid.module();
-		if(mid.size() > 0) {
-			Identifier[] components = new Identifier[mid.size()+1];
-			for(int i=0;i!=mid.size();++i) {
-				components[i] = new Identifier(mid.get(i));
-			}
-			components[mid.size()] = name.get(0);
-			return new Name(components);
-		} else {
-			return name;
 		}
 	}
 }
