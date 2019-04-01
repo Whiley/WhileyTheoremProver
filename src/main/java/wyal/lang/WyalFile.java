@@ -26,7 +26,6 @@ import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
 import wyal.lang.WyalFile;
-import wybs.lang.Attribute;
 import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
@@ -2254,17 +2253,17 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	// Attributes
 	// ============================================================
 	public interface Attribute {
-		public class Proof implements wybs.lang.Attribute {
-			private final wytp.proof.Proof proof;
-
-			public Proof(wytp.proof.Proof proof) {
-				this.proof = proof;
-			}
-
-			public wytp.proof.Proof getProof() {
-				return proof;
-			}
-		}
+//		public class Proof implements wybs.lang.Attribute {
+//			private final wytp.proof.Proof proof;
+//
+//			public Proof(wytp.proof.Proof proof) {
+//				this.proof = proof;
+//			}
+//
+//			public wytp.proof.Proof getProof() {
+//				return proof;
+//			}
+//		}
 	}
 	// ===========================================================
 	// Errors

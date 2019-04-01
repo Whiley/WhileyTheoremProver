@@ -24,7 +24,6 @@ import java.util.Arrays;
 
 import static wyal.lang.WyalFile.*;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticHeap;

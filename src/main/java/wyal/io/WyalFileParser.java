@@ -25,11 +25,10 @@ import wyal.io.WyalFileLexer.Token;
 import static wyal.lang.WyalFile.*;
 
 import wyal.lang.WyalFile;
-import wybs.lang.Attribute;
-import wybs.lang.SyntacticElement;
+import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 import wybs.util.AbstractCompilationUnit;
+import wybs.util.AbstractCompilationUnit.Attribute;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
@@ -138,7 +137,7 @@ public class WyalFileParser {
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
 		Declaration.Assert declaration = new Declaration.Assert(body, message, entry.id(), entry.contentType());
-		return allocate(declaration, sourceAttr(start, index - 1));
+		return allocate(declaration, start, index - 1);
 	}
 
 	/**
@@ -166,7 +165,7 @@ public class WyalFileParser {
 		Stmt.Block[] invariant = parseInvariantClauses(scope);
 		//
 		Declaration.Named.Type declaration = new Declaration.Named.Type(name, parameter, invariant);
-		return allocate(declaration, sourceAttr(start, index - 1));
+		return allocate(declaration, start, index - 1);
 	}
 
 	private Stmt.Block[] parseInvariantClauses(EnclosingScope scope) {
@@ -198,7 +197,7 @@ public class WyalFileParser {
 		matchEndLine();
 		//
 		Declaration.Named.Function declaration = new Declaration.Named.Function(name, parameters, returns);
-		return allocate(declaration, sourceAttr(start, index - 1));
+		return allocate(declaration, start, index - 1);
 	}
 
 	protected Declaration parseMacroDeclaration(WyalFile parent) {
@@ -214,7 +213,7 @@ public class WyalFileParser {
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
 		// Create empty declaration
 		Declaration.Named.Macro declaration = new Declaration.Named.Macro(name, parameters, body);
-		return allocate(declaration, sourceAttr(start, index - 1));
+		return allocate(declaration, start, index - 1);
 	}
 
 	/**
@@ -344,7 +343,7 @@ public class WyalFileParser {
 		matchEndLine();
 		Stmt.Block thenBlock = parseStatementBlock(scope, indent);
 		Stmt stmt = new Stmt.IfThen(ifBlock, thenBlock);
-		return allocate(stmt, sourceAttr(start, index - 1));
+		return allocate(stmt, start, index - 1);
 	}
 
 	private Stmt parseEitherOrStatement(EnclosingScope scope, Indent indent) {
@@ -368,7 +367,7 @@ public class WyalFileParser {
 
 		Stmt.Block[] arr = blocks.toArray(new Stmt.Block[blocks.size()]);
 		Stmt stmt = new Stmt.CaseOf(arr);
-		return allocate(stmt, sourceAttr(start, index - 1));
+		return allocate(stmt, start, index - 1);
 	}
 
 	/**
@@ -409,7 +408,7 @@ public class WyalFileParser {
 		} else {
 			stmt = new Stmt.ExistentialQuantifier(parameters, body);
 		}
-		return allocate(stmt, sourceAttr(start, index - 1));
+		return allocate(stmt, start, index - 1);
 	}
 
 	private VariableDeclaration[] parseParameterDeclarations(EnclosingScope scope) {
@@ -432,7 +431,7 @@ public class WyalFileParser {
 		Type type = parseType(scope);
 		Identifier name = parseIdentifier(scope);
 		VariableDeclaration stmt = new VariableDeclaration(type, name);
-		stmt = allocate(stmt, sourceAttr(start, index - 1));
+		stmt = allocate(stmt, start, index - 1);
 		scope.declareInScope(stmt);
 		return stmt;
 	}
@@ -498,7 +497,7 @@ public class WyalFileParser {
 		} else {
 			Type rhs = parseType(scope);
 			WyalFile.Expr expr = new Expr.Is(lhs, rhs);
-			return allocate(expr, sourceAttr(start, index - 1));
+			return allocate(expr, start, index - 1);
 		}
 	}
 
@@ -547,7 +546,7 @@ public class WyalFileParser {
 				syntaxError("ambiguous expression encountered (braces required)", lookahead);
 			}
 			//
-			return allocate(expr, sourceAttr(start, index - 1));
+			return allocate(expr, start, index - 1);
 		} else {
 			return first;
 		}
@@ -621,7 +620,7 @@ public class WyalFileParser {
 					match(RightSquare);
 					lhs = new Expr.ArrayAccess(lhs, rhs);
 				}
-				lhs = allocate(lhs, sourceAttr(start, index - 1));
+				lhs = allocate(lhs, start, index - 1);
 				break;
 			}
 			case LeftCurly: {
@@ -631,13 +630,13 @@ public class WyalFileParser {
 				Expr rhs = parseUnitExpression(scope, true);
 				match(RightCurly);
 				lhs = new Expr.RecordUpdate(lhs, mhs, rhs);
-				lhs = allocate(lhs, sourceAttr(start, index - 1));
+				lhs = allocate(lhs, start, index - 1);
 				break;
 			}
 			case Dot: {
 				Identifier rhs = parseIdentifier(scope);
 				lhs = new Expr.RecordAccess(lhs, rhs);
-				lhs = allocate(lhs, sourceAttr(start, index - 1));
+				lhs = allocate(lhs, start, index - 1);
 				break;
 			}
 			}
@@ -728,7 +727,7 @@ public class WyalFileParser {
 		// Construct relevant bytecode. The type signature is left as null at
 		// this stage, since we cannot determined at this point.
 		Expr expr = new Expr.Invoke(null, nid, selector, args);
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -766,7 +765,7 @@ public class WyalFileParser {
 				match(Identifier);
 				VariableDeclaration decl = scope.getVariableDeclaration(token.text);
 				Expr expr = new Expr.VariableAccess(decl);
-				return allocate(expr, sourceAttr(start, index - 1));
+				return allocate(expr, start, index - 1);
 			} else {
 				// Otherwise, we have an error since this should have already
 				// been parsed as a path expression.
@@ -832,7 +831,7 @@ public class WyalFileParser {
 		}
 
 		Expr expr = new Expr.Constant(item);
-		return allocate(expr, new Attribute.Source(token.start, token.end(), 0));
+		return allocate(expr, token.start, token.end());
 	}
 
 	/**
@@ -929,7 +928,7 @@ public class WyalFileParser {
 				// Ok, finally, we are sure that it is definitely a cast.
 				Expr e = parseMultiExpression(scope, terminated);
 				Expr expr = new Expr.Cast(t, e);
-				return allocate(expr, sourceAttr(start, index - 1));
+				return allocate(expr, start, index - 1);
 			}
 		}
 		// We still may have either a cast or a bracketed expression, and we
@@ -976,7 +975,7 @@ public class WyalFileParser {
 				// Now, parse cast expression
 				e = parseUnitExpression(scope, terminated);
 				e = new Expr.Cast(type, e);
-				return allocate(e, sourceAttr(start, index - 1));
+				return allocate(e, start, index - 1);
 			}
 			default:
 				// default case, fall through and assume bracketed
@@ -1050,7 +1049,7 @@ public class WyalFileParser {
 		} else {
 			expr = new Expr.ArrayGenerator(operands.get(0), operands.get(1));
 		}
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1110,12 +1109,12 @@ public class WyalFileParser {
 			// ','.
 			Expr fieldValue = parseUnitExpression(scope, true);
 			WyalFile.Pair pair = new WyalFile.Pair(fieldName, fieldValue);
-			pair = allocate(pair, sourceAttr(fieldStart, index - 1));
+			pair = allocate(pair, fieldStart, index - 1);
 			exprs.add(pair);
 		}
 
 		Expr expr = new Expr.RecordInitialiser(toPairArray(exprs));
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1150,7 +1149,7 @@ public class WyalFileParser {
 		Expr expr = parseUnitExpression(scope, true);
 		match(VerticalBar);
 		expr = new Expr.ArrayLength(expr);
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1185,7 +1184,7 @@ public class WyalFileParser {
 		Expr expr = parseTermExpression(scope, terminated);
 		//
 		expr = new Expr.Negation(expr);
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1218,7 +1217,7 @@ public class WyalFileParser {
 		match(Star);
 		Expr expr = parseTermExpression(scope, true);
 		expr = new Expr.Dereference(expr);
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1300,7 +1299,7 @@ public class WyalFileParser {
 		Expr expr = parseAccessExpression(scope, terminated);
 		//
 		expr = new Expr.LogicalNot(expr);
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	private Expr parseQuantifiedExpression(Token lookahead, EnclosingScope scope, boolean terminated) {
@@ -1322,7 +1321,7 @@ public class WyalFileParser {
 		} else {
 			expr = new Expr.ExistentialQuantifier(parameters, body);
 		}
-		return allocate(expr, sourceAttr(start, index - 1));
+		return allocate(expr, start, index - 1);
 	}
 
 	/**
@@ -1346,7 +1345,7 @@ public class WyalFileParser {
 			if (mustParseAsType(type, scope)) {
 				return type;
 			}
-		} catch (SyntaxError e) {
+		} catch (SyntacticException e) {
 
 		}
 		index = start; // backtrack
@@ -1418,7 +1417,7 @@ public class WyalFileParser {
 			} else {
 				type = new Type.Union(types);
 			}
-			return allocate(type, sourceAttr(start, index - 1));
+			return allocate(type, start, index - 1);
 		}
 	}
 
@@ -1429,7 +1428,7 @@ public class WyalFileParser {
 		while (tryAndMatch(false, LeftSquare) != null) {
 			match(RightSquare);
 			type = new Type.Array(type);
-			type = allocate(type, sourceAttr(start, index - 1));
+			type = allocate(type, start, index - 1);
 		}
 		return type;
 	}
@@ -1486,7 +1485,7 @@ public class WyalFileParser {
 			return null; // deadcode
 		}
 		match(token.kind);
-		return allocate(type, sourceAttr(start, index - 1));
+		return allocate(type, start, index - 1);
 	}
 
 	/**
@@ -1508,7 +1507,7 @@ public class WyalFileParser {
 		match(Shreak);
 		Type element = parseBaseType(scope);
 		Type type = new Type.Negation(element);
-		return allocate(type, sourceAttr(start, index - 1));
+		return allocate(type, start, index - 1);
 	}
 
 	/**
@@ -1544,16 +1543,14 @@ public class WyalFileParser {
 		}
 		Type element = parseBaseType(scope);
 		Type type = new Type.Reference(element, lifetimeIdentifier);
-		return allocate(type, sourceAttr(start, index - 1));
+		return allocate(type, start, index - 1);
 	}
 
 	private WyalFile.Identifier parseOptionalLifetimeIdentifier(EnclosingScope scope, boolean terminated) {
 		int start = index;
 		Token token = tryAndMatch(terminated, Identifier, This, Star);
 		if (token != null) {
-			WyalFile.Identifier id = new WyalFile.Identifier(token.text);
-			id.attributes().add(sourceAttr(start, index - 1));
-			return id;
+			return allocate(new WyalFile.Identifier(token.text), start, index-1);
 		} else {
 			return null;
 		}
@@ -1621,7 +1618,7 @@ public class WyalFileParser {
 				Type fieldType = parseType(scope);
 				Identifier fieldName = parseIdentifier(scope);
 				FieldDeclaration var = new FieldDeclaration(fieldType, fieldName);
-				var = allocate(var, sourceAttr(start, index - 1));
+				var = allocate(var, start, index - 1);
 				fields.add(var);
 			} else {
 				isOpenRecord = true;
@@ -1632,7 +1629,7 @@ public class WyalFileParser {
 		}
 		FieldDeclaration[] arr = fields.toArray(new FieldDeclaration[fields.size()]);
 		Type type = new Type.Record(isOpenRecord, arr);
-		return allocate(type, sourceAttr(start, index - 1));
+		return allocate(type, start, index - 1);
 	}
 
 	/**
@@ -1656,7 +1653,7 @@ public class WyalFileParser {
 		Name name = parseName(scope);
 		// this is a nominal type constructor
 		Type type = new Type.Nominal(name);
-		return allocate(type, sourceAttr(start, index - 1));
+		return allocate(type, start, index - 1);
 	}
 
 	/**
@@ -1678,7 +1675,7 @@ public class WyalFileParser {
 		Tuple<Type> parameters = parseTypeParameters(scope);
 		match(MinusGreater);
 		Tuple<Type> returns = parseTypeParameters(scope);
-		return allocate(new Type.Function(parameters, returns));
+		return allocate(new Type.Function(parameters, returns), start, index - 1);
 	}
 
 	private Tuple<Type> parseTypeParameters(EnclosingScope scope) {
@@ -1698,7 +1695,7 @@ public class WyalFileParser {
 		int start = index;
 		String txt = match(Identifier).text;
 		Identifier id = new Identifier(txt);
-		return allocate(id, sourceAttr(start, index - 1));
+		return allocate(id, start, index - 1);
 	}
 
 	private Name parseName(EnclosingScope scope) {
@@ -1710,7 +1707,7 @@ public class WyalFileParser {
 		}
 		Identifier[] ids = components.toArray(new Identifier[components.size()]);
 		Name nid = new Name(ids);
-		return allocate(nid, sourceAttr(start, index - 1));
+		return allocate(nid, start, index - 1);
 	}
 
 	/**
@@ -1892,7 +1889,7 @@ public class WyalFileParser {
 	private void checkNotEof() {
 		skipWhiteSpace();
 		if (index >= tokens.size()) {
-			throw new SyntaxError("unexpected end-of-file", file.getEntry(), null);
+			throw new SyntacticException("unexpected end-of-file", file.getEntry(), null);
 		}
 	}
 
@@ -2101,19 +2098,12 @@ public class WyalFileParser {
 		return (byte) val;
 	}
 
-	private Attribute.Source sourceAttr(int start, int end) {
-		Token t1 = tokens.get(start);
-		Token t2 = tokens.get(end);
-		// FIXME: problem here with the line numbering ?
-		return new Attribute.Source(t1.start, t2.end(), 0);
-	}
-
 	private void syntaxError(String msg, SyntacticItem elem) {
-		throw new SyntaxError(msg, file.getEntry(), elem);
+		throw new SyntacticException(msg, file.getEntry(), elem);
 	}
 
 	private void syntaxError(String msg, Token t) {
-		throw new SyntaxError(msg, file.getEntry(), new AbstractCompilationUnit.Attribute.Span(null, t.start, t.end()));
+		throw new SyntacticException(msg, file.getEntry(), new AbstractCompilationUnit.Attribute.Span(null, t.start, t.end()));
 	}
 
 	private Expr[] toExprArray(List<Expr> exprs) {
@@ -2140,12 +2130,12 @@ public class WyalFileParser {
 		return ss;
 	}
 
-	private <T extends SyntacticItem> T allocate(T item, Attribute... attributes) {
+	private <T extends SyntacticItem> T allocate(T item, int start, int end) {
 		item = file.allocate(item);
-		// FIXME: this should be removed eventually #121
-		for (Attribute attr : attributes) {
-			item.attributes().add(attr);
-		}
+		// Determine the first and last token representing this span.
+		Token first = tokens.get(start);
+		Token last = tokens.get(end);
+		file.allocate(new Attribute.Span(item, first.start, last.end()));
 		return item;
 	}
 

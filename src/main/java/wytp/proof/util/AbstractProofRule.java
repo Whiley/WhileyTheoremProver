@@ -25,8 +25,8 @@ import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 import wybs.util.AbstractCompilationUnit.Tuple;
+import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticHeap;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
@@ -51,7 +51,7 @@ public abstract class AbstractProofRule implements Proof.Rule {
 			heap = ((StructurallyEquivalentHeap) heap).getParent();
 		}
 		WyalFile wf = (WyalFile) heap;
-		throw new SyntaxError(msg, wf.getEntry(), item);
+		throw new SyntacticException(msg, wf.getEntry(), item);
 	}
 
 	public Proof.State apply(Proof.State current, Proof.State head) throws ResolutionError {

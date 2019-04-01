@@ -28,8 +28,8 @@ import wyal.util.TypeChecker;
 import wyal.util.WyalFileResolver;
 import wybs.lang.Build;
 import wybs.lang.CompilationUnit;
+import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 import wybs.lang.Build.Graph;
 import wybs.lang.Build.Project;
 import wycc.util.Logger;
@@ -161,12 +161,12 @@ public class CompileTask implements Build.Task {
 					WyalFile wf = p.second();
 					prover.check(wf, project.getRoot());
 				}
-			} catch (SyntaxError e) {
+			} catch (SyntacticException e) {
 				SyntacticItem item = e.getElement();
 				if (counterexamples && item instanceof Declaration.Assert) {
 					String message = findCounterexamples((Declaration.Assert) item);
 					if (message != null) {
-						throw new SyntaxError(e.getMessage() + " " + message, e.getEntry(), item, e.getCause());
+						throw new SyntacticException(e.getMessage() + " " + message, e.getEntry(), item, e.getCause());
 					} else {
 						throw e;
 					}

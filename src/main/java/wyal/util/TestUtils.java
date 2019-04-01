@@ -24,7 +24,7 @@ import java.util.List;
 import wyal.lang.WyalFile;
 import wyal.tasks.CompileTask;
 import wybs.lang.Build;
-import wybs.lang.SyntaxError;
+import wybs.lang.SyntacticException;
 import wybs.util.StdBuildGraph;
 import wybs.util.StdBuildRule;
 import wybs.util.StdProject;
@@ -92,7 +92,7 @@ public class TestUtils {
 			project.build(findSourceFiles(root,args),graph);
 			// Flush any created resources (e.g. wyil files)
 			root.flush();
-		} catch (SyntaxError e) {
+		} catch (SyntacticException e) {
 			// Print out the syntax error
 			e.outputSourceError(new PrintStream(syserr),false);
 			result = false;
