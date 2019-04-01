@@ -27,14 +27,12 @@ import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.FieldDeclaration;
 
 import wybs.lang.CompilationUnit;
+import wybs.lang.SyntacticException;
 import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
-import wybs.lang.SyntacticElement;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 
 import static wyal.lang.WyalFile.*;
-import static wybs.lang.SyntaxError.InternalFailure;
 
 /**
  * <p>
@@ -197,7 +195,7 @@ public class TypeChecker {
 		} else if (decl instanceof WyalFile.Declaration.Named) {
 			check((WyalFile.Declaration.Named) decl);
 		} else {
-			throw new InternalFailure("unknown declaration: " + decl,originatingEntry,decl);
+			throw new SyntacticException("unknown declaration: " + decl,originatingEntry,decl);
 		}
 	}
 
@@ -211,7 +209,7 @@ public class TypeChecker {
 		} else if (decl instanceof WyalFile.Declaration.Named.Type) {
 			check((WyalFile.Declaration.Named.Type) decl);
 		} else {
-			throw new InternalFailure("unknown named declaration: " + decl,originatingEntry,decl);
+			throw new SyntacticException("unknown named declaration: " + decl,originatingEntry,decl);
 		}
 	}
 
@@ -401,7 +399,7 @@ public class TypeChecker {
 		case WyalFile.EXPR_or:
 			return checkLogicalDisjunction(env, sign, expr);
 		default:
-			throw new InternalFailure("unknown logical connective: " + expr,originatingEntry,expr);
+			throw new SyntacticException("unknown logical connective: " + expr,originatingEntry,expr);
 		}
 	}
 
@@ -565,7 +563,7 @@ public class TypeChecker {
 		case WyalFile.EXPR_deref:
 			return checkDereference(env, (Expr.Dereference) expr);
 		default:
-			throw new InternalFailure("unknown statement or expression: " + expr, originatingEntry, expr);
+			throw new SyntacticException("unknown statement or expression: " + expr, originatingEntry, expr);
 		}
 	}
 
@@ -588,7 +586,7 @@ public class TypeChecker {
 		case ITEM_utf8:
 			return new Type.Array(new Type.Int());
 		default:
-			throw new InternalFailure("unknown constant encountered: " + expr, originatingEntry, expr);
+			throw new SyntacticException("unknown constant encountered: " + expr, originatingEntry, expr);
 		}
 	}
 
@@ -621,7 +619,7 @@ public class TypeChecker {
 		Value.Int selector = expr.getSelector();
 		//
 		if (selector == null && type.getReturns().size() != 1) {
-			throw new SyntaxError("invalid number of returns", originatingEntry, expr);
+			throw new SyntacticException("invalid number of returns", originatingEntry, expr);
 		} else if(selector == null){
 			return type.getReturns().get(0);
 		} else {
@@ -643,7 +641,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new SyntaxError("invalid field access", originatingEntry, expr.getField());
+		throw new SyntacticException("invalid field access", originatingEntry, expr.getField());
 	}
 
 	private Type checkRecordUpdate(Environment env, Expr.RecordUpdate expr) {
@@ -663,7 +661,7 @@ public class TypeChecker {
 			}
 		}
 		//
-		throw new SyntaxError("invalid field update", originatingEntry, expr.getField());
+		throw new SyntacticException("invalid field update", originatingEntry, expr.getField());
 	}
 
 	private Type checkRecordInitialiser(Environment env, Expr.RecordInitialiser expr) {
@@ -802,11 +800,11 @@ public class TypeChecker {
 		try {
 			Type.Array arrT = types.extractReadableArray(type);
 			if (arrT == null) {
-				throw new SyntaxError("expected array type", originatingEntry, element);
+				throw new SyntacticException("expected array type", originatingEntry, element);
 			}
 			return arrT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -820,11 +818,11 @@ public class TypeChecker {
 		try {
 			Type.Record recT = types.extractReadableRecord(type);
 			if (recT == null) {
-				throw new SyntaxError("expected record type", originatingEntry, element);
+				throw new SyntacticException("expected record type", originatingEntry, element);
 			}
 			return recT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -839,11 +837,11 @@ public class TypeChecker {
 		try {
 			Type.Reference refT = types.extractReadableReference(type);
 			if (refT == null) {
-				throw new SyntaxError("expected reference type", originatingEntry, element);
+				throw new SyntacticException("expected reference type", originatingEntry, element);
 			}
 			return refT;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -866,7 +864,7 @@ public class TypeChecker {
 			Named.FunctionOrMacro selected = selectCandidateFunctionOrMacroDeclaration(context,candidates, args);
 			return selected;
 		} catch (ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, context);
+			throw new SyntacticException(e.getMessage(), originatingEntry, context);
 		}
 	}
 
@@ -904,7 +902,7 @@ public class TypeChecker {
 					// This is the awkward case. Neither the best so far, nor
 					// the candidate, are subtypes of each other. In this case,
 					// we report an error.
-					throw new SyntaxError("unable to resolve function",originatingEntry,context);
+					throw new SyntacticException("unable to resolve function",originatingEntry,context);
 				}
 			}
 		}
@@ -915,7 +913,7 @@ public class TypeChecker {
 		} else {
 			// No, there was no winner. In fact, there must have been no
 			// applicable candidates to get here.
-			throw new SyntaxError("unable to resolve function",originatingEntry,context);
+			throw new SyntacticException("unable to resolve function",originatingEntry,context);
 		}
 	}
 
@@ -949,17 +947,17 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
 	private void checkIsSubtype(Type lhs, Type rhs, SyntacticItem element) {
 		try {
 			if (!types.isRawSubtype(lhs, rhs)) {
-				throw new SyntaxError("type " + rhs + " not subtype of " + lhs, originatingEntry, element);
+				throw new SyntacticException("type " + rhs + " not subtype of " + lhs, originatingEntry, element);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -993,7 +991,7 @@ public class TypeChecker {
 			//
 			return true;
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 
@@ -1007,10 +1005,10 @@ public class TypeChecker {
 		try {
 			Type type = d.getType();
 			if (types.isRawSubtype(new Type.Void(), type)) {
-				throw new SyntaxError("empty type", originatingEntry, type);
+				throw new SyntacticException("empty type", originatingEntry, type);
 			}
 		} catch (NameResolver.ResolutionError e) {
-			throw new SyntaxError(e.getMessage(), originatingEntry, e.getName(), e);
+			throw new SyntacticException(e.getMessage(), originatingEntry, e.getName(), e);
 		}
 	}
 

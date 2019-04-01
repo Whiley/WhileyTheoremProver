@@ -24,9 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import wyal.lang.WyalFile;
-import wybs.lang.Attribute;
-import wybs.lang.SyntacticElement;
-import wybs.lang.SyntaxError;
+import wybs.lang.SyntacticException;
 import wybs.util.AbstractCompilationUnit;
 import wyfs.lang.Path;
 
@@ -494,7 +492,7 @@ public class WyalFileLexer {
 	 */
 	private void syntaxError(String msg, int index) {
 		// FIXME: this is clearly not a sensible approach
-		throw new SyntaxError(msg, entry, new AbstractCompilationUnit.Attribute.Span(null,index,index));
+		throw new SyntacticException(msg, entry, new AbstractCompilationUnit.Attribute.Span(null,index,index));
 	}
 
 	/**

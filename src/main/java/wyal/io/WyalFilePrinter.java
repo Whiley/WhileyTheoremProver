@@ -23,9 +23,8 @@ import java.util.List;
 import static wyal.lang.WyalFile.*;
 
 import wyal.lang.WyalFile;
-import wybs.lang.Attribute;
+import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError.*;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 import wytp.proof.Formula;
@@ -74,18 +73,6 @@ public class WyalFilePrinter {
 					out.print(" ");
 				}
 				out.print("#" + i + " " + item);
-				//
-				List<Attribute> attributes = item.attributes();
-				if(attributes.size() > 0) {
-					out.print(" [");
-					for(int j=0;j!=attributes.size();++j) {
-						if(j != 0) {
-							out.print(", ");
-						}
-						out.print(attributes.get(j));
-					}
-					out.print("]");
-				}
 
 				out.println();
 			}
@@ -102,7 +89,7 @@ public class WyalFilePrinter {
 		} else if (s instanceof Declaration.Assert) {
 			write(wf, (Declaration.Assert) s);
 		} else {
-			throw new InternalFailure("unknown statement encountered " + s, wf.getEntry(), s);
+			throw new SyntacticException("unknown statement encountered " + s, wf.getEntry(), s);
 		}
 		out.println();
 	}

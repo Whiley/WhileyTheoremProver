@@ -19,9 +19,9 @@ import java.util.BitSet;
 import wyal.heap.StructurallyEquivalentHeap;
 import wyal.heap.SyntacticHeaps;
 import wyal.lang.WyalFile;
+import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
-import wybs.lang.SyntaxError;
 import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
 import wyfs.lang.Path;
@@ -129,10 +129,10 @@ public class AutomatedTheoremProver {
 					if (!check(ast)) {
 						String msg = ast.getMessage();
 						msg = msg != null ? msg : "assertion failure";
-						throw new SyntaxError(msg, originalSource, item);
+						throw new SyntacticException(msg, originalSource, item);
 					}
 				} catch (NameResolver.ResolutionError e) {
-					throw new SyntaxError(e.getMessage(), originalSource, item, e);
+					throw new SyntacticException(e.getMessage(), originalSource, item, e);
 				}
 			}
 		}
@@ -176,8 +176,6 @@ public class AutomatedTheoremProver {
 		if (printProof) {
 			print(proof);
 		}
-		// Stash the proof so others can access it later.
-		decl.attributes().add(new WyalFile.Attribute.Proof(proof));
 		//
 		return r;
 	}
