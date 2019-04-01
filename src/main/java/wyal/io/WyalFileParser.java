@@ -831,7 +831,7 @@ public class WyalFileParser {
 		}
 
 		Expr expr = new Expr.Constant(item);
-		return allocate(expr, token.start, token.end());
+		return allocate(expr, index - 1, index - 1);
 	}
 
 	/**
