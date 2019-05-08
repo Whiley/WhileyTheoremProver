@@ -14,12 +14,14 @@
 package wyal;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import wyal.lang.WyalFile;
 import wyal.tasks.CompileTask;
 import wybs.lang.Build;
-import wybs.lang.Build.Graph;
 import wybs.lang.Build.Task;
+import wybs.util.AbstractBuildRule;
 import wybs.util.AbstractCompilationUnit.Value;
 import wycc.cfg.Configuration;
 import wycc.lang.Module;
@@ -37,15 +39,11 @@ public class Activator implements Module.Activator {
 	private static Value.UTF8 TARGET_DEFAULT = new Value.UTF8("bin");
 
 	public static Build.Platform WYAL_PLATFORM = new Build.Platform() {
-		private Trie pkg;
-		// Specify directory where generated JS files are dumped.
-		private Trie source;
-		// Specify directory where generated WyIL files are dumped.
-		private Trie target;
+
 		//
 		@Override
 		public String getName() {
-			return "whiley";
+			return "wyal";
 		}
 
 		@Override
@@ -56,19 +54,36 @@ public class Activator implements Module.Activator {
 		}
 
 		@Override
-		public void apply(Configuration configuration) {
-			this.pkg = Trie.fromString(configuration.get(Value.UTF8.class, PKGNAME_CONFIG_OPTION).unwrap());
+		public void initialise(Configuration configuration, Build.Project project) throws IOException {
+			Trie pkg = Trie.fromString(configuration.get(Value.UTF8.class, PKGNAME_CONFIG_OPTION).unwrap());
 			//
 			// Extract source path
-			this.source = Trie.fromString(configuration.get(Value.UTF8.class, SOURCE_CONFIG_OPTION).unwrap());
-			this.target = Trie.fromString(configuration.get(Value.UTF8.class, TARGET_CONFIG_OPTION).unwrap());
-		}
-
-		@Override
-		public Task initialise(Build.Project project) {
+			Trie source = Trie.fromString(configuration.get(Value.UTF8.class, SOURCE_CONFIG_OPTION).unwrap());
+			Trie target = Trie.fromString(configuration.get(Value.UTF8.class, TARGET_CONFIG_OPTION).unwrap());
+			//
+			Content.Filter<WyalFile> includes = Content.filter("**", WyalFile.ContentType);
+			// Construct the source root
+			Path.Root sourceRoot = project.getRoot().createRelativeRoot(source);
+			// Construct the binary root
+			Path.Root binaryRoot = project.getRoot().createRelativeRoot(target);
+			//
+			Path.Entry<WyalFile> binary = binaryRoot.create(target, WyalFile.BinaryContentType);
+			//
 			TypeSystem typeSystem = new TypeSystem(project);
 			AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
-			return new CompileTask(project, typeSystem, prover);
+			// Add build rule to project.
+			project.getRules().add(new AbstractBuildRule<WyalFile, WyalFile>(sourceRoot, includes, null) {
+				@Override
+				protected void apply(List<Path.Entry<WyalFile>> matches, Collection<Build.Task> tasks)
+						throws IOException {
+					// Construct a new build task
+					CompileTask task = new CompileTask(project, sourceRoot, binary, matches.get(0), typeSystem, prover);
+					//
+					task.setVerify(true);
+					// Submit the task for execution
+					tasks.add(task);
+				}
+			});
 		}
 
 		@Override
@@ -82,44 +97,8 @@ public class Activator implements Module.Activator {
 		}
 
 		@Override
-		public Content.Filter<?> getSourceFilter() {
-			return Content.filter("**", WyalFile.ContentType);
-		}
-
-		@Override
-		public Content.Filter<?> getTargetFilter() {
-			return Content.filter("**", WyalFile.BinaryContentType);
-		}
-
-		@Override
-		public Path.Root getSourceRoot(Path.Root root) throws IOException {
-			return root.createRelativeRoot(source);
-		}
-
-		@Override
-		public Path.Root getTargetRoot(Path.Root root) throws IOException {
-			return root.createRelativeRoot(target);
-		}
-
-		@Override
 		public void execute(Build.Project project, Path.ID id, String method, Value... args) {
 			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void refresh(Graph graph, Root src, Root bin) throws IOException {
-			// Basically, for the pkg wyil we will create a corresponding js file.
-			//
-			Path.Entry<WyalFile> source = src.get(pkg, WyalFile.ContentType);
-			Path.Entry<WyalFile> binary = bin.get(pkg, WyalFile.BinaryContentType);
-			// Check whether target binary exists or not
-			if (binary == null) {
-				// Doesn't exist, so create with default value
-				binary = bin.create(pkg, WyalFile.BinaryContentType);
-				binary.write(new WyalFile(binary));
-			}
-			// Register source converted by us into the js file.
-			graph.connect(source, binary);
 		}
 	};
 

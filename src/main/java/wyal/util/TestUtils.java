@@ -19,15 +19,15 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
 import wyal.lang.WyalFile;
 import wyal.tasks.CompileTask;
 import wybs.lang.Build;
 import wybs.lang.SyntacticException;
-import wybs.util.StdBuildGraph;
-import wybs.util.StdBuildRule;
-import wybs.util.StdProject;
+import wybs.util.SequentialBuildProject;
 import wycc.util.Pair;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
@@ -74,22 +74,38 @@ public class TestUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Pair<Boolean, String> compile(File whileydir, boolean verify, String... args) throws IOException {
+	public static Pair<Boolean, String> compile(File whileydir, boolean verify, String arg) throws IOException {
 		ByteArrayOutputStream syserr = new ByteArrayOutputStream();
 		ByteArrayOutputStream sysout = new ByteArrayOutputStream();
 		//
 		boolean result = true;
 		//
 		try {
-			// Construct the project
 			DirectoryRoot root = new DirectoryRoot(whileydir, registry);
-			StdProject project = new StdProject(root);
-			// Add build rules
-			addCompilationRules(project,root,verify);
-			// Create empty build graph
-			Build.Graph graph = new StdBuildGraph();
-			// Identify source files and build project
-			project.build(findSourceFiles(root,args),graph);
+			SequentialBuildProject project = new SequentialBuildProject(root);
+			//
+			TypeSystem typeSystem = new TypeSystem(project);
+			AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
+			// Identify source files
+			Pair<Path.Entry<WyalFile>,Path.Entry<WyalFile>> p = findSourceFiles(root,arg);
+			Path.Entry<WyalFile> source = p.first();
+			Path.Entry<WyalFile> target = p.second();
+			// Add build rule
+			project.add(new Build.Rule() {
+				@Override
+				public void apply(Collection<Build.Task> tasks) throws IOException {
+					// Construct a new build task
+					CompileTask task = new CompileTask(project, root, target, source, typeSystem, prover);
+					//
+					task.setVerify(verify);
+					// Submit the task for execution
+					tasks.add(task);
+				}
+			});
+			// Sync project with filesystem.
+			project.refresh();
+			// Actually force the project to build!
+			result = project.build(ForkJoinPool.commonPool()).get();
 			// Flush any created resources (e.g. wyil files)
 			root.flush();
 		} catch (SyntacticException e) {
@@ -109,22 +125,6 @@ public class TestUtils {
 	}
 
 	/**
-	 * Add compilation rules for compiling a Whiley file into a WyIL file and, where
-	 * appropriate, for performing verification as well.
-	 *
-	 * @param project
-	 * @param root
-	 * @param verify
-	 */
-	private static void addCompilationRules(StdProject project, Path.Root root, boolean verify) {
-		TypeSystem typeSystem = new TypeSystem(project);
-		AutomatedTheoremProver prover = new AutomatedTheoremProver(typeSystem);
-		CompileTask task = new CompileTask(project, typeSystem, prover);
-		// Add compilation rule(s) (wyal => wyalc)
-		project.add(new StdBuildRule(task, root, wyalIncludes, null, root));
-	}
-
-	/**
 	 * For each test, identify the corresponding Whiley file entry in the source
 	 * root.
 	 *
@@ -133,16 +133,18 @@ public class TestUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Path.Entry<WyalFile>> findSourceFiles(Path.Root root, String... args) throws IOException {
-		List<Path.Entry<WyalFile>> sources = new ArrayList<>();
-		for (String arg : args) {
-			Path.Entry<WyalFile> e = root.get(Trie.fromString(arg), WyalFile.ContentType);
-			if (e == null) {
-				throw new IllegalArgumentException("file not found: " + arg);
-			}
-			sources.add(e);
+	public static Pair<Path.Entry<WyalFile>,Path.Entry<WyalFile>> findSourceFiles(Path.Root root, String arg) throws IOException {
+		Path.ID id = Trie.fromString(arg);
+		Path.Entry<WyalFile> source = root.get(id, WyalFile.ContentType);
+		if (source == null) {
+			throw new IllegalArgumentException("file not found: " + arg);
 		}
-		return sources;
+		// Construct target
+		Path.Entry<WyalFile> target = root.get(id, WyalFile.BinaryContentType);
+		// Doesn't exist, so create with default value
+		target = root.create(id, WyalFile.BinaryContentType);
+		//
+		return new Pair<>(source,target);
 	}
 
 }
