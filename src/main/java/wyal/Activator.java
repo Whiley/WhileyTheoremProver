@@ -27,7 +27,6 @@ import wycc.cfg.Configuration;
 import wycc.lang.Module;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
-import wyfs.lang.Path.Root;
 import wyfs.util.Trie;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;

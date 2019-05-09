@@ -30,14 +30,10 @@ import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
-import wybs.util.AbstractSyntacticHeap;
 import wybs.util.AbstractSyntacticItem;
-import static wybs.util.AbstractCompilationUnit.*;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
-import wyfs.lang.Path.Entry;
-import wyfs.util.Trie;
 import wytp.proof.Proof;
 
 public class WyalFile extends AbstractCompilationUnit<WyalFile> {
@@ -214,7 +210,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	}
 
 	@Override
-	public Entry<WyalFile> getEntry() {
+	public Path.Entry<WyalFile> getEntry() {
 		return entry;
 	}
 
