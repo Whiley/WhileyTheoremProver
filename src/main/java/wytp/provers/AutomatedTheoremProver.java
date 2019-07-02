@@ -13,21 +13,19 @@
 // limitations under the License.
 package wytp.provers;
 
-import java.io.IOException;
 import java.util.BitSet;
 
 import wyal.heap.StructurallyEquivalentHeap;
-import wyal.heap.SyntacticHeaps;
 import wyal.lang.WyalFile;
+import wyal.util.NameResolver;
+import wyal.util.NameResolver.AmbiguousNameError;
+import wyal.util.NameResolver.NameNotFoundError;
+import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
-import wyal.util.NameResolver;
-import wyal.util.NameResolver.ResolutionError;
-import wyfs.lang.Path;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
-import wytp.proof.Proof.State;
 import wytp.proof.io.ProofPrinter;
 import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.rules.EqualityCaseAnalysis;
@@ -47,9 +45,7 @@ import wytp.proof.rules.record.RecordEqualityCaseAnalysis;
 import wytp.proof.rules.type.TypeTestClosure;
 import wytp.proof.rules.type.TypeTestNormalisation;
 import wytp.proof.util.DeltaProof;
-import wytp.proof.util.FastDelta;
 import wytp.proof.util.Formulae;
-import wytp.proof.util.FastDelta.Set;
 import wytp.types.TypeSystem;
 
 public class AutomatedTheoremProver {
@@ -119,20 +115,19 @@ public class AutomatedTheoremProver {
 				new ExhaustiveQuantifierInstantiation(simplify,types) };
 	}
 
-	public void check(WyalFile source, Path.Root root) throws IOException {
+	public void check(WyalFile source) {
 		for (int i = 0; i != source.size(); ++i) {
 			SyntacticItem item = source.getSyntacticItem(i);
 			if (item instanceof WyalFile.Declaration.Assert) {
 				WyalFile.Declaration.Assert ast = (WyalFile.Declaration.Assert) item;
-				Path.Entry<?> originalSource = ast.getEnclosingFile(root);
 				try {
 					if (!check(ast)) {
 						String msg = ast.getMessage();
 						msg = msg != null ? msg : "assertion failure";
-						throw new SyntacticException(msg, originalSource, item);
+						throw new SyntacticException(msg,null, ast.getContext());
 					}
 				} catch (NameResolver.ResolutionError e) {
-					throw new SyntacticException(e.getMessage(), originalSource, item, e);
+					throw new SyntacticException(e.getMessage(), null, item, e);
 				}
 			}
 		}
