@@ -783,7 +783,13 @@ public class Interpreter {
 			HashMap<Identifier,Object> map = toMap(this);
 			// Sort keys
 			ArrayList<Identifier> values = new ArrayList<>(map.keySet());
-			Collections.sort(values);
+			// Sort values
+			Collections.sort(values, new Comparator<Identifier>() {
+				@Override
+				public int compare(Identifier o1, Identifier o2) {
+					return o1.get().compareTo(o2.get());
+				}
+			});
 			//
 			Pair<Identifier,Value>[] pairs = new Pair[values.size()];
 			for(int i=0;i!=pairs.length;++i) {

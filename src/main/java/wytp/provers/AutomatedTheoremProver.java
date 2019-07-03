@@ -124,7 +124,7 @@ public class AutomatedTheoremProver {
 					if (!check(ast)) {
 						String msg = ast.getMessage();
 						msg = msg != null ? msg : "assertion failure";
-						throw new SyntacticException(msg,null, ast.getContext());
+						throw new SyntacticException(msg,null, ast);
 					}
 				} catch (NameResolver.ResolutionError e) {
 					throw new SyntacticException(e.getMessage(), null, item, e);
