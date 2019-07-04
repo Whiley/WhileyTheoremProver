@@ -13,7 +13,61 @@
 // limitations under the License.
 package wyal.io;
 
-import static wyal.io.WyalFileLexer.Token.Kind.*;
+import static wyal.io.WyalFileLexer.Token.Kind.Ampersand;
+import static wyal.io.WyalFileLexer.Token.Kind.Assert;
+import static wyal.io.WyalFileLexer.Token.Kind.Colon;
+import static wyal.io.WyalFileLexer.Token.Kind.ColonColon;
+import static wyal.io.WyalFileLexer.Token.Kind.ColonEquals;
+import static wyal.io.WyalFileLexer.Token.Kind.Comma;
+import static wyal.io.WyalFileLexer.Token.Kind.Define;
+import static wyal.io.WyalFileLexer.Token.Kind.Dot;
+import static wyal.io.WyalFileLexer.Token.Kind.DotDotDot;
+import static wyal.io.WyalFileLexer.Token.Kind.Either;
+import static wyal.io.WyalFileLexer.Token.Kind.EqualsEquals;
+import static wyal.io.WyalFileLexer.Token.Kind.Exists;
+import static wyal.io.WyalFileLexer.Token.Kind.Forall;
+import static wyal.io.WyalFileLexer.Token.Kind.Function;
+import static wyal.io.WyalFileLexer.Token.Kind.GreaterEquals;
+import static wyal.io.WyalFileLexer.Token.Kind.Hash;
+import static wyal.io.WyalFileLexer.Token.Kind.Identifier;
+import static wyal.io.WyalFileLexer.Token.Kind.If;
+import static wyal.io.WyalFileLexer.Token.Kind.Indent;
+import static wyal.io.WyalFileLexer.Token.Kind.IntValue;
+import static wyal.io.WyalFileLexer.Token.Kind.Is;
+import static wyal.io.WyalFileLexer.Token.Kind.LeftAngle;
+import static wyal.io.WyalFileLexer.Token.Kind.LeftBrace;
+import static wyal.io.WyalFileLexer.Token.Kind.LeftCurly;
+import static wyal.io.WyalFileLexer.Token.Kind.LeftSquare;
+import static wyal.io.WyalFileLexer.Token.Kind.LessEquals;
+import static wyal.io.WyalFileLexer.Token.Kind.LogicalAnd;
+import static wyal.io.WyalFileLexer.Token.Kind.LogicalIff;
+import static wyal.io.WyalFileLexer.Token.Kind.LogicalImplication;
+import static wyal.io.WyalFileLexer.Token.Kind.LogicalOr;
+import static wyal.io.WyalFileLexer.Token.Kind.Minus;
+import static wyal.io.WyalFileLexer.Token.Kind.MinusGreater;
+import static wyal.io.WyalFileLexer.Token.Kind.NewLine;
+import static wyal.io.WyalFileLexer.Token.Kind.NotEquals;
+import static wyal.io.WyalFileLexer.Token.Kind.Or;
+import static wyal.io.WyalFileLexer.Token.Kind.Package;
+import static wyal.io.WyalFileLexer.Token.Kind.Percent;
+import static wyal.io.WyalFileLexer.Token.Kind.Plus;
+import static wyal.io.WyalFileLexer.Token.Kind.RightAngle;
+import static wyal.io.WyalFileLexer.Token.Kind.RightBrace;
+import static wyal.io.WyalFileLexer.Token.Kind.RightCurly;
+import static wyal.io.WyalFileLexer.Token.Kind.RightSlash;
+import static wyal.io.WyalFileLexer.Token.Kind.RightSquare;
+import static wyal.io.WyalFileLexer.Token.Kind.SemiColon;
+import static wyal.io.WyalFileLexer.Token.Kind.Shreak;
+import static wyal.io.WyalFileLexer.Token.Kind.Star;
+import static wyal.io.WyalFileLexer.Token.Kind.StringValue;
+import static wyal.io.WyalFileLexer.Token.Kind.Then;
+import static wyal.io.WyalFileLexer.Token.Kind.This;
+import static wyal.io.WyalFileLexer.Token.Kind.VerticalBar;
+import static wyal.io.WyalFileLexer.Token.Kind.Where;
+import static wyal.lang.WyalFile.TYPE_arr;
+import static wyal.lang.WyalFile.TYPE_fun;
+import static wyal.lang.WyalFile.TYPE_rec;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,13 +76,21 @@ import java.util.List;
 import java.util.Map;
 
 import wyal.io.WyalFileLexer.Token;
-import static wyal.lang.WyalFile.*;
-
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Declaration;
+import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
+import wyal.lang.WyalFile.Stmt;
+import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.VariableDeclaration;
 import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
 import wybs.util.AbstractCompilationUnit.Attribute;
+import wybs.util.AbstractCompilationUnit.Identifier;
+import wybs.util.AbstractCompilationUnit.Name;
+import wybs.util.AbstractCompilationUnit.Tuple;
+import wybs.util.AbstractCompilationUnit.Value;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
 
@@ -136,7 +198,7 @@ public class WyalFileParser {
 
 		matchEndLine();
 		Stmt.Block body = parseStatementBlock(scope, ROOT_INDENT);
-		Declaration.Assert declaration = new Declaration.Assert(body, message, entry.id(), entry.contentType());
+		Declaration.Assert declaration = new Declaration.Assert(body, message, null);
 		return allocate(declaration, start, index - 1);
 	}
 

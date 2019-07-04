@@ -30,6 +30,9 @@ import wybs.util.AbstractSyntacticHeap;
  */
 public class StructurallyEquivalentHeap extends AbstractSyntacticHeap implements SyntacticHeap {
 	private final SyntacticHeap parent;
+	/**
+	 * @param parent
+	 */
 	public StructurallyEquivalentHeap(SyntacticHeap parent) {
 		this.parent = parent;
 		//

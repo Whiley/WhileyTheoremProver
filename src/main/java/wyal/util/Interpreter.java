@@ -25,13 +25,20 @@ import java.util.Map;
 import java.util.Objects;
 
 import wyal.lang.Domain;
-
-import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile;
+import wyal.lang.WyalFile.Declaration;
+import wyal.lang.WyalFile.Expr;
+import wyal.lang.WyalFile.FieldDeclaration;
+import wyal.lang.WyalFile.Stmt;
 import wyal.lang.WyalFile.Stmt.Block;
-import wyal.util.NameResolver;
+import wyal.lang.WyalFile.Type;
+import wyal.lang.WyalFile.VariableDeclaration;
 import wyal.util.NameResolver.NameNotFoundError;
 import wyal.util.NameResolver.ResolutionError;
+import wybs.util.AbstractCompilationUnit.Identifier;
+import wybs.util.AbstractCompilationUnit.Pair;
+import wybs.util.AbstractCompilationUnit.Tuple;
+import wybs.util.AbstractCompilationUnit.Value;
 import wytp.types.extractors.TypeInvariantExtractor;
 
 public class Interpreter {
@@ -769,6 +776,66 @@ public class Interpreter {
 		@Override
 		public String toString() {
 			return "{" + toString(this) + "}";
+		}
+
+		public Value.Dictionary toDictionary() {
+			// Extract map
+			HashMap<Identifier,Object> map = toMap(this);
+			// Sort keys
+			ArrayList<Identifier> values = new ArrayList<>(map.keySet());
+			// Sort values
+			Collections.sort(values, new Comparator<Identifier>() {
+				@Override
+				public int compare(Identifier o1, Identifier o2) {
+					return o1.get().compareTo(o2.get());
+				}
+			});
+			//
+			Pair<Identifier,Value>[] pairs = new Pair[values.size()];
+			for(int i=0;i!=pairs.length;++i) {
+				Identifier id = values.get(i);
+				pairs[i] = new Pair<>(id,toValue(map.get(id)));
+			}
+			//
+			return new Value.Dictionary(pairs);
+		}
+
+		private static HashMap<Identifier,Object> toMap(Environment env) {
+			if(env == null) {
+				return new HashMap<>();
+			} else {
+				HashMap<Identifier,Object> m = toMap(env.parent);
+				for(Map.Entry<VariableDeclaration, Object> e : env.values.entrySet()) {
+					m.put(e.getKey().getVariableName(),e.getValue());
+				}
+				return m;
+			}
+		}
+
+		private static Value toValue(Object o) {
+			if(o instanceof Object[]) {
+				Object[] os = (Object[]) o;
+				Value[] values = new Value[os.length];
+				for(int i=0;i!=values.length;++i) {
+					values[i] = toValue(os[i]);
+				}
+				return new Value.Array(values);
+			} else if(o instanceof Record) {
+				Record r = (Record) o;
+				Pair<Identifier,Value>[] fields = new Pair[r.fields.length];
+				for(int i=0;i!=fields.length;++i) {
+					fields[i] = new Pair<>(r.fields[i],toValue(r.values[i]));
+				}
+				return new Value.Dictionary(fields);
+			} else if (o instanceof BigInteger) {
+				return new Value.Int((BigInteger) o);
+			} else if (o instanceof Byte) {
+				return new Value.Byte((Byte) o);
+			} else if (o instanceof Boolean) {
+				return new Value.Bool((Boolean) o);
+			} else {
+				throw new RuntimeException("failure");
+			}
 		}
 
 		private static String toString(Environment env) {

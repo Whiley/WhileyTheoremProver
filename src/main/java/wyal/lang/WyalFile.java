@@ -17,27 +17,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 import wyal.io.WyalFileLexer;
 import wyal.io.WyalFileParser;
 import wyal.io.WyalFilePrinter;
-import wyal.lang.WyalFile;
 import wybs.lang.CompilationUnit;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
-import wybs.util.AbstractSyntacticHeap;
 import wybs.util.AbstractSyntacticItem;
-import static wybs.util.AbstractCompilationUnit.*;
 import wycc.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
-import wyfs.lang.Path.Entry;
-import wyfs.util.Trie;
 import wytp.proof.Proof;
 
 public class WyalFile extends AbstractCompilationUnit<WyalFile> {
@@ -214,7 +206,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 	}
 
 	@Override
-	public Entry<WyalFile> getEntry() {
+	public Path.Entry<WyalFile> getEntry() {
 		return entry;
 	}
 
@@ -235,22 +227,20 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 		public static class Assert extends AbstractSyntacticItem implements Declaration {
 			private String message;
-			private Path.ID file;
-			private Content.Type<?> contentType;
+			private SyntacticItem context;
 
-			public Assert(Stmt.Block body, String message, Path.ID file, Content.Type<?> contentType) {
+			public Assert(Stmt.Block body, String message, SyntacticItem context) {
 				super(DECL_assert, body);
 				this.message = message;
-				this.file = file;
-				this.contentType = contentType;
+				this.context = context;
 			}
 
 			public Stmt.Block getBody() {
 				return (Stmt.Block) get(0);
 			}
 
-			public Path.Entry<?> getEnclosingFile(Path.Root root) throws IOException {
-				return root.get(file, contentType);
+			public SyntacticItem getContext() {
+				return context;
 			}
 
 			public String getMessage() {
@@ -259,7 +249,7 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 
 			@Override
 			public Assert clone(SyntacticItem[] operands) {
-				return new Assert((Stmt.Block) operands[0], message, file, contentType);
+				return new Assert((Stmt.Block) operands[0], message, context);
 			}
 
 			@Override

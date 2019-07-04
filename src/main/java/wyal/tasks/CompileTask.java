@@ -14,11 +14,7 @@
 package wyal.tasks;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 import wyal.lang.WyalFile;
@@ -29,20 +25,15 @@ import wyal.util.SmallWorldDomain;
 import wyal.util.TypeChecker;
 import wyal.util.WyalFileResolver;
 import wybs.lang.Build;
-import wybs.lang.CompilationUnit;
+import wybs.lang.Build.Project;
 import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
-import wybs.lang.Build.Project;
 import wybs.util.AbstractBuildTask;
 import wycc.util.Logger;
-import wycc.util.Pair;
 import wyfs.lang.Path;
-import wyfs.lang.Path.Entry;
-import wyfs.lang.Path.Root;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
 import wytp.types.extractors.TypeInvariantExtractor;
-import wytp.types.subtyping.CoerciveSubtypeOperator;
 
 public class CompileTask extends AbstractBuildTask<WyalFile, WyalFile> {
 
@@ -112,7 +103,7 @@ public class CompileTask extends AbstractBuildTask<WyalFile, WyalFile> {
 		//
 		if (verify) {
 			try {
-				prover.check(src, project.getRoot());
+				prover.check(src);
 			} catch (SyntacticException e) {
 				SyntacticItem item = e.getElement();
 				if (counterexamples && item instanceof Declaration.Assert) {

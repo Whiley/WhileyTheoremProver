@@ -21,6 +21,10 @@ import wyal.lang.WyalFile;
 import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 
+/**
+ * @author djp
+ *
+ */
 public class SyntacticHeaps {
 	/**
 	 * <p>
@@ -34,8 +38,9 @@ public class SyntacticHeaps {
 	 * to this method. Furthermore, it is not currently capable of handling
 	 * cyclic structures.
 	 * </p>
+	 * @param item
 	 *
-	 * @return
+	 * @return cloned item
 	 */
 	public static <T extends SyntacticItem> T clone(T item) {
 		return clone(item, new IdentityHashMap<>());
@@ -73,6 +78,12 @@ public class SyntacticHeaps {
 		return (T) clonedItem;
 	}
 
+	/**
+	 * @param item
+	 * @param mapping
+	 * @param clazz
+	 * @return
+	 */
 	public static <T extends SyntacticItem> T cloneOnly(T item, Map<SyntacticItem, SyntacticItem> mapping, Class<?> clazz) {
 		SyntacticItem clonedItem = mapping.get(item);
 		if (clonedItem == null) {
