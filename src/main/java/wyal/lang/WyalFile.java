@@ -27,7 +27,7 @@ import wybs.lang.SyntacticHeap;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractCompilationUnit;
 import wybs.util.AbstractSyntacticItem;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wytp.proof.Proof;

@@ -17,7 +17,7 @@ import wyal.lang.WyalFile;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.VariableDeclaration;
 import wybs.lang.SyntacticItem;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 
 /**
  * A special kind of expression which maintains a normal form representation. As

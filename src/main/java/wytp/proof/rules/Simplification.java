@@ -17,11 +17,10 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import wyal.lang.WyalFile.Expr;
-import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
 
 import static wyal.lang.WyalFile.*;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 import wytp.proof.Formula;
 import wytp.proof.Formula.ArithmeticEquality;
 import wytp.proof.Formula.Conjunct;

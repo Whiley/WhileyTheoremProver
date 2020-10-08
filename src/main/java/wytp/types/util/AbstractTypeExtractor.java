@@ -22,7 +22,7 @@ import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
 import wytp.types.TypeExtractor;
 import wytp.types.TypeSystem;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 
 /**
  * <p>

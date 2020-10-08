@@ -23,8 +23,9 @@ import wybs.lang.Build;
 import wybs.lang.Build.Task;
 import wybs.util.AbstractBuildRule;
 import wybs.util.AbstractCompilationUnit.Value;
-import wycc.cfg.Configuration;
-import wycc.lang.Module;
+import wycli.cfg.Configuration;
+import wycli.lang.Command;
+import wycli.lang.Module;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
 import wyfs.util.Trie;
@@ -37,7 +38,7 @@ public class Activator implements Module.Activator {
 	public static Trie TARGET_CONFIG_OPTION = Trie.fromString("build/wyal/target");
 	private static Value.UTF8 TARGET_DEFAULT = new Value.UTF8("bin");
 
-	public static Build.Platform WYAL_PLATFORM = new Build.Platform() {
+	public static Command.Platform WYAL_PLATFORM = new Command.Platform() {
 
 		//
 		@Override
@@ -53,7 +54,7 @@ public class Activator implements Module.Activator {
 		}
 
 		@Override
-		public void initialise(Configuration configuration, Build.Project project) throws IOException {
+		public void initialise(Configuration configuration, Command.Project project) throws IOException {
 			Trie pkg = Trie.fromString(configuration.get(Value.UTF8.class, PKGNAME_CONFIG_OPTION).unwrap());
 			//
 			// Extract source path
@@ -108,7 +109,7 @@ public class Activator implements Module.Activator {
 	@Override
 	public Module start(Module.Context context) {
 		// List of commands to use
-		context.register(Build.Platform.class, WYAL_PLATFORM);
+		context.register(Command.Platform.class, WYAL_PLATFORM);
 		// List of content types
 		context.register(Content.Type.class, WyalFile.ContentType);
 		context.register(Content.Type.class, WyalFile.BinaryContentType);

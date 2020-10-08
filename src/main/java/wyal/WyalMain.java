@@ -41,6 +41,12 @@ public class WyalMain {
 		public String suffix(Type<?> t) {
 			return t.getSuffix();
 		}
+
+		@Override
+		public Type<?> contentType(String suffix) {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	};
 
 	public static void main(String[] args) throws IOException {

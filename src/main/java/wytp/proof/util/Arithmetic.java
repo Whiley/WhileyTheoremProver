@@ -18,7 +18,7 @@ import java.util.Arrays;
 
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 
 public class Arithmetic {
 

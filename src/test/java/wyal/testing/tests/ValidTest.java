@@ -15,7 +15,6 @@ package wyal.testing.tests;
 
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,17 +26,13 @@ import java.util.Map;
 
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import wyal.util.TestUtils;
-import wycc.lang.Feature.ConfigurationError;
-import wycc.util.Logger;
-import wycc.util.Pair;
-import wyfs.lang.Content;
+import wyfs.util.Pair;
 
 @RunWith(Parameterized.class)
 public class ValidTest {

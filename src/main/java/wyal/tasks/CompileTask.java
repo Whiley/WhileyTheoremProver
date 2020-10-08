@@ -16,6 +16,7 @@ package wyal.tasks;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Declaration;
@@ -25,11 +26,12 @@ import wyal.util.SmallWorldDomain;
 import wyal.util.TypeChecker;
 import wyal.util.WyalFileResolver;
 import wybs.lang.Build;
+import wybs.lang.Build.Meter;
 import wybs.lang.Build.Project;
 import wybs.lang.SyntacticException;
 import wybs.lang.SyntacticItem;
 import wybs.util.AbstractBuildTask;
-import wycc.util.Logger;
+import wybs.util.Logger;
 import wyfs.lang.Path;
 import wytp.provers.AutomatedTheoremProver;
 import wytp.types.TypeSystem;
@@ -88,17 +90,17 @@ public class CompileTask extends AbstractBuildTask<WyalFile, WyalFile> {
 	}
 
 	@Override
-	public Callable<Boolean> initialise() throws IOException {
+	public Function<Meter, Boolean> initialise() throws IOException {
 		// Extract target and source files for compilation. This is the component which
 		// requires I/O.
 		WyalFile src = sources.get(0).read();
 		// Construct the lambda for subsequent execution. This will eventually make its
 		// way into some kind of execution pool, possibly for concurrent execution with
 		// other tasks.
-		return () -> execute(src);
+		return m -> execute(src);
 	}
 
-	private boolean execute(WyalFile src) throws IOException {
+	private boolean execute(WyalFile src) {
 		new TypeChecker(typeSystem, src, null).check();
 		//
 		if (verify) {
