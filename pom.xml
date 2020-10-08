@@ -7,7 +7,7 @@
 
   <groupId>org.whiley</groupId>
   <artifactId>wytp</artifactId>
-  <version>0.6.18</version>
+  <version>0.7.0</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -51,8 +51,13 @@
     <dependency>
       <groupId>org.whiley</groupId>
       <artifactId>wycc</artifactId>
-      <version>0.7.11</version>
+      <version>[0.8.0,0.9.0)</version>
     </dependency>
+    <dependency>
+      <groupId>org.whiley</groupId>
+      <artifactId>wycli</artifactId>
+      <version>[0.8.0,0.9.0)</version>
+    </dependency>    
     <dependency>
       <groupId>ant</groupId>
       <artifactId>ant</artifactId>

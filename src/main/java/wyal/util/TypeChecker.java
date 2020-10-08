@@ -17,8 +17,8 @@ import java.util.List;
 
 import wyal.lang.*;
 import wyal.lang.WyalFile.Declaration.Named;
-import wycc.util.ArrayUtils;
-import wycc.util.Pair;
+import wyfs.util.ArrayUtils;
+import wyfs.util.Pair;
 import wyfs.lang.Path;
 import wytp.types.TypeInferer.Environment;
 import wytp.types.util.StdTypeEnvironment;

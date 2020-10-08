@@ -28,8 +28,9 @@ import wyal.tasks.CompileTask;
 import wybs.lang.Build;
 import wybs.lang.SyntacticException;
 import wybs.util.SequentialBuildProject;
-import wycc.util.Pair;
+import wyfs.util.Pair;
 import wyfs.lang.Content;
+import wyfs.lang.Content.Type;
 import wyfs.lang.Path;
 import wyfs.util.DirectoryRoot;
 import wyfs.util.Trie;
@@ -64,6 +65,12 @@ public class TestUtils {
 		@Override
 		public String suffix(Content.Type<?> t) {
 			return t.getSuffix();
+		}
+
+		@Override
+		public Type<?> contentType(String suffix) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 	};
 
@@ -105,7 +112,7 @@ public class TestUtils {
 			// Sync project with filesystem.
 			project.refresh();
 			// Actually force the project to build!
-			result = project.build(ForkJoinPool.commonPool()).get();
+			result = project.build(ForkJoinPool.commonPool(), Build.NULL_METER).get();
 			// Flush any created resources (e.g. wyil files)
 			root.flush();
 		} catch (SyntacticException e) {

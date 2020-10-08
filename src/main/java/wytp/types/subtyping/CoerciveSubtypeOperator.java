@@ -22,13 +22,11 @@ import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.FieldDeclaration;
 import wybs.util.AbstractCompilationUnit.*;
 import wyal.lang.WyalFile.Type;
-import wycc.util.Pair;
+import wyfs.util.Pair;
 import wyal.lang.WyalFile.Declaration.Named;
 import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
-import wybs.lang.SyntacticHeap;
 import wytp.types.SubtypeOperator;
-import wytp.types.SubtypeOperator.Result;
 
 public class CoerciveSubtypeOperator implements SubtypeOperator {
 	protected NameResolver resolver;

@@ -14,7 +14,7 @@
 package wytp.types.util;
 
 import wyal.lang.WyalFile.Type;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 
 /**
  * A simple collection of rewrite rules that attempts to simplify types in

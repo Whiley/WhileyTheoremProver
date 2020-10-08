@@ -14,24 +14,18 @@
 package wytp.proof.rules.type;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import wyal.lang.WyalFile;
 import wyal.lang.WyalFile.Expr;
-import wyal.lang.WyalFile.FieldDeclaration;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
-import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
-import wycc.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
-import wytp.proof.util.AbstractProofRule;
-import wytp.proof.util.Formulae;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 

@@ -17,13 +17,12 @@ import java.util.Arrays;
 
 import wyal.lang.WyalFile.Expr;
 import wyal.util.NameResolver.ResolutionError;
-import wycc.util.Pair;
+import wyfs.util.Pair;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
 import wytp.proof.Proof.State;
 import wytp.proof.rules.Simplification;
 import wytp.proof.util.AbstractClosureRule;
-import wytp.proof.util.AbstractProofRule;
 import wytp.proof.util.Arithmetic;
 import wytp.proof.util.Formulae;
 import wytp.types.TypeSystem;

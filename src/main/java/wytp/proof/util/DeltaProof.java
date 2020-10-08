@@ -15,21 +15,16 @@ package wytp.proof.util;
 
 import java.util.BitSet;
 
-import wyal.lang.WyalFile;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 import wytp.proof.Formula;
 import wytp.proof.Proof;
-import wytp.proof.rules.CongruenceClosure;
 import wytp.proof.util.AbstractProof.AbstractState;
-import wytp.proof.util.FastDelta.Set;
+
 import wytp.types.TypeInferer;
 import wytp.types.TypeInferer.Environment;
 import wytp.types.util.StdTypeEnvironment;
 import wyal.lang.WyalFile.Declaration.Assert;
-import wyal.util.NameResolver;
-import wyal.util.NameResolver.ResolutionError;
 import wybs.lang.SyntacticHeap;
-import wyal.lang.WyalFile.Expr;
 import wyal.lang.WyalFile.Type;
 import wyal.lang.WyalFile.VariableDeclaration;
 

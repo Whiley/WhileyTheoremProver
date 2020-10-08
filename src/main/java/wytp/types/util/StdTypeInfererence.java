@@ -16,9 +16,8 @@ package wytp.types.util;
 import wyal.lang.WyalFile;
 import static wyal.lang.WyalFile.*;
 import wyal.lang.WyalFile.Type;
-import wyal.util.NameResolver;
 import wyal.util.NameResolver.ResolutionError;
-import wycc.util.ArrayUtils;
+import wyfs.util.ArrayUtils;
 import wytp.types.TypeInferer;
 import wytp.types.TypeSystem;
 
