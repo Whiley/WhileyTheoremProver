@@ -24,9 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import wyal.lang.WyalFile;
-import wybs.lang.SyntacticException;
-import wybs.util.AbstractCompilationUnit;
-import wyfs.lang.Path;
+import wycc.lang.SyntacticException;
+import wycc.util.AbstractCompilationUnit;
+import jbfs.util.Trie;
 
 /**
  * Split a source file into a list of tokens. These tokens can then be fed into
@@ -36,12 +36,12 @@ import wyfs.lang.Path;
  *
  */
 public class WyalFileLexer {
-	private final Path.Entry<WyalFile> entry;
+	private final Trie ID;
 	private final StringBuilder input;
 	private int pos;
 
-	public WyalFileLexer(Path.Entry<WyalFile> entry) throws IOException {
-		this.entry = entry;
+	public WyalFileLexer(Trie ID) throws IOException {
+		this.ID = ID;
 		//
 		Reader reader = new InputStreamReader(entry.inputStream(),"UTF8");
 		BufferedReader in = new BufferedReader(reader);

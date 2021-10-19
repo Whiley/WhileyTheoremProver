@@ -30,6 +30,7 @@ import wybs.util.AbstractSyntacticItem;
 import wyfs.util.ArrayUtils;
 import wyfs.lang.Content;
 import wyfs.lang.Path;
+import wyfs.lang.Path.ID;
 import wytp.proof.Proof;
 
 public class WyalFile extends AbstractCompilationUnit<WyalFile> {
@@ -50,6 +51,13 @@ public class WyalFile extends AbstractCompilationUnit<WyalFile> {
 		public WyalFile read(Path.Entry<WyalFile> e, InputStream input) throws IOException {
 			WyalFileLexer wlexer = new WyalFileLexer(e);
 			WyalFileParser wfr = new WyalFileParser(new WyalFile(e), wlexer.scan());
+			return wfr.read();
+		}
+
+		@Override
+		public WyalFile read(ID id, InputStream input) throws IOException {
+			WyalFileLexer wlexer = new WyalFileLexer(id);
+			WyalFileParser wfr = new WyalFileParser(new WyalFile(id), wlexer.scan());
 			return wfr.read();
 		}
 
